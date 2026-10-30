@@ -37,8 +37,8 @@ namespace OfficeIMO.Tests {
             using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
                 var slideSize = document.PresentationPart?.Presentation?.SlideSize;
                 Assert.NotNull(slideSize);
-                Assert.Equal((int)PowerPointUnits.FromCentimeters(25.4), slideSize!.Cx!.Value);
-                Assert.Equal((int)PowerPointUnits.FromCentimeters(14.0), slideSize!.Cy!.Value);
+                Assert.Equal((int)global::OfficeIMO.OfficeLength.Centimeters(25.4).ToEmus(), slideSize!.Cx!.Value);
+                Assert.Equal((int)global::OfficeIMO.OfficeLength.Centimeters(14.0).ToEmus(), slideSize!.Cy!.Value);
             }
 
             File.Delete(filePath);
@@ -98,8 +98,8 @@ namespace OfficeIMO.Tests {
             using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
                 SlideSize slideSize = document.PresentationPart!.Presentation!.SlideSize!;
                 Assert.Equal(SlideSizeValues.Screen4x3, slideSize.Type!.Value);
-                Assert.Equal((int)PowerPointUnits.FromInches(10), slideSize.Cx!.Value);
-                Assert.Equal((int)PowerPointUnits.FromInches(7.5), slideSize.Cy!.Value);
+                Assert.Equal((int)global::OfficeIMO.OfficeLength.Inches(10).ToEmus(), slideSize.Cx!.Value);
+                Assert.Equal((int)global::OfficeIMO.OfficeLength.Inches(7.5).ToEmus(), slideSize.Cy!.Value);
             }
 
             File.Delete(filePath);

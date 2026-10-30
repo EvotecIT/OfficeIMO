@@ -75,7 +75,7 @@ internal static partial class DocumentFeatureShowcase {
         string[] fills = { "EAF1FB", "F1EAFC", "E7F6ED" };
         for (int index = 0; index < titles.Length; index++) {
             double left = 1.5 + index * 10.3;
-            slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(left), OfficeIMO.OfficeLength.Centimeters(5.5), OfficeIMO.OfficeLength.Centimeters(9.3), OfficeIMO.OfficeLength.Centimeters(7.5), "Stage " + (index + 1)).Fill(fills[index]).Stroke("CBD5E1", 1);
+            slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(left), OfficeIMO.OfficeLength.Centimeters(5.5), OfficeIMO.OfficeLength.Centimeters(9.3), OfficeIMO.OfficeLength.Centimeters(7.5), "Stage " + (index + 1)).Fill(fills[index]).Stroke("CBD5E1", global::OfficeIMO.OfficeLength.Points(1));
             PowerPointTextBox label = slide.AddTextBox(titles[index],global::OfficeIMO.OfficeLength.Centimeters(left + 0.5),global::OfficeIMO.OfficeLength.Centimeters(6.2),global::OfficeIMO.OfficeLength.Centimeters(8.3),global::OfficeIMO.OfficeLength.Centimeters(1.5));
             label.FontSize = global::OfficeIMO.OfficeLength.Points(24);
             label.Color = "17365D";

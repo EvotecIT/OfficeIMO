@@ -94,7 +94,7 @@ namespace OfficeIMO.PowerPoint {
             frame.FillColor = theme.AccentDarkColor;
             frame.FillTransparency = 100;
             frame.OutlineColor = theme.AccentLightColor;
-            frame.OutlineWidthPoints = 0.7;
+            frame.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.7);
 
             PowerPointTitleAccentStyle titleAccent = ResolveTitleAccentStyle(options,
                 PowerPointSectionLayoutVariant.Poster);
@@ -172,7 +172,7 @@ namespace OfficeIMO.PowerPoint {
                     "Case Study Editorial Section " + (i + 1));
                 panel.FillColor = theme.PanelColor;
                 panel.OutlineColor = theme.PanelBorderColor;
-                panel.OutlineWidthPoints = 0.45;
+                panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.45);
                 panel.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(3), distance: OfficeIMO.OfficeLength.Points(0.8), angleDegrees: 90, transparencyPercent: 90);
 
                 PowerPointAutoShape accent = slide.AddRectangle(box.Left, box.Top, OfficeIMO.OfficeLength.Centimeters(0.12), box.Height,

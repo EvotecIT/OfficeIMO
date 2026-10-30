@@ -112,7 +112,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     configure: options => options.Variant = PowerPointClosingLayoutVariant.Statement);
 
             var preflightOptions = new PowerPointDeckPreflightOptions {
-                MinimumReadableFontSizePoints = 8,
+                MinimumReadableFontSize = global::OfficeIMO.OfficeLength.Points(8),
                 DetectShapeCollisions = false
             };
             PowerPointDeckDesign design = brief.CreateDesign(0);

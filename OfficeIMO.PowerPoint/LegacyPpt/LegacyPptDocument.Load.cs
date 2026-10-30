@@ -2,7 +2,7 @@ using OfficeIMO.Core.Internal;
 using System.Threading;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
-    public sealed partial class LegacyPptDocument {
+    internal sealed partial class LegacyPptDocument {
         /// <summary>Translates compound quotas from package loading and nested VBA/OLE projections before malformed fallbacks.</summary>
         internal static LegacyPptDocument Load(byte[] bytes, LegacyPptImportOptions? options, CancellationToken cancellationToken) {
             try { return LoadCore(bytes, options, cancellationToken); }

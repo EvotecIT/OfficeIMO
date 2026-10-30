@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointTable sourceTable = source
                     .AddSlide(PowerPointSlideLayoutType.Blank)
-                    .AddTable(3,3,PowerPointTableStylePreset.Default,                        global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(24D)),                        global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(36D)),                        global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(300D)),                        global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(144D)));
+                    .AddTable(3,3,PowerPointTableStylePreset.Default,                        global::OfficeIMO.OfficeLength.Points(24D),                        global::OfficeIMO.OfficeLength.Points(36D),                        global::OfficeIMO.OfficeLength.Points(300D),                        global::OfficeIMO.OfficeLength.Points(144D));
                 sourceTable.GetCell(0, 0).Text = "Region";
                 sourceTable.GetCell(0, 1).Text = "Revenue";
                 sourceTable.GetCell(0, 1).Paragraphs[0].Runs[0].SetHyperlink(
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
                 sourceTable.BandedRows = true;
                 sourceTable.BandedColumns = false;
                 sourceTable.SetCellBorders(PowerPointTableCellBorders.All,
-                    "C1121F", widthPoints: 1.75D);
+                    "C1121F", width: global::OfficeIMO.OfficeLength.Points(1.75D));
 
                 LegacyPptWritePreflightReport preflight = source
                     .AnalyzeLegacyPptWrite();
@@ -145,9 +145,9 @@ namespace OfficeIMO.Tests {
                 .Create();
             PowerPointTable table = source.AddSlide().AddTable(1,2);
             table.GetCell(0, 0).SetBorders(PowerPointTableCellBorders.Right,
-                "C1121F", widthPoints: 1.25D);
+                "C1121F", width: global::OfficeIMO.OfficeLength.Points(1.25D));
             table.GetCell(0, 1).SetBorders(PowerPointTableCellBorders.Left,
-                "2563EB", widthPoints: 2D);
+                "2563EB", width: global::OfficeIMO.OfficeLength.Points(2D));
 
             LegacyPptWriteFinding finding = Assert.Single(
                 source.AnalyzeLegacyPptWrite().Findings,
@@ -165,7 +165,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument source =
                    PowerPointDocument.Create()) {
                 PowerPointTable table = source.AddSlide().AddTable(1,1);
-                table.SetCellBorders(PowerPointTableCellBorders.All, "2563EB", 1.25D);
+                table.SetCellBorders(PowerPointTableCellBorders.All, "2563EB", global::OfficeIMO.OfficeLength.Points(1.25D));
                 A.TableCellProperties properties = table.GetCell(0, 0)
                     .Cell.TableCellProperties!;
                 properties.LeftBorderLineProperties =

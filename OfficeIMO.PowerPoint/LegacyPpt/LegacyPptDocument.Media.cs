@@ -4,7 +4,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
-    public sealed partial class LegacyPptDocument {
+    internal sealed partial class LegacyPptDocument {
         private const ushort RecordExternalMediaAtom = 0x1004;
         private const ushort RecordExternalVideo = 0x1005;
         private const ushort RecordExternalAviMovie = 0x1006;

@@ -18,8 +18,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             double bodyTopCm = content.Top.ToCentimeters() + 1.9;
             double bodyHeightCm = content.Height.ToCentimeters() - 1.9;
             PowerPointLayoutBox[] columns = presentation.SlideSize.GetColumns(2,OfficeIMO.OfficeLength.Centimeters(marginCm),OfficeIMO.OfficeLength.Centimeters(gutterCm));
-            PowerPointLayoutBox leftColumn = new(OfficeIMO.OfficeLength.Emus(columns[0].Left.ToEmus()),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(bodyTopCm)),OfficeIMO.OfficeLength.Emus(columns[0].Width.ToEmus()),                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(bodyHeightCm)));
-            PowerPointLayoutBox rightColumn = new(OfficeIMO.OfficeLength.Emus(columns[1].Left.ToEmus()),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(bodyTopCm)),OfficeIMO.OfficeLength.Emus(columns[1].Width.ToEmus()),                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(bodyHeightCm)));
+            PowerPointLayoutBox leftColumn = new(OfficeIMO.OfficeLength.Emus(columns[0].Left.ToEmus()),global::OfficeIMO.OfficeLength.Centimeters(bodyTopCm),OfficeIMO.OfficeLength.Emus(columns[0].Width.ToEmus()),                global::OfficeIMO.OfficeLength.Centimeters(bodyHeightCm));
+            PowerPointLayoutBox rightColumn = new(OfficeIMO.OfficeLength.Emus(columns[1].Left.ToEmus()),global::OfficeIMO.OfficeLength.Centimeters(bodyTopCm),OfficeIMO.OfficeLength.Emus(columns[1].Width.ToEmus()),                global::OfficeIMO.OfficeLength.Centimeters(bodyHeightCm));
 
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox title = slide.AddTitle("Text Formatting",                global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.4));

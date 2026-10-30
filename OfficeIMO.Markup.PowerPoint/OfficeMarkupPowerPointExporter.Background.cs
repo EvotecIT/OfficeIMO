@@ -30,7 +30,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             overlay.FillColor = spec.OverlayColor;
             overlay.FillTransparency = spec.OverlayTransparency;
             overlay.OutlineColor = spec.OverlayColor;
-            overlay.OutlineWidthPoints = 0;
+            overlay.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
         }
     }
 

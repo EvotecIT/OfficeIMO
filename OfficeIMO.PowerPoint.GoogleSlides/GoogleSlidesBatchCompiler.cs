@@ -404,7 +404,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             target.FillColorHex = NormalizeColorHex(source.FillColor);
             target.FillTransparencyPercent = source.FillTransparency;
             target.OutlineColorHex = NormalizeColorHex(source.OutlineColor);
-            target.OutlineWidthPoints = source.OutlineWidthPoints;
+            target.OutlineWidthPoints = source.OutlineWidth?.ToPoints();
         }
 
         private static bool IsSupportedSlidesBackgroundImage(PowerPointSlideBackground background) =>

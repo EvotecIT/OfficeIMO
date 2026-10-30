@@ -280,7 +280,7 @@ namespace OfficeIMO.PowerPoint {
 
             result.OutlineColor = geometry.StrokeColor?.ToRgbHex();
             if (geometry.StrokeColor is OfficeColor stroke) {
-                result.OutlineWidthPoints = geometry.StrokeWidth;
+                result.OutlineWidth = OfficeLength.Emus(PowerPointShape.ToDrawingLineWidth(geometry.StrokeWidth, nameof(geometry.StrokeWidth)));
                 result.OutlineDash = MapCustomGeometryDash(
                     geometry.StrokeDashStyle).ToOfficeEnum();
                 double combinedOpacity = CombineOpacity(stroke.A,

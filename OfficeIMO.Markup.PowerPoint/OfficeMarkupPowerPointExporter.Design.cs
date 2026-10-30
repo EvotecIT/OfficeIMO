@@ -211,7 +211,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         wash.FillColor = theme.AccentLightColor;
         wash.FillTransparency = strong ? 8 : 24;
         wash.OutlineColor = theme.AccentLightColor;
-        wash.OutlineWidthPoints = 0;
+        wash.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
 
         var rail = slide.AddShape(
             OfficePresetShapeType.Rectangle,
@@ -223,7 +223,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         rail.FillColor = theme.AccentColor;
         rail.FillTransparency = strong ? 0 : 16;
         rail.OutlineColor = theme.AccentColor;
-        rail.OutlineWidthPoints = 0;
+        rail.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
 
         var rule = slide.AddShape(
             OfficePresetShapeType.Rectangle,
@@ -234,7 +234,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             "OfficeIMO Markup Canvas Rule");
         rule.FillColor = theme.AccentColor;
         rule.OutlineColor = theme.AccentColor;
-        rule.OutlineWidthPoints = 0;
+        rule.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
     }
 
     private static void AddSummaryCards(PowerPointSlide slide, PowerPointDesignTheme theme, IReadOnlyList<string> items, SlideCanvasMetrics metrics) {
@@ -257,7 +257,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                 "OfficeIMO Markup Summary Card");
             card.FillColor = theme.PanelColor;
             card.OutlineColor = theme.PanelBorderColor;
-            card.OutlineWidthPoints = 0.75;
+            card.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.75);
 
             var accent = slide.AddShape(
                 OfficePresetShapeType.Rectangle,
@@ -268,7 +268,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                 "OfficeIMO Markup Summary Card Accent");
             accent.FillColor = index % 2 == 0 ? theme.AccentColor : theme.WarningColor;
             accent.OutlineColor = accent.FillColor;
-            accent.OutlineWidthPoints = 0;
+            accent.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
 
             var number = slide.AddTextBox((index + 1).ToString("00", CultureInfo.InvariantCulture),global::OfficeIMO.OfficeLength.Inches(x + metrics.Horizontal(0.18)),global::OfficeIMO.OfficeLength.Inches(top + metrics.Vertical(0.25)),global::OfficeIMO.OfficeLength.Inches(metrics.Horizontal(0.52)),global::OfficeIMO.OfficeLength.Inches(metrics.Vertical(0.3)));
             ApplyTextStyle(number, new OfficeMarkupResolvedStyle {
@@ -328,13 +328,13 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             "OfficeIMO Markup Semantic Column Panel");
         panel.FillColor = theme.PanelColor;
         panel.OutlineColor = theme.PanelBorderColor;
-        panel.OutlineWidthPoints = 0.85;
+        panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.85);
 
         var accent = slide.AddRectangle(bounds.Left, bounds.Top, bounds.Width, OfficeIMO.OfficeLength.Centimeters(0.14),
             "OfficeIMO Markup Semantic Column Accent");
         accent.FillColor = columnIndex % 2 == 0 ? theme.AccentColor : theme.Accent2Color;
         accent.OutlineColor = accent.FillColor;
-        accent.OutlineWidthPoints = 0;
+        accent.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
 
         var cursor = new LayoutCursor(
             bounds.Left.ToInches() + 0.18,
@@ -361,7 +361,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                 "OfficeIMO Markup Semantic Column Rule");
             rule.FillColor = theme.AccentColor;
             rule.OutlineColor = theme.AccentColor;
-            rule.OutlineWidthPoints = 0;
+            rule.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
 
             cursor.Advance(0.58);
             startIndex = 1;

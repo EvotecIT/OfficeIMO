@@ -112,7 +112,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     string picture = shape is PowerPointPicture image
                         ? GoogleWorkspaceCheckpointFormat.Format($"{image.ContentType}|{Hash(image.GetImageBytes())}|{image.CropLeftRatio}|{image.CropTopRatio}|{image.CropRightRatio}|{image.CropBottomRatio}")
                         : string.Empty;
-                    string shapeStyle = GoogleWorkspaceCheckpointFormat.Format($"{shape.FillColor}|{shape.FillTransparency}|{shape.OutlineColor}|{shape.OutlineWidthPoints}");
+                    string shapeStyle = GoogleWorkspaceCheckpointFormat.Format($"{shape.FillColor}|{shape.FillTransparency}|{shape.OutlineColor}|{shape.OutlineWidth?.ToPoints()}");
                     result[GoogleWorkspaceCheckpointFormat.Format($"{root}/element/{shape.DrawingOrder}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{shape.ShapeContentType}|{shape.Name}|{shape.Left.ToPoints()}|{shape.Top.ToPoints()}|{shape.Width.ToPoints()}|{shape.Height.ToPoints()}|{shape.Rotation}|{shape.HorizontalFlip}|{shape.VerticalFlip}|{geometry}|{text}|{textStyle}|{picture}|{shapeStyle}"));
                 }
                 if (slide.Notes.TryGetExistingText(out string notes)) result[root + "/notes"] = Hash(notes);

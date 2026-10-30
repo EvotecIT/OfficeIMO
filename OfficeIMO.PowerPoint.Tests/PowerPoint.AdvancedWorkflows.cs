@@ -490,8 +490,8 @@ namespace OfficeIMO.Tests {
                 OfficeIMO.OfficeLength.Points(320),
                 OfficeIMO.OfficeLength.Points(180));
 
-            smartArt.Width= OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(240));
-            smartArt.Height= OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(240));
+            smartArt.Width= global::OfficeIMO.OfficeLength.Points(240);
+            smartArt.Height= global::OfficeIMO.OfficeLength.Points(240);
 
             Assert.True(smartArt.TryGetOfficeDiagramSnapshot(
                 out OfficeDiagramSnapshot snapshot));
@@ -697,8 +697,8 @@ namespace OfficeIMO.Tests {
             control.AddSlide().AddTitle("Filtered thumbnail");
             withPicture.AddSlide().AddTitle("Filtered thumbnail");
             withPicture.Slides[0].AddImage(new MemoryStream(PdfPngTestImages.CreateRgbPng(255, 0, 0)),
-                OfficeIMO.Drawing.OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(72)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(72)),
-                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(180)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(120)));
+                OfficeIMO.Drawing.OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(72),
+                global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(120));
 
             var controlOptions = new PowerPointPdfExportOptions { PageLayout = layout };
             var pictureOptions = new PowerPointPdfExportOptions { PageLayout = layout };

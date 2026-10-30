@@ -22,7 +22,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             deck.Save();
         }
         private static void Card(PowerPointSlide slide, double x, string title, string body, string fill) {
-            slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(x), OfficeIMO.OfficeLength.Centimeters(5), OfficeIMO.OfficeLength.Centimeters(9.5), OfficeIMO.OfficeLength.Centimeters(10)).Fill(fill).Stroke("CBD5E1", 1);
+            slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(x), OfficeIMO.OfficeLength.Centimeters(5), OfficeIMO.OfficeLength.Centimeters(9.5), OfficeIMO.OfficeLength.Centimeters(10)).Fill(fill).Stroke("CBD5E1", global::OfficeIMO.OfficeLength.Points(1));
             Text(slide, title, x + 0.6, 5.8, 8.3, 2, 22, "17365D");
             Text(slide, body, x + 0.6, 8.2, 8.3, 5.5, 20, "243247");
         }

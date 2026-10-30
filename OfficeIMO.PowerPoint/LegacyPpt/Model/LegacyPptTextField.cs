@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Identifies a native binary PowerPoint text metacharacter.</summary>
-    public enum LegacyPptTextFieldKind {
+    internal enum LegacyPptTextFieldKind {
         /// <summary>The current presentation slide number.</summary>
         SlideNumber,
         /// <summary>A date or time with an explicit classic format index.</summary>
@@ -16,7 +16,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Represents one native dynamic field anchored in binary PowerPoint text.</summary>
-    public sealed class LegacyPptTextField {
+    internal sealed class LegacyPptTextField {
         internal LegacyPptTextField(int position,
             LegacyPptTextFieldKind kind, byte? dateTimeFormatIndex = null,
             string? rtfFormat = null) {

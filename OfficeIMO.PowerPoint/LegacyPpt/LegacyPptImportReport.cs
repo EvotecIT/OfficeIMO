@@ -3,7 +3,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
     /// <summary>Provides a compact inventory of a binary PowerPoint import.</summary>
-    public sealed class LegacyPptImportReport : IOfficeConversionReport {
+    internal sealed class LegacyPptImportReport : IOfficeConversionReport {
         internal LegacyPptImportReport(LegacyPptDocument presentation) {
             SlideCount = presentation.Slides.Count;
             ShapeCount = presentation.Slides.Sum(slide => slide.Shapes.Count);

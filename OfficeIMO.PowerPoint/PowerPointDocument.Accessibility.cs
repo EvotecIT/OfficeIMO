@@ -158,8 +158,8 @@ namespace OfficeIMO.PowerPoint {
                     double? fontSize = run.FontSize?.ToPoints() ?? textBox.FontSize?.ToPoints();
                     if (!foreground.HasValue || !fontSize.HasValue) continue;
                     inspectedRun = true;
-                    bool large = fontSize.Value >= options.LargeTextThresholdPoints ||
-                        run.Bold && fontSize.Value >= options.LargeBoldTextThresholdPoints;
+                    bool large = fontSize.Value >= options.LargeTextThreshold.ToPoints() ||
+                        run.Bold && fontSize.Value >= options.LargeBoldTextThreshold.ToPoints();
                     double required = large ? options.MinimumLargeTextContrastRatio : options.MinimumTextContrastRatio;
                     double measured = OfficeColorContrast.ContrastRatio(foreground.Value, background.Value);
                     if (measured + 0.000001D < required) {
@@ -178,7 +178,7 @@ namespace OfficeIMO.PowerPoint {
                 OfficeColor? foreground = ParseColor(textBox.Color);
                 double? fontSize = textBox.FontSize?.ToPoints();
                 if (foreground.HasValue && fontSize.HasValue) {
-                    double required = fontSize.Value >= options.LargeTextThresholdPoints
+                    double required = fontSize.Value >= options.LargeTextThreshold.ToPoints()
                         ? options.MinimumLargeTextContrastRatio : options.MinimumTextContrastRatio;
                     double measured = OfficeColorContrast.ContrastRatio(foreground.Value, background.Value);
                     if (measured + 0.000001D < required) {

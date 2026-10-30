@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(700));
                 PowerPointAutoShape b = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(900));
-                long margin = PowerPointUnits.FromCentimeters(1);
+                long margin = global::OfficeIMO.OfficeLength.Centimeters(1).ToEmus();
 
                 slide.StackShapesToSlideContent(slide.Shapes, PowerPointShapeStackDirection.Vertical,
                     spacing: OfficeIMO.OfficeLength.Emus(200), margin: OfficeIMO.OfficeLength.Emus(margin));

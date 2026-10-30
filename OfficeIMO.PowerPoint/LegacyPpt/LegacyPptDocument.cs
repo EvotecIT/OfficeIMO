@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
     /// <summary>
     /// Represents the dependency-free, normalized contents of a PowerPoint 97-2003 binary presentation.
     /// </summary>
-    public sealed partial class LegacyPptDocument {
+    internal sealed partial class LegacyPptDocument {
         private const ushort RecordDocument = 0x03E8;
         private const ushort RecordDocumentAtom = 0x03E9;
         private const ushort RecordSlide = 0x03EE;

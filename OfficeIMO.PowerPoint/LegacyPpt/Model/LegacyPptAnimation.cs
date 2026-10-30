@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Specifies how a legacy shape or its child content is built.</summary>
-    public enum LegacyPptAnimationBuildType : byte {
+    internal enum LegacyPptAnimationBuildType : byte {
         /// <summary>The shape has no animation build.</summary>
         None = 0x00,
         /// <summary>The shape animates as one object.</summary>
@@ -28,7 +28,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Specifies a classic PowerPoint 97-2003 animation effect.</summary>
-    public enum LegacyPptAnimationEffect : byte {
+    internal enum LegacyPptAnimationEffect : byte {
         /// <summary>Cut or appear.</summary>
         Cut = 0x00,
         /// <summary>A random entrance effect.</summary>
@@ -72,7 +72,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Specifies the state applied after a legacy animation completes.</summary>
-    public enum LegacyPptAnimationAfterEffect : byte {
+    internal enum LegacyPptAnimationAfterEffect : byte {
         /// <summary>No after-effect.</summary>
         None = 0x00,
         /// <summary>Dim to the authored color.</summary>
@@ -84,7 +84,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Specifies how text is subdivided within a legacy animation build.</summary>
-    public enum LegacyPptTextBuildSubEffect : byte {
+    internal enum LegacyPptTextBuildSubEffect : byte {
         /// <summary>Animate the selected text at once.</summary>
         AllAtOnce = 0x00,
         /// <summary>Animate word by word.</summary>
@@ -94,7 +94,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Represents the complete classic animation atom attached to a binary shape.</summary>
-    public sealed class LegacyPptAnimation {
+    internal sealed class LegacyPptAnimation {
         internal LegacyPptAnimation(uint rawDimColor, uint rawFlags, uint soundIdReference,
             int delayMilliseconds, short order, ushort slideCount,
             LegacyPptAnimationBuildType buildType, LegacyPptAnimationEffect effect,

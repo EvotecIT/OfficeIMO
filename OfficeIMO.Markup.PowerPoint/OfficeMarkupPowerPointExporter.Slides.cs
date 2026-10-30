@@ -288,7 +288,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         slide = deck.ComposeSlide(composer => {
             composer.AddTitle(slideBlock.Title ?? "Overview", subtitle);
-            var regions = composer.ContentColumns(2, gutterCm: 0.78, topCm: 4.0, bottomMarginCm: 1.05, horizontalMarginCm: 1.55);
+            var regions = composer.ContentColumns(2, gutter: global::OfficeIMO.OfficeLength.Centimeters(0.78), top: global::OfficeIMO.OfficeLength.Centimeters(4.0), bottomMargin: global::OfficeIMO.OfficeLength.Centimeters(1.05), horizontalMargin: global::OfficeIMO.OfficeLength.Centimeters(1.55));
             for (var index = 0; index < regions.Length && index < columns.Count; index++) {
                 AddDesignerColumnRegion(composer.Slide, deck.Design.Theme, regions[index], columns[index], styleResolver, index);
             }

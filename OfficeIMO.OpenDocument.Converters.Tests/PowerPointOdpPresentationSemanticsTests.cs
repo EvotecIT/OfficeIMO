@@ -230,7 +230,7 @@ public sealed class PowerPointOdpPresentationSemanticsTests {
 
         OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
         using PowerPointDocument target = conversion.Value;
-        Assert.Equal(3, Assert.Single(target.Slides[0].Shapes.OfType<PowerPointAutoShape>()).OutlineWidthPoints);
+        Assert.Equal(3, Assert.Single(target.Slides[0].Shapes.OfType<PowerPointAutoShape>()).OutlineWidth?.ToPoints());
         Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "shape-appearance");
     }
 

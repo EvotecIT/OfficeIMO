@@ -40,8 +40,8 @@ namespace OfficeIMO.Tests {
                     A.RgbColorModelHex? color = shadow?.GetFirstChild<A.RgbColorModelHex>();
                     Assert.Equal("000000", color?.Val?.Value);
                     Assert.Equal(60000, color?.GetFirstChild<A.Alpha>()?.Val?.Value);
-                    Assert.Equal(PowerPointUnits.FromPoints(6), shadow?.BlurRadius?.Value);
-                    Assert.Equal(PowerPointUnits.FromPoints(5), shadow?.Distance?.Value);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(6).ToEmus(), shadow?.BlurRadius?.Value);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(5).ToEmus(), shadow?.Distance?.Value);
                     Assert.Equal(16200000, shadow?.Direction?.Value);
 
                     A.OuterShadow? clearedShadow = clearShape.ShapeProperties?
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
 
                     A.Glow? glow = effects?.GetFirstChild<A.Glow>();
                     Assert.NotNull(glow);
-                    Assert.Equal(PowerPointUnits.FromPoints(5), glow?.Radius?.Value);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(5).ToEmus(), glow?.Radius?.Value);
 
                     A.RgbColorModelHex? color = glow?.GetFirstChild<A.RgbColorModelHex>();
                     Assert.Equal("FF00FF", color?.Val?.Value);
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
 
                     A.SoftEdge? softEdge = effects?.GetFirstChild<A.SoftEdge>();
                     Assert.NotNull(softEdge);
-                    Assert.Equal(PowerPointUnits.FromPoints(3), softEdge?.Radius?.Value);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(3).ToEmus(), softEdge?.Radius?.Value);
 
                     A.EffectList? clearedEffects = clearXml.ShapeProperties?.GetFirstChild<A.EffectList>();
                     Assert.Null(clearedEffects?.GetFirstChild<A.Glow>());
@@ -137,14 +137,14 @@ namespace OfficeIMO.Tests {
 
                     A.Blur? blur = blurXml.ShapeProperties?.GetFirstChild<A.EffectList>()?.GetFirstChild<A.Blur>();
                     Assert.NotNull(blur);
-                    Assert.Equal(PowerPointUnits.FromPoints(5), blur?.Radius?.Value);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(5).ToEmus(), blur?.Radius?.Value);
                     Assert.True(blur?.Grow?.Value == true);
 
                     A.Reflection? reflection = reflectionXml.ShapeProperties?.GetFirstChild<A.EffectList>()?
                         .GetFirstChild<A.Reflection>();
                     Assert.NotNull(reflection);
-                    Assert.Equal(PowerPointUnits.FromPoints(6), reflection?.BlurRadius?.Value);
-                    Assert.Equal(PowerPointUnits.FromPoints(4), reflection?.Distance?.Value);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(6).ToEmus(), reflection?.BlurRadius?.Value);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(4).ToEmus(), reflection?.Distance?.Value);
                     Assert.Equal(16200000, reflection?.Direction?.Value);
                     Assert.Equal(5400000, reflection?.FadeDirection?.Value);
                     Assert.Equal(60000, reflection?.StartOpacity?.Value);
@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
                     shape.FillColor = "EFE8DA";
                     shape.FillTransparency = 8;
                     shape.OutlineColor = "6B6EA8";
-                    shape.OutlineWidthPoints = 1.2;
+                    shape.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.2);
 
                     presentation.Save();
                     Assert.Empty(presentation.ValidateDocument());

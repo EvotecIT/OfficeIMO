@@ -194,7 +194,7 @@ namespace OfficeIMO.Tests {
                 fifth.Rotation = 15D;
                 fifth.HorizontalFlip = true;
                 fifth.OutlineColor = "203864";
-                fifth.OutlineWidthPoints = 2D;
+                fifth.OutlineWidth = global::OfficeIMO.OfficeLength.Points(2D);
                 fifth.SetShadow("222222", blur: OfficeIMO.OfficeLength.Points(2D),
                     distance: OfficeIMO.OfficeLength.Points(2D), angleDegrees: 90D,
                     transparencyPercent: 40);
@@ -309,10 +309,10 @@ namespace OfficeIMO.Tests {
                 using var stream = new MemoryStream(emf, writable: false);
                 source.AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddImage(stream, OfficeIMO.Drawing.OfficeImageFormat.Emf,
-                        global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20D)),
-                        global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30D)),
-                        global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(120D)),
-                        global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(90D)));
+                        global::OfficeIMO.OfficeLength.Points(20D),
+                        global::OfficeIMO.OfficeLength.Points(30D),
+                        global::OfficeIMO.OfficeLength.Points(120D),
+                        global::OfficeIMO.OfficeLength.Points(90D));
                 Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }

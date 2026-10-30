@@ -141,10 +141,10 @@ namespace OfficeIMO.Tests {
                 .Elements<GroupShape>()
                 .Single();
             A.TransformGroup transform = group.GroupShapeProperties!.TransformGroup!;
-            transform.Extents!.Cx = PowerPointUnits.FromPoints(200);
-            transform.Extents.Cy = PowerPointUnits.FromPoints(60);
-            transform.ChildExtents!.Cx = PowerPointUnits.FromPoints(100);
-            transform.ChildExtents.Cy = PowerPointUnits.FromPoints(30);
+            transform.Extents!.Cx = global::OfficeIMO.OfficeLength.Points(200).ToEmus();
+            transform.Extents.Cy = global::OfficeIMO.OfficeLength.Points(60).ToEmus();
+            transform.ChildExtents!.Cx = global::OfficeIMO.OfficeLength.Points(100).ToEmus();
+            transform.ChildExtents.Cy = global::OfficeIMO.OfficeLength.Points(30).ToEmus();
             slide.SlidePart.Slide.Save();
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();

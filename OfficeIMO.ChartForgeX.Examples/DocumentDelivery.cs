@@ -108,7 +108,7 @@ internal static class DocumentDelivery {
 
     private static void Text(PowerPointSlide slide, string text, double left, double top, double width, double height,
         double size, string color) {
-        var box = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(left)),global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(top)),            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(width)),global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(height)));
+        var box = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),            global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
         box.FontName = Style.FontFamily; box.FontSize = global::OfficeIMO.OfficeLength.Points((int)Math.Round(size)); box.Color = color.TrimStart('#');
     }
 

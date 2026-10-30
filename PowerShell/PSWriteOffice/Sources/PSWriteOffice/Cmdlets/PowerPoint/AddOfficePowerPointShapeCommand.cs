@@ -78,8 +78,11 @@ public sealed class AddOfficePowerPointShapeCommand : PSWriteOffice.Cmdlets.Offi
                 throw new ArgumentOutOfRangeException(nameof(Height), "Height must be greater than 0.");
             }
 
-            if (OutlineWidth is < 0) {
-                throw new ArgumentOutOfRangeException(nameof(OutlineWidth), "OutlineWidth cannot be negative.");
+            OfficeIMO.OfficeLength? outlineWidth = OutlineWidth.HasValue
+                ? OfficeIMO.OfficeLength.Points(OutlineWidth.Value)
+                : null;
+            if (outlineWidth.HasValue) {
+                PowerPointShape.ToDrawingLineWidth(outlineWidth.Value, nameof(OutlineWidth));
             }
 
             var slide = Slide ?? PowerPointDslContext.Require(this).RequireSlide();
@@ -96,7 +99,7 @@ public sealed class AddOfficePowerPointShapeCommand : PSWriteOffice.Cmdlets.Offi
             }
 
             if (OutlineWidth.HasValue) {
-                shape.OutlineWidthPoints = OutlineWidth.Value;
+                shape.OutlineWidth = outlineWidth;
             }
 
             WritePassThru(shape);

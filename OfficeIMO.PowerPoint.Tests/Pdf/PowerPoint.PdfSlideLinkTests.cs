@@ -24,7 +24,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         PowerPointAutoShape line = helper
             ? first.AddLine(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(vertical ? 20 : 220), OfficeIMO.OfficeLength.Points(vertical ? 200 : 40))
             : first.AddShape(OfficePresetShapeType.Line, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(vertical ? 0 : 200), OfficeIMO.OfficeLength.Points(vertical ? 160 : 0));
-        line.OutlineColor = "000000"; line.OutlineWidthPoints = 2;
+        line.OutlineColor = "000000"; line.OutlineWidth = global::OfficeIMO.OfficeLength.Points(2);
         line.SetHyperlink(second);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
         using var reopened = PowerPointDocument.Load(saved);
@@ -43,7 +43,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240));
         PowerPointSlide first = presentation.AddSlide(), second = presentation.AddSlide();
         PowerPointAutoShape line = first.AddShape(OfficePresetShapeType.StraightConnector1, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(0));
-        line.OutlineColor = "000000"; line.OutlineWidthPoints = 2;
+        line.OutlineColor = "000000"; line.OutlineWidth = global::OfficeIMO.OfficeLength.Points(2);
         line.Rotation = rotation; line.SetHyperlink(second);
         PdfCore.PdfLinkAnnotation link = Assert.Single(PdfCore.PdfInspector.Inspect(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).LinkAnnotations);
         OfficeTransform transform = new OfficeImageFrameTransform(rotation, 120, 40, false, false).CreateDestinationTransform();

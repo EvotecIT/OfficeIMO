@@ -21,8 +21,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             double slideHeightCm = presentation.SlideSize.Height.ToCentimeters();
             double bodyTopCm = 3.4;
             double bodyHeightCm = slideHeightCm - bodyTopCm - marginCm;
-            long bodyTop = PowerPointUnits.FromCentimeters(bodyTopCm);
-            long bodyHeight = PowerPointUnits.FromCentimeters(bodyHeightCm);
+            long bodyTop = global::OfficeIMO.OfficeLength.Centimeters(bodyTopCm).ToEmus();
+            long bodyHeight = global::OfficeIMO.OfficeLength.Centimeters(bodyHeightCm).ToEmus();
             PowerPointLayoutBox[] columns = presentation.SlideSize.GetColumns(2,OfficeIMO.OfficeLength.Centimeters(marginCm),OfficeIMO.OfficeLength.Centimeters(gutterCm));
             PowerPointLayoutBox leftColumn = new(OfficeIMO.OfficeLength.Emus(columns[0].Left.ToEmus()),OfficeIMO.OfficeLength.Emus(bodyTop),OfficeIMO.OfficeLength.Emus(columns[0].Width.ToEmus()),OfficeIMO.OfficeLength.Emus(bodyHeight));
             PowerPointLayoutBox rightColumn = new(OfficeIMO.OfficeLength.Emus(columns[1].Left.ToEmus()),OfficeIMO.OfficeLength.Emus(bodyTop),OfficeIMO.OfficeLength.Emus(columns[1].Width.ToEmus()),OfficeIMO.OfficeLength.Emus(bodyHeight));
@@ -32,8 +32,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             if (File.Exists(imagePath)) {
                 PowerPointPicture original = slide.AddImage(imagePath, leftColumn.Left, leftColumn.Top, leftColumn.Width, leftColumn.Height);
                 original.FitToBox(1200, 800, crop: false);
-                slide.AddTextBox("Original", leftColumn.Left, global::OfficeIMO.OfficeLength.Emus(leftColumn.Top.ToEmus() + leftColumn.Height.ToEmus() - PowerPointUnits.FromCentimeters(0.8)),
-                    leftColumn.Width, global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(0.6)));
+                slide.AddTextBox("Original", leftColumn.Left, global::OfficeIMO.OfficeLength.Emus(leftColumn.Top.ToEmus() + leftColumn.Height.ToEmus() - global::OfficeIMO.OfficeLength.Centimeters(0.8).ToEmus()),
+                    leftColumn.Width, global::OfficeIMO.OfficeLength.Centimeters(0.6));
 
                 PowerPointPicture updated = slide.AddImage(imagePath, rightColumn.Left, rightColumn.Top, rightColumn.Width, rightColumn.Height);
                 if (File.Exists(newImagePath)) {
@@ -41,9 +41,9 @@ namespace OfficeIMO.Examples.PowerPoint {
                 }
                 updated.FitToBox(800, 800, crop: false);
                 slide.AddTextBox("Updated via UpdateImage()", rightColumn.Left,
-                    global::OfficeIMO.OfficeLength.Emus(rightColumn.Top.ToEmus() + rightColumn.Height.ToEmus() - PowerPointUnits.FromCentimeters(0.8)), rightColumn.Width, global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(0.6)));
+                    global::OfficeIMO.OfficeLength.Emus(rightColumn.Top.ToEmus() + rightColumn.Height.ToEmus() - global::OfficeIMO.OfficeLength.Centimeters(0.8).ToEmus()), rightColumn.Width, global::OfficeIMO.OfficeLength.Centimeters(0.6));
             } else {
-                slide.AddTextBox("Image assets not found.", content.Left, global::OfficeIMO.OfficeLength.Emus(bodyTop), content.Width, global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1)));
+                slide.AddTextBox("Image assets not found.", content.Left, global::OfficeIMO.OfficeLength.Emus(bodyTop), content.Width, global::OfficeIMO.OfficeLength.Centimeters(1));
             }
 
             presentation.Save();

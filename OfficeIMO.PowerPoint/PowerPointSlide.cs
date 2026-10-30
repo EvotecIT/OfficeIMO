@@ -77,7 +77,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Retrieves shapes that are within or intersect the provided bounds.
         /// </summary>
-        public IReadOnlyList<PowerPointShape> GetShapesInBounds(PowerPointLayoutBox bounds, bool includePartial = true) {
+        public IReadOnlyList<PowerPointShape> GetShapesInBounds(PowerPointLayoutBox bounds, bool includePartial) {
             if (includePartial) {
                 return ShapeList
                     .Where(shape =>
@@ -97,26 +97,10 @@ namespace OfficeIMO.PowerPoint {
                 .ToList();
         }
 
-        /// <summary>
-        ///     Retrieves shapes using bounds defined in centimeters.
-        /// </summary>
-        public IReadOnlyList<PowerPointShape> GetShapesInBoundsCm(double leftCm, double topCm, double widthCm, double heightCm, bool includePartial = true) {
-            return GetShapesInBounds(new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(leftCm),OfficeIMO.OfficeLength.Centimeters(topCm),OfficeIMO.OfficeLength.Centimeters(widthCm),OfficeIMO.OfficeLength.Centimeters(heightCm)), includePartial);
-        }
-
-        /// <summary>
-        ///     Retrieves shapes using bounds defined in inches.
-        /// </summary>
-        public IReadOnlyList<PowerPointShape> GetShapesInBoundsInches(double leftInches, double topInches, double widthInches, double heightInches, bool includePartial = true) {
-            return GetShapesInBounds(new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Inches(leftInches),OfficeIMO.OfficeLength.Inches(topInches),OfficeIMO.OfficeLength.Inches(widthInches),OfficeIMO.OfficeLength.Inches(heightInches)), includePartial);
-        }
-
-        /// <summary>
-        ///     Retrieves shapes using bounds defined in points.
-        /// </summary>
-        public IReadOnlyList<PowerPointShape> GetShapesInBoundsPoints(double leftPoints, double topPoints, double widthPoints, double heightPoints, bool includePartial = true) {
-            return GetShapesInBounds(new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(leftPoints),OfficeIMO.OfficeLength.Points(topPoints),OfficeIMO.OfficeLength.Points(widthPoints),OfficeIMO.OfficeLength.Points(heightPoints)), includePartial);
-        }
+        /// <summary>Retrieves shapes using an explicit position and size.</summary>
+        public IReadOnlyList<PowerPointShape> GetShapesInBounds(OfficeLength left, OfficeLength top,
+            OfficeLength width, OfficeLength height, bool includePartial = true) =>
+            GetShapesInBounds(new PowerPointLayoutBox(left, top, width, height), includePartial);
 
         /// <summary>
         ///     Notes associated with the slide.

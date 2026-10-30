@@ -286,7 +286,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointAutoShape takeawayCard = AddPanel(slide, 18.5, 3.1, 11.4, 3.6, "Takeaway Card");
             takeawayCard.FillColor = Linen;
             takeawayCard.OutlineColor = Orange;
-            takeawayCard.OutlineWidthPoints = 1.4;
+            takeawayCard.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.4);
             takeawayCard.SetReflection(blur: OfficeIMO.OfficeLength.Points(2), distance: OfficeIMO.OfficeLength.Points(1), startOpacityPercent: 15, endOpacityPercent: 0);
             AddLabel(slide, "Takeaway", 19.1, 3.55, 5.0, 0.55, Orange, 12, bold: true);
             AddBody(slide, "Sales nearly triple from January to June while profit expands at a steadier pace.", 19.1, 4.45, 9.8, 1.5, 18);
@@ -335,7 +335,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointAutoShape noteCard = AddPanel(slide, 25.2, 3.1, 5.1, 8.9, "Story Card");
             noteCard.FillColor = Linen;
             noteCard.OutlineColor = Indigo;
-            noteCard.OutlineWidthPoints = 1.2;
+            noteCard.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.2);
             AddLabel(slide, "Story", 25.75, 3.75, 3.8, 0.5, Indigo, 12, bold: true);
             AddBody(slide, "Enterprise remains anchor-led, but online demand now deserves a dedicated program.", 25.75, 4.75, 4.1, 4.0, 16);
 
@@ -378,7 +378,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointAutoShape callout = AddPanel(slide, 24.2, 4.8, 7.4, 5.9, "Observation Card");
             callout.FillColor = Linen;
             callout.OutlineColor = Indigo;
-            callout.OutlineWidthPoints = 1.2;
+            callout.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.2);
             callout.SetReflection(blur: OfficeIMO.OfficeLength.Points(2), distance: OfficeIMO.OfficeLength.Points(1), startOpacityPercent: 18, endOpacityPercent: 0);
             AddLabel(slide, "Observation", 25.0, 5.45, 5.5, 0.55, Indigo, 13, bold: true);
             AddBody(slide, "The slope stays healthy through Q2, which makes the line view easier to read than a scatter plot here.", 25.0, 6.6, 5.6, 3.0, 16);
@@ -403,7 +403,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointAutoShape card = AddPanel(slide, box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), box.Height.ToCentimeters(), title + " Service Card");
             card.FillColor = "FFFFFF";
             card.OutlineColor = "D8DDE3";
-            card.OutlineWidthPoints = 1.0;
+            card.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.0);
 
             PowerPointAutoShape accent = slide.AddRectangle(box.Left, box.Top, box.Width, OfficeIMO.OfficeLength.Centimeters(0.18), title + " Accent");
             accent.FillColor = color;
@@ -441,7 +441,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             lane.FillColor = fillColor;
             lane.FillTransparency = 72;
             lane.OutlineColor = fillColor;
-            lane.OutlineWidthPoints = 0;
+            lane.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
         }
 
         private static void AddArrowMotif(PowerPointSlide slide, double leftCm, double topCm, int count, double spacingCm) {
@@ -479,7 +479,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             double y = left.Top.ToCentimeters() + 1.15;
             PowerPointAutoShape arrow = slide.AddLine(OfficeIMO.OfficeLength.Centimeters(left.Right.ToCentimeters() + 0.06), OfficeIMO.OfficeLength.Centimeters(y), OfficeIMO.OfficeLength.Centimeters(right.Left.ToCentimeters() - 0.22), OfficeIMO.OfficeLength.Centimeters(y), "Process Arrow");
             arrow.OutlineColor = "D7F3FA";
-            arrow.OutlineWidthPoints = 2.8;
+            arrow.OutlineWidth = global::OfficeIMO.OfficeLength.Points(2.8);
             arrow.SetLineEnds(null, OfficeLineMarkerKind.Triangle, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
         }
 
@@ -554,7 +554,7 @@ namespace OfficeIMO.Examples.PowerPoint {
         private static void AddMetricCard(PowerPointSlide slide, string value, string label, string detail, double leftCm, double topCm, string color) {
             PowerPointAutoShape card = AddPanel(slide, leftCm, topCm, 5.7, 2.25, label + " Card");
             card.OutlineColor = color;
-            card.OutlineWidthPoints = 1.1;
+            card.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.1);
 
             PowerPointAutoShape chip = slide.AddEllipse(OfficeIMO.OfficeLength.Centimeters(leftCm + 0.45), OfficeIMO.OfficeLength.Centimeters(topCm + 0.42), OfficeIMO.OfficeLength.Centimeters(0.55), OfficeIMO.OfficeLength.Centimeters(0.55), label + " Chip");
             chip.FillColor = color;

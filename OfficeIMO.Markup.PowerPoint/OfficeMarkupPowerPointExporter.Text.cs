@@ -54,7 +54,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         var borderColor = ToPowerPointColor(style.BorderColor);
         if (!string.IsNullOrWhiteSpace(borderColor)) {
             textBox.OutlineColor = borderColor;
-            textBox.OutlineWidthPoints = 0.75;
+            textBox.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.75);
         }
 
         textBox.SetTextAutoFit(
@@ -108,7 +108,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         if (!string.IsNullOrWhiteSpace(borderColor)) {
             panel.OutlineColor = borderColor;
-            panel.OutlineWidthPoints = 0.75;
+            panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.75);
         }
     }
 }

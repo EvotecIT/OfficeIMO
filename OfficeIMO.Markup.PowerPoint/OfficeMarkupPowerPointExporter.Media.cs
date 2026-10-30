@@ -140,7 +140,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         panel.FillColor = "FFFFFF";
         panel.FillTransparency = 4;
         panel.OutlineColor = "D9E2EF";
-        panel.OutlineWidthPoints = 0.75;
+        panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.75);
     }
 
     private static PowerPointPicture AddImage(PowerPointSlide slide, string path, LayoutCursor box, string? fit) {

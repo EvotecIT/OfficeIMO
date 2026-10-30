@@ -61,11 +61,11 @@ namespace OfficeIMO.Examples.PowerPoint {
 
                 PowerPointAutoShape leftPanel = slide.AddRectangle(columns[0].Left, columns[0].Top, columns[0].Width,
                     columns[0].Height, "Left Panel");
-                leftPanel.Fill("E7F7FF").Stroke("007ACC", 1.5);
+                leftPanel.Fill("E7F7FF").Stroke("007ACC", global::OfficeIMO.OfficeLength.Points(1.5));
 
                 PowerPointAutoShape rightPanel = slide.AddRectangle(columns[1].Left, columns[1].Top, columns[1].Width,
                     columns[1].Height, "Right Panel");
-                rightPanel.Fill("FFF4E5").Stroke("C48A00", 1.5);
+                rightPanel.Fill("FFF4E5").Stroke("C48A00", global::OfficeIMO.OfficeLength.Points(1.5));
 
                 PowerPointTextBox leftLabel = slide.AddTextBox("Panel A",global::OfficeIMO.OfficeLength.Centimeters(columns[0].Left.ToCentimeters() + 0.4),global::OfficeIMO.OfficeLength.Centimeters(columns[0].Top.ToCentimeters() + 0.4),                    global::OfficeIMO.OfficeLength.Centimeters(columns[0].Width.ToCentimeters() - 0.8),global::OfficeIMO.OfficeLength.Centimeters(1.0));
                 leftLabel.FontSize = global::OfficeIMO.OfficeLength.Points(16);

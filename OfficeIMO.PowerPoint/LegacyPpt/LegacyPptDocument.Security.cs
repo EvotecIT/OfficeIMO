@@ -1,7 +1,7 @@
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
-    public sealed partial class LegacyPptDocument {
+    internal sealed partial class LegacyPptDocument {
         internal bool HasVbaContent { get; private set; }
         internal bool HasEmbeddedOleContent { get; private set; }
         internal bool HasLinkedOleContent { get; private set; }

@@ -105,23 +105,23 @@ namespace OfficeIMO.PowerPoint {
                 : theme.PanelColor;
             panel.FillTransparency = 0;
             panel.OutlineColor = theme.PanelBorderColor;
-            panel.OutlineWidthPoints = variant == PowerPointCardGridLayoutVariant.SoftTiles ? 0.35 : 0.8;
+            panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(variant == PowerPointCardGridLayoutVariant.SoftTiles ? 0.35 : 0.8);
 
             switch (surfaceStyle) {
                 case PowerPointCardSurfaceStyle.Flat:
                     panel.FillColor = theme.SurfaceColor;
-                    panel.OutlineWidthPoints = 0.25;
+                    panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.25);
                     break;
                 case PowerPointCardSurfaceStyle.Hairline:
                     panel.FillColor = theme.SurfaceColor;
                     panel.OutlineColor = theme.PanelBorderColor;
-                    panel.OutlineWidthPoints = 0.35;
+                    panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.35);
                     break;
                 case PowerPointCardSurfaceStyle.AccentWash:
                     panel.FillColor = accent;
                     panel.FillTransparency = 88;
                     panel.OutlineColor = accent;
-                    panel.OutlineWidthPoints = 0.25;
+                    panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.25);
                     break;
                 default:
                     panel.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(variant == PowerPointCardGridLayoutVariant.SoftTiles ? 3 : 5),

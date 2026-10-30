@@ -206,7 +206,7 @@ public partial class PowerPointSaveAsPdfTests {
         PowerPointAutoShape panel = slide.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(48));
         panel.FillColor = "EAF4FF";
         panel.OutlineColor = "1E5A96";
-        panel.OutlineWidthPoints = 1.5D;
+        panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.5D);
 
         PowerPointTextBox textBox = slide.AddTextBox("Premium Slide",global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(36),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(36));
         textBox.FillColor = "FFFFFF";
@@ -467,9 +467,9 @@ public partial class PowerPointSaveAsPdfTests {
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddShape(OfficePresetShapeType.Triangle, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(58), OfficeIMO.OfficeLength.Points(44)).Fill("1F4E79").Stroke("1F4E79", 1D);
-        slide.AddShape(OfficePresetShapeType.Parallelogram, OfficeIMO.OfficeLength.Points(96), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(74), OfficeIMO.OfficeLength.Points(44)).Fill("1976D2").Stroke("1976D2", 1D);
-        slide.AddShape(OfficePresetShapeType.RightArrow, OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(94), OfficeIMO.OfficeLength.Points(112), OfficeIMO.OfficeLength.Points(34)).Fill("16A34A").Stroke("16A34A", 1D);
+        slide.AddShape(OfficePresetShapeType.Triangle, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(58), OfficeIMO.OfficeLength.Points(44)).Fill("1F4E79").Stroke("1F4E79", global::OfficeIMO.OfficeLength.Points(1D));
+        slide.AddShape(OfficePresetShapeType.Parallelogram, OfficeIMO.OfficeLength.Points(96), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(74), OfficeIMO.OfficeLength.Points(44)).Fill("1976D2").Stroke("1976D2", global::OfficeIMO.OfficeLength.Points(1D));
+        slide.AddShape(OfficePresetShapeType.RightArrow, OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(94), OfficeIMO.OfficeLength.Points(112), OfficeIMO.OfficeLength.Points(34)).Fill("16A34A").Stroke("16A34A", global::OfficeIMO.OfficeLength.Points(1D));
         var options = new PowerPointPdfExportOptions();
 
         byte[] bytes = presentation.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -1996,8 +1996,8 @@ public partial class PowerPointSaveAsPdfTests {
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddShape(OfficePresetShapeType.Line, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(0)).Stroke("1E5A96", 1.5D);
-        slide.AddShape(OfficePresetShapeType.Line, OfficeIMO.OfficeLength.Points(140), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(80)).Stroke("C00000", 1.5D);
+        slide.AddShape(OfficePresetShapeType.Line, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(0)).Stroke("1E5A96", global::OfficeIMO.OfficeLength.Points(1.5D));
+        slide.AddShape(OfficePresetShapeType.Line, OfficeIMO.OfficeLength.Points(140), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(80)).Stroke("C00000", global::OfficeIMO.OfficeLength.Points(1.5D));
         var options = new PowerPointPdfExportOptions();
 
         byte[] bytes = presentation.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -2016,8 +2016,8 @@ public partial class PowerPointSaveAsPdfTests {
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddShape(OfficePresetShapeType.StraightConnector1, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(0)).Stroke("1E5A96", 1.5D);
-        slide.AddShape(OfficePresetShapeType.StraightConnector1, OfficeIMO.OfficeLength.Points(140), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(80)).Stroke("C00000", 1.5D);
+        slide.AddShape(OfficePresetShapeType.StraightConnector1, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(0)).Stroke("1E5A96", global::OfficeIMO.OfficeLength.Points(1.5D));
+        slide.AddShape(OfficePresetShapeType.StraightConnector1, OfficeIMO.OfficeLength.Points(140), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(80)).Stroke("C00000", global::OfficeIMO.OfficeLength.Points(1.5D));
         var options = new PowerPointPdfExportOptions();
 
         byte[] bytes = presentation.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -2037,7 +2037,7 @@ public partial class PowerPointSaveAsPdfTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointAutoShape line = presentation.AddSlide().AddShape(OfficePresetShapeType.Line, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40));
         line.HorizontalFlip = true;
-        line.Stroke("1E5A96", 1.5D);
+        line.Stroke("1E5A96", global::OfficeIMO.OfficeLength.Points(1.5D));
 
         byte[] bytes = presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 

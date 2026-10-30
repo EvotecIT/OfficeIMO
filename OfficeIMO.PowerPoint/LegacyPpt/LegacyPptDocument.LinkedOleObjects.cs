@@ -4,7 +4,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
-    public sealed partial class LegacyPptDocument {
+    internal sealed partial class LegacyPptDocument {
         private const ushort RecordExternalOleLink = 0x0FCE;
         private const ushort RecordExternalOleLinkAtom = 0x0FD1;
 

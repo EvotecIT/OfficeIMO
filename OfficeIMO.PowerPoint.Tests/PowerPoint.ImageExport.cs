@@ -286,7 +286,7 @@ namespace OfficeIMO.Tests {
             PowerPointAutoShape rectangle = slide.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30));
             rectangle.FillColor = "22AA66";
             rectangle.OutlineColor = "114433";
-            rectangle.OutlineWidthPoints = 1D;
+            rectangle.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1D);
 
             PowerPointTextBox textBox = slide.AddTextBox("Shared renderer",global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(54),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(36));
             textBox.FontSize = global::OfficeIMO.OfficeLength.Points(12);
@@ -309,7 +309,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(100));
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
-            slide.AddImage(new MemoryStream(png), OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)));
+            slide.AddImage(new MemoryStream(png), OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20));
 
             OfficeImageExportResult pngResult = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svgResult = slide.ExportImage(OfficeImageExportFormat.Svg);
@@ -330,8 +330,8 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
             slide.AddImage(new MemoryStream(png), OfficeImageFormat.Png,
-                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),
-                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)));
+                global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20));
 
             OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions {
                 MaximumEmbeddedImageBytes = png.Length - 1,
@@ -351,11 +351,11 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
             slide.AddImage(new MemoryStream(png), OfficeImageFormat.Png,
-                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),
-                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)));
+                global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20));
             slide.AddImage(new MemoryStream(png), OfficeImageFormat.Png,
-                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(50)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),
-                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)));
+                global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20));
 
             OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions {
                 MaximumEmbeddedImageBytes = png.Length,
@@ -375,8 +375,8 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
             PowerPointPicture picture = slide.AddImage(new MemoryStream(png), OfficeImageFormat.Png,
-                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),
-                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)));
+                global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20));
             PowerPointAutoShape anchor = slide.AddRectangle(OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(12), OfficeIMO.OfficeLength.Points(12));
             slide.GroupShapes(new PowerPointShape[] { picture, anchor }, "Bounded picture group");
 
@@ -421,10 +421,10 @@ namespace OfficeIMO.Tests {
             slide.AddImage(
                 new MemoryStream(svg),
                 OfficeImageFormat.Svg,
-                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),
-                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),
-                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(40)),
-                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30)));
+                global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(40),
+                global::OfficeIMO.OfficeLength.Points(30));
 
             OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png);
 
@@ -586,7 +586,7 @@ namespace OfficeIMO.Tests {
 
             int layoutIndex = presentation.GetLayoutIndex(PowerPointSlideLayoutType.TitleOnly);
             var bounds = new PowerPointLayoutBox(
-                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(24)),                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(180)),                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(32)));
+                global::OfficeIMO.OfficeLength.Points(20),                global::OfficeIMO.OfficeLength.Points(24),                global::OfficeIMO.OfficeLength.Points(180),                global::OfficeIMO.OfficeLength.Points(32));
             PowerPointTextBox layoutTitle = presentation.EnsureLayoutPlaceholderTextBox(0, layoutIndex, PowerPointPlaceholderType.Title, bounds: bounds);
             presentation.SetLayoutPlaceholderBounds(0, layoutIndex, PowerPointPlaceholderType.Title, bounds);
             layoutTitle.Text = "Inherited layout title";
@@ -615,7 +615,7 @@ namespace OfficeIMO.Tests {
 
             int layoutIndex = presentation.GetLayoutIndex(PowerPointSlideLayoutType.TitleOnly);
             var bounds = new PowerPointLayoutBox(
-                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(24)),                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(180)),                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(32)));
+                global::OfficeIMO.OfficeLength.Points(20),                global::OfficeIMO.OfficeLength.Points(24),                global::OfficeIMO.OfficeLength.Points(180),                global::OfficeIMO.OfficeLength.Points(32));
             PowerPointTextBox layoutTitle = presentation.EnsureLayoutPlaceholderTextBox(0, layoutIndex, PowerPointPlaceholderType.Title, bounds: bounds);
             presentation.SetLayoutPlaceholderBounds(0, layoutIndex, PowerPointPlaceholderType.Title, bounds);
             layoutTitle.Text = "Inherited layout title";

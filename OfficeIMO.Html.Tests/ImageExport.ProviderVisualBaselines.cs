@@ -86,15 +86,15 @@ public sealed class ImageExportProviderVisualBaselineTests {
         evidence.Color = "155E75";
         slide.AddShape(OfficePresetShapeType.RoundRectangle, OfficeIMO.OfficeLength.Points(28), OfficeIMO.OfficeLength.Points(178), OfficeIMO.OfficeLength.Points(174), OfficeIMO.OfficeLength.Points(46))
             .Fill("DBEAFE")
-            .Stroke("2563EB", 1D);
+            .Stroke("2563EB", global::OfficeIMO.OfficeLength.Points(1D));
         using (var image = new MemoryStream(CreateVisualBadge())) {
             slide.AddImage(
                 image,
                 OfficeImageFormat.Png,
-                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(260)),
-                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(178)),
-                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(150)),
-                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(50)));
+                global::OfficeIMO.OfficeLength.Points(260),
+                global::OfficeIMO.OfficeLength.Points(178),
+                global::OfficeIMO.OfficeLength.Points(150),
+                global::OfficeIMO.OfficeLength.Points(50));
         }
         var options = new PowerPointImageExportOptions();
         options.Fonts.Add(PortableFontFamily, PortableRegularFont.Value);

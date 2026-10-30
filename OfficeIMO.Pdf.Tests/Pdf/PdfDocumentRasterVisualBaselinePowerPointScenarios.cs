@@ -32,7 +32,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         PowerPointAutoShape panel = slide.AddShape(OfficePresetShapeType.RoundRectangle, OfficeIMO.OfficeLength.Points(14), OfficeIMO.OfficeLength.Points(14), OfficeIMO.OfficeLength.Points(132), OfficeIMO.OfficeLength.Points(72));
         panel.FillColor = "FFFFFF";
         panel.OutlineColor = "B9D7EA";
-        panel.OutlineWidthPoints = 1.2D;
+        panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.2D);
 
         PowerPointTextBox title = slide.AddTextBox("PowerPoint PDF Visual Gate",global::OfficeIMO.OfficeLength.Points(22),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(122),global::OfficeIMO.OfficeLength.Points(32));
         title.FontName = "Georgia";
@@ -76,7 +76,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
         PowerPointAutoShape rule = slide.AddShape(OfficePresetShapeType.Line, OfficeIMO.OfficeLength.Points(154), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(0));
         rule.OutlineColor = "1E5A96";
-        rule.OutlineWidthPoints = 1.5D;
+        rule.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.5D);
 
         var options = new PowerPointPdfExportOptions {
             ChartStyle = new OfficeChartStyle(

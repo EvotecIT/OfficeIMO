@@ -786,7 +786,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     };
 
     private static bool HasBasicFormatting(PowerPointShape shape) =>
-        !string.IsNullOrWhiteSpace(shape.FillColor) || !string.IsNullOrWhiteSpace(shape.OutlineColor) || shape.OutlineWidthPoints.HasValue;
+        !string.IsNullOrWhiteSpace(shape.FillColor) || !string.IsNullOrWhiteSpace(shape.OutlineColor) || shape.OutlineWidth.HasValue;
 
     private static bool HasBasicFormatting(OdpShape shape) =>
         shape.FillColor.HasValue || shape.StrokeColor.HasValue || shape.StrokeWidth.HasValue;
@@ -796,7 +796,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (!options.IncludeBasicFormatting) return;
         if (!string.IsNullOrWhiteSpace(source.FillColor)) target.FillColor = ParseColor(source.FillColor);
         if (!string.IsNullOrWhiteSpace(source.OutlineColor)) target.StrokeColor = ParseColor(source.OutlineColor);
-        if (source.OutlineWidthPoints.HasValue) target.StrokeWidth = OdfLength.Points(source.OutlineWidthPoints.Value);
+        if (source.OutlineWidth.HasValue) target.StrokeWidth = OdfLength.Points(source.OutlineWidth.Value.ToPoints());
     }
 
     private static int CopyShapeAppearance(OdpShape source, PowerPointShape target, PowerPointOpenDocumentConversionOptions options) {
@@ -805,7 +805,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (source.FillColor.HasValue) target.FillColor = source.FillColor.Value.ToString().TrimStart('#');
         if (source.StrokeColor.HasValue) target.OutlineColor = source.StrokeColor.Value.ToString().TrimStart('#');
         if (source.StrokeWidth.HasValue) {
-            if (source.StrokeWidth.Value.TryToPoints(out double points)) target.OutlineWidthPoints = points;
+            if (source.StrokeWidth.Value.TryToPoints(out double points)) target.OutlineWidth = global::OfficeIMO.OfficeLength.Points(points);
             else return 1;
         }
         return 0;

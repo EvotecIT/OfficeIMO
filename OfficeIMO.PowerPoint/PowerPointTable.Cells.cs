@@ -132,18 +132,12 @@ namespace OfficeIMO.PowerPoint {
             });
         }
 
-        /// <summary>
-        ///     Applies borders to all cells.
-        /// </summary>
-        public void SetCellBorders(PowerPointTableCellBorders borders, string color, double? widthPoints = null) {
-            ApplyToCells(cell => cell.SetBorders(borders, color, widthPoints));
-        }
-
-        /// <summary>
-        ///     Applies dashed borders to all cells.
-        /// </summary>
-        public void SetCellBorders(PowerPointTableCellBorders borders, string color, double? widthPoints, PowerPointLineDashStyle dash) {
-            ApplyToCells(cell => cell.SetBorders(borders, color, widthPoints, dash));
+        /// <summary>Applies borders to all cells, retaining the existing width or dash when omitted.</summary>
+        public void SetCellBorders(PowerPointTableCellBorders borders, string color, OfficeLength? width = null,
+            PowerPointLineDashStyle? dash = null) {
+            PowerPointTableCell.ValidateBorderStyle(borders, color, width);
+            if (dash.HasValue) _ = dash.Value.ToOpenXml();
+            ApplyToCells(cell => cell.SetBorders(borders, color, width, dash));
         }
 
         /// <summary>

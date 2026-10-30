@@ -2,7 +2,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Diagnostics;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
-    public sealed partial class LegacyPptDocument {
+    internal sealed partial class LegacyPptDocument {
         private const ushort RecordStyleTextProp9Atom = 0x0FAC;
 
         private LegacyPptRecord? ReadShapeStyle9(

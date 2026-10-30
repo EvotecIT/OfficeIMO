@@ -71,8 +71,8 @@ namespace OfficeIMO.Tests {
             PowerPointReviewReport review = projected.InspectReviewComments();
             Assert.Equal(2, review.ClassicCount);
             Assert.Contains(review.Comments, comment => comment.AuthorName == "Alice Reviewer"
-                && comment.Text == "Unicode review: żółć ✓" && comment.X == 4486
-                && comment.Y == 1342 && comment.Created == firstDate);
+                && comment.Text == "Unicode review: żółć ✓" && comment.X == OfficeLength.Points(4486 / 8D)
+                && comment.Y == OfficeLength.Points(1342 / 8D) && comment.Created == firstDate);
             Assert.Empty(projected.ValidateDocument());
         }
 

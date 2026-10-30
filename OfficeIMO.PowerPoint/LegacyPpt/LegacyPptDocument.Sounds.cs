@@ -4,7 +4,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
-    public sealed partial class LegacyPptDocument {
+    internal sealed partial class LegacyPptDocument {
         private void ParseSoundCollection(LegacyPptRecord document,
             LegacyPptImportOptions options) {
             LegacyPptRecord[] collections = document.Children.Where(record =>

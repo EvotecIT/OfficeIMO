@@ -3,7 +3,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
-    public sealed partial class LegacyPptDocument {
+    internal sealed partial class LegacyPptDocument {
         private const ushort RecordNotes = 0x03F0;
         private const ushort RecordNotesAtom = 0x03F1;
         private const ushort RecordHandout = 0x0FC9;

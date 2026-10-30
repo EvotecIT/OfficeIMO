@@ -352,7 +352,7 @@ namespace OfficeIMO.Tests {
                     };
 
                     PowerPointSlide metricSlide = presentation.ComposeDesignerSlide(composer => {
-                        PowerPointLayoutBox[] rows = composer.ContentRows(3, 0.35, topCm: 3.3, bottomMarginCm: 1.6);
+                        PowerPointLayoutBox[] rows = composer.ContentRows(3, global::OfficeIMO.OfficeLength.Centimeters(0.35), top: global::OfficeIMO.OfficeLength.Centimeters(3.3), bottomMargin: global::OfficeIMO.OfficeLength.Centimeters(1.6));
                         composer.AddMetricStrip(metrics, rows[0], PowerPointMetricStripVariant.SolidBand);
                         composer.AddMetricStrip(metrics, rows[1], PowerPointMetricStripVariant.SeparatedTiles);
                         composer.AddMetricStrip(metrics, rows[2], PowerPointMetricStripVariant.Underlined);
@@ -361,7 +361,7 @@ namespace OfficeIMO.Tests {
                     });
 
                     PowerPointSlide visualSlide = presentation.ComposeDesignerSlide(composer => {
-                        PowerPointLayoutBox[] columns = composer.ContentColumns(5, 0.35, topCm: 3.8, bottomMarginCm: 2.0);
+                        PowerPointLayoutBox[] columns = composer.ContentColumns(5, global::OfficeIMO.OfficeLength.Centimeters(0.35), top: global::OfficeIMO.OfficeLength.Centimeters(3.8), bottomMargin: global::OfficeIMO.OfficeLength.Centimeters(2.0));
                         composer.AddVisualFrame(columns[0], PowerPointVisualFrameVariant.Dashboard);
                         composer.AddVisualFrame(columns[1], PowerPointVisualFrameVariant.Collage);
                         composer.AddVisualFrame(columns[2], PowerPointVisualFrameVariant.Diagram);
@@ -1464,7 +1464,7 @@ namespace OfficeIMO.Tests {
                     PowerPointDesignRecipe.ConsultingPortfolio, footerLeft: "ADAPT");
                 PowerPointSlide slide = deck.ComposeSlide(composer => {
                     composer.AddTitle("Adaptive primitives", "Long labels should stay inside their regions.");
-                    PowerPointLayoutBox[] columns = composer.ContentColumns(2, 0.8, topCm: 3.85);
+                    PowerPointLayoutBox[] columns = composer.ContentColumns(2, global::OfficeIMO.OfficeLength.Centimeters(0.8), top: global::OfficeIMO.OfficeLength.Centimeters(3.85));
                     composer.AddCardGrid(new[] {
                         new PowerPointCardContent("Operational Readiness And Service Transition",
                             new[] {
@@ -1927,7 +1927,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(frame);
                 Assert.NotEqual("111111", frame!.FillColor);
                 Assert.NotEqual("111111", frame.OutlineColor);
-                Assert.True(frame.OutlineWidthPoints <= 0.5);
+                Assert.True(frame.OutlineWidth?.ToPoints() <= 0.5);
                 Assert.NotNull(slide.GetShape("Case Study Visual Surface"));
                 Assert.NotNull(slide.GetShape("Case Study Visual Content Panel"));
                 Assert.DoesNotContain(slide.TextBoxes,
@@ -2091,7 +2091,7 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape rail = Assert.IsAssignableFrom<PowerPointAutoShape>(
                     slide.GetShape("Process Rail"));
                 Assert.Equal(OfficePresetShapeType.Line, rail.ShapeType);
-                Assert.True(rail.OutlineWidthPoints <= 1.2);
+                Assert.True(rail.OutlineWidth?.ToPoints() <= 1.2);
 
                 PowerPointAutoShape firstNode = Assert.IsAssignableFrom<PowerPointAutoShape>(
                     slide.GetShape("Process Node 1"));
@@ -2498,7 +2498,7 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape washCard = Assert.IsAssignableFrom<PowerPointAutoShape>(
                     washSlide.GetShape("Designer Card 1"));
 
-                Assert.True(flatCard.OutlineWidthPoints <= 0.25);
+                Assert.True(flatCard.OutlineWidth?.ToPoints() <= 0.25);
                 Assert.True(flatCard.FillTransparency is null or 0);
                 Assert.Equal("F26A3D", washCard.FillColor);
                 Assert.True(washCard.FillTransparency >= 80);
@@ -2621,7 +2621,7 @@ namespace OfficeIMO.Tests {
                     PowerPointLayoutBox leftColumn = default;
                     PowerPointSlide slide = presentation.ComposeDesignerSlide(composer => {
                         composer.AddTitle("Structured custom slide", "Regions reduce coordinate work.");
-                        PowerPointLayoutBox[] columns = composer.ContentColumns(2, gutterCm: 0.75);
+                        PowerPointLayoutBox[] columns = composer.ContentColumns(2, gutter: global::OfficeIMO.OfficeLength.Centimeters(0.75));
                         leftColumn = columns[0];
 
                         composer.AddCardGrid(new[] {
@@ -2825,7 +2825,7 @@ namespace OfficeIMO.Tests {
 
                     PowerPointSlide slide = presentation.ComposeDesignerSlide(composer => {
                         composer.AddTitle("Capability view", "Mix proof and reach without a fixed recipe.");
-                        PowerPointLayoutBox[] columns = composer.ContentColumns(2, gutterCm: 0.8);
+                        PowerPointLayoutBox[] columns = composer.ContentColumns(2, gutter: global::OfficeIMO.OfficeLength.Centimeters(0.8));
                         composer.AddLogoWall(new[] {
                             new PowerPointLogoItem("Xerox"),
                             new PowerPointLogoItem("Lenovo"),

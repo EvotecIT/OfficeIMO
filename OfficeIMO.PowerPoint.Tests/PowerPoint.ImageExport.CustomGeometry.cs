@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(shape.ShapeType);
                 Assert.Equal("0EA5E9", shape.FillColor);
                 Assert.Equal("0C4A6E", shape.OutlineColor);
-                Assert.Equal(2.25D, shape.OutlineWidthPoints);
+                Assert.Equal(2.25D, shape.OutlineWidth?.ToPoints());
                 presentation.Save();
             }
 
@@ -76,8 +76,8 @@ namespace OfficeIMO.Tests {
             PowerPointAutoShape shape = slide.AddRectangle(
                 OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                shape.OutlineWidthPoints = double.NaN);
-            Assert.Null(shape.OutlineWidthPoints);
+                shape.OutlineWidth = global::OfficeIMO.OfficeLength.Points(double.NaN));
+            Assert.Null(shape.OutlineWidth?.ToPoints());
         }
 
         [Fact]

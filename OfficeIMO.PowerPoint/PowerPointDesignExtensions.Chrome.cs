@@ -52,7 +52,7 @@ namespace OfficeIMO.PowerPoint {
                         OfficeIMO.OfficeLength.Centimeters(0.08), OfficeIMO.OfficeLength.Centimeters(Math.Max(0.82, titleHeightCm * 0.7)), "Section Title Accent Side Rule");
                     sideRule.FillColor = accent;
                     sideRule.OutlineColor = accent;
-                    sideRule.OutlineWidthPoints = 0;
+                    sideRule.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
                     break;
                 case PowerPointTitleAccentStyle.KickerRule:
                     double kickerWidth = Math.Min(3.2, titleWidthCm * 0.28);
@@ -61,7 +61,7 @@ namespace OfficeIMO.PowerPoint {
                         OfficeIMO.OfficeLength.Centimeters(kickerLeft + kickerWidth), OfficeIMO.OfficeLength.Centimeters(Math.Max(0.65, titleTopCm - 0.22)),
                         "Section Title Accent Kicker Rule");
                     kicker.OutlineColor = secondary;
-                    kicker.OutlineWidthPoints = 1.4;
+                    kicker.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.4);
                     break;
                 case PowerPointTitleAccentStyle.Underline:
                     double underlineWidth = Math.Min(4.2, titleWidthCm * 0.36);
@@ -71,7 +71,7 @@ namespace OfficeIMO.PowerPoint {
                         OfficeIMO.OfficeLength.Centimeters(0.08), "Section Title Accent Underline");
                     underline.FillColor = accent;
                     underline.OutlineColor = accent;
-                    underline.OutlineWidthPoints = 0;
+                    underline.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
                     break;
             }
         }
@@ -111,7 +111,7 @@ namespace OfficeIMO.PowerPoint {
             double startXCm, double endXCm, double yCm) {
             PowerPointAutoShape rail = slide.AddLine(OfficeIMO.OfficeLength.Centimeters(startXCm), OfficeIMO.OfficeLength.Centimeters(yCm), OfficeIMO.OfficeLength.Centimeters(endXCm), OfficeIMO.OfficeLength.Centimeters(yCm), "Process Rail");
             rail.OutlineColor = theme.AccentLightColor;
-            rail.OutlineWidthPoints = 1.1;
+            rail.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.1);
         }
 
         private static void AddProcessConnectors(PowerPointSlide slide, PowerPointDesignTheme theme,
@@ -146,7 +146,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointAutoShape connector = slide.AddLine(OfficeIMO.OfficeLength.Centimeters(startXCm), OfficeIMO.OfficeLength.Centimeters(yCm), OfficeIMO.OfficeLength.Centimeters(endXCm), OfficeIMO.OfficeLength.Centimeters(yCm),
                 "Process Connector " + (index + 1));
             connector.OutlineColor = GetAccent(theme, index);
-            connector.OutlineWidthPoints = 1.2;
+            connector.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.2);
             connector.SetLineEnds(null, OfficeLineMarkerKind.Triangle, PowerPointLineEndWidth.Small,
                 PowerPointLineEndLength.Small);
         }
@@ -162,7 +162,7 @@ namespace OfficeIMO.PowerPoint {
                 marker.FillColor = GetAccent(theme, index);
                 marker.FillTransparency = 12 + dot * 8;
                 marker.OutlineColor = marker.FillColor;
-                marker.OutlineWidthPoints = 0;
+                marker.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
             }
         }
 
@@ -173,14 +173,14 @@ namespace OfficeIMO.PowerPoint {
             halo.FillColor = theme.AccentLightColor;
             halo.FillTransparency = 78;
             halo.OutlineColor = theme.AccentLightColor;
-            halo.OutlineWidthPoints = 0.2;
+            halo.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.2);
 
             PowerPointAutoShape node = slide.AddEllipse(OfficeIMO.OfficeLength.Centimeters(leftCm), OfficeIMO.OfficeLength.Centimeters(topCm), OfficeIMO.OfficeLength.Centimeters(sizeCm), OfficeIMO.OfficeLength.Centimeters(sizeCm),
                 "Process Node " + (index + 1));
             node.FillColor = theme.AccentDarkColor;
             node.FillTransparency = 8;
             node.OutlineColor = theme.AccentLightColor;
-            node.OutlineWidthPoints = 1.2;
+            node.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.2);
 
             PowerPointTextBox numberBox = AddText(slide, number.TrimEnd('.'), leftCm, topCm - 0.01, sizeCm, sizeCm,
                 sizeCm < 1 ? 16 : 20, theme.AccentContrastColor, theme.HeadingFontName, bold: true);
@@ -262,7 +262,7 @@ namespace OfficeIMO.PowerPoint {
             dot.FillColor = color;
             dot.FillTransparency = transparency;
             dot.OutlineColor = color;
-            dot.OutlineWidthPoints = 0;
+            dot.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
         }
 
         private static void AddDirectionBar(PowerPointSlide slide, double leftCm, double topCm, int index,
@@ -272,7 +272,7 @@ namespace OfficeIMO.PowerPoint {
             bar.FillColor = color;
             bar.FillTransparency = transparency;
             bar.OutlineColor = color;
-            bar.OutlineWidthPoints = 0;
+            bar.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
         }
 
         private static void AddDirectionChevron(PowerPointSlide slide, double leftCm, double topCm, int index,
@@ -284,12 +284,12 @@ namespace OfficeIMO.PowerPoint {
             PowerPointAutoShape upper = slide.AddLine(OfficeIMO.OfficeLength.Centimeters(back), OfficeIMO.OfficeLength.Centimeters(topCm + 0.02), OfficeIMO.OfficeLength.Centimeters(tip), OfficeIMO.OfficeLength.Centimeters(middleY),
                 "Designer Direction " + (index + 1));
             upper.OutlineColor = color;
-            upper.OutlineWidthPoints = Math.Max(0.55, 1.0 - transparency / 100d);
+            upper.OutlineWidth = global::OfficeIMO.OfficeLength.Points(Math.Max(0.55, 1.0 - transparency / 100d));
 
             PowerPointAutoShape lower = slide.AddLine(OfficeIMO.OfficeLength.Centimeters(back), OfficeIMO.OfficeLength.Centimeters(topCm + 0.22), OfficeIMO.OfficeLength.Centimeters(tip), OfficeIMO.OfficeLength.Centimeters(middleY),
                 "Designer Direction Chevron " + (index + 1) + "B");
             lower.OutlineColor = color;
-            lower.OutlineWidthPoints = Math.Max(0.55, 1.0 - transparency / 100d);
+            lower.OutlineWidth = global::OfficeIMO.OfficeLength.Points(Math.Max(0.55, 1.0 - transparency / 100d));
         }
     }
 }

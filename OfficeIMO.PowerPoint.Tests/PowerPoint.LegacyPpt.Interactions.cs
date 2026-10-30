@@ -230,7 +230,7 @@ namespace OfficeIMO.Tests {
         [InlineData("lastslideviewed", LegacyPptInteractionJump.LastViewedSlide)]
         [InlineData("endshow", LegacyPptInteractionJump.EndShow)]
         public void NativeWriter_AuthorsEveryBuiltInSlideShowJump(string actionName,
-            LegacyPptInteractionJump expected) {
+            object expected) {
             byte[] bytes;
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointAutoShape shape = source.AddSlide(PowerPointSlideLayoutType.Blank).AddRectangle(
@@ -246,7 +246,7 @@ namespace OfficeIMO.Tests {
             LegacyPptInteraction interaction = Assert.Single(
                 LegacyPptDocument.Load(bytes).Slides[0].Shapes[0].Interactions);
             Assert.Equal(LegacyPptInteractionAction.Jump, interaction.Action);
-            Assert.Equal(expected, interaction.Jump);
+            Assert.Equal((LegacyPptInteractionJump)expected, interaction.Jump);
         }
 
         [Fact]

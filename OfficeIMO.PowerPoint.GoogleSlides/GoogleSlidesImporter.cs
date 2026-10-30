@@ -348,7 +348,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             if (outline == null) return;
             if (string.Equals(outline.PropertyState, "NOT_RENDERED", StringComparison.OrdinalIgnoreCase)) {
                 target.OutlineColor = null;
-                target.OutlineWidthPoints = 0;
+                target.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
                 return;
             }
 
@@ -359,7 +359,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 AddShapeStyleDiagnostic(report, objectId, "outline uses a theme color that cannot be resolved without its inherited color scheme");
             }
             if (outline.Weight != null) {
-                target.OutlineWidthPoints = Math.Max(0, ToPoints(outline.Weight));
+                target.OutlineWidth = global::OfficeIMO.OfficeLength.Points(Math.Max(0, ToPoints(outline.Weight)));
             }
             if (outlineFill?.Alpha is double alpha && Math.Abs(alpha - 1d) > 0.0000001) {
                 AddShapeStyleDiagnostic(report, objectId, "outline transparency is not representable by the current PowerPoint shape API");

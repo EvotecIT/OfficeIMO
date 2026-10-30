@@ -14,7 +14,7 @@ internal static class ProjectRoadmap {
         string[] colors = { "EAF1FB", "EEE8F7", "E7F6ED" };
         for (int index = 0; index < phases.Length; index++) {
             double x = 1.5 + index * 10.3;
-            roadmap.AddRectangle(OfficeIMO.OfficeLength.Centimeters(x), OfficeIMO.OfficeLength.Centimeters(5.5), OfficeIMO.OfficeLength.Centimeters(9.3), OfficeIMO.OfficeLength.Centimeters(9), phases[index]).Fill(colors[index]).Stroke("CBD5E1", 1);
+            roadmap.AddRectangle(OfficeIMO.OfficeLength.Centimeters(x), OfficeIMO.OfficeLength.Centimeters(5.5), OfficeIMO.OfficeLength.Centimeters(9.3), OfficeIMO.OfficeLength.Centimeters(9), phases[index]).Fill(colors[index]).Stroke("CBD5E1", global::OfficeIMO.OfficeLength.Points(1));
             Text(roadmap, phases[index], x + 0.5, 6.1, 8.3, 1.4, 25);
             Text(roadmap, details[index], x + 0.5, 8.3, 8.3, 5, 21);
         }

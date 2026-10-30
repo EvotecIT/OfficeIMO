@@ -254,18 +254,18 @@ namespace OfficeIMO.Tests {
                 text.Description = "Summary alternative text";
                 PowerPointPicture picture = slide.AddImage(
                     new MemoryStream(image), OfficeIMO.Drawing.OfficeImageFormat.Png,
-                    global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),
-                    global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(70)),
-                    global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(90)),
-                    global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(60)));
+                    global::OfficeIMO.OfficeLength.Points(20),
+                    global::OfficeIMO.OfficeLength.Points(70),
+                    global::OfficeIMO.OfficeLength.Points(90),
+                    global::OfficeIMO.OfficeLength.Points(60));
                 picture.Name = "Chart preview";
                 picture.Description = "Blue chart preview";
                 PowerPointConnectionShape connector = slide
                     .AddConnectionShape(A.ShapeTypeValues.StraightConnector1,
-                        PowerPointUnits.FromPoints(25),
-                        PowerPointUnits.FromPoints(145),
-                        PowerPointUnits.FromPoints(170),
-                        PowerPointUnits.FromPoints(145));
+                        global::OfficeIMO.OfficeLength.Points(25).ToEmus(),
+                        global::OfficeIMO.OfficeLength.Points(145).ToEmus(),
+                        global::OfficeIMO.OfficeLength.Points(170).ToEmus(),
+                        global::OfficeIMO.OfficeLength.Points(145).ToEmus());
                 connector.Name = "Trend connector";
                 connector.Description = "Connects the summary to detail";
                 PowerPointAutoShape child = slide.AddShape(

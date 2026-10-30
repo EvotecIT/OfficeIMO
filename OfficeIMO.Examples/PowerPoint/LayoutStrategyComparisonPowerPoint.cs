@@ -42,7 +42,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 renderPlan.AddCustom("Resolved variants", composer => {
                     composer.AddTitle("Resolved variants",
                         "The plan is unchanged; the brief steers palette, density, and Auto layout behavior.");
-                    PowerPointLayoutBox[] columns = composer.ContentColumns(2, 0.8, topCm: 3.7, bottomMarginCm: 2.35);
+                    PowerPointLayoutBox[] columns = composer.ContentColumns(2, global::OfficeIMO.OfficeLength.Centimeters(0.8), top: global::OfficeIMO.OfficeLength.Centimeters(3.7), bottomMargin: global::OfficeIMO.OfficeLength.Centimeters(2.35));
 
                     composer.AddCardGrid(preview.Select((summary, index) => new PowerPointCardContent(
                             (index + 1) + ". " + ToDisplayName(summary.Kind.ToString()),

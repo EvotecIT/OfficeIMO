@@ -21,14 +21,14 @@ namespace OfficeIMO.Tests {
                 var alice = new PowerPointCommentAuthor("Alice Reviewer", "AR");
                 var bob = new PowerPointCommentAuthor("Bob Reviewer", "BR");
                 PowerPointClassicComment first = presentation.AddClassicComment(slide,
-                    alice, "First review", 120, 240,
+                    alice, "First review", global::OfficeIMO.OfficeLength.Points(120 / 8D), global::OfficeIMO.OfficeLength.Points(240 / 8D),
                     new DateTime(2026, 8, 1, 9, 0, 0, DateTimeKind.Utc));
                 PowerPointClassicComment removed = presentation.AddClassicComment(slide,
                     alice, "Remove me");
 
                 first.Text = "Updated review";
-                first.X = -25;
-                first.Y = 900;
+                first.X = global::OfficeIMO.OfficeLength.Points(-25 / 8D);
+                first.Y = global::OfficeIMO.OfficeLength.Points(900 / 8D);
                 first.SetAuthor(bob);
                 removed.Remove();
 
@@ -36,8 +36,8 @@ namespace OfficeIMO.Tests {
                     presentation.GetClassicComments(slide));
                 Assert.Equal("Bob Reviewer", current.Author.Name);
                 Assert.Equal("Updated review", current.Text);
-                Assert.Equal(-25, current.X);
-                Assert.Equal(900, current.Y);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(-25 / 8D), current.X);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(900 / 8D), current.Y);
                 var preflight = presentation.AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite, string.Join(Environment.NewLine,
                     preflight.Findings.Select(finding => finding.Code + ": " + finding.Description)));
@@ -51,8 +51,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(PowerPointCommentKind.Classic, projected.Kind);
             Assert.Equal("Bob Reviewer", projected.AuthorName);
             Assert.Equal("Updated review", projected.Text);
-            Assert.Equal(-25, projected.X);
-            Assert.Equal(900, projected.Y);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(-25 / 8D), projected.X);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(900 / 8D), projected.Y);
         }
 
         [Fact]
@@ -320,20 +320,20 @@ namespace OfficeIMO.Tests {
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 presentation.AddClassicComment(slide, author, "Review",
-                    (long)int.MaxValue + 1L, 0L));
+                    global::OfficeIMO.OfficeLength.Points(((long)int.MaxValue + 1L) / 8D), global::OfficeIMO.OfficeLength.Zero));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 presentation.AddClassicComment(slide, author, "Review",
-                    0L, (long)int.MinValue - 1L));
+                    global::OfficeIMO.OfficeLength.Zero, global::OfficeIMO.OfficeLength.Points(((long)int.MinValue - 1L) / 8D)));
             Assert.Empty(presentation.GetClassicComments(slide));
 
             PowerPointClassicComment comment = presentation.AddClassicComment(
-                slide, author, "Valid", 10L, 20L);
+                slide, author, "Valid", global::OfficeIMO.OfficeLength.Points(10 / 8D), global::OfficeIMO.OfficeLength.Points(20 / 8D));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                comment.X = long.MaxValue);
+                comment.X = global::OfficeIMO.OfficeLength.Emus(long.MaxValue));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                comment.Y = long.MinValue);
-            Assert.Equal(10L, comment.X);
-            Assert.Equal(20L, comment.Y);
+                comment.Y = global::OfficeIMO.OfficeLength.Emus(long.MinValue));
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(10 / 8D), comment.X);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(20 / 8D), comment.Y);
         }
 
         [Fact]
@@ -345,21 +345,21 @@ namespace OfficeIMO.Tests {
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 presentation.AddModernComment(slide, author, "Review",
-                    x: long.MaxValue));
+                    x: global::OfficeIMO.OfficeLength.Emus(long.MaxValue)));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 presentation.AddModernComment(slide, author, "Review",
-                    y: long.MinValue));
+                    y: global::OfficeIMO.OfficeLength.Emus(long.MinValue)));
             Assert.Empty(GetModernAuthorNames(presentation));
             Assert.Empty(presentation.GetModernComments(slide));
 
             PowerPointModernComment comment = presentation.AddModernComment(
-                slide, author, "Valid", x: 10L, y: 20L);
+                slide, author, "Valid", x: global::OfficeIMO.OfficeLength.Emus(10L), y: global::OfficeIMO.OfficeLength.Emus(20L));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                comment.X = long.MaxValue);
+                comment.X = global::OfficeIMO.OfficeLength.Emus(long.MaxValue));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                comment.Y = long.MinValue);
-            Assert.Equal(10L, comment.X);
-            Assert.Equal(20L, comment.Y);
+                comment.Y = global::OfficeIMO.OfficeLength.Emus(long.MinValue));
+            Assert.Equal(10L, comment.X.ToEmus());
+            Assert.Equal(20L, comment.Y.ToEmus());
             Assert.Empty(presentation.ValidateDocument());
         }
 
@@ -378,13 +378,13 @@ namespace OfficeIMO.Tests {
                 .Elements<P188.Comment>());
             nativeComment.GetFirstChild<P188.Point2DType>()!.Remove();
 
-            Assert.Equal(0L, comment.X);
-            Assert.Equal(0L, comment.Y);
+            Assert.Equal(0L, comment.X.ToEmus());
+            Assert.Equal(0L, comment.Y.ToEmus());
             Assert.Null(nativeComment.GetFirstChild<P188.Point2DType>());
 
-            comment.X = 12L;
-            Assert.Equal(12L, comment.X);
-            Assert.Equal(0L, comment.Y);
+            comment.X = global::OfficeIMO.OfficeLength.Emus(12L);
+            Assert.Equal(12L, comment.X.ToEmus());
+            Assert.Equal(0L, comment.Y.ToEmus());
             Assert.NotNull(nativeComment.GetFirstChild<P188.Point2DType>());
         }
 
@@ -427,13 +427,13 @@ namespace OfficeIMO.Tests {
                     "bob@example.test", "OfficeIMO");
                 PowerPointModernComment comment = presentation.AddModernComment(slide,
                     alice, "Modern review", PowerPointModernCommentStatus.Active,
-                    123, 456, new DateTime(2026, 8, 1, 10, 0, 0, DateTimeKind.Utc));
+                    global::OfficeIMO.OfficeLength.Emus(123), global::OfficeIMO.OfficeLength.Emus(456), new DateTime(2026, 8, 1, 10, 0, 0, DateTimeKind.Utc));
                 PowerPointModernCommentReply reply = comment.AddReply(bob, "Initial reply");
                 PowerPointModernCommentReply removed = comment.AddReply(alice, "Remove reply");
 
                 comment.Text = "Updated modern review";
                 comment.Status = PowerPointModernCommentStatus.Resolved;
-                comment.X = 321;
+                comment.X = global::OfficeIMO.OfficeLength.Emus(321);
                 comment.SetAuthor(bob);
                 reply.Text = "Updated reply";
                 reply.Status = PowerPointModernCommentStatus.Closed;
@@ -456,7 +456,7 @@ namespace OfficeIMO.Tests {
                 reopened.GetModernComments(reopened.Slides[0]));
             Assert.Equal("Updated modern review", current.Text);
             Assert.Equal(PowerPointModernCommentStatus.Resolved, current.Status);
-            Assert.Equal(321, current.X);
+            Assert.Equal(321, current.X.ToEmus());
             PowerPointModernCommentReply currentReply = Assert.Single(current.Replies);
             Assert.Equal("Updated reply", currentReply.Text);
             Assert.Equal(PowerPointModernCommentStatus.Closed, currentReply.Status);

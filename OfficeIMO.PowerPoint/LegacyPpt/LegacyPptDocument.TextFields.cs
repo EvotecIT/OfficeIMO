@@ -3,7 +3,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using OfficeIMO.PowerPoint.LegacyPpt.Diagnostics;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
-    public sealed partial class LegacyPptDocument {
+    internal sealed partial class LegacyPptDocument {
         private const ushort RecordSlideNumberMetaCharacter = 0x0FD8;
         private const ushort RecordDateTimeMetaCharacter = 0x0FF7;
         private const ushort RecordGenericDateMetaCharacter = 0x0FF8;

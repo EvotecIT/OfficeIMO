@@ -66,7 +66,7 @@ internal static class PowerPointBenchmarkCorpus {
                 OfficeIMO.OfficeLength.Points(40 + card * 220), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(190), OfficeIMO.OfficeLength.Points(72), $"Metric {card + 1}");
             panel.FillColor = colors[(card + index) % colors.Length];
             panel.OutlineColor = "CBD5E1";
-            panel.OutlineWidthPoints = 1;
+            panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1);
         }
 
         if (index % 3 == 0) AddTable(slide, index);

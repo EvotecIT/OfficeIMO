@@ -8,7 +8,7 @@ internal static class ServiceOverview {
     internal static void Create(string folder) {
         using PowerPointDocument deck = PowerPointDocument.Create(Path.Combine(folder, "example.pptx"));
         PowerPointSlide cover = deck.AddSlide();
-        cover.AddRectangle(OfficeIMO.OfficeLength.Centimeters(0), OfficeIMO.OfficeLength.Centimeters(0), OfficeIMO.OfficeLength.Centimeters(33.866), OfficeIMO.OfficeLength.Centimeters(19.05), "Cover background").Fill("17365D").Stroke("17365D", 0);
+        cover.AddRectangle(OfficeIMO.OfficeLength.Centimeters(0), OfficeIMO.OfficeLength.Centimeters(0), OfficeIMO.OfficeLength.Centimeters(33.866), OfficeIMO.OfficeLength.Centimeters(19.05), "Cover background").Fill("17365D").Stroke("17365D", global::OfficeIMO.OfficeLength.Points(0));
         Text(cover, "NORTHWIND / OPERATIONS", 1.7, 2, 29, 1, 17, "B8D4FF");
         Text(cover, "A service the next team\ncan own", 1.7, 5, 29, 5.5, 40, "FFFFFF");
         Text(cover, "Ownership, support, and the first-week handover.", 1.7, 12.5, 29, 2, 23, "D8E5F7");
@@ -19,7 +19,7 @@ internal static class ServiceOverview {
         string[] bodies = { "Sets priorities\nAccepts the service\nReviews outcomes", "Runs the service\nCoordinates incidents\nMaintains the runbook", "Resolves defects\nShips improvements\nSupports recovery" };
         for (int index = 0; index < titles.Length; index++) {
             double x = 1.5 + index * 10.3;
-            owners.AddRectangle(OfficeIMO.OfficeLength.Centimeters(x), OfficeIMO.OfficeLength.Centimeters(5), OfficeIMO.OfficeLength.Centimeters(9.3), OfficeIMO.OfficeLength.Centimeters(10), titles[index]).Fill("EAF1FB").Stroke("CBD5E1", 1);
+            owners.AddRectangle(OfficeIMO.OfficeLength.Centimeters(x), OfficeIMO.OfficeLength.Centimeters(5), OfficeIMO.OfficeLength.Centimeters(9.3), OfficeIMO.OfficeLength.Centimeters(10), titles[index]).Fill("EAF1FB").Stroke("CBD5E1", global::OfficeIMO.OfficeLength.Points(1));
             Text(owners, titles[index], x + 0.5, 5.8, 8.3, 1.5, 25, "17365D");
             Text(owners, bodies[index], x + 0.5, 8, 8.3, 5.5, 21, "526179");
         }

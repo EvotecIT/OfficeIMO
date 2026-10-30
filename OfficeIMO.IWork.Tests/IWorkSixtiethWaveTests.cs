@@ -59,7 +59,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_table_rows_below_emu_precision_report_editable_quantization() {
         using MemoryStream package = CreateKeynotePackageWithTableDefaults(
             rows: 1, columns: 1,
-            defaultRowHeight: 0.5d / PowerPointUnits.EmusPerPoint,
+            defaultRowHeight: 0.5d / global::OfficeIMO.OfficeLength.Points(1).ToEmus(),
             defaultColumnWidth: 30d, includePreview: true);
 
         using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
@@ -164,7 +164,7 @@ public sealed partial class IWorkBoundaryTests {
         const ulong metadataId = 6;
         const ulong dataId = 7;
         const string imageName = "tiny.png";
-        float tinyPoints = (float)(0.49d / PowerPointUnits.EmusPerPoint);
+        float tinyPoints = (float)(0.49d / global::OfficeIMO.OfficeLength.Points(1).ToEmus());
         byte[] geometry = Message(
             BytesField(1, Message(FloatField(1, 10f), FloatField(2, 10f))),
             BytesField(2, Message(FloatField(1, tinyPoints), FloatField(2, tinyPoints))));

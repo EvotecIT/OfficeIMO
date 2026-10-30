@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents per-level margins and indentation from a binary PowerPoint text ruler.</summary>
-    public sealed class LegacyPptTextRulerLevel {
+    internal sealed class LegacyPptTextRulerLevel {
         internal LegacyPptTextRulerLevel(ushort level, short? leftMargin, short? indent) {
             Level = level;
             LeftMargin = leftMargin;
@@ -18,7 +18,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Represents a TextRulerAtom decoded from a binary PowerPoint text box.</summary>
-    public sealed class LegacyPptTextRuler {
+    internal sealed class LegacyPptTextRuler {
         internal LegacyPptTextRuler(short? levelCount, short? defaultTabSize,
             IReadOnlyList<LegacyPptTabStop> tabStops,
             IReadOnlyList<LegacyPptTextRulerLevel> levels,

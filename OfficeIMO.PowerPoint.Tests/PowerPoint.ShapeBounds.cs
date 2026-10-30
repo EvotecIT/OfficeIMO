@@ -131,7 +131,7 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape c = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(1000));
 
                 PowerPointLayoutBox bounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(2500),OfficeIMO.OfficeLength.Emus(1500));
-                var intersects = slide.GetShapesInBounds(bounds);
+                var intersects = slide.GetShapesInBounds(bounds, includePartial: true);
                 Assert.Contains(a, intersects);
                 Assert.Contains(b, intersects);
                 Assert.DoesNotContain(c, intersects);

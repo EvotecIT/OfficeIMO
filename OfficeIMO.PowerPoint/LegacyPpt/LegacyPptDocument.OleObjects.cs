@@ -5,7 +5,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
-    public sealed partial class LegacyPptDocument {
+    internal sealed partial class LegacyPptDocument {
         private const ushort RecordExternalOleObjectAtom = 0x0FC3;
         private const ushort RecordExternalOleEmbed = 0x0FCC;
         private const ushort RecordExternalOleEmbedAtom = 0x0FCD;

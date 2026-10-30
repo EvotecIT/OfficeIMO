@@ -157,7 +157,7 @@ namespace OfficeIMO.PowerPoint {
             panel.FillColor = theme.AccentDarkColor;
             panel.FillTransparency = 0;
             panel.OutlineColor = theme.AccentDarkColor;
-            panel.OutlineWidthPoints = 0;
+            panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
             panel.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(5), distance: OfficeIMO.OfficeLength.Points(1.2), angleDegrees: 90, transparencyPercent: 86);
 
             PowerPointAutoShape wash = slide.AddShape(OfficePresetShapeType.Parallelogram, OfficeIMO.OfficeLength.Centimeters(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.16),
@@ -165,28 +165,28 @@ namespace OfficeIMO.PowerPoint {
             wash.FillColor = theme.AccentLightColor;
             wash.FillTransparency = 72;
             wash.OutlineColor = theme.AccentLightColor;
-            wash.OutlineWidthPoints = 0;
+            wash.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
 
             PowerPointAutoShape gridLine1 = slide.AddLine(OfficeIMO.OfficeLength.Centimeters(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.16),
                 OfficeIMO.OfficeLength.Centimeters(bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * 0.33), OfficeIMO.OfficeLength.Centimeters(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.88),
                 OfficeIMO.OfficeLength.Centimeters(bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * 0.33), "Coverage Map Latitude 1");
             gridLine1.OutlineColor = theme.AccentLightColor;
-            gridLine1.OutlineWidthPoints = 0.35;
+            gridLine1.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.35);
             PowerPointAutoShape gridLine2 = slide.AddLine(OfficeIMO.OfficeLength.Centimeters(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.18),
                 OfficeIMO.OfficeLength.Centimeters(bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * 0.66), OfficeIMO.OfficeLength.Centimeters(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.84),
                 OfficeIMO.OfficeLength.Centimeters(bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * 0.66), "Coverage Map Latitude 2");
             gridLine2.OutlineColor = theme.AccentLightColor;
-            gridLine2.OutlineWidthPoints = 0.35;
+            gridLine2.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.35);
             PowerPointAutoShape gridLine3 = slide.AddLine(OfficeIMO.OfficeLength.Centimeters(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.38),
                 OfficeIMO.OfficeLength.Centimeters(bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * 0.08), OfficeIMO.OfficeLength.Centimeters(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.34),
                 OfficeIMO.OfficeLength.Centimeters(bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * 0.92), "Coverage Map Longitude 1");
             gridLine3.OutlineColor = theme.AccentLightColor;
-            gridLine3.OutlineWidthPoints = 0.35;
+            gridLine3.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.35);
             PowerPointAutoShape gridLine4 = slide.AddLine(OfficeIMO.OfficeLength.Centimeters(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.64),
                 OfficeIMO.OfficeLength.Centimeters(bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * 0.12), OfficeIMO.OfficeLength.Centimeters(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.58),
                 OfficeIMO.OfficeLength.Centimeters(bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * 0.88), "Coverage Map Longitude 2");
             gridLine4.OutlineColor = theme.AccentLightColor;
-            gridLine4.OutlineWidthPoints = 0.35;
+            gridLine4.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.35);
 
             AddCoverageRegion(slide, theme, bounds, 0.12, 0.23, 0.31, 0.27, "Coverage Region North", theme.AccentLightColor, 78);
             AddCoverageRegion(slide, theme, bounds, 0.43, 0.18, 0.36, 0.25, "Coverage Region East", theme.Accent2Color, 74);
@@ -281,7 +281,7 @@ namespace OfficeIMO.PowerPoint {
                 "Capability Section " + (index + 1));
             panel.FillColor = theme.PanelColor;
             panel.OutlineColor = theme.PanelBorderColor;
-            panel.OutlineWidthPoints = 0.45;
+            panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.45);
             panel.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(2.5), distance: OfficeIMO.OfficeLength.Points(0.6), angleDegrees: 90, transparencyPercent: 92);
 
             string accent = section.AccentColor ?? GetAccent(theme, index);
@@ -466,7 +466,7 @@ namespace OfficeIMO.PowerPoint {
                 "Logo Wall Tile " + (index + 1));
             tile.FillColor = theme.PanelColor;
             tile.OutlineColor = theme.PanelBorderColor;
-            tile.OutlineWidthPoints = 0.45;
+            tile.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.45);
             tile.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(2.5), distance: OfficeIMO.OfficeLength.Points(0.6), angleDegrees: 90, transparencyPercent: 91);
 
             PowerPointAutoShape accentRule = slide.AddRectangle(box.Left, box.Top, box.Width, OfficeIMO.OfficeLength.Centimeters(0.08),
@@ -500,7 +500,7 @@ namespace OfficeIMO.PowerPoint {
                 bounds.Height, "Logo Wall Certificate Frame");
             frame.FillColor = theme.PanelColor;
             frame.OutlineColor = theme.PanelBorderColor;
-            frame.OutlineWidthPoints = 0.45;
+            frame.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.45);
             frame.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(4), distance: OfficeIMO.OfficeLength.Points(1.0), angleDegrees: 90, transparencyPercent: 88);
 
             if (!string.IsNullOrWhiteSpace(options.FeaturedImagePath) && File.Exists(options.FeaturedImagePath!)) {
@@ -518,14 +518,14 @@ namespace OfficeIMO.PowerPoint {
                 watermark.FillColor = theme.AccentLightColor;
                 watermark.FillTransparency = 66;
                 watermark.OutlineColor = theme.AccentLightColor;
-                watermark.OutlineWidthPoints = 0;
+                watermark.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
 
                 PowerPointAutoShape document = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.24),
                     OfficeIMO.OfficeLength.Centimeters(bounds.Top.ToCentimeters() + 0.55), OfficeIMO.OfficeLength.Centimeters(bounds.Width.ToCentimeters() * 0.52), OfficeIMO.OfficeLength.Centimeters(bounds.Height.ToCentimeters() - 1.45),
                     "Logo Wall Certificate Document");
                 document.FillColor = theme.BackgroundColor;
                 document.OutlineColor = theme.PanelBorderColor;
-                document.OutlineWidthPoints = 0.55;
+                document.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.55);
                 document.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(2.5), distance: OfficeIMO.OfficeLength.Points(0.5), angleDegrees: 90, transparencyPercent: 92);
 
                 PowerPointAutoShape documentHeader = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.29),
@@ -539,7 +539,7 @@ namespace OfficeIMO.PowerPoint {
                 seal.FillColor = theme.AccentColor;
                 seal.FillTransparency = 15;
                 seal.OutlineColor = theme.AccentColor;
-                seal.OutlineWidthPoints = 0.8;
+                seal.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.8);
 
                 PowerPointAutoShape sealCenter = slide.AddEllipse(OfficeIMO.OfficeLength.Centimeters(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.455),
                     OfficeIMO.OfficeLength.Centimeters(bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * 0.43 + bounds.Width.ToCentimeters() * 0.035),
@@ -627,7 +627,7 @@ namespace OfficeIMO.PowerPoint {
             region.FillColor = fillColor;
             region.FillTransparency = fillTransparency;
             region.OutlineColor = theme.AccentLightColor;
-            region.OutlineWidthPoints = 0.25;
+            region.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.25);
         }
 
         private static void AddCoverageRoute(PowerPointSlide slide, PowerPointDesignTheme theme,
@@ -639,7 +639,7 @@ namespace OfficeIMO.PowerPoint {
                 OfficeIMO.OfficeLength.Centimeters(bounds.Top.ToCentimeters() + bounds.Height.ToCentimeters() * end.Y),
                 "Coverage Route " + (index + 1));
             route.OutlineColor = theme.AccentLightColor;
-            route.OutlineWidthPoints = 0.45;
+            route.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.45);
         }
 
         private static void AddCoveragePin(PowerPointSlide slide, PowerPointDesignTheme theme,
@@ -653,20 +653,20 @@ namespace OfficeIMO.PowerPoint {
             halo.FillColor = theme.AccentContrastColor;
             halo.FillTransparency = 72;
             halo.OutlineColor = theme.AccentContrastColor;
-            halo.OutlineWidthPoints = 0;
+            halo.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
 
             PowerPointAutoShape pinOuter = slide.AddEllipse(OfficeIMO.OfficeLength.Centimeters(x - 0.16), OfficeIMO.OfficeLength.Centimeters(y - 0.16), OfficeIMO.OfficeLength.Centimeters(0.32), OfficeIMO.OfficeLength.Centimeters(0.32),
                 "Coverage Pin Outer " + (index + 1));
             pinOuter.FillColor = theme.AccentDarkColor;
             pinOuter.FillTransparency = 35;
             pinOuter.OutlineColor = theme.AccentContrastColor;
-            pinOuter.OutlineWidthPoints = 0.45;
+            pinOuter.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.45);
 
             PowerPointAutoShape pin = slide.AddEllipse(OfficeIMO.OfficeLength.Centimeters(x - 0.09), OfficeIMO.OfficeLength.Centimeters(y - 0.09), OfficeIMO.OfficeLength.Centimeters(0.18), OfficeIMO.OfficeLength.Centimeters(0.18),
                 "Coverage Pin " + (index + 1));
             pin.FillColor = accent;
             pin.OutlineColor = theme.AccentContrastColor;
-            pin.OutlineWidthPoints = 0.25;
+            pin.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.25);
         }
 
         internal static List<PowerPointLogoItem> NormalizeLogoItems(IEnumerable<PowerPointLogoItem> logos) {

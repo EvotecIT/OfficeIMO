@@ -170,7 +170,7 @@ A deliberately long paragraph that cannot fit inside the very short slide used b
                             DetectShapeCollisions = false,
                             DetectMissingVisualAssets = false,
                             IncludeVisualSnapshotDiagnostics = false,
-                            MinimumReadableFontSizePoints = 100D,
+                            MinimumReadableFontSize = global::OfficeIMO.OfficeLength.Points(100D),
                             FailureSeverity = PowerPointDeckPreflightSeverity.Warning
                         }
                     }));

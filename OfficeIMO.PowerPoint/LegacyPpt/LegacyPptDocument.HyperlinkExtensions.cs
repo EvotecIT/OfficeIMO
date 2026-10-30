@@ -3,7 +3,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
-    public sealed partial class LegacyPptDocument {
+    internal sealed partial class LegacyPptDocument {
         private const ushort RecordDocumentInfoList = 0x07D0;
         private const ushort RecordExternalHyperlink9 = 0x0FE4;
         private const ushort RecordExternalHyperlinkFlagsAtom = 0x1018;

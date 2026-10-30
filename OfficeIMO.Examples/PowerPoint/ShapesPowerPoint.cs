@@ -47,7 +47,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     canvasBox.Left, canvasBox.Top, canvasBox.Width, OfficeIMO.OfficeLength.Centimeters(canvasBox.Height.ToCentimeters() * 0.6),
                     "Hero Card")
                 .Fill("E7F7FF")
-                .Stroke("007ACC", 2);
+                .Stroke("007ACC", global::OfficeIMO.OfficeLength.Points(2));
             card.FillTransparency = 6;
             card.Rotation = -1.5;
 
@@ -58,7 +58,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     OfficeIMO.OfficeLength.Centimeters(canvasBox.Height.ToCentimeters() * 0.35),
                     "Accent Panel")
                 .Fill("FFF4E5")
-                .Stroke("C48A00", 1.5);
+                .Stroke("C48A00", global::OfficeIMO.OfficeLength.Points(1.5));
             accent.Rotation = 2;
             accent.BringToFront();
 
@@ -70,7 +70,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     OfficeIMO.OfficeLength.Centimeters(badgeSizeCm),
                     "Badge")
                 .Fill("FDEBD0")
-                .Stroke("D35400", 1.5);
+                .Stroke("D35400", global::OfficeIMO.OfficeLength.Points(1.5));
 
             PowerPointAutoShape arrow = slide.AddShape(
                     OfficePresetShapeType.RightArrow,
@@ -80,7 +80,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     OfficeIMO.OfficeLength.Centimeters(canvasBox.Height.ToCentimeters() * 0.25),
                     "Flow Arrow")
                 .Fill("D9EAD3")
-                .Stroke("6AA84F", 1.5);
+                .Stroke("6AA84F", global::OfficeIMO.OfficeLength.Points(1.5));
             arrow.Rotation = -1;
 
             PowerPointTextBox label = slide.AddTextBox(

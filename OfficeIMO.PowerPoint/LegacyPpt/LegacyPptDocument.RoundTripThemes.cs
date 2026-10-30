@@ -8,7 +8,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
-    public sealed partial class LegacyPptDocument {
+    internal sealed partial class LegacyPptDocument {
         private const ushort RecordRoundTripTheme12Atom = 0x040E;
         private const ushort RecordRoundTripColorMapping12Atom = 0x040F;
         private const int MaximumRoundTripThemeXmlBytes = 8 * 1024 * 1024;

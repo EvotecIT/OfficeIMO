@@ -143,7 +143,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
             LegacyPptTableBorder value = border.Value;
-            cell.SetBorders(side, value.Color, value.WidthPoints);
+            cell.SetBorders(side, value.Color, global::OfficeIMO.OfficeLength.Points(value.WidthPoints));
         }
 
         private static void ApplyInvisibleLegacyTableBorder(

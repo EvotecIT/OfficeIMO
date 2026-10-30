@@ -94,140 +94,6 @@ OfficeIMO.PowerPoint.LegacyPpt.Diagnostics.LegacyPptImportDiagnostic.LegacyPptIm
 OfficeIMO.PowerPoint.LegacyPpt.Diagnostics.LegacyPptImportDiagnostic.Message.get -> string!
 OfficeIMO.PowerPoint.LegacyPpt.Diagnostics.LegacyPptImportDiagnostic.Severity.get -> OfficeIMO.PowerPoint.LegacyPpt.Diagnostics.LegacyPptDiagnosticSeverity
 OfficeIMO.PowerPoint.LegacyPpt.Diagnostics.LegacyPptImportDiagnostic.StreamOffset.get -> long?
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.ActiveXControls.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl!>!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.BlipStoreEntries.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry!>!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.CreateImportReport() -> OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.CustomShows.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCustomShow!>!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Diagnostics.LegacyPptImportDiagnostic!>!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.DocumentSettings.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings?
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.EncryptedDocumentProperties.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.EncryptionKeySizeBits.get -> int?
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.Fonts.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFont!>!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.HandoutMaster.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMaster?
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.Hyperlinks.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink!>!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.LinkedOleObjects.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject!>!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.Masters.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster!>!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.Media.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia!>!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.NotesHeaderFooterDefaults.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings?
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.NotesMaster.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMaster?
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.OleObjects.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject!>!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.PictureBullets.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet!>!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.SlideHeaderFooterDefaults.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings?
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.SlideHeight.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.SlideWidth.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.Slides.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide!>!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.SoundIdSeed.get -> uint?
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.Sounds.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSound!>!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.VbaProject.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptVbaProject?
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.WasEncryptedSource.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.LegacyPptImportOptions() -> void
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.MaxCommentCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.MaxCommentCount.set -> void
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.MaxConnectorRuleCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.MaxConnectorRuleCount.set -> void
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.MaxDecodedStorageBytes.get -> long
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.MaxDecodedStorageBytes.set -> void
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.MaxInputBytes.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.MaxInputBytes.set -> void
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.MaxMasterCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.MaxMasterCount.set -> void
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.MaxRecordCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.MaxRecordCount.set -> void
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.MaxRecordDepth.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.MaxRecordDepth.set -> void
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.MaxSlideCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.MaxSlideCount.set -> void
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.MaxTextStyle9EntryCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.MaxTextStyle9EntryCount.set -> void
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.Password.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.Password.set -> void
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.ReportUnsupportedContent.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.ReportUnsupportedContent.set -> void
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.ActiveXControlByteCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.ActiveXControlCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.AnimationCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.AnimationSoundCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.BackgroundCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.BlipStoreEntryCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.CommentAuthorCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.CommentCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.CompoundStreamCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.CompressedActiveXControlCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.CompressedEmbeddedOleObjectCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.CompressedLinkedOleObjectCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.CustomShowCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.CustomShowSlideEntryCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.DistinctSlideLayoutCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.EmbeddedFontCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.EmbeddedOleObjectByteCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.EmbeddedOleObjectCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.EmbeddedWaveMediaCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.EncryptedDocumentProperties.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.EncryptionKeySizeBits.get -> int?
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.ErrorCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.FidelityDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.FontCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.HasConversionLoss.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.HasLoss.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.HeaderFooterScopeCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.HyperlinkExtensionFlagCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.HyperlinkScreenTipCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.HyperlinkTargetCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.ImportableBlipCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.ImportableSoundCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.LinkedOleObjectByteCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.LinkedOleObjectCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.LinkedOrDeviceMediaCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.MasterTextStyleCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.MasterTextStyleLevelCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.MediaObjectCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.NotesPageShapeCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.NotesSlideCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.PersistObjectCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.PictureBulletCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.PictureShapeCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.PlaceholderShapeCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.ProjectableBackgroundCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.ProjectableMediaCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.RequireNoLoss() -> void
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.RoundTripThemeCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.ShapeCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.ShapeInteractionCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.SlideCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.SoundCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.SpecialMasterCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.SpecialMasterShapeCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.TextFieldCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.TextInteractionCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.TextRulerCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.TextShapeCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.TransitionCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.TransitionSoundCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.UnsupportedShapeCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.UserEditCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.VbaProjectByteCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.VbaProjectCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.VbaProjectWasCompressed.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.WarningCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport.WasEncryptedSource.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Diagnostics.LegacyPptImportDiagnostic!>!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult.Dispose() -> void
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult.Document.get -> OfficeIMO.PowerPoint.PowerPointDocument!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult.EnsureNoConversionLoss() -> OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult.EnsureNoImportErrors() -> OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult.FidelityDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult.HasConversionLoss.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult.HasDocument.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult.HasImportErrors.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult.HasLoss.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult.ImportReport.get -> OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport!
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult.ProjectionException.get -> System.Exception?
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult.RequireNoLoss() -> void
-OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult.SourceDocument.get -> OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument!
 OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWriteFinding
 OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWriteFinding.Code.get -> string!
 OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWriteFinding.Description.get -> string!
@@ -241,813 +107,6 @@ OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWritePreflightReport.Findings.get -> Sys
 OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWritePreflightReport.HasConversionLoss.get -> bool
 OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWritePreflightReport.HasLoss.get -> bool
 OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWritePreflightReport.RequireNoLoss() -> void
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl.ClipboardName.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl.DrawAspect.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleDrawAspect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl.GetBytes() -> byte[]!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl.GetMetafileRecordBytes() -> byte[]?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl.HasMetafile.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl.Id.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl.Length.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl.MenuName.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl.MetafileByteCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl.PersistId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl.ProgId.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl.SlideId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl.SubType.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl.WasCompressed.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.AfterEffect.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationAfterEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.AnimateBackground.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.Automatic.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.BuildType.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.DelayMilliseconds.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.Effect.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.EffectDirection.get -> byte
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.HasSoundOverride.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.HiddenWhileNotPlaying.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.OleVerb.get -> byte
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.Order.get -> short
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.PlaysOnShapeClick.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.PlaysSound.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.RawDimColor.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.RawFlags.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.RawUnused.get -> ushort
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.Reverse.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.SlideCount.get -> ushort
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.SoundIdReference.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.StopsSound.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.Synchronous.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation.TextBuildSubEffect.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBuildSubEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationAfterEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationAfterEffect.Dim = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationAfterEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationAfterEffect.HideImmediately = 3 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationAfterEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationAfterEffect.HideOnNextClick = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationAfterEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationAfterEffect.None = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationAfterEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType.AsOneObject = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType.ByLevel1Paragraph = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType.ByLevel2Paragraph = 3 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType.ByLevel3Paragraph = 4 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType.ByLevel4Paragraph = 5 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType.ByLevel5Paragraph = 6 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType.ChartByCategory = 8 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType.ChartByElementInCategory = 10 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType.ChartByElementInSeries = 9 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType.ChartBySeries = 7 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType.FollowMaster = 254 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType.None = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.Blinds = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.Checker = 3 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.Circle = 27 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.Cover = 4 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.Cut = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.Diamond = 17 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.Dissolve = 5 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.Fade = 6 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.Flash = 14 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.Fly = 12 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.Plus = 18 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.Pull = 7 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.Random = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.RandomBars = 8 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.Split = 13 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.Strips = 9 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.Wedge = 19 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.Wheel = 26 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.Wipe = 10 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect.Zoom = 11 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.AlphaLowerParenBoth = 8 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.AlphaLowerParenRight = 9 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.AlphaLowerPeriod = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.AlphaUpperParenBoth = 10 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.AlphaUpperParenRight = 11 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.AlphaUpperPeriod = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.Arabic1Minus = 23 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.Arabic2Minus = 24 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.ArabicDoubleBytePeriod = 29 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.ArabicDoubleBytePlain = 28 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.ArabicParenBoth = 12 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.ArabicParenRight = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.ArabicPeriod = 3 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.ArabicPlain = 13 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.CircleNumberDoubleBytePlain = 18 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.CircleNumberWingdingsBlackPlain = 20 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.CircleNumberWingdingsWhitePlain = 19 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.Hebrew2Minus = 25 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.HindiAlpha1Period = 40 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.HindiAlphaPeriod = 36 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.HindiNumberParenRight = 39 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.HindiNumberPeriod = 37 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.JapaneseDoubleBytePeriod = 38 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.JapaneseKoreanPeriod = 27 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.JapaneseKoreanPlain = 26 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.RomanLowerParenBoth = 4 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.RomanLowerParenRight = 5 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.RomanLowerPeriod = 6 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.RomanUpperParenBoth = 14 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.RomanUpperParenRight = 15 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.RomanUpperPeriod = 7 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.SimplifiedChinesePeriod = 17 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.SimplifiedChinesePlain = 16 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.ThaiAlphaParenBoth = 32 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.ThaiAlphaParenRight = 31 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.ThaiAlphaPeriod = 30 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.ThaiNumberParenBoth = 35 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.ThaiNumberParenRight = 34 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.ThaiNumberPeriod = 33 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.TraditionalChinesePeriod = 22 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme.TraditionalChinesePlain = 21 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground.AngleDegrees.get -> double?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground.BackgroundColor.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground.BackgroundOpacity.get -> double?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground.FocusPercent.get -> int?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground.ForegroundColor.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground.ForegroundOpacity.get -> double?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground.GradientStops.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptGradientStop!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground.HasProjectableFill.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground.IsGradientStopTableTruncated.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground.Kind.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground.Picture.get -> OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground.PictureStoreIndex.get -> int?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground.RawFillType.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind.CenterGradient = 6 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind.Inherited = 10 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind.LinearGradient = 5 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind.None = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind.Pattern = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind.Picture = 4 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind.ScaleGradient = 8 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind.ShapeGradient = 7 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind.Solid = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind.Texture = 3 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind.TitleGradient = 9 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind.Unsupported = 11 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBounds
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBounds.Height.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBounds.Left.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBounds.LegacyPptBounds() -> void
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBounds.LegacyPptBounds(int left, int top, int width, int height) -> void
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBounds.Top.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBounds.Width.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.AnsiFontIndex.get -> ushort?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.AnsiTypeface.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.BaselinePositionPercent.get -> short?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.Bold.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.Color.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.ColorSchemeIndex.get -> byte?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.Emboss.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.FarEastHint.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.FontIndex.get -> ushort?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.FontSizePoints.get -> short?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.HasExplicitFormatting.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.HasUnprojectedFormatting.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.Italic.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.Kumi.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.Length.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.OldEastAsianFontIndex.get -> ushort?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.OldEastAsianTypeface.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.Ppt9RunId.get -> byte?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.Shadow.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.Start.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.SymbolFontIndex.get -> ushort?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.SymbolTypeface.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.Text.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.Typeface.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun.Underline.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptColorScheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptColorScheme.Accent1.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptColorScheme.Accent2.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptColorScheme.Accent3.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptColorScheme.Background.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptColorScheme.Fill.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptColorScheme.Shadow.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptColorScheme.Text.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptColorScheme.TitleText.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptColorScheme.TryGetColor(byte index, out string? color) -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptComment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptComment.Author.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptComment.CreatedAtUtc.get -> System.DateTime?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptComment.Index.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptComment.Initials.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptComment.Text.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptComment.X.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptComment.Y.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptConnectorRule
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptConnectorRule.ConnectorShapeId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptConnectorRule.EndConnectionSiteIndex.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptConnectorRule.EndShapeId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptConnectorRule.RuleId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptConnectorRule.StartConnectionSiteIndex.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptConnectorRule.StartShapeId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCustomShow
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCustomShow.HasUnresolvedSlides.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCustomShow.Name.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCustomShow.SlideIds.get -> System.Collections.Generic.IReadOnlyList<uint>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings.FirstSlideNumber.get -> ushort
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings.HandoutMasterPersistId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings.NotesHeight.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings.NotesMasterPersistId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings.NotesWidth.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings.OmitTitlePlaceholders.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings.RawSlideSizeType.get -> ushort
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings.RightToLeft.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings.SaveWithFonts.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings.ServerZoomDenominator.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings.ServerZoomNumerator.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings.ShowComments.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings.SlideHeight.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings.SlideSizeType.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings.SlideWidth.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject.CannotLockServer.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject.ClipboardName.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject.ColorFollow.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleColorFollow
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject.DrawAspect.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleDrawAspect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject.GetBytes() -> byte[]!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject.Id.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject.IsTable.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject.Length.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject.MenuName.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject.NoSizeToServer.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject.PersistId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject.ProgId.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject.SubType.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject.WasCompressed.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFont
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFont.CharacterSet.get -> byte
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFont.DisableSubstitution.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFont.HasEmbeddedData.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFont.Index.get -> ushort
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFont.IsDevice.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFont.IsEmbeddedSubset.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFont.IsRaster.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFont.IsTrueType.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFont.PitchAndFamily.get -> byte
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFont.Typeface.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFontAlignment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFontAlignment.Baseline = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFontAlignment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFontAlignment.Bottom = 3 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFontAlignment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFontAlignment.Center = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFontAlignment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFontAlignment.Hanging = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFontAlignment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptGradientStop
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptGradientStop.Color.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptGradientStop.Position.get -> double
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings.DateTimeFormatId.get -> short
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings.FooterText.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings.HeaderText.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings.RawFlags.get -> ushort
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings.ShowDate.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings.ShowFooter.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings.ShowHeader.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings.ShowSlideNumber.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings.UseAutomaticDateTime.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings.UseUserDate.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings.UserDateText.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink.ExtensionFlags.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink.FriendlyName.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink.Id.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink.IsInternalSlideTarget.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink.Location.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink.LocationIsNamedShow.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink.ReturnsToSlideAfterCustomShow.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink.ScreenTip.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink.Target.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink.TargetSlideId.get -> uint?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink.TargetSlideName.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink.TargetSlideNumber.get -> int?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink.Uri.get -> System.Uri?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink.WasCreatedByInsertHyperlinkDialog.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType.CustomShow = 6 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType.FirstSlide = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType.LastSlide = 3 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType.NextSlide = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType.Nil = 255 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType.OtherFile = 10 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType.OtherPresentation = 9 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType.PreviousSlide = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType.SlideNumber = 7 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType.Url = 8 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction.Action.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction.CustomShow.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCustomShow?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction.Flags.get -> byte
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction.Hyperlink.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction.HyperlinkIdReference.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction.HyperlinkType.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction.IsAnimated.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction.IsVisited.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction.Jump.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction.Name.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction.OleVerb.get -> byte
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction.ReturnsFromCustomShow.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction.SoundIdReference.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction.StopsSound.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction.Trigger.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionTrigger
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction.CustomShow = 7 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction.Hyperlink = 4 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction.Jump = 3 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction.Macro = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction.Media = 6 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction.None = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction.Ole = 5 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction.RunProgram = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump.EndShow = 6 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump.FirstSlide = 3 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump.LastSlide = 4 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump.LastViewedSlide = 5 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump.NextSlide = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump.None = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump.PreviousSlide = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionTrigger
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionTrigger.MouseClick = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionTrigger
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionTrigger.MouseOver = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionTrigger
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject.ClipboardName.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject.DrawAspect.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleDrawAspect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject.GetBytes() -> byte[]!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject.GetMetafileRecordBytes() -> byte[]?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject.HasMetafile.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject.Id.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject.Length.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject.MenuName.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject.MetafileByteCount.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject.PersistId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject.ProgId.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject.SlideId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject.SubType.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject.UpdateMode.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleUpdateMode
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject.WasCompressed.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster.Background.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster.ColorScheme.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptColorScheme?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster.ConnectorRules.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptConnectorRule!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster.FollowsMasterBackground.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster.FollowsMasterColorScheme.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster.FollowsMasterObjects.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster.HeaderFooter.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster.IsMainMaster.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster.Layout.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster.LayoutPlaceholderTypes.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster.LayoutType.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster.MasterId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster.ParentMasterId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster.PersistId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster.RoundTripTheme.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptRoundTripTheme?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster.Shapes.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster.TextMasterStyles.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextMasterStyle!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia.CdEnd.get -> uint?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia.CdStart.get -> uint?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia.DurationMilliseconds.get -> int?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia.GetData() -> byte[]!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia.HasProjectableAudio.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia.Id.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia.Kind.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMediaKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia.Loop.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia.Narration.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia.Path.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia.Rewind.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia.Sound.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSound?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia.SoundId.get -> uint?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMediaKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMediaKind.AviMovie = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMediaKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMediaKind.CdAudio = 3 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMediaKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMediaKind.EmbeddedWaveAudio = 4 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMediaKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMediaKind.LinkedWaveAudio = 5 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMediaKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMediaKind.MciMovie = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMediaKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMediaKind.MidiAudio = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMediaKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptNotesPage
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptNotesPage.Background.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptNotesPage.ColorScheme.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptColorScheme?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptNotesPage.ConnectorRules.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptConnectorRule!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptNotesPage.FollowsMasterBackground.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptNotesPage.FollowsMasterColorScheme.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptNotesPage.FollowsMasterObjects.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptNotesPage.NotesId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptNotesPage.PersistId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptNotesPage.RoundTripTheme.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptRoundTripTheme?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptNotesPage.Shapes.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptNotesPage.SlideId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptNotesPage.Text.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleColorFollow
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleColorFollow.None = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleColorFollow
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleColorFollow.Scheme = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleColorFollow
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleColorFollow.TextAndBackground = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleColorFollow
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleDrawAspect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleDrawAspect.Content = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleDrawAspect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleDrawAspect.DocumentPrint = 8 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleDrawAspect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleDrawAspect.Icon = 4 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleDrawAspect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleDrawAspect.Thumbnail = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleDrawAspect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleUpdateMode
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleUpdateMode.Automatic = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleUpdateMode
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleUpdateMode.Manual = 3 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleUpdateMode
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.Alignment.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.AutoNumberScheme.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.AutoNumberStartAt.get -> short?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.BulletCharacter.get -> char?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.BulletColor.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.BulletColorSchemeIndex.get -> byte?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.BulletFontIndex.get -> ushort?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.BulletHasColor.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.BulletHasFont.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.BulletHasSize.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.BulletPictureReference.get -> ushort?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.BulletSize.get -> short?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.BulletTypeface.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.CharacterWrap.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.DefaultTabSize.get -> short?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.FontAlignment.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFontAlignment?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.HasAutoNumber.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.HasBullet.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.HasExplicitFormatting.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.HasUnprojectedFormatting.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.Indent.get -> short?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.IndentLevel.get -> ushort
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.LeftMargin.get -> short?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.Length.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.LineSpacing.get -> short?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.Overflow.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.PictureBullet.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.SpaceAfter.get -> short?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.SpaceBefore.get -> short?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.Start.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.TabStops.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabStop!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.TextDirection.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextDirection?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun.WordWrap.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet.BlipPayloadAvailableLength.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet.BlipPayloadLength.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet.BlipPayloadSha256.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet.BlipRecordInstance.get -> ushort
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet.BlipRecordType.get -> ushort
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet.BlipRecordVersion.get -> byte
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet.ContentType.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet.HasImportableImage.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet.ImageBytes.get -> byte[]!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet.Index.get -> ushort
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet.IsPayloadTruncated.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet.PreferredBlipType.get -> byte
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet.Unused.get -> byte
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholder
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholder.Kind.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholder.Position.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholder.Size.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderSize
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.Body = 14 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.CenterTitle = 15 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.ClipArt = 22 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.Graph = 20 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.MasterBody = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.MasterCenterTitle = 3 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.MasterDate = 7 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.MasterFooter = 9 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.MasterHeader = 10 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.MasterNotesBody = 6 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.MasterNotesSlideImage = 5 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.MasterSlideNumber = 8 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.MasterSubtitle = 4 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.MasterTitle = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.Media = 24 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.None = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.NotesBody = 12 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.NotesSlideImage = 11 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.Object = 19 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.OrganizationChart = 23 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.Picture = 26 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.Subtitle = 16 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.Table = 21 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.Title = 13 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.VerticalBody = 18 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.VerticalObject = 25 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind.VerticalTitle = 17 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderSize
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderSize.Full = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderSize
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderSize.Half = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderSize
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderSize.Quarter = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderSize
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptRoundTripTheme
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptRoundTripTheme.ColorMappingXml.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptRoundTripTheme.ColorSchemeName.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptRoundTripTheme.Colors.get -> System.Collections.Generic.IReadOnlyDictionary<OfficeIMO.PowerPoint.PowerPointThemeColor, string!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptRoundTripTheme.IsOverride.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptRoundTripTheme.MajorLatinFont.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptRoundTripTheme.MinorLatinFont.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptRoundTripTheme.Name.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptRoundTripTheme.ThemeXml.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.ActiveXControl.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.Animation.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.Bounds.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBounds
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.Children.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.ClickInteraction.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.FillBackColor.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.FillColor.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.FillGradientStops.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptGradientStop!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.Geometry.get -> OfficeIMO.Drawing.Binary.OfficeArtShapeGeometry!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.GroupCoordinateBounds.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBounds?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.Interactions.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.Kind.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.LineColor.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.LinkedOleObject.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.Media.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.Metadata.get -> OfficeIMO.Drawing.Binary.OfficeArtShapeMetadata!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.MouseOverInteraction.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.OfficeArtShapeType.get -> ushort
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.OleObject.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.Picture.get -> OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.PictureProperties.get -> OfficeIMO.Drawing.Binary.OfficeArtPictureProperties!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.PictureRecolorColor.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.PictureStoreIndex.get -> int?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.PictureTransparentColor.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.Placeholder.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholder?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.PlaceholderKind.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.RecordOffset.get -> long
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.ShadowColor.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.ShapeId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.Style.get -> OfficeIMO.Drawing.Binary.OfficeArtShapeStyle!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.Table.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTable?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.Text.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.TextBody.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.TextFrame.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFrameProperties!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape.Transform.get -> OfficeIMO.Drawing.Binary.OfficeArtShapeTransform!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind.AutoShape = 4 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind.Connector = 5 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind.Ellipse = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind.Group = 6 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind.Line = 3 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind.Media = 10 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind.OleObject = 9 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind.Picture = 8 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind.Rectangle = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind.Table = 7 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind.TextBox = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind.Unsupported = 11 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.Background.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.ColorScheme.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptColorScheme?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.Comments.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptComment!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.ConnectorRules.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptConnectorRule!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.FollowsMasterBackground.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.FollowsMasterColorScheme.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.FollowsMasterObjects.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.HeaderFooter.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.Hidden.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.Layout.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.LayoutPlaceholderTypes.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.LayoutType.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.MasterId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.Name.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.NotesId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.NotesPage.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptNotesPage?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.NotesText.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.PersistId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.RoundTripTheme.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptRoundTripTheme?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.Shapes.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.SlideId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide.Transition.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType.BigObject = 15 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType.Blank = 16 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType.ColumnTwoRows = 10 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType.FourObjects = 14 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType.MasterTitle = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType.TitleBody = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType.TitleOnly = 7 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType.TitleSlide = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType.TwoColumns = 8 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType.TwoColumnsRow = 13 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType.TwoRows = 9 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType.TwoRowsColumn = 11 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType.VerticalTitleBody = 17 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType.VerticalTwoRows = 18 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType.A4Paper = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType.Banner = 5 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType.Custom = 6 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType.Film35Mm = 3 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType.LetterPaper = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType.Overhead = 4 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType.Screen = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSound
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSound.BuiltInId.get -> int?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSound.ContentType.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSound.DataBytes.get -> byte[]!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSound.Extension.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSound.HasData.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSound.Id.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSound.Name.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMaster
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMaster.Background.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMaster.ColorScheme.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptColorScheme?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMaster.ConnectorRules.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptConnectorRule!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMaster.Kind.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMasterKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMaster.PersistId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMaster.RoundTripTheme.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptRoundTripTheme?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMaster.Shapes.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMasterKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMasterKind.Handout = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMasterKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMasterKind.Notes = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMasterKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabAlignment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabAlignment.Center = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabAlignment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabAlignment.Decimal = 3 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabAlignment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabAlignment.Left = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabAlignment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabAlignment.Right = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabAlignment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabStop
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabStop.Alignment.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabAlignment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabStop.Position.get -> short
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTable
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTable.BandedColumns.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTable.BandedRows.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTable.Cells.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableCell!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTable.ColumnWidths.get -> System.Collections.Generic.IReadOnlyList<int>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTable.Columns.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTable.FirstColumn.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTable.FirstRow.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTable.LastColumn.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTable.LastRow.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTable.RowHeights.get -> System.Collections.Generic.IReadOnlyList<int>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTable.Rows.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableBorder
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableBorder.Color.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableBorder.IsVisible.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableBorder.LegacyPptTableBorder() -> void
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableBorder.WidthPoints.get -> double
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableCell
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableCell.BottomBorder.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableBorder?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableCell.Column.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableCell.ColumnSpan.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableCell.LeftBorder.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableBorder?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableCell.RightBorder.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableBorder?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableCell.Row.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableCell.RowSpan.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableCell.SourceShape.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableCell.TopBorder.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableBorder?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment.Center = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment.Distributed = 4 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment.Justify = 3 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment.JustifyLow = 6 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment.Left = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment.Right = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment.ThaiDistributed = 5 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.CharacterRuns.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.Fields.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextField!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.HasExplicitCharacterFormatting.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.HasFieldRecords.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.HasInteractions.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.HasLanguageInformation.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.HasParagraphFormatting.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.HasRulerRecord.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.HasStyle9Record.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.HasStyleRecord.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.HasTextSpecialInfoRecord.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.HasUnprojectedCharacterFormatting.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.HasUnprojectedParagraphFormatting.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.HasUnprojectedTextSpecialInfo.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.Interactions.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextInteraction!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.IsFieldDataMalformed.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.IsRulerTruncated.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.IsStyle9Truncated.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.IsStyleTruncated.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.IsTextSpecialInfoTruncated.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.LanguageRuns.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextLanguageRun!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.ParagraphRuns.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.Ruler.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRuler?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.Text.get -> string!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody.TextType.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBuildSubEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBuildSubEffect.AllAtOnce = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBuildSubEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBuildSubEffect.ByCharacter = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBuildSubEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBuildSubEffect.ByWord = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBuildSubEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextDirection
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextDirection.LeftToRight = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextDirection
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextDirection.RightToLeft = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextDirection
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextField
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextField.DateTimeFormatIndex.get -> byte?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextField.Kind.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFieldKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextField.Position.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextField.RtfFormat.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFieldKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFieldKind.DateTime = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFieldKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFieldKind.Footer = 4 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFieldKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFieldKind.GenericDate = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFieldKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFieldKind.Header = 3 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFieldKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFieldKind.RtfDateTime = 5 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFieldKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFieldKind.SlideNumber = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFieldKind
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFrameProperties
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFrameProperties.AnchorMode.get -> uint?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFrameProperties.AutoTextMargin.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFrameProperties.BottomInsetEmus.get -> int?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFrameProperties.CanRewriteProjectedProperties.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFrameProperties.FitShapeToText.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFrameProperties.HasExplicitProperties.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFrameProperties.LeftInsetEmus.get -> int?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFrameProperties.RightInsetEmus.get -> int?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFrameProperties.TextFlow.get -> uint?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFrameProperties.TopInsetEmus.get -> int?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFrameProperties.WrapMode.get -> uint?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextInteraction
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextInteraction.Interaction.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextInteraction.Length.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextInteraction.Start.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextLanguageRun
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextLanguageRun.AlternativeLanguage.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextLanguageRun.AlternativeLanguageId.get -> ushort?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextLanguageRun.HasUnprojectedInformation.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextLanguageRun.Language.get -> string?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextLanguageRun.LanguageId.get -> ushort?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextLanguageRun.Length.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextLanguageRun.NeedsRecheck.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextLanguageRun.NoProof.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextLanguageRun.SpellingError.get -> bool?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextLanguageRun.Start.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextMasterStyle
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextMasterStyle.HasUnprojectedFormatting.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextMasterStyle.IsTruncated.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextMasterStyle.Levels.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextMasterStyleLevel!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextMasterStyle.TextType.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextMasterStyleLevel
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextMasterStyleLevel.CharacterProperties.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextMasterStyleLevel.Level.get -> ushort
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextMasterStyleLevel.ParagraphProperties.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRuler
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRuler.DefaultTabSize.get -> short?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRuler.HasFormatting.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRuler.HasUnprojectedFormatting.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRuler.LevelCount.get -> short?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRuler.Levels.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRulerLevel!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRuler.TabStops.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabStop!>!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRulerLevel
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRulerLevel.Indent.get -> short?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRulerLevel.LeftMargin.get -> short?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRulerLevel.Level.get -> ushort
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType.Body = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType.CenterBody = 5 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType.CenterTitle = 6 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType.HalfBody = 7 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType.Notes = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType.Other = 4 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType.QuarterBody = 8 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType.Title = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition.AutoAdvance.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition.CursorVisible.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition.Effect.get -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect?
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition.EffectDirection.get -> byte
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition.Hidden.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition.LoopSound.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition.ManualAdvance.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition.PlaySound.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition.RawEffectType.get -> byte
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition.RawFlags.get -> ushort
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition.SlideTimeMilliseconds.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition.SoundId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition.Speed.get -> byte
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition.StopSound.get -> bool
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.AlphaFade = 23 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Blinds = 2 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Box = 11 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Checker = 3 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Circle = 27 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Comb = 21 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Cover = 4 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Cut = 0 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Diamond = 17 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Dissolve = 5 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Fade = 6 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Newsflash = 22 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Plus = 18 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Push = 20 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Random = 1 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.RandomBars = 8 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Split = 13 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Strips = 9 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Uncover = 7 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Undefined = 255 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Wedge = 19 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Wheel = 26 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect.Wipe = 10 -> OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptVbaProject
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptVbaProject.GetBytes() -> byte[]!
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptVbaProject.Length.get -> int
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptVbaProject.PersistId.get -> uint
-OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptVbaProject.WasCompressed.get -> bool
 OfficeIMO.PowerPoint.PowerPointAccessibilityException
 OfficeIMO.PowerPoint.PowerPointAccessibilityException.IncludedWarnings.get -> bool
 OfficeIMO.PowerPoint.PowerPointAccessibilityException.Report.get -> OfficeIMO.PowerPoint.PowerPointAccessibilityReport!
@@ -1069,10 +128,10 @@ OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.CheckMeaningfulLinks.get -> 
 OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.CheckMeaningfulLinks.set -> void
 OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.IncludeHiddenSlides.get -> bool
 OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.IncludeHiddenSlides.set -> void
-OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeBoldTextThresholdPoints.get -> double
-OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeBoldTextThresholdPoints.set -> void
-OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeTextThresholdPoints.get -> double
-OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeTextThresholdPoints.set -> void
+OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeBoldTextThreshold.get -> OfficeIMO.OfficeLength
+OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeBoldTextThreshold.set -> void
+OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeTextThreshold.get -> OfficeIMO.OfficeLength
+OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeTextThreshold.set -> void
 OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.MaximumGroupDepth.get -> int
 OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.MaximumGroupDepth.set -> void
 OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.MaximumShapeCount.get -> int
@@ -1232,7 +291,7 @@ OfficeIMO.PowerPoint.PowerPointAutoLayoutStrategy.VisualFirst = 3 -> OfficeIMO.P
 OfficeIMO.PowerPoint.PowerPointAutoShape
 OfficeIMO.PowerPoint.PowerPointAutoShape.Fill(string! color) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
 OfficeIMO.PowerPoint.PowerPointAutoShape.ShapeType.get -> OfficeIMO.Drawing.OfficePresetShapeType?
-OfficeIMO.PowerPoint.PowerPointAutoShape.Stroke(string! color, double? widthPoints = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
+OfficeIMO.PowerPoint.PowerPointAutoShape.Stroke(string! color, OfficeIMO.OfficeLength? width = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
 OfficeIMO.PowerPoint.PowerPointBuiltinDocumentProperties
 OfficeIMO.PowerPoint.PowerPointBuiltinDocumentProperties.Category.get -> string?
 OfficeIMO.PowerPoint.PowerPointBuiltinDocumentProperties.Category.set -> void
@@ -1668,9 +727,9 @@ OfficeIMO.PowerPoint.PowerPointClassicComment.Remove() -> void
 OfficeIMO.PowerPoint.PowerPointClassicComment.SetAuthor(OfficeIMO.PowerPoint.PowerPointCommentAuthor! author) -> void
 OfficeIMO.PowerPoint.PowerPointClassicComment.Text.get -> string!
 OfficeIMO.PowerPoint.PowerPointClassicComment.Text.set -> void
-OfficeIMO.PowerPoint.PowerPointClassicComment.X.get -> long
+OfficeIMO.PowerPoint.PowerPointClassicComment.X.get -> OfficeIMO.OfficeLength
 OfficeIMO.PowerPoint.PowerPointClassicComment.X.set -> void
-OfficeIMO.PowerPoint.PowerPointClassicComment.Y.get -> long
+OfficeIMO.PowerPoint.PowerPointClassicComment.Y.get -> OfficeIMO.OfficeLength
 OfficeIMO.PowerPoint.PowerPointClassicComment.Y.set -> void
 OfficeIMO.PowerPoint.PowerPointClassicTextBuild
 OfficeIMO.PowerPoint.PowerPointClassicTextBuild.AllAtOnce = 0 -> OfficeIMO.PowerPoint.PowerPointClassicTextBuild
@@ -1795,7 +854,7 @@ OfficeIMO.PowerPoint.PowerPointCompositionVariant.Standard = 1 -> OfficeIMO.Powe
 OfficeIMO.PowerPoint.PowerPointCompositionVariant.VisualLead = 3 -> OfficeIMO.PowerPoint.PowerPointCompositionVariant
 OfficeIMO.PowerPoint.PowerPointConnectionShape
 OfficeIMO.PowerPoint.PowerPointConnectionShape.ShapeType.get -> OfficeIMO.Drawing.OfficePresetShapeType?
-OfficeIMO.PowerPoint.PowerPointConnectionShape.Stroke(string! color, double? widthPoints = null) -> OfficeIMO.PowerPoint.PowerPointConnectionShape!
+OfficeIMO.PowerPoint.PowerPointConnectionShape.Stroke(string! color, OfficeIMO.OfficeLength? width = null) -> OfficeIMO.PowerPoint.PowerPointConnectionShape!
 OfficeIMO.PowerPoint.PowerPointCoverageLayoutVariant
 OfficeIMO.PowerPoint.PowerPointCoverageLayoutVariant.Auto = 0 -> OfficeIMO.PowerPoint.PowerPointCoverageLayoutVariant
 OfficeIMO.PowerPoint.PowerPointCoverageLayoutVariant.ListMap = 2 -> OfficeIMO.PowerPoint.PowerPointCoverageLayoutVariant
@@ -1821,6 +880,8 @@ OfficeIMO.PowerPoint.PowerPointCreateOptions
 OfficeIMO.PowerPoint.PowerPointCreateOptions.PowerPointCreateOptions() -> void
 OfficeIMO.PowerPoint.PowerPointCreateOptions.Template.get -> string?
 OfficeIMO.PowerPoint.PowerPointCreateOptions.Template.set -> void
+OfficeIMO.PowerPoint.PowerPointCreateOptions.Theme.get -> OfficeIMO.OfficeTheme?
+OfficeIMO.PowerPoint.PowerPointCreateOptions.Theme.set -> void
 OfficeIMO.PowerPoint.PowerPointCreativeDirectionPack
 OfficeIMO.PowerPoint.PowerPointCreativeDirectionPack.Auto = 0 -> OfficeIMO.PowerPoint.PowerPointCreativeDirectionPack
 OfficeIMO.PowerPoint.PowerPointCreativeDirectionPack.Boardroom = 1 -> OfficeIMO.PowerPoint.PowerPointCreativeDirectionPack
@@ -2012,7 +1073,7 @@ OfficeIMO.PowerPoint.PowerPointDeckPreflightFinding
 OfficeIMO.PowerPoint.PowerPointDeckPreflightFinding.Bounds.get -> OfficeIMO.PowerPoint.PowerPointLayoutBox?
 OfficeIMO.PowerPoint.PowerPointDeckPreflightFinding.Code.get -> string!
 OfficeIMO.PowerPoint.PowerPointDeckPreflightFinding.Message.get -> string!
-OfficeIMO.PowerPoint.PowerPointDeckPreflightFinding.ResolvedFontSizePoints.get -> double?
+OfficeIMO.PowerPoint.PowerPointDeckPreflightFinding.ResolvedFontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.PowerPoint.PowerPointDeckPreflightFinding.Severity.get -> OfficeIMO.PowerPoint.PowerPointDeckPreflightSeverity
 OfficeIMO.PowerPoint.PowerPointDeckPreflightFinding.ShapeId.get -> uint?
 OfficeIMO.PowerPoint.PowerPointDeckPreflightFinding.ShapeIndex.get -> int?
@@ -2022,10 +1083,10 @@ OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions
 OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.AllowDecorativeShapeBleed.get -> bool
 OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.AllowDecorativeShapeBleed.set -> void
 OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.Clone() -> OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions!
-OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.CollisionTolerancePoints.get -> double
-OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.CollisionTolerancePoints.set -> void
-OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.DefaultFontSizePoints.get -> double
-OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.DefaultFontSizePoints.set -> void
+OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.CollisionTolerance.get -> OfficeIMO.OfficeLength
+OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.CollisionTolerance.set -> void
+OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.DefaultFontSize.get -> OfficeIMO.OfficeLength
+OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.DefaultFontSize.set -> void
 OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.DetectMissingVisualAssets.get -> bool
 OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.DetectMissingVisualAssets.set -> void
 OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.DetectOffSlideShapes.get -> bool
@@ -2042,16 +1103,16 @@ OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.IgnoreContainedShapeCollisio
 OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.IgnoreContainedShapeCollisions.set -> void
 OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.IncludeVisualSnapshotDiagnostics.get -> bool
 OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.IncludeVisualSnapshotDiagnostics.set -> void
-OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MaximumDecorativeBleedPoints.get -> double
-OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MaximumDecorativeBleedPoints.set -> void
+OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MaximumDecorativeBleed.get -> OfficeIMO.OfficeLength
+OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MaximumDecorativeBleed.set -> void
 OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MaximumGroupDepth.get -> int
 OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MaximumGroupDepth.set -> void
 OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MaximumShapeCount.get -> int
 OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MaximumShapeCount.set -> void
 OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MinimumCollisionOverlapRatio.get -> double
 OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MinimumCollisionOverlapRatio.set -> void
-OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MinimumReadableFontSizePoints.get -> double
-OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MinimumReadableFontSizePoints.set -> void
+OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MinimumReadableFontSize.get -> OfficeIMO.OfficeLength
+OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MinimumReadableFontSize.set -> void
 OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.PowerPointDeckPreflightOptions() -> void
 OfficeIMO.PowerPoint.PowerPointDeckPreflightReport
 OfficeIMO.PowerPoint.PowerPointDeckPreflightReport.ErrorCount.get -> int
@@ -2279,11 +1340,11 @@ OfficeIMO.PowerPoint.PowerPointDirectionMotifStyle.None = 5 -> OfficeIMO.PowerPo
 OfficeIMO.PowerPoint.PowerPointDirectionMotifStyle.Triangles = 1 -> OfficeIMO.PowerPoint.PowerPointDirectionMotifStyle
 OfficeIMO.PowerPoint.PowerPointDocument
 OfficeIMO.PowerPoint.PowerPointDocument.AccessMode.get -> OfficeIMO.DocumentAccessMode
-OfficeIMO.PowerPoint.PowerPointDocument.AddClassicComment(OfficeIMO.PowerPoint.PowerPointSlide! slide, OfficeIMO.PowerPoint.PowerPointCommentAuthor! author, string! text, long x = 0, long y = 0, System.DateTime? created = null) -> OfficeIMO.PowerPoint.PowerPointClassicComment!
+OfficeIMO.PowerPoint.PowerPointDocument.AddClassicComment(OfficeIMO.PowerPoint.PowerPointSlide! slide, OfficeIMO.PowerPoint.PowerPointCommentAuthor! author, string! text, OfficeIMO.OfficeLength x = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength y = default(OfficeIMO.OfficeLength), System.DateTime? created = null) -> OfficeIMO.PowerPoint.PowerPointClassicComment!
 OfficeIMO.PowerPoint.PowerPointDocument.AddColumnGuides(int columnCount, OfficeIMO.OfficeLength margin, OfficeIMO.OfficeLength gutter, bool includeOuterEdges = true, bool clearExisting = false) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointGuideInfo>!
 OfficeIMO.PowerPoint.PowerPointDocument.AddCustomShow(string! name, System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointSlide!>! slides) -> OfficeIMO.PowerPoint.PowerPointCustomShow!
 OfficeIMO.PowerPoint.PowerPointDocument.AddGuide(OfficeIMO.PowerPoint.PowerPointGuideOrientation orientation, OfficeIMO.OfficeLength position) -> OfficeIMO.PowerPoint.PowerPointGuideInfo
-OfficeIMO.PowerPoint.PowerPointDocument.AddModernComment(OfficeIMO.PowerPoint.PowerPointSlide! slide, OfficeIMO.PowerPoint.PowerPointCommentAuthor! author, string! text, OfficeIMO.PowerPoint.PowerPointModernCommentStatus status = OfficeIMO.PowerPoint.PowerPointModernCommentStatus.Active, long x = 0, long y = 0, System.DateTime? created = null) -> OfficeIMO.PowerPoint.PowerPointModernComment!
+OfficeIMO.PowerPoint.PowerPointDocument.AddModernComment(OfficeIMO.PowerPoint.PowerPointSlide! slide, OfficeIMO.PowerPoint.PowerPointCommentAuthor! author, string! text, OfficeIMO.PowerPoint.PowerPointModernCommentStatus status = OfficeIMO.PowerPoint.PowerPointModernCommentStatus.Active, OfficeIMO.OfficeLength x = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength y = default(OfficeIMO.OfficeLength), System.DateTime? created = null) -> OfficeIMO.PowerPoint.PowerPointModernComment!
 OfficeIMO.PowerPoint.PowerPointDocument.AddRowGuides(int rowCount, OfficeIMO.OfficeLength margin, OfficeIMO.OfficeLength gutter, bool includeOuterEdges = true, bool clearExisting = false) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointGuideInfo>!
 OfficeIMO.PowerPoint.PowerPointDocument.AddSection(string! name, int startSlideIndex) -> OfficeIMO.PowerPoint.PowerPointSectionInfo
 OfficeIMO.PowerPoint.PowerPointDocument.AddSlide(OfficeIMO.PowerPoint.PowerPointSlideLayoutType layoutType, int masterIndex = 0) -> OfficeIMO.PowerPoint.PowerPointSlide!
@@ -2769,9 +1830,9 @@ OfficeIMO.PowerPoint.PowerPointModernComment.Status.get -> OfficeIMO.PowerPoint.
 OfficeIMO.PowerPoint.PowerPointModernComment.Status.set -> void
 OfficeIMO.PowerPoint.PowerPointModernComment.Text.get -> string!
 OfficeIMO.PowerPoint.PowerPointModernComment.Text.set -> void
-OfficeIMO.PowerPoint.PowerPointModernComment.X.get -> long
+OfficeIMO.PowerPoint.PowerPointModernComment.X.get -> OfficeIMO.OfficeLength
 OfficeIMO.PowerPoint.PowerPointModernComment.X.set -> void
-OfficeIMO.PowerPoint.PowerPointModernComment.Y.get -> long
+OfficeIMO.PowerPoint.PowerPointModernComment.Y.get -> OfficeIMO.OfficeLength
 OfficeIMO.PowerPoint.PowerPointModernComment.Y.set -> void
 OfficeIMO.PowerPoint.PowerPointModernCommentReply
 OfficeIMO.PowerPoint.PowerPointModernCommentReply.Author.get -> OfficeIMO.PowerPoint.PowerPointCommentAuthor!
@@ -3084,8 +2145,8 @@ OfficeIMO.PowerPoint.PowerPointReviewComment.ShapeId.get -> uint?
 OfficeIMO.PowerPoint.PowerPointReviewComment.SlideNumber.get -> int
 OfficeIMO.PowerPoint.PowerPointReviewComment.Status.get -> string?
 OfficeIMO.PowerPoint.PowerPointReviewComment.Text.get -> string!
-OfficeIMO.PowerPoint.PowerPointReviewComment.X.get -> double?
-OfficeIMO.PowerPoint.PowerPointReviewComment.Y.get -> double?
+OfficeIMO.PowerPoint.PowerPointReviewComment.X.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointReviewComment.Y.get -> OfficeIMO.OfficeLength?
 OfficeIMO.PowerPoint.PowerPointReviewReport
 OfficeIMO.PowerPoint.PowerPointReviewReport.ClassicCount.get -> int
 OfficeIMO.PowerPoint.PowerPointReviewReport.Comments.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointReviewComment!>!
@@ -3189,8 +2250,8 @@ OfficeIMO.PowerPoint.PowerPointShape.OutlineDash.get -> OfficeIMO.PowerPoint.Pow
 OfficeIMO.PowerPoint.PowerPointShape.OutlineDash.set -> void
 OfficeIMO.PowerPoint.PowerPointShape.OutlineTransparency.get -> int?
 OfficeIMO.PowerPoint.PowerPointShape.OutlineTransparency.set -> void
-OfficeIMO.PowerPoint.PowerPointShape.OutlineWidthPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointShape.OutlineWidthPoints.set -> void
+OfficeIMO.PowerPoint.PowerPointShape.OutlineWidth.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointShape.OutlineWidth.set -> void
 OfficeIMO.PowerPoint.PowerPointShape.ReadingOrder.get -> int
 OfficeIMO.PowerPoint.PowerPointShape.Remove() -> void
 OfficeIMO.PowerPoint.PowerPointShape.Resize(OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.PowerPoint.PowerPointShapeAnchor anchor = OfficeIMO.PowerPoint.PowerPointShapeAnchor.TopLeft) -> void
@@ -3398,17 +2459,17 @@ OfficeIMO.PowerPoint.PowerPointSlide.AlignShapes(System.Collections.Generic.IEnu
 OfficeIMO.PowerPoint.PowerPointSlide.AlignShapesToSlide(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.AlignShapesToSlideContent(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment, OfficeIMO.OfficeLength margin) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.ArrangeGroupChildrenInGrid(OfficeIMO.PowerPoint.PowerPointGroupShape! groupShape, int columns, int rows, OfficeIMO.OfficeLength gutterX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength gutterY = default(OfficeIMO.OfficeLength), bool resizeToCell = true, OfficeIMO.PowerPoint.PowerPointShapeGridFlow flow = OfficeIMO.PowerPoint.PowerPointShapeGridFlow.RowMajor) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.ArrangeGroupChildrenInGridAuto(OfficeIMO.PowerPoint.PowerPointGroupShape! groupShape, OfficeIMO.PowerPoint.PowerPointShapeGridOptions? options) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.ArrangeGroupChildrenInGridAuto(OfficeIMO.PowerPoint.PowerPointGroupShape! groupShape, OfficeIMO.OfficeLength gutterX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength gutterY = default(OfficeIMO.OfficeLength), bool resizeToCell = true, OfficeIMO.PowerPoint.PowerPointShapeGridFlow flow = OfficeIMO.PowerPoint.PowerPointShapeGridFlow.RowMajor) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.ArrangeGroupChildrenInGridAuto(OfficeIMO.PowerPoint.PowerPointGroupShape! groupShape, OfficeIMO.PowerPoint.PowerPointShapeGridOptions? options) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGrid(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, int columns, int rows, OfficeIMO.OfficeLength gutterX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength gutterY = default(OfficeIMO.OfficeLength), bool resizeToCell = true, OfficeIMO.PowerPoint.PowerPointShapeGridFlow flow = OfficeIMO.PowerPoint.PowerPointShapeGridFlow.RowMajor) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGrid(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, int columns, int rows, OfficeIMO.OfficeLength gutterX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength gutterY = default(OfficeIMO.OfficeLength), bool resizeToCell = true, OfficeIMO.PowerPoint.PowerPointShapeGridFlow flow = OfficeIMO.PowerPoint.PowerPointShapeGridFlow.RowMajor) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridAuto(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.PowerPoint.PowerPointShapeGridOptions? options) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridAuto(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.OfficeLength gutterX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength gutterY = default(OfficeIMO.OfficeLength), bool resizeToCell = true, OfficeIMO.PowerPoint.PowerPointShapeGridFlow flow = OfficeIMO.PowerPoint.PowerPointShapeGridFlow.RowMajor) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridAuto(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.OfficeLength gutterX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength gutterY = default(OfficeIMO.OfficeLength), bool resizeToCell = true, OfficeIMO.PowerPoint.PowerPointShapeGridFlow flow = OfficeIMO.PowerPoint.PowerPointShapeGridFlow.RowMajor) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridAutoToSlide(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeGridOptions? options) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridAuto(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.OfficeLength gutterX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength gutterY = default(OfficeIMO.OfficeLength), bool resizeToCell = true, OfficeIMO.PowerPoint.PowerPointShapeGridFlow flow = OfficeIMO.PowerPoint.PowerPointShapeGridFlow.RowMajor) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridAuto(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.PowerPoint.PowerPointShapeGridOptions? options) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridAutoToSlide(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.OfficeLength gutterX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength gutterY = default(OfficeIMO.OfficeLength), bool resizeToCell = true, OfficeIMO.PowerPoint.PowerPointShapeGridFlow flow = OfficeIMO.PowerPoint.PowerPointShapeGridFlow.RowMajor) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridAutoToSlideContent(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.OfficeLength margin, OfficeIMO.PowerPoint.PowerPointShapeGridOptions? options) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridAutoToSlide(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeGridOptions? options) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridAutoToSlideContent(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.OfficeLength margin, OfficeIMO.OfficeLength gutterX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength gutterY = default(OfficeIMO.OfficeLength), bool resizeToCell = true, OfficeIMO.PowerPoint.PowerPointShapeGridFlow flow = OfficeIMO.PowerPoint.PowerPointShapeGridFlow.RowMajor) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridAutoToSlideContent(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.OfficeLength margin, OfficeIMO.PowerPoint.PowerPointShapeGridOptions? options) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridToSlide(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, int columns, int rows, OfficeIMO.OfficeLength gutterX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength gutterY = default(OfficeIMO.OfficeLength), bool resizeToCell = true, OfficeIMO.PowerPoint.PowerPointShapeGridFlow flow = OfficeIMO.PowerPoint.PowerPointShapeGridFlow.RowMajor) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridToSlideContent(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, int columns, int rows, OfficeIMO.OfficeLength margin, OfficeIMO.OfficeLength gutterX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength gutterY = default(OfficeIMO.OfficeLength), bool resizeToCell = true, OfficeIMO.PowerPoint.PowerPointShapeGridFlow flow = OfficeIMO.PowerPoint.PowerPointShapeGridFlow.RowMajor) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.BackgroundColor.get -> string?
@@ -3424,8 +2485,8 @@ OfficeIMO.PowerPoint.PowerPointSlide.ClearTransitionSound() -> void
 OfficeIMO.PowerPoint.PowerPointSlide.CreateVisualSnapshot(OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null) -> OfficeIMO.PowerPoint.PowerPointSlideVisualInfo!
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeGroupChildren(OfficeIMO.PowerPoint.PowerPointGroupShape! groupShape, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeGroupChildren(OfficeIMO.PowerPoint.PowerPointGroupShape! groupShape, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.PowerPoint.PowerPointShapeAlignment crossAxisAlignment) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.DistributeGroupChildrenWithSpacing(OfficeIMO.PowerPoint.PowerPointGroupShape! groupShape, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.PowerPoint.PowerPointShapeSpacingOptions? options) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeGroupChildrenWithSpacing(OfficeIMO.PowerPoint.PowerPointGroupShape! groupShape, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.OfficeLength spacing, bool center = false) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.DistributeGroupChildrenWithSpacing(OfficeIMO.PowerPoint.PowerPointGroupShape! groupShape, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.PowerPoint.PowerPointShapeSpacingOptions? options) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.PowerPoint.PowerPointShapeAlignment crossAxisAlignment) -> void
@@ -3434,18 +2495,18 @@ OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesToSlide(System.Collections.
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesToSlide(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.PowerPoint.PowerPointShapeAlignment crossAxisAlignment) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesToSlideContent(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.OfficeLength margin) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesToSlideContent(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.OfficeLength margin, OfficeIMO.PowerPoint.PowerPointShapeAlignment crossAxisAlignment) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacing(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.PowerPoint.PowerPointShapeSpacingOptions? options) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacing(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacing(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment, OfficeIMO.PowerPoint.PowerPointShapeAlignment crossAxisAlignment) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacing(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.OfficeLength spacing, bool center = false) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacing(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.PowerPoint.PowerPointShapeSpacingOptions? options) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacing(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacing(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment, OfficeIMO.PowerPoint.PowerPointShapeAlignment crossAxisAlignment) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacing(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.OfficeLength spacing, bool center = false) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlide(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.PowerPoint.PowerPointShapeSpacingOptions? options) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacing(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacing(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment, OfficeIMO.PowerPoint.PowerPointShapeAlignment crossAxisAlignment) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacing(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.OfficeLength spacing, bool center = false) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacing(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.PowerPoint.PowerPointShapeSpacingOptions? options) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacing(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.PowerPoint.PowerPointShapeSpacingOptions? options) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlide(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlide(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment, OfficeIMO.PowerPoint.PowerPointShapeAlignment crossAxisAlignment) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlide(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.OfficeLength spacing, bool center = false) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlide(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.PowerPoint.PowerPointShapeSpacingOptions? options) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlideContent(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.OfficeLength margin, OfficeIMO.PowerPoint.PowerPointShapeSpacingOptions? options) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlideContent(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.OfficeLength spacing, OfficeIMO.OfficeLength margin, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlideContent(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, OfficeIMO.OfficeLength spacing, OfficeIMO.OfficeLength margin, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment, OfficeIMO.PowerPoint.PowerPointShapeAlignment crossAxisAlignment) -> void
@@ -3478,10 +2539,8 @@ OfficeIMO.PowerPoint.PowerPointSlide.GetShapeById(uint id) -> OfficeIMO.PowerPoi
 OfficeIMO.PowerPoint.PowerPointSlide.GetShapeById<T>(uint id) -> T?
 OfficeIMO.PowerPoint.PowerPointSlide.GetShapeByName(string! name, bool ignoreCase = false) -> OfficeIMO.PowerPoint.PowerPointShape?
 OfficeIMO.PowerPoint.PowerPointSlide.GetShapeByName<T>(string! name, bool ignoreCase = false) -> T?
-OfficeIMO.PowerPoint.PowerPointSlide.GetShapesInBounds(OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, bool includePartial = true) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointShape!>!
-OfficeIMO.PowerPoint.PowerPointSlide.GetShapesInBoundsCm(double leftCm, double topCm, double widthCm, double heightCm, bool includePartial = true) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointShape!>!
-OfficeIMO.PowerPoint.PowerPointSlide.GetShapesInBoundsInches(double leftInches, double topInches, double widthInches, double heightInches, bool includePartial = true) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointShape!>!
-OfficeIMO.PowerPoint.PowerPointSlide.GetShapesInBoundsPoints(double leftPoints, double topPoints, double widthPoints, double heightPoints, bool includePartial = true) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointShape!>!
+OfficeIMO.PowerPoint.PowerPointSlide.GetShapesInBounds(OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength top, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, bool includePartial = true) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointShape!>!
+OfficeIMO.PowerPoint.PowerPointSlide.GetShapesInBounds(OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, bool includePartial) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointShape!>!
 OfficeIMO.PowerPoint.PowerPointSlide.GetSpeakerNotesText() -> string!
 OfficeIMO.PowerPoint.PowerPointSlide.GetTable(string! name) -> OfficeIMO.PowerPoint.PowerPointTable?
 OfficeIMO.PowerPoint.PowerPointSlide.GetTextBox(string! name) -> OfficeIMO.PowerPoint.PowerPointTextBox?
@@ -3505,8 +2564,8 @@ OfficeIMO.PowerPoint.PowerPointSlide.RemoveAnimation(uint timingId) -> bool
 OfficeIMO.PowerPoint.PowerPointSlide.RemoveClassicAnimation(OfficeIMO.PowerPoint.PowerPointShape! shape) -> bool
 OfficeIMO.PowerPoint.PowerPointSlide.RemoveShape(OfficeIMO.PowerPoint.PowerPointShape! shape) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.ReplaceText(string! oldValue, string! newValue, bool includeTables = true, bool includeNotes = false) -> int
-OfficeIMO.PowerPoint.PowerPointSlide.ResizeShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeSizeDimension dimension, OfficeIMO.PowerPoint.PowerPointShapeSizeReference reference = OfficeIMO.PowerPoint.PowerPointShapeSizeReference.First) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.ResizeShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.OfficeLength? width, OfficeIMO.OfficeLength? height) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.ResizeShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeSizeDimension dimension, OfficeIMO.PowerPoint.PowerPointShapeSizeReference reference = OfficeIMO.PowerPoint.PowerPointShapeSizeReference.First) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.SaveAsImage(System.IO.Stream! stream, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
 OfficeIMO.PowerPoint.PowerPointSlide.SaveAsImage(string! path, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
 OfficeIMO.PowerPoint.PowerPointSlide.SaveAsImageAsync(System.IO.Stream! stream, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
@@ -3529,22 +2588,22 @@ OfficeIMO.PowerPoint.PowerPointSlide.SetTransitionSound(string! audioPath, bool 
 OfficeIMO.PowerPoint.PowerPointSlide.Shapes.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointShape!>!
 OfficeIMO.PowerPoint.PowerPointSlide.Show() -> void
 OfficeIMO.PowerPoint.PowerPointSlide.SmartArts.get -> System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointSmartArt!>!
-OfficeIMO.PowerPoint.PowerPointSlide.StackGroupChildren(OfficeIMO.PowerPoint.PowerPointGroupShape! groupShape, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.PowerPoint.PowerPointShapeStackOptions? options) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.StackGroupChildren(OfficeIMO.PowerPoint.PowerPointGroupShape! groupShape, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.OfficeLength spacing) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.PowerPoint.PowerPointShapeStackOptions? options) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.OfficeLength spacing) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment, OfficeIMO.PowerPoint.PowerPointShapeStackJustify justify) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeStackJustify justify) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.StackGroupChildren(OfficeIMO.PowerPoint.PowerPointGroupShape! groupShape, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.PowerPoint.PowerPointShapeStackOptions? options) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.OfficeLength spacing) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment, OfficeIMO.PowerPoint.PowerPointShapeStackJustify justify) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeStackJustify justify) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlide(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.PowerPoint.PowerPointShapeStackOptions? options) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.OfficeLength spacing) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment, OfficeIMO.PowerPoint.PowerPointShapeStackJustify justify) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeStackJustify justify) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.PowerPoint.PowerPointShapeStackOptions? options) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlide(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.OfficeLength spacing) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlide(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlide(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment, OfficeIMO.PowerPoint.PowerPointShapeStackJustify justify) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlide(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.OfficeLength spacing, OfficeIMO.PowerPoint.PowerPointShapeStackJustify justify) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlide(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.PowerPoint.PowerPointShapeStackOptions? options) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContent(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.OfficeLength margin, OfficeIMO.PowerPoint.PowerPointShapeStackOptions? options) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContent(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.OfficeLength spacing, OfficeIMO.OfficeLength margin) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContent(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeStackDirection direction, OfficeIMO.OfficeLength spacing, OfficeIMO.OfficeLength margin, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment) -> void
@@ -3607,13 +2666,12 @@ OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddTitle(string! title, s
 OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddVisualFrame(OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, OfficeIMO.PowerPoint.PowerPointVisualFrameVariant variant) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointShape!>!
 OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddVisualFrame(OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, string? imagePath = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointShape!>!
 OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddVisualFrame(OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, string? imagePath, OfficeIMO.PowerPoint.PowerPointVisualFrameVariant variant) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointShape!>!
-OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.ContentArea(double topCm = 3.65, double bottomMarginCm = 1.65, double horizontalMarginCm = 1.5) -> OfficeIMO.PowerPoint.PowerPointLayoutBox
-OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.ContentColumns(int columnCount, double gutterCm = 0.65, double topCm = 3.65, double bottomMarginCm = 1.65, double horizontalMarginCm = 1.5) -> OfficeIMO.PowerPoint.PowerPointLayoutBox[]!
-OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.ContentGrid(int rowCount, int columnCount, double rowGutterCm = 0.55, double columnGutterCm = 0.55, double topCm = 3.65, double bottomMarginCm = 1.65, double horizontalMarginCm = 1.5) -> OfficeIMO.PowerPoint.PowerPointLayoutBox[,]!
-OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.ContentRows(int rowCount, double gutterCm = 0.55, double topCm = 3.65, double bottomMarginCm = 1.65, double horizontalMarginCm = 1.5) -> OfficeIMO.PowerPoint.PowerPointLayoutBox[]!
+OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.ContentArea(OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? bottomMargin = null, OfficeIMO.OfficeLength? horizontalMargin = null) -> OfficeIMO.PowerPoint.PowerPointLayoutBox
+OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.ContentColumns(int columnCount, OfficeIMO.OfficeLength? gutter = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? bottomMargin = null, OfficeIMO.OfficeLength? horizontalMargin = null) -> OfficeIMO.PowerPoint.PowerPointLayoutBox[]!
+OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.ContentGrid(int rowCount, int columnCount, OfficeIMO.OfficeLength? rowGutter = null, OfficeIMO.OfficeLength? columnGutter = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? bottomMargin = null, OfficeIMO.OfficeLength? horizontalMargin = null) -> OfficeIMO.PowerPoint.PowerPointLayoutBox[,]!
+OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.ContentRows(int rowCount, OfficeIMO.OfficeLength? gutter = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? bottomMargin = null, OfficeIMO.OfficeLength? horizontalMargin = null) -> OfficeIMO.PowerPoint.PowerPointLayoutBox[]!
 OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.Slide.get -> OfficeIMO.PowerPoint.PowerPointSlide!
-OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.UsePreset(OfficeIMO.PowerPoint.PowerPointCompositionPreset preset = OfficeIMO.PowerPoint.PowerPointCompositionPreset.Auto, double topCm = 3.65, double bottomMarginCm = 1.65, double horizontalMarginCm = 1.5) -> OfficeIMO.PowerPoint.PowerPointCompositionLayout!
-OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.UsePreset(OfficeIMO.PowerPoint.PowerPointCompositionPreset preset, OfficeIMO.PowerPoint.PowerPointCompositionVariant variant, double topCm = 3.65, double bottomMarginCm = 1.65, double horizontalMarginCm = 1.5) -> OfficeIMO.PowerPoint.PowerPointCompositionLayout!
+OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.UsePreset(OfficeIMO.PowerPoint.PowerPointCompositionPreset preset = OfficeIMO.PowerPoint.PowerPointCompositionPreset.Auto, OfficeIMO.PowerPoint.PowerPointCompositionVariant variant = OfficeIMO.PowerPoint.PowerPointCompositionVariant.Auto, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? bottomMargin = null, OfficeIMO.OfficeLength? horizontalMargin = null) -> OfficeIMO.PowerPoint.PowerPointCompositionLayout!
 OfficeIMO.PowerPoint.PowerPointSlideDensity
 OfficeIMO.PowerPoint.PowerPointSlideDensity.Balanced = 1 -> OfficeIMO.PowerPoint.PowerPointSlideDensity
 OfficeIMO.PowerPoint.PowerPointSlideDensity.Compact = 0 -> OfficeIMO.PowerPoint.PowerPointSlideDensity
@@ -3859,8 +2917,7 @@ OfficeIMO.PowerPoint.PowerPointTable.RowItems.get -> System.Collections.Generic.
 OfficeIMO.PowerPoint.PowerPointTable.Rows.get -> int
 OfficeIMO.PowerPoint.PowerPointTable.SetCellAlignment(OfficeIMO.PowerPoint.PowerPointTextAlignment? horizontal, OfficeIMO.PowerPoint.PowerPointTextVerticalAlignment? vertical) -> void
 OfficeIMO.PowerPoint.PowerPointTable.SetCellAlignment(OfficeIMO.PowerPoint.PowerPointTextAlignment? horizontal, OfficeIMO.PowerPoint.PowerPointTextVerticalAlignment? vertical, int startRow, int endRow, int startColumn, int endColumn) -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetCellBorders(OfficeIMO.PowerPoint.PowerPointTableCellBorders borders, string! color, double? widthPoints = null) -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetCellBorders(OfficeIMO.PowerPoint.PowerPointTableCellBorders borders, string! color, double? widthPoints, OfficeIMO.PowerPoint.PowerPointLineDashStyle dash) -> void
+OfficeIMO.PowerPoint.PowerPointTable.SetCellBorders(OfficeIMO.PowerPoint.PowerPointTableCellBorders borders, string! color, OfficeIMO.OfficeLength? width = null, OfficeIMO.PowerPoint.PowerPointLineDashStyle? dash = null) -> void
 OfficeIMO.PowerPoint.PowerPointTable.SetCellPadding(OfficeIMO.OfficeLength? left, OfficeIMO.OfficeLength? top, OfficeIMO.OfficeLength? right, OfficeIMO.OfficeLength? bottom) -> void
 OfficeIMO.PowerPoint.PowerPointTable.SetCellPadding(OfficeIMO.OfficeLength? left, OfficeIMO.OfficeLength? top, OfficeIMO.OfficeLength? right, OfficeIMO.OfficeLength? bottom, int startRow, int endRow, int startColumn, int endColumn) -> void
 OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidth(int columnIndex, OfficeIMO.OfficeLength width) -> void
@@ -3919,8 +2976,7 @@ OfficeIMO.PowerPoint.PowerPointTableCell.PaddingTop.set -> void
 OfficeIMO.PowerPoint.PowerPointTableCell.Paragraphs.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointParagraph!>!
 OfficeIMO.PowerPoint.PowerPointTableCell.ReplaceText(string! oldValue, string! newValue) -> int
 OfficeIMO.PowerPoint.PowerPointTableCell.Runs.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointTextRun!>!
-OfficeIMO.PowerPoint.PowerPointTableCell.SetBorders(OfficeIMO.PowerPoint.PowerPointTableCellBorders borders, string! color, double? widthPoints = null) -> void
-OfficeIMO.PowerPoint.PowerPointTableCell.SetBorders(OfficeIMO.PowerPoint.PowerPointTableCellBorders borders, string! color, double? widthPoints, OfficeIMO.PowerPoint.PowerPointLineDashStyle dash) -> void
+OfficeIMO.PowerPoint.PowerPointTableCell.SetBorders(OfficeIMO.PowerPoint.PowerPointTableCellBorders borders, string! color, OfficeIMO.OfficeLength? width = null, OfficeIMO.PowerPoint.PowerPointLineDashStyle? dash = null) -> void
 OfficeIMO.PowerPoint.PowerPointTableCell.SetBullets(System.Collections.Generic.IEnumerable<string!>! bullets, int level = 0, char bulletChar = '•', System.Action<OfficeIMO.PowerPoint.PowerPointParagraph!>? configure = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointParagraph!>!
 OfficeIMO.PowerPoint.PowerPointTableCell.SetNumberedList(System.Collections.Generic.IEnumerable<string!>! items, OfficeIMO.PowerPoint.PowerPointNumberingScheme style, int startAt = 1, int level = 0, System.Action<OfficeIMO.PowerPoint.PowerPointParagraph!>? configure = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointParagraph!>!
 OfficeIMO.PowerPoint.PowerPointTableCell.SetNumberedList(System.Collections.Generic.IEnumerable<string!>! items, int startAt = 1, int level = 0, System.Action<OfficeIMO.PowerPoint.PowerPointParagraph!>? configure = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointParagraph!>!
@@ -4357,7 +3413,6 @@ OfficeIMO.PowerPoint.PowerPointUnderlineStyle.Wavy = 15 -> OfficeIMO.PowerPoint.
 OfficeIMO.PowerPoint.PowerPointUnderlineStyle.WavyDouble = 17 -> OfficeIMO.PowerPoint.PowerPointUnderlineStyle
 OfficeIMO.PowerPoint.PowerPointUnderlineStyle.WavyHeavy = 16 -> OfficeIMO.PowerPoint.PowerPointUnderlineStyle
 OfficeIMO.PowerPoint.PowerPointUnderlineStyle.Words = 1 -> OfficeIMO.PowerPoint.PowerPointUnderlineStyle
-OfficeIMO.PowerPoint.PowerPointUnits
 OfficeIMO.PowerPoint.PowerPointVisualFrameVariant
 OfficeIMO.PowerPoint.PowerPointVisualFrameVariant.Auto = 0 -> OfficeIMO.PowerPoint.PowerPointVisualFrameVariant
 OfficeIMO.PowerPoint.PowerPointVisualFrameVariant.Collage = 2 -> OfficeIMO.PowerPoint.PowerPointVisualFrameVariant
@@ -4400,15 +3455,10 @@ OfficeIMO.PowerPoint.PowerPointVisualStyle.Geometric = 0 -> OfficeIMO.PowerPoint
 OfficeIMO.PowerPoint.PowerPointVisualStyle.Minimal = 2 -> OfficeIMO.PowerPoint.PowerPointVisualStyle
 OfficeIMO.PowerPoint.PowerPointVisualStyle.Soft = 1 -> OfficeIMO.PowerPoint.PowerPointVisualStyle
 abstract OfficeIMO.PowerPoint.PowerPointDeckPlanSlide.Kind.get -> OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind
-const OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions.DefaultMaxInputBytes = 67108864 -> int
 const OfficeIMO.PowerPoint.PowerPointDocument.DefaultMaximumVbaProjectBytes = 67108864 -> long
 const OfficeIMO.PowerPoint.PowerPointImageExportOptions.DefaultMaximumEmbeddedImageBytes = 67108864 -> int
 const OfficeIMO.PowerPoint.PowerPointImageExportOptions.DefaultMaximumTotalEmbeddedImageBytes = 268435456 -> long
 const OfficeIMO.PowerPoint.PowerPointLoadOptions.DefaultMaxInputBytes = 536870912 -> long
-const OfficeIMO.PowerPoint.PowerPointUnits.EmusPerCentimeter = 360000 -> double
-const OfficeIMO.PowerPoint.PowerPointUnits.EmusPerInch = 914400 -> double
-const OfficeIMO.PowerPoint.PowerPointUnits.EmusPerMillimeter = 36000 -> double
-const OfficeIMO.PowerPoint.PowerPointUnits.EmusPerPoint = 12700 -> double
 override OfficeIMO.PowerPoint.LegacyPpt.Diagnostics.LegacyPptImportDiagnostic.ToString() -> string!
 override OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWriteFinding.ToString() -> string!
 override OfficeIMO.PowerPoint.PowerPointAppendixTablePlanSlide.Kind.get -> OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind
@@ -4454,9 +3504,6 @@ static OfficeIMO.PowerPoint.LegacyPpt.Capabilities.LegacyPptCapabilityCatalog.Re
 static OfficeIMO.PowerPoint.LegacyPpt.Capabilities.LegacyPptCapabilityCatalog.SchemaVersion.get -> int
 static OfficeIMO.PowerPoint.LegacyPpt.Capabilities.LegacyPptCapabilityCatalog.ToJson(bool indented = true) -> string!
 static OfficeIMO.PowerPoint.LegacyPpt.Capabilities.LegacyPptCapabilityCatalog.ToMarkdown() -> string!
-static OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.Load(System.IO.Stream! stream, OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions? options = null) -> OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument!
-static OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.Load(byte[]! bytes, OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions? options = null) -> OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument!
-static OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument.Load(string! path, OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions? options = null) -> OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument!
 static OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.ForProfile(OfficeIMO.PowerPoint.PowerPointAccessibilityPolicyProfile profile) -> OfficeIMO.PowerPoint.PowerPointAccessibilityOptions!
 static OfficeIMO.PowerPoint.PowerPointChart.CreateDataSummary(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data) -> string!
 static OfficeIMO.PowerPoint.PowerPointCompositionOptions.FromBrief(OfficeIMO.PowerPoint.PowerPointDesignBrief! brief) -> OfficeIMO.PowerPoint.PowerPointCompositionOptions!
@@ -4527,13 +3574,3 @@ static OfficeIMO.PowerPoint.PowerPointTextStyle.Caption.get -> OfficeIMO.PowerPo
 static OfficeIMO.PowerPoint.PowerPointTextStyle.Emphasis.get -> OfficeIMO.PowerPoint.PowerPointTextStyle
 static OfficeIMO.PowerPoint.PowerPointTextStyle.Subtitle.get -> OfficeIMO.PowerPoint.PowerPointTextStyle
 static OfficeIMO.PowerPoint.PowerPointTextStyle.Title.get -> OfficeIMO.PowerPoint.PowerPointTextStyle
-static OfficeIMO.PowerPoint.PowerPointUnits.FromCentimeters(double centimeters) -> long
-static OfficeIMO.PowerPoint.PowerPointUnits.FromInches(double inches) -> long
-static OfficeIMO.PowerPoint.PowerPointUnits.FromMillimeters(double millimeters) -> long
-static OfficeIMO.PowerPoint.PowerPointUnits.FromPoints(double points) -> long
-static OfficeIMO.PowerPoint.PowerPointUnits.ToCentimeters(long emus) -> double
-static OfficeIMO.PowerPoint.PowerPointUnits.ToInches(long emus) -> double
-static OfficeIMO.PowerPoint.PowerPointUnits.ToMillimeters(long emus) -> double
-static OfficeIMO.PowerPoint.PowerPointUnits.ToPoints(long emus) -> double
-OfficeIMO.PowerPoint.PowerPointCreateOptions.Theme.get -> OfficeIMO.OfficeTheme?
-OfficeIMO.PowerPoint.PowerPointCreateOptions.Theme.set -> void

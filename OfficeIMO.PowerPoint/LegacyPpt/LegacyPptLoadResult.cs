@@ -2,7 +2,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Diagnostics;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
     /// <summary>Contains the projected OfficeIMO presentation and its binary PPT import report.</summary>
-    public sealed class LegacyPptLoadResult : IDisposable, IOfficeConversionReport {
+    internal sealed class LegacyPptLoadResult : IDisposable, IOfficeConversionReport {
         private readonly PowerPointDocument? _document;
         private readonly Lazy<LegacyPptImportReport> _report;
         private readonly Lazy<IReadOnlyList<OfficeConversionFidelityDiagnostic>> _fidelityDiagnostics;

@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
 
                     PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.TitleOnly);
                     slide.AddTitle("Functional Smoke Test");
-                    PowerPointTextBox box = slide.AddTextBox("Agenda",global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1)),global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(3)),                        global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(6)),global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(3)));
+                    PowerPointTextBox box = slide.AddTextBox("Agenda",global::OfficeIMO.OfficeLength.Centimeters(1),global::OfficeIMO.OfficeLength.Centimeters(3),                        global::OfficeIMO.OfficeLength.Centimeters(6),global::OfficeIMO.OfficeLength.Centimeters(3));
                     box.AddBullets(new[] { "Shapes", "Images", "Tables", "Charts" });
 
                     PowerPointAutoShape rect = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(1), OfficeIMO.OfficeLength.Centimeters(7),
@@ -36,8 +36,8 @@ namespace OfficeIMO.Tests {
 
                     using (var imageStream = new MemoryStream(OnePixelPng)) {
                         slide.AddImage(imageStream, PptImagePartType.Png,
-                            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(8)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1)),
-                            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(2)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(2)));
+                            global::OfficeIMO.OfficeLength.Centimeters(8), global::OfficeIMO.OfficeLength.Centimeters(1),
+                            global::OfficeIMO.OfficeLength.Centimeters(2), global::OfficeIMO.OfficeLength.Centimeters(2));
                     }
 
                     PowerPointTableStyleInfo style = presentation.TableStyles
@@ -45,14 +45,14 @@ namespace OfficeIMO.Tests {
                     Assert.False(string.IsNullOrWhiteSpace(style.StyleId));
                     string styleName = string.IsNullOrWhiteSpace(style.Name) ? style.StyleId : style.Name;
 
-                    PowerPointTable table = slide.AddTable(rows: 2,columns: 2,styleName: styleName,left: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(8)),top: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(4)),width: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(6)),height: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(3)),                        firstRow: true,bandedRows: true);
+                    PowerPointTable table = slide.AddTable(rows: 2,columns: 2,styleName: styleName,left: global::OfficeIMO.OfficeLength.Centimeters(8),top: global::OfficeIMO.OfficeLength.Centimeters(4),width: global::OfficeIMO.OfficeLength.Centimeters(6),height: global::OfficeIMO.OfficeLength.Centimeters(3),                        firstRow: true,bandedRows: true);
                     table.GetCell(0, 0).Text = "Header";
                     table.GetCell(1, 0).Text = "Value";
                     table.GetCell(0, 0).SetTextAutoFit(PowerPointTextAutoFit.Normal,
                         new PowerPointTextAutoFitOptions(fontScalePercent: 80, lineSpaceReductionPercent: 10));
 
-                    PowerPointChart chart = slide.AddChart(PowerPointUnits.FromCentimeters(1), PowerPointUnits.FromCentimeters(10),
-                        PowerPointUnits.FromCentimeters(10), PowerPointUnits.FromCentimeters(5));
+                    PowerPointChart chart = slide.AddChart(global::OfficeIMO.OfficeLength.Centimeters(1).ToEmus(), global::OfficeIMO.OfficeLength.Centimeters(10).ToEmus(),
+                        global::OfficeIMO.OfficeLength.Centimeters(10).ToEmus(), global::OfficeIMO.OfficeLength.Centimeters(5).ToEmus());
                     chart.SetTitle("Sales");
 
                     presentation.Save();
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
                     PowerPointSlide cover = presentation.AddSlide(PowerPointSlideLayoutType.TitleOnly);
                     cover.BackgroundColor = "F8F5EF";
                     cover.Transition = PowerPointSlideTransition.Morph;
-                    PowerPointTextBox title = cover.AddTitle("Commercial Snapshot",                        new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1.4)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1.0)),                            OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(18.0)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1.2))));
+                    PowerPointTextBox title = cover.AddTitle("Commercial Snapshot",                        new PowerPointLayoutBox(global::OfficeIMO.OfficeLength.Centimeters(1.4),global::OfficeIMO.OfficeLength.Centimeters(1.0),                            global::OfficeIMO.OfficeLength.Centimeters(18.0),global::OfficeIMO.OfficeLength.Centimeters(1.2)));
                     title.FontSize = global::OfficeIMO.OfficeLength.Points(32);
                     title.Color = "161411";
 
@@ -128,7 +128,7 @@ namespace OfficeIMO.Tests {
                     hero.OutlineColor = "156082";
                     hero.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(10), distance: OfficeIMO.OfficeLength.Points(4), angleDegrees: 90, transparencyPercent: 70);
 
-                    PowerPointTextBox insight = cover.AddTextBox("A clean, generated deck with theme colors, font scheme, background, effects, chart, and table.",                        new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(2.0)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(3.6)),                            OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(14.8)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1.3))));
+                    PowerPointTextBox insight = cover.AddTextBox("A clean, generated deck with theme colors, font scheme, background, effects, chart, and table.",                        new PowerPointLayoutBox(global::OfficeIMO.OfficeLength.Centimeters(2.0),global::OfficeIMO.OfficeLength.Centimeters(3.6),                            global::OfficeIMO.OfficeLength.Centimeters(14.8),global::OfficeIMO.OfficeLength.Centimeters(1.3)));
                     insight.FontSize = global::OfficeIMO.OfficeLength.Points(18);
                     insight.Color = "FFFFFF";
 
@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests {
                     chart.SetSeriesLineColor("Profit", "F26A3D", width: OfficeLength.Points(2.5));
                     chart.SetValueAxisGridlines(showMajor: true, lineColor: "D8D5CC", lineWidth: OfficeLength.Points(0.75));
 
-                    PowerPointTable table = dashboard.AddTable(rows: 3,columns: 2,                        styleName: presentation.TableStyles.First().Name,left: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(16.8)),top: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1.5)),width: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(7.0)),height: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(3.8)),                        firstRow: true,bandedRows: true);
+                    PowerPointTable table = dashboard.AddTable(rows: 3,columns: 2,                        styleName: presentation.TableStyles.First().Name,left: global::OfficeIMO.OfficeLength.Centimeters(16.8),top: global::OfficeIMO.OfficeLength.Centimeters(1.5),width: global::OfficeIMO.OfficeLength.Centimeters(7.0),height: global::OfficeIMO.OfficeLength.Centimeters(3.8),                        firstRow: true,bandedRows: true);
                     table.GetCell(0, 0).Text = "Metric";
                     table.GetCell(0, 1).Text = "Value";
                     table.GetCell(1, 0).Text = "Revenue";
@@ -175,10 +175,10 @@ namespace OfficeIMO.Tests {
                     callout.FillColor = "EFE8DA";
                     callout.FillTransparency = 0;
                     callout.OutlineColor = "6B6EA8";
-                    callout.OutlineWidthPoints = 1.2;
+                    callout.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.2);
                     callout.SetReflection(blur: OfficeIMO.OfficeLength.Points(2), distance: OfficeIMO.OfficeLength.Points(1), startOpacityPercent: 20, endOpacityPercent: 0);
 
-                    PowerPointTextBox calloutText = dashboard.AddTextBox("Observation\nThe revenue trend stays healthy through Q2.",                        new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(17.3)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(6.5)),                            OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(6.0)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(2.2))));
+                    PowerPointTextBox calloutText = dashboard.AddTextBox("Observation\nThe revenue trend stays healthy through Q2.",                        new PowerPointLayoutBox(global::OfficeIMO.OfficeLength.Centimeters(17.3),global::OfficeIMO.OfficeLength.Centimeters(6.5),                            global::OfficeIMO.OfficeLength.Centimeters(6.0),global::OfficeIMO.OfficeLength.Centimeters(2.2)));
                     calloutText.FontSize = global::OfficeIMO.OfficeLength.Points(16);
                     calloutText.Color = "161411";
 

@@ -3,7 +3,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
-    public sealed partial class LegacyPptDocument {
+    internal sealed partial class LegacyPptDocument {
         private const ushort RecordAnimationInfoAtom = 0x0FF1;
         private const ushort RecordAnimationInfo = 0x1014;
         private const ushort OfficeArtClientDataForAnimation = 0xF011;

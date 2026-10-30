@@ -23,8 +23,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(marginCm));
             double bodyTopCm = 3.8;
             double bodyHeightCm = slideHeightCm - bodyTopCm - marginCm;
-            long bodyTop = PowerPointUnits.FromCentimeters(bodyTopCm);
-            long bodyHeight = PowerPointUnits.FromCentimeters(bodyHeightCm);
+            long bodyTop = global::OfficeIMO.OfficeLength.Centimeters(bodyTopCm).ToEmus();
+            long bodyHeight = global::OfficeIMO.OfficeLength.Centimeters(bodyHeightCm).ToEmus();
             PowerPointLayoutBox[] columns = presentation.SlideSize.GetColumns(2,OfficeIMO.OfficeLength.Centimeters(marginCm),OfficeIMO.OfficeLength.Centimeters(gutterCm));
             PowerPointLayoutBox leftColumn = new(OfficeIMO.OfficeLength.Emus(columns[0].Left.ToEmus()),OfficeIMO.OfficeLength.Emus(bodyTop),OfficeIMO.OfficeLength.Emus(columns[0].Width.ToEmus()),OfficeIMO.OfficeLength.Emus(bodyHeight));
             PowerPointLayoutBox rightColumn = new(OfficeIMO.OfficeLength.Emus(columns[1].Left.ToEmus()),OfficeIMO.OfficeLength.Emus(bodyTop),OfficeIMO.OfficeLength.Emus(columns[1].Width.ToEmus()),OfficeIMO.OfficeLength.Emus(bodyHeight));

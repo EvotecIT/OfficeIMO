@@ -399,44 +399,12 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Applies border styling to the specified sides.
+        ///     Applies border styling, retaining the existing width or dash when omitted.
         /// </summary>
-        public void SetBorders(PowerPointTableCellBorders borders, string color, double? widthPoints = null) {
-            ValidateBorderStyle(borders, color, widthPoints);
-
-            TableCellProperties props = EnsureProperties();
-
-            if (borders.HasFlag(PowerPointTableCellBorders.Left)) {
-                props.LeftBorderLineProperties ??= new LeftBorderLineProperties();
-                ApplyLine(props.LeftBorderLineProperties, color, widthPoints);
-            }
-            if (borders.HasFlag(PowerPointTableCellBorders.Top)) {
-                props.TopBorderLineProperties ??= new TopBorderLineProperties();
-                ApplyLine(props.TopBorderLineProperties, color, widthPoints);
-            }
-            if (borders.HasFlag(PowerPointTableCellBorders.Right)) {
-                props.RightBorderLineProperties ??= new RightBorderLineProperties();
-                ApplyLine(props.RightBorderLineProperties, color, widthPoints);
-            }
-            if (borders.HasFlag(PowerPointTableCellBorders.Bottom)) {
-                props.BottomBorderLineProperties ??= new BottomBorderLineProperties();
-                ApplyLine(props.BottomBorderLineProperties, color, widthPoints);
-            }
-            if (borders.HasFlag(PowerPointTableCellBorders.DiagonalDown)) {
-                props.TopLeftToBottomRightBorderLineProperties ??= new TopLeftToBottomRightBorderLineProperties();
-                ApplyLine(props.TopLeftToBottomRightBorderLineProperties, color, widthPoints);
-            }
-            if (borders.HasFlag(PowerPointTableCellBorders.DiagonalUp)) {
-                props.BottomLeftToTopRightBorderLineProperties ??= new BottomLeftToTopRightBorderLineProperties();
-                ApplyLine(props.BottomLeftToTopRightBorderLineProperties, color, widthPoints);
-            }
-        }
-
-        /// <summary>
-        ///     Applies border styling with a dash pattern to the specified sides.
-        /// </summary>
-        public void SetBorders(PowerPointTableCellBorders borders, string color, double? widthPoints, PowerPointLineDashStyle dash) {
-            ValidateBorderStyle(borders, color, widthPoints);
+        public void SetBorders(PowerPointTableCellBorders borders, string color, OfficeLength? width = null, PowerPointLineDashStyle? dash = null) {
+            ValidateBorderStyle(borders, color, width);
+            if (dash.HasValue) _ = dash.Value.ToOpenXml();
+            double? widthPoints = width?.ToPoints();
 
             TableCellProperties props = EnsureProperties();
 
@@ -499,10 +467,12 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ApplyLine(LinePropertiesType line, string color, double? widthPoints, PowerPointLineDashStyle dash) {
+        private static void ApplyLine(LinePropertiesType line, string color, double? widthPoints, PowerPointLineDashStyle? dash) {
             ApplyLine(line, color, widthPoints);
-            line.RemoveAllChildren<A.PresetDash>();
-            line.Append(new A.PresetDash { Val = dash.ToOpenXml() });
+            if (dash.HasValue) {
+                line.RemoveAllChildren<A.PresetDash>();
+                line.Append(new A.PresetDash { Val = dash.Value.ToOpenXml() });
+            }
         }
 
         private static string? GetLineColor(LinePropertiesType? line) {

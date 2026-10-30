@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape rect = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(2000000), OfficeIMO.OfficeLength.Emus(1000000), "Styled Rect");
                 rect.FillColor = "E7F7FF";
                 rect.OutlineColor = "007ACC";
-                rect.OutlineWidthPoints = 2;
+                rect.OutlineWidth = global::OfficeIMO.OfficeLength.Points(2);
                 rect.FillTransparency = 25;
                 rect.Rotation = 15;
                 rect.HorizontalFlip = true;
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape rect = shapes.Single(s => s.Name == "Styled Rect");
                 Assert.Equal("E7F7FF", rect.FillColor);
                 Assert.Equal("007ACC", rect.OutlineColor);
-                Assert.Equal(2, rect.OutlineWidthPoints ?? 0, 2);
+                Assert.Equal(2, rect.OutlineWidth?.ToPoints() ?? 0, 2);
                 Assert.Equal(25, rect.FillTransparency);
                 Assert.Equal(15, rect.Rotation ?? 0, 2);
                 Assert.True(rect.HorizontalFlip);

@@ -62,10 +62,10 @@ namespace OfficeIMO.Tests {
                 textBox.SetPosition(OfficeIMO.OfficeLength.Centimeters(2.5),OfficeIMO.OfficeLength.Centimeters(3.5));
                 textBox.SetSize(OfficeIMO.OfficeLength.Centimeters(10),OfficeIMO.OfficeLength.Centimeters(4));
 
-                Assert.Equal(PowerPointUnits.FromCentimeters(2.5), textBox.Left.ToEmus());
-                Assert.Equal(PowerPointUnits.FromCentimeters(3.5), textBox.Top.ToEmus());
-                Assert.Equal(PowerPointUnits.FromCentimeters(10), textBox.Width.ToEmus());
-                Assert.Equal(PowerPointUnits.FromCentimeters(4), textBox.Height.ToEmus());
+                Assert.Equal(global::OfficeIMO.OfficeLength.Centimeters(2.5).ToEmus(), textBox.Left.ToEmus());
+                Assert.Equal(global::OfficeIMO.OfficeLength.Centimeters(3.5).ToEmus(), textBox.Top.ToEmus());
+                Assert.Equal(global::OfficeIMO.OfficeLength.Centimeters(10).ToEmus(), textBox.Width.ToEmus());
+                Assert.Equal(global::OfficeIMO.OfficeLength.Centimeters(4).ToEmus(), textBox.Height.ToEmus());
 
                 presentation.Save();
             }

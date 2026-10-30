@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Specifies the binary PowerPoint text category to which a master style applies.</summary>
-    public enum LegacyPptTextType : uint {
+    internal enum LegacyPptTextType : uint {
         /// <summary>Title placeholder text.</summary>
         Title = 0,
         /// <summary>Body placeholder text.</summary>
@@ -20,7 +20,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Represents one level in a binary PowerPoint master text style.</summary>
-    public sealed class LegacyPptTextMasterStyleLevel {
+    internal sealed class LegacyPptTextMasterStyleLevel {
         internal LegacyPptTextMasterStyleLevel(ushort level,
             LegacyPptParagraphRun paragraphProperties,
             LegacyPptCharacterRun characterProperties) {
@@ -42,7 +42,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Represents a TextMasterStyleAtom from a binary PowerPoint main master.</summary>
-    public sealed class LegacyPptTextMasterStyle {
+    internal sealed class LegacyPptTextMasterStyle {
         internal LegacyPptTextMasterStyle(LegacyPptTextType textType,
             IReadOnlyList<LegacyPptTextMasterStyleLevel> levels,
             bool hasUnprojectedFormatting, bool isTruncated) {

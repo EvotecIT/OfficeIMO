@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             string[] notes = { "Short daily handovers\nA visible owner for every queue", "Ambiguous access instructions\nDecisions hidden in chat", "A first-day access check\nOne shared decision log" };
             for (int i = 0; i < 3; i++) {
                 double x = 1.5 + i * 10.5;
-                board.AddRectangle(OfficeIMO.OfficeLength.Centimeters(x), OfficeIMO.OfficeLength.Centimeters(5.5), OfficeIMO.OfficeLength.Centimeters(9.5), OfficeIMO.OfficeLength.Centimeters(10)).Fill(fills[i]).Stroke("CBD5E1", 1);
+                board.AddRectangle(OfficeIMO.OfficeLength.Centimeters(x), OfficeIMO.OfficeLength.Centimeters(5.5), OfficeIMO.OfficeLength.Centimeters(9.5), OfficeIMO.OfficeLength.Centimeters(10)).Fill(fills[i]).Stroke("CBD5E1", global::OfficeIMO.OfficeLength.Points(1));
                 Text(board, headings[i], x + 0.6, 6.2, 8.3, 1.5, 22, "17365D");
                 Text(board, notes[i], x + 0.6, 8.5, 8.3, 6, 22, "243247");
             }

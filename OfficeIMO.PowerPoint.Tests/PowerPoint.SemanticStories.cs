@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
                     Assert.Contains(presentation.Slides.SelectMany(slide => slide.Shapes),
                         shape => shape.Name.StartsWith("Architecture Node", StringComparison.Ordinal));
                     PowerPointDeckPreflightReport report = presentation.Preflight(new PowerPointDeckPreflightOptions {
-                        MinimumReadableFontSizePoints = 8,
+                        MinimumReadableFontSize = global::OfficeIMO.OfficeLength.Points(8),
                         DetectShapeCollisions = false
                     });
                     Assert.DoesNotContain(report.Findings, finding =>

@@ -108,7 +108,7 @@ namespace OfficeIMO.PowerPoint {
 
             if (bounds.Left.ToEmus() < canvas.Left.ToEmus() || bounds.Top.ToEmus() < canvas.Top.ToEmus() ||
                 bounds.Right.ToEmus() > canvas.Right.ToEmus() || bounds.Bottom.ToEmus() > canvas.Bottom.ToEmus()) {
-                long bleed = PowerPointUnits.FromPoints(options.MaximumDecorativeBleedPoints);
+                long bleed = options.MaximumDecorativeBleed.ToEmus();
                 bool allowedDecorativeBleed = options.AllowDecorativeShapeBleed &&
                     shape is PowerPointAutoShape &&
                     bounds.Left.ToEmus() >= canvas.Left.ToEmus() - bleed && bounds.Top.ToEmus() >= canvas.Top.ToEmus() - bleed &&
@@ -130,7 +130,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            double authoredFontSize = ResolveFontSize(textBox, options.DefaultFontSizePoints);
+            double authoredFontSize = ResolveFontSize(textBox, options.DefaultFontSize.ToPoints());
             string fontName = ResolveFontName(textBox);
             OfficeFontStyle fontStyle = OfficeFontStyle.Regular;
             if (textBox.Bold) fontStyle |= OfficeFontStyle.Bold;
@@ -169,11 +169,11 @@ namespace OfficeIMO.PowerPoint {
                     textBox.Bounds, resolvedFontSize));
             }
 
-            if (options.DetectUnreadableFontReduction && resolvedFontSize < options.MinimumReadableFontSizePoints) {
+            if (options.DetectUnreadableFontReduction && resolvedFontSize < options.MinimumReadableFontSize.ToPoints()) {
                 findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Warning, "text-unreadable-font-reduction",
                     "Text fit resolves to " + resolvedFontSize.ToString("0.##", CultureInfo.InvariantCulture) +
                     " pt, below the configured " +
-                    options.MinimumReadableFontSizePoints.ToString("0.##", CultureInfo.InvariantCulture) +
+                    options.MinimumReadableFontSize.ToPoints().ToString("0.##", CultureInfo.InvariantCulture) +
                     " pt threshold.", slideIndex, shapeIndex, textBox, textBox.Bounds, resolvedFontSize));
             }
         }
@@ -223,7 +223,7 @@ namespace OfficeIMO.PowerPoint {
         private static void InspectCollisions(IReadOnlyList<PowerPointShape> shapes, int slideIndex,
             PowerPointDeckPreflightOptions options, IList<PowerPointDeckPreflightFinding> findings,
             int? containingShapeIndex) {
-            double tolerance = PowerPointUnits.FromPoints(options.CollisionTolerancePoints);
+            double tolerance = options.CollisionTolerance.ToEmus();
             for (int leftIndex = 0; leftIndex < shapes.Count; leftIndex++) {
                 PowerPointShape left = shapes[leftIndex];
                 if (ShouldSkipCollisionShape(left)) continue;

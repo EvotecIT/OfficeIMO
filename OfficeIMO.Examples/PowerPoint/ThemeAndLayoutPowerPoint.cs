@@ -49,7 +49,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                         swatchColumns[i].Height,
                         $"Swatch {i + 1}")
                     .Fill(swatches[i])
-                    .Stroke("FFFFFF", 1);
+                    .Stroke("FFFFFF", global::OfficeIMO.OfficeLength.Points(1));
             }
 
             PowerPointSlide second = presentation.AddSlide(masterIndex: 0, layoutIndex: 1);

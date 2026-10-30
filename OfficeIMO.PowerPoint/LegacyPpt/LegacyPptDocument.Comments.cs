@@ -3,7 +3,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using OfficeIMO.PowerPoint.LegacyPpt.Diagnostics;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
-    public sealed partial class LegacyPptDocument {
+    internal sealed partial class LegacyPptDocument {
         private const ushort RecordProgTags = 0x1388;
         private const ushort RecordProgBinaryTag = 0x138A;
         private const ushort RecordBinaryTagDataBlob = 0x138B;

@@ -90,7 +90,7 @@ namespace OfficeIMO.PowerPoint {
                 panel.FillColor = theme.AccentColor;
                 panel.FillTransparency = 72;
                 panel.OutlineColor = theme.AccentLightColor;
-                panel.OutlineWidthPoints = 0.35;
+                panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.35);
 
                 PowerPointAutoShape rule = slide.AddRectangle(box.Left, box.Top, OfficeIMO.OfficeLength.Centimeters(box.Width.ToCentimeters() * 0.34), OfficeIMO.OfficeLength.Centimeters(0.08),
                     "Process Column Rule " + (i + 1));

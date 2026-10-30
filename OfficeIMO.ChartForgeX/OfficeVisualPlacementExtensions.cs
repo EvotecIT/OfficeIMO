@@ -106,10 +106,10 @@ public static partial class OfficeVisualPlacementExtensions {
         PowerPointPicture picture = slide.AddImage(
             stream,
             conversion.PlacementFormat == OfficeVisualMediaFormat.Svg ? OfficeImageFormat.Svg : OfficeImageFormat.Png,
-            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(leftPoints)),
-            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(topPoints)),
-            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(conversion.WidthPoints)),
-            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(conversion.HeightPoints)));
+            global::OfficeIMO.OfficeLength.Points(leftPoints),
+            global::OfficeIMO.OfficeLength.Points(topPoints),
+            global::OfficeIMO.OfficeLength.Points(conversion.WidthPoints),
+            global::OfficeIMO.OfficeLength.Points(conversion.HeightPoints));
         if (conversion.IsDecorative) {
             picture.Decorative = true;
         } else {

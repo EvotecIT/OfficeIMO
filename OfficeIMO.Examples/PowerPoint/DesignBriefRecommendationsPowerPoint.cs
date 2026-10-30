@@ -70,7 +70,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             plan.AddCustom("Selected direction", composer => {
                 composer.AddTitle("Selected direction", selected.Design.DirectionName);
-                PowerPointLayoutBox[] columns = composer.ContentColumns(2, 0.8, topCm: 3.85);
+                PowerPointLayoutBox[] columns = composer.ContentColumns(2, global::OfficeIMO.OfficeLength.Centimeters(0.8), top: global::OfficeIMO.OfficeLength.Centimeters(3.85));
 
                 composer.AddCardGrid(selected.Reasons.Take(4).Select((reason, index) =>
                         new PowerPointCardContent("Reason " + (index + 1), new[] { reason })),

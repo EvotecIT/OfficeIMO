@@ -409,10 +409,10 @@ namespace OfficeIMO.Tests {
                 new DocumentFormat.OpenXml.Presentation.ShapeProperties(
                     new DocumentFormat.OpenXml.Drawing.Transform2D(
                         new DocumentFormat.OpenXml.Drawing.Offset {
-                            X = PowerPointUnits.FromPoints(10), Y = PowerPointUnits.FromPoints(10)
+                            X = global::OfficeIMO.OfficeLength.Points(10).ToEmus(), Y = global::OfficeIMO.OfficeLength.Points(10).ToEmus()
                         },
                         new DocumentFormat.OpenXml.Drawing.Extents {
-                            Cx = PowerPointUnits.FromPoints(220), Cy = PowerPointUnits.FromPoints(70)
+                            Cx = global::OfficeIMO.OfficeLength.Points(220).ToEmus(), Cy = global::OfficeIMO.OfficeLength.Points(70).ToEmus()
                         }),
                     new DocumentFormat.OpenXml.Drawing.PresetGeometry(
                         new DocumentFormat.OpenXml.Drawing.AdjustValueList()) {

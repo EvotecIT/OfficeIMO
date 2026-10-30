@@ -66,12 +66,12 @@ internal static class PowerPointRoadmapVisualCorpus {
                 "OfficeIMO visual review", "OVR", "officeimo-reviewer");
             presentation.AddClassicComment(visualSlides[0], reviewer,
                 "Classic comment mutation and preservation proof.",
-                PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40));
+                global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(40));
             PowerPointModernComment modern = presentation.AddModernComment(
                 visualSlides[0], reviewer,
                 "Modern threaded comment mutation and preservation proof.",
-                x: PowerPointUnits.FromPoints(80),
-                y: PowerPointUnits.FromPoints(80));
+                x: global::OfficeIMO.OfficeLength.Points(80),
+                y: global::OfficeIMO.OfficeLength.Points(80));
             modern.AddReply(reviewer, "Reply mutation proof.");
             presentation.AddCustomShow("Roadmap visual review", visualSlides);
             presentation.Save();

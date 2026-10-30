@@ -124,7 +124,7 @@ namespace OfficeIMO.PowerPoint {
                     OfficeIMO.OfficeLength.Centimeters(markerSize), OfficeIMO.OfficeLength.Centimeters(markerSize), "Screenshot Annotation " + (index + 1));
                 marker.FillColor = accent;
                 marker.OutlineColor = theme.AccentContrastColor;
-                marker.OutlineWidthPoints = 1.2;
+                marker.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.2);
                 if (!compact) continue;
                 double labelWidth = Math.Min(5.0, picture.Width.ToCentimeters() * 0.26);
                 double labelLeft = x + labelWidth + 0.4 <= picture.Right.ToCentimeters()
@@ -223,7 +223,7 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointAutoShape connector = slide.AddLine(OfficeIMO.OfficeLength.Centimeters(CenterX(from)), OfficeIMO.OfficeLength.Centimeters(CenterY(from)),
                     OfficeIMO.OfficeLength.Centimeters(CenterX(to)), OfficeIMO.OfficeLength.Centimeters(CenterY(to)), "Architecture Edge " + (index + 1));
                 connector.OutlineColor = GetAccent(theme, index);
-                connector.OutlineWidthPoints = 1.25;
+                connector.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.25);
                 connector.SetLineEnds(null, OfficeLineMarkerKind.Triangle, PowerPointLineEndWidth.Small,
                     PowerPointLineEndLength.Small);
                 if (!string.IsNullOrWhiteSpace(edge.Label)) {
@@ -241,7 +241,7 @@ namespace OfficeIMO.PowerPoint {
                 bounds.Top, bounds.Width, bounds.Height, "Architecture Node " + node.Id);
             panel.FillColor = theme.BackgroundColor;
             panel.OutlineColor = theme.AccentColor;
-            panel.OutlineWidthPoints = 1.4;
+            panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.4);
             panel.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(3), distance: OfficeIMO.OfficeLength.Points(0.8), angleDegrees: 90, transparencyPercent: 88);
             AddText(slide, node.Title, bounds.Left.ToCentimeters() + 0.25, bounds.Top.ToCentimeters() + 0.2,
                 bounds.Width.ToCentimeters() - 0.5, string.IsNullOrWhiteSpace(node.Body) ? bounds.Height.ToCentimeters() - 0.4 : 0.42,

@@ -289,7 +289,7 @@ public static partial class PdfPowerPointConverterExtensions {
         target.OutlineTransparency = source.StrokeColor.HasValue
             ? ToTransparency(source.StrokeOpacity)
             : 100;
-        target.OutlineWidthPoints = Math.Max(0D, source.StrokeWidth);
+        target.OutlineWidth = global::OfficeIMO.OfficeLength.Points(Math.Max(0D, source.StrokeWidth));
         target.OutlineDash = source.StrokeDashStyle switch {
             OfficeStrokeDashStyle.Dash => PptCore.PowerPointLineDashStyle.Dash,
             OfficeStrokeDashStyle.Dot => PptCore.PowerPointLineDashStyle.Dot,

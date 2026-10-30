@@ -3,7 +3,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
-    public sealed partial class LegacyPptDocument {
+    internal sealed partial class LegacyPptDocument {
         private const ushort RecordNamedShows = 0x0410;
         private const ushort RecordNamedShow = 0x0411;
         private const ushort RecordNamedShowSlides = 0x0412;

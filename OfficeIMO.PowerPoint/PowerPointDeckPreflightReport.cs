@@ -37,7 +37,7 @@ namespace OfficeIMO.PowerPoint {
             ShapeId = shapeId;
             ShapeName = shapeName;
             Bounds = bounds;
-            ResolvedFontSizePoints = resolvedFontSizePoints;
+            ResolvedFontSize = resolvedFontSizePoints.HasValue ? OfficeLength.Points(resolvedFontSizePoints.Value) : null;
         }
 
         /// <summary>Finding severity.</summary>
@@ -64,8 +64,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Authored shape bounds, when available.</summary>
         public PowerPointLayoutBox? Bounds { get; }
 
-        /// <summary>Resolved measured font size in points, when the finding concerns text fit.</summary>
-        public double? ResolvedFontSizePoints { get; }
+        /// <summary>Resolved measured font size, when the finding concerns text fit.</summary>
+        public OfficeLength? ResolvedFontSize { get; }
     }
 
     /// <summary>Deterministic deck preflight result shared by code, designer, and markup workflows.</summary>
@@ -141,7 +141,7 @@ namespace OfficeIMO.PowerPoint {
                 AppendNullableNumber(json, "shapeIndex", finding.ShapeIndex, true);
                 AppendNullableNumber(json, "shapeId", finding.ShapeId, true);
                 AppendNullableString(json, "shapeName", finding.ShapeName, true);
-                AppendNullableDouble(json, "resolvedFontSizePoints", finding.ResolvedFontSizePoints, true);
+                AppendNullableDouble(json, "resolvedFontSizePoints", finding.ResolvedFontSize?.ToPoints(), true);
                 AppendBounds(json, finding.Bounds);
                 json.Append('}');
                 if (index < _findings.Count - 1) {

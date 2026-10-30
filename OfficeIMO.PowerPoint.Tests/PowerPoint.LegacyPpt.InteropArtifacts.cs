@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
             first.AddRectangle(OfficeIMO.OfficeLength.Emus(800000), OfficeIMO.OfficeLength.Emus(2800000), OfficeIMO.OfficeLength.Emus(2200000), OfficeIMO.OfficeLength.Emus(900000),
                     "Interop rectangle")
                 .Fill("D9EAF7")
-                .Stroke("2563EB", 1.5D);
+                .Stroke("2563EB", global::OfficeIMO.OfficeLength.Points(1.5D));
             using (var stream = new MemoryStream(image, writable: false)) {
                 first.AddImage(stream, OfficeImageFormat.Png,
                     global::OfficeIMO.OfficeLength.Emus(3600000), global::OfficeIMO.OfficeLength.Emus(2700000), global::OfficeIMO.OfficeLength.Emus(1800000), global::OfficeIMO.OfficeLength.Emus(1200000));
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
             table.GetCell(1, 0).Text = marker;
             table.GetCell(1, 1).Text = "120";
             table.SetCellBorders(PowerPointTableCellBorders.All, "2563EB",
-                widthPoints: 1.25D);
+                width: global::OfficeIMO.OfficeLength.Points(1.25D));
             presentation.Save();
         }
 

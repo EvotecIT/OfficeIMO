@@ -395,6 +395,2287 @@
         "source": "SurfaceAnalysis",
         "membersHiddenWithType": 1
       }
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptActiveXControl.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptActiveXControl",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptActiveXControl.cs",
+                "line": 5
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 14
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptAnimation.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimation",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptAnimation.cs",
+                "line": 97
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 22
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationAfterEffect",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptAnimation.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationAfterEffect",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationAfterEffect",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationAfterEffect",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptAnimation.cs",
+                "line": 75
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 4
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptAnimation.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationBuildType",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptAnimation.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 12
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptAnimation.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAnimationEffect",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptAnimation.cs",
+                "line": 31
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 20
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptParagraphRun.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptAutoNumberScheme",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptParagraphRun.cs",
+                "line": 41
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 41
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptBackground.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackground",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptBackground.cs",
+                "line": 47
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 13
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptBackground.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBackgroundKind",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptBackground.cs",
+                "line": 19
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 12
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBounds",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptBounds.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBounds",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBounds",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptBounds",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptBounds.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 5
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextBody.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCharacterRun",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextBody.cs",
+                "line": 246
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 25
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptColorScheme",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptColorScheme.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptColorScheme",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptColorScheme",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptColorScheme",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptColorScheme.cs",
+                "line": 5
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 9
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptComment",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptComment.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptComment",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptComment",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptComment",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptComment.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 7
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptConnectorRule",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptConnectorRule.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptConnectorRule",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptConnectorRule",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptConnectorRule",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptConnectorRule.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 6
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCustomShow",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptCustomShow.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCustomShow",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCustomShow",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptCustomShow",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptCustomShow.cs",
+                "line": 5
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 3
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.ActiveX.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Animations.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Backgrounds.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Comments.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.CustomShows.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.DocumentSettings.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Fonts.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.HeadersFooters.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.HyperlinkExtensions.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Layouts.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.LinkedOleObjects.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Load.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.MasterTextStyle9.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Media.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Notes.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.OleObjects.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.PictureBullets.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.RoundTripThemes.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Security.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.SpecialMasters.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Tables.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.TextFields.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.TextStyle9.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Transitions.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Vba.cs",
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.LegacyPptDocument",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.ActiveX.cs",
+                "line": 7
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Animations.cs",
+                "line": 6
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Backgrounds.cs",
+                "line": 7
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Comments.cs",
+                "line": 6
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.CustomShows.cs",
+                "line": 6
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.DocumentSettings.cs",
+                "line": 6
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Fonts.cs",
+                "line": 6
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.HeadersFooters.cs",
+                "line": 6
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.HyperlinkExtensions.cs",
+                "line": 6
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Interactions.cs",
+                "line": 7
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Layouts.cs",
+                "line": 6
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.LinkedOleObjects.cs",
+                "line": 7
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Load.cs",
+                "line": 5
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.MasterTextStyle9.cs",
+                "line": 5
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Media.cs",
+                "line": 7
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Notes.cs",
+                "line": 6
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.OleObjects.cs",
+                "line": 8
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.PictureBullets.cs",
+                "line": 7
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.RoundTripThemes.cs",
+                "line": 11
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Security.cs",
+                "line": 4
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Sounds.cs",
+                "line": 7
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.SpecialMasters.cs",
+                "line": 6
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Tables.cs",
+                "line": 6
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.TextFields.cs",
+                "line": 6
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.TextStyle9.cs",
+                "line": 5
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Transitions.cs",
+                "line": 6
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.Vba.cs",
+                "line": 6
+              },
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptDocument.cs",
+                "line": 12
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 29
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptDocumentSettings.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptDocumentSettings",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptDocumentSettings.cs",
+                "line": 21
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 15
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptEmbeddedOleObject.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptEmbeddedOleObject",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptEmbeddedOleObject.cs",
+                "line": 25
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 14
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFont",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptFont.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFont",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFont",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFont",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptFont.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 10
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFontAlignment",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptParagraphRun.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFontAlignment",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFontAlignment",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptFontAlignment",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptParagraphRun.cs",
+                "line": 21
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 4
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptGradientStop",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptBackground.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptGradientStop",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptGradientStop",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptGradientStop",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptBackground.cs",
+                "line": 5
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 2
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptHeaderFooterSettings.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHeaderFooterSettings",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptHeaderFooterSettings.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 11
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptInteraction.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlink",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptInteraction.cs",
+                "line": 74
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 14
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptInteraction.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptHyperlinkType",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptInteraction.cs",
+                "line": 50
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 10
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptImportOptions.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptImportOptions.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 13
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptImportReport.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptImportReport.cs",
+                "line": 6
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 67
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptInteraction.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteraction",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptInteraction.cs",
+                "line": 176
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 15
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptInteraction.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionAction",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptInteraction.cs",
+                "line": 12
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 8
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptInteraction.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionJump",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptInteraction.cs",
+                "line": 32
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 7
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionTrigger",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptInteraction.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionTrigger",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionTrigger",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptInteractionTrigger",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptInteraction.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 2
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptLinkedOleObject.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptLinkedOleObject",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptLinkedOleObject.cs",
+                "line": 13
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 15
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptLoadResult.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptLoadResult.cs",
+                "line": 5
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 14
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptMaster.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMaster",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptMaster.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 17
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptMedia.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMedia",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptMedia.cs",
+                "line": 21
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 13
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMediaKind",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptMedia.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMediaKind",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMediaKind",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptMediaKind",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptMedia.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 6
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptNotesPage",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptNotesPage.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptNotesPage",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptNotesPage",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptNotesPage",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptNotesPage.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 12
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleColorFollow",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptEmbeddedOleObject.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleColorFollow",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleColorFollow",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleColorFollow",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptEmbeddedOleObject.cs",
+                "line": 15
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 3
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleDrawAspect",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptEmbeddedOleObject.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleDrawAspect",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleDrawAspect",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleDrawAspect",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptEmbeddedOleObject.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 4
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleUpdateMode",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptLinkedOleObject.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleUpdateMode",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleUpdateMode",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptOleUpdateMode",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptLinkedOleObject.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 2
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptParagraphRun.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptParagraphRun",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptParagraphRun.cs",
+                "line": 153
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 33
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptPictureBullet.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPictureBullet",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptPictureBullet.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 13
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholder",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptLayout.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholder",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholder",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholder",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptLayout.cs",
+                "line": 45
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 3
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptShape.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderKind",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptShape.cs",
+                "line": 45
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 27
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderSize",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptLayout.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderSize",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderSize",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptPlaceholderSize",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptLayout.cs",
+                "line": 35
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 3
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptRoundTripTheme",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptRoundTripTheme.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptRoundTripTheme",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptRoundTripTheme",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptRoundTripTheme",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptRoundTripTheme.cs",
+                "line": 8
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 8
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptShape.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShape",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptShape.cs",
+                "line": 103
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 35
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptShape.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptShapeKind",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptShape.cs",
+                "line": 6
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 12
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptSlide.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlide",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptSlide.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 22
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptLayout.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideLayoutType",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptLayout.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 14
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptDocumentSettings.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSlideSizeType",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptDocumentSettings.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 7
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSound",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptSound.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSound",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSound",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSound",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptSound.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 7
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMaster",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptSpecialMaster.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMaster",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMaster",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMaster",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptSpecialMaster.cs",
+                "line": 12
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 7
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMasterKind",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptSpecialMaster.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMasterKind",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMasterKind",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptSpecialMasterKind",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptSpecialMaster.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 2
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabAlignment",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptParagraphRun.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabAlignment",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabAlignment",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabAlignment",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptParagraphRun.cs",
+                "line": 127
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 4
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabStop",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptParagraphRun.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabStop",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabStop",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTabStop",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptParagraphRun.cs",
+                "line": 139
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 2
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTable",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTable.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTable",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTable",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTable",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTable.cs",
+                "line": 6
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 11
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableBorder",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTable.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableBorder",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableBorder",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableBorder",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTable.cs",
+                "line": 224
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 3
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableCell",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTable.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableCell",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableCell",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTableCell",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTable.cs",
+                "line": 177
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 9
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptParagraphRun.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextAlignment",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptParagraphRun.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 7
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextBody.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBody",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextBody.cs",
+                "line": 5
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 25
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBuildSubEffect",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptAnimation.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBuildSubEffect",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBuildSubEffect",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextBuildSubEffect",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptAnimation.cs",
+                "line": 87
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 3
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextDirection",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptParagraphRun.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextDirection",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextDirection",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextDirection",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptParagraphRun.cs",
+                "line": 33
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 2
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextField",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextField.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextField",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextField",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextField",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextField.cs",
+                "line": 19
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 4
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFieldKind",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextField.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFieldKind",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFieldKind",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFieldKind",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextField.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 6
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFrameProperties",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextFrameProperties.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFrameProperties",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFrameProperties",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextFrameProperties",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextFrameProperties.cs",
+                "line": 8
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 11
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextInteraction",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptInteraction.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextInteraction",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextInteraction",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextInteraction",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptInteraction.cs",
+                "line": 242
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 3
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextLanguageRun",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextBody.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextLanguageRun",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextLanguageRun",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextLanguageRun",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextBody.cs",
+                "line": 196
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 10
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextMasterStyle",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextMasterStyle.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextMasterStyle",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextMasterStyle",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextMasterStyle",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextMasterStyle.cs",
+                "line": 45
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 4
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextMasterStyleLevel",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextMasterStyle.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextMasterStyleLevel",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextMasterStyleLevel",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextMasterStyleLevel",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextMasterStyle.cs",
+                "line": 23
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 3
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRuler",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextRuler.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRuler",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRuler",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRuler",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextRuler.cs",
+                "line": 21
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 6
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRulerLevel",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextRuler.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRulerLevel",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRulerLevel",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextRulerLevel",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextRuler.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 3
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextMasterStyle.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTextType",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTextMasterStyle.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 8
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTransition.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTransition.cs",
+                "line": 53
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 14
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTransition.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransitionEffect",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptTransition.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 23
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptVbaProject",
+      "file": [
+        "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptVbaProject.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptVbaProject",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptVbaProject",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptVbaProject",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.PowerPoint/LegacyPpt/Model/LegacyPptVbaProject.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 4
+          },
+          "package": "OfficeIMO.PowerPoint"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
     }
   ],
   "colors": {
@@ -3491,7 +5772,7 @@
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.GetShapesInBoundsCm(double leftCm, double topCm, double widthCm, double heightCm, bool includePartial = True)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.GetShapesInBounds(... OfficeLength ...)",
+      "new": "PowerPointSlide.GetShapesInBounds(OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height, bool includePartial = true)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.cs",
       "category": "units",
@@ -3501,14 +5782,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.GetShapesInBoundsInches(double leftInches, double topInches, double widthInches, double heightInches, bool includePartial = True)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.GetShapesInBounds(... OfficeLength ...)",
+      "new": "PowerPointSlide.GetShapesInBounds(OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height, bool includePartial = true)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.cs",
       "category": "units",
@@ -3518,14 +5799,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.GetShapesInBoundsPoints(double leftPoints, double topPoints, double widthPoints, double heightPoints, bool includePartial = True)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.GetShapesInBounds(... OfficeLength ...)",
+      "new": "PowerPointSlide.GetShapesInBounds(OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height, bool includePartial = true)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.cs",
       "category": "units",
@@ -3535,8 +5816,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ResizeShapesCm(IEnumerable<PowerPointShape> shapes, double? widthCm, double? heightCm)",
@@ -4510,9 +6791,9 @@
     {
       "old": "OfficeIMO.PowerPoint.PowerPointUnits.FromInches(double inches)",
       "kind": "method",
-      "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointUnits.From(... OfficeLength ...)",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "internalize",
+      "new": null,
+      "reason": "Core owns the public physical-length contract. The format-local raw EMU conversion helper is internal; no duplicate public From/To façade is introduced.",
       "file": "OfficeIMO.PowerPoint/PowerPointUnits.cs",
       "category": "units",
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
@@ -4521,16 +6802,17 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B. The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added.",
-      "supersededM0Target": "OfficeIMO.PowerPoint.PowerPointUnits.From(... OfficeLength ...)"
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated.",
+      "supersededM0Target": "OfficeIMO.PowerPoint.PowerPointUnits.From(... OfficeLength ...)",
+      "replacement": "OfficeLength factories and ToPoints/ToInches/ToEmus conversions"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointUnits.FromPoints(double points)",
       "kind": "method",
-      "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointUnits.From(... OfficeLength ...)",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "internalize",
+      "new": null,
+      "reason": "Core owns the public physical-length contract. The format-local raw EMU conversion helper is internal; no duplicate public From/To façade is introduced.",
       "file": "OfficeIMO.PowerPoint/PowerPointUnits.cs",
       "category": "units",
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
@@ -4539,16 +6821,17 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B. The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added.",
-      "supersededM0Target": "OfficeIMO.PowerPoint.PowerPointUnits.From(... OfficeLength ...)"
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated.",
+      "supersededM0Target": "OfficeIMO.PowerPoint.PowerPointUnits.From(... OfficeLength ...)",
+      "replacement": "OfficeLength factories and ToPoints/ToInches/ToEmus conversions"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointUnits.ToInches(long emus)",
       "kind": "method",
-      "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointUnits.To(... OfficeLength ...)",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "internalize",
+      "new": null,
+      "reason": "Core owns the public physical-length contract. The format-local raw EMU conversion helper is internal; no duplicate public From/To façade is introduced.",
       "file": "OfficeIMO.PowerPoint/PowerPointUnits.cs",
       "category": "units",
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
@@ -4557,15 +6840,16 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated.",
+      "replacement": "OfficeLength factories and ToPoints/ToInches/ToEmus conversions"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointUnits.ToPoints(long emus)",
       "kind": "method",
-      "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointUnits.To(... OfficeLength ...)",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "internalize",
+      "new": null,
+      "reason": "Core owns the public physical-length contract. The format-local raw EMU conversion helper is internal; no duplicate public From/To façade is introduced.",
       "file": "OfficeIMO.PowerPoint/PowerPointUnits.cs",
       "category": "units",
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
@@ -4574,14 +6858,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated.",
+      "replacement": "OfficeLength factories and ToPoints/ToInches/ToEmus conversions"
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.AddClassicComment(PowerPointSlide slide, PowerPointCommentAuthor author, string text, long x = 0, long y = 0, DateTime? created = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointDocument.AddClassicComment(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "PowerPointDocument.AddClassicComment(PowerPointSlide slide, PowerPointCommentAuthor author, string text, OfficeLength x = default, OfficeLength y = default, DateTime? created = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointReviewComments.cs",
       "category": "units",
@@ -4591,14 +6876,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.AddModernComment(PowerPointSlide slide, PowerPointCommentAuthor author, string text, PowerPointModernCommentStatus status = Active, long x = 0, long y = 0, DateTime? created = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointDocument.AddModernComment(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "PowerPointDocument.AddModernComment(PowerPointSlide slide, PowerPointCommentAuthor author, string text, PowerPointModernCommentStatus status = Active, OfficeLength x = default, OfficeLength y = default, DateTime? created = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointReviewComments.cs",
       "category": "units",
@@ -4608,8 +6893,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.Duplicate(long offsetX = 0, long offsetY = 0)",
@@ -5222,8 +7507,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisGridlines(bool showMajor = True, bool showMinor = False, string lineColor = null, double? lineWidthPoints = null)",
@@ -5885,8 +8170,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.FromCentimeters(double leftCm, double topCm, double widthCm, double heightCm)",
@@ -6941,8 +9226,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.ContentColumns(int columnCount, double gutterCm = 0.65, double topCm = 3.65, double bottomMarginCm = 1.65, double horizontalMarginCm = 1.5)",
@@ -6958,8 +9243,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.ContentGrid(int rowCount, int columnCount, double rowGutterCm = 0.55, double columnGutterCm = 0.55, double topCm = 3.65, double bottomMarginCm = 1.65, double horizontalMarginCm = 1.5)",
@@ -6975,8 +9260,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.ContentRows(int rowCount, double gutterCm = 0.55, double topCm = 3.65, double bottomMarginCm = 1.65, double horizontalMarginCm = 1.5)",
@@ -6992,15 +9277,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.UsePreset(PowerPointCompositionPreset preset = Auto, double topCm = 3.65, double bottomMarginCm = 1.65, double horizontalMarginCm = 1.5)",
       "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.UsePreset(... OfficeLength ...)",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "merge",
+      "new": "PowerPointSlideCompositionContext.UsePreset(PowerPointCompositionPreset preset = Auto, PowerPointCompositionVariant variant = Auto, OfficeLength? top = null, OfficeLength? bottomMargin = null, OfficeLength? horizontalMargin = null)",
+      "reason": "One canonical preset/variant method retains all composition inputs and physical defaults without overlapping optional overloads.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlideCompositionContext.cs",
       "category": "units",
       "notes": "Numeric parameters with unit-suffixed names: bottomMarginCm, horizontalMarginCm, topCm",
@@ -7009,15 +9294,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.UsePreset(PowerPointCompositionPreset preset, PowerPointCompositionVariant variant, double topCm = 3.65, double bottomMarginCm = 1.65, double horizontalMarginCm = 1.5)",
       "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.UsePreset(... OfficeLength ...)",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "merge",
+      "new": "PowerPointSlideCompositionContext.UsePreset(PowerPointCompositionPreset preset = Auto, PowerPointCompositionVariant variant = Auto, OfficeLength? top = null, OfficeLength? bottomMargin = null, OfficeLength? horizontalMargin = null)",
+      "reason": "One canonical preset/variant method retains all composition inputs and physical defaults without overlapping optional overloads.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlideCompositionContext.cs",
       "category": "units",
       "notes": "Numeric parameters with unit-suffixed names: bottomMarginCm, horizontalMarginCm, topCm",
@@ -7026,8 +9311,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.GetColumns(int columnCount, long marginEmus, long gutterEmus)",
@@ -7083,9 +9368,9 @@
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetCellBorders(PowerPointTableCellBorders borders, string color, double? widthPoints = null)",
       "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointTable.SetCellBorders(... OfficeLength ...)",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "merge",
+      "new": "PowerPointTable.SetCellBorders(PowerPointTableCellBorders borders, string color, OfficeLength? width = null, PowerPointLineDashStyle? dash = null)",
+      "reason": "One typed border entry point retains existing width/dash when omitted and validates before changing cells.",
       "file": "OfficeIMO.PowerPoint/PowerPointTable.Cells.cs",
       "category": "units",
       "notes": "Numeric parameters with unit-suffixed names: widthPoints",
@@ -7094,15 +9379,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetCellBorders(PowerPointTableCellBorders borders, string color, double? widthPoints, PowerPointLineDashStyle dash)",
       "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointTable.SetCellBorders(... OfficeLength ...)",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "merge",
+      "new": "PowerPointTable.SetCellBorders(PowerPointTableCellBorders borders, string color, OfficeLength? width = null, PowerPointLineDashStyle? dash = null)",
+      "reason": "One typed border entry point retains existing width/dash when omitted and validates before changing cells.",
       "file": "OfficeIMO.PowerPoint/PowerPointTable.Cells.cs",
       "category": "units",
       "notes": "Numeric parameters with unit-suffixed names: widthPoints",
@@ -7111,15 +9396,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableCell.SetBorders(PowerPointTableCellBorders borders, string color, double? widthPoints = null)",
       "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.SetBorders(... OfficeLength ...)",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "merge",
+      "new": "PowerPointTableCell.SetBorders(PowerPointTableCellBorders borders, string color, OfficeLength? width = null, PowerPointLineDashStyle? dash = null)",
+      "reason": "One typed border entry point retains existing width/dash when omitted and validates before changing cells.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableCell.cs",
       "category": "units",
       "notes": "Numeric parameters with unit-suffixed names: widthPoints",
@@ -7128,15 +9413,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableCell.SetBorders(PowerPointTableCellBorders borders, string color, double? widthPoints, PowerPointLineDashStyle dash)",
       "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.SetBorders(... OfficeLength ...)",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "merge",
+      "new": "PowerPointTableCell.SetBorders(PowerPointTableCellBorders borders, string color, OfficeLength? width = null, PowerPointLineDashStyle? dash = null)",
+      "reason": "One typed border entry point retains existing width/dash when omitted and validates before changing cells.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableCell.cs",
       "category": "units",
       "notes": "Numeric parameters with unit-suffixed names: widthPoints",
@@ -7145,8 +9430,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidth(long widthEmus)",
@@ -7195,8 +9480,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeTextThresholdPoints",
@@ -7211,8 +9496,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.FontSizePoints",
@@ -7275,8 +9560,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Still pending implementation. The explicit physical font-size design overrides the map numeric-font placeholder; use OfficeLength without a compatibility twin."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.CollisionTolerancePoints",
@@ -7291,8 +9576,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.DefaultFontSizePoints",
@@ -7307,8 +9592,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Still pending implementation. The explicit physical font-size design overrides the map numeric-font placeholder; use OfficeLength without a compatibility twin."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MaximumDecorativeBleedPoints",
@@ -7323,8 +9608,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MinimumReadableFontSizePoints",
@@ -7339,8 +9624,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Still pending implementation. The explicit physical font-size design overrides the map numeric-font placeholder; use OfficeLength without a compatibility twin."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointGuideInfo.PositionEmus",
@@ -8137,7 +10422,7 @@
       "old": "OfficeIMO.PowerPoint.PowerPointShape.OutlineWidthPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointShape.OutlineWidth : OfficeLength",
+      "new": "PowerPointShape.OutlineWidth : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointShape.Outline.cs",
       "category": "units",
@@ -8146,8 +10431,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "OfficeLength public geometry is converted only at the native storage or numeric measurement boundary; matching consumers and shipped baselines are migrated."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.RightCm",
@@ -9776,8 +12061,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Generated analysis and effective public signature closure internalize 74 native parser/model/lifecycle types. Diagnostic, preservation and capability models of documented public APIs remain public; see exact internalizeCandidates records."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation",
@@ -10553,6 +12838,25 @@
         "OfficeIMO.PowerPoint.Tests/PowerPoint.NumberingResetRendering.cs",
         "OfficeIMO.PowerPoint.Tests/PowerPoint.SharedBubbleCharts.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "Numeric classic/modern/review comment X/Y; optional-overload geometry twins; format-local raw PowerPointUnits public helpers",
+      "new": "Physical comment X/Y with native range validation; one preset/variant and border-width/dash form; typed bounds coordinates; internal PowerPointUnits",
+      "reason": "Preserve exact native positions, nullable local widths and all composition capabilities while removing unit-suffixed duplicate surface. Optional parameters have a single canonical overload.",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointSlide.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlideCompositionContext.cs",
+        "OfficeIMO.PowerPoint/PowerPointTableCell.cs",
+        "OfficeIMO.PowerPoint/PowerPointTable.Cells.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.FinalGeometryLengths.cs",
+        "OfficeIMO.PowerPoint/PowerPointReviewComments.cs",
+        "OfficeIMO.PowerPoint/PowerPointDocument.ClassicCommentCoordinates.cs",
+        "OfficeIMO.PowerPoint/PowerPointReviewAndAnimationReports.cs"
+      ],
+      "applied": "phase-b-applied",
+      "note": "Classic comment native coordinates are eighth-points (576/inch), unlike modern EMUs. Convert creation, edits and inspection at that boundary; preserve full native Int32 range after quantization and existing Reader numeric wire units. Bounds queries using PowerPointLayoutBox specify includePartial explicitly; coordinate queries retain the default. No comment width/height is invented."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

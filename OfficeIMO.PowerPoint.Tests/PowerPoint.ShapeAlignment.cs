@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(1000000));
-                long margin = PowerPointUnits.FromCentimeters(1);
+                long margin = global::OfficeIMO.OfficeLength.Centimeters(1).ToEmus();
 
                 slide.AlignShapesToSlideContent(new[] { shape }, PowerPointShapeAlignment.Center, OfficeIMO.OfficeLength.Emus(margin));
 
@@ -147,7 +147,7 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape a = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(1000));
                 PowerPointAutoShape b = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(1000));
                 PowerPointAutoShape c = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(1000));
-                long margin = PowerPointUnits.FromCentimeters(1);
+                long margin = global::OfficeIMO.OfficeLength.Centimeters(1).ToEmus();
 
                 slide.DistributeShapesToSlideContent(slide.Shapes, PowerPointShapeDistribution.Horizontal, OfficeIMO.OfficeLength.Emus(margin));
 

@@ -86,8 +86,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2600, grid[1, 0].Top.ToEmus());
             Assert.Equal(grid[0, 1].Width.ToEmus(), grid[1, 1].Width.ToEmus());
             Assert.Equal(grid[0, 1].Height.ToEmus(), grid[1, 2].Height.ToEmus());
-            Assert.Equal(PowerPointUnits.ToCentimeters(grid[0, 0].Right.ToEmus()), grid[0, 0].Right.ToCentimeters());
-            Assert.Equal(PowerPointUnits.ToCentimeters(grid[0, 0].Bottom.ToEmus()), grid[0, 0].Bottom.ToCentimeters());
+            Assert.Equal(global::OfficeIMO.OfficeLength.Emus(grid[0, 0].Right.ToEmus()).ToCentimeters(), grid[0, 0].Right.ToCentimeters());
+            Assert.Equal(global::OfficeIMO.OfficeLength.Emus(grid[0, 0].Bottom.ToEmus()).ToCentimeters(), grid[0, 0].Bottom.ToCentimeters());
         }
 
         [Fact]
@@ -225,7 +225,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape a = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(500));
                 PowerPointAutoShape b = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(500));
-                long margin = PowerPointUnits.FromCentimeters(1);
+                long margin = global::OfficeIMO.OfficeLength.Centimeters(1).ToEmus();
 
                 slide.ArrangeShapesInGridToSlideContent(slide.Shapes, columns: 2, rows: 1,
                     margin: OfficeIMO.OfficeLength.Emus(margin));
@@ -259,7 +259,7 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape b = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
                 PowerPointAutoShape c = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
                 PowerPointAutoShape d = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
-                long margin = PowerPointUnits.FromCentimeters(1);
+                long margin = global::OfficeIMO.OfficeLength.Centimeters(1).ToEmus();
 
                 slide.ArrangeShapesInGridAutoToSlideContent(slide.Shapes, OfficeIMO.OfficeLength.Emus(margin),
                     new PowerPointShapeGridOptions { MinColumns = 2, MaxColumns = 2 });

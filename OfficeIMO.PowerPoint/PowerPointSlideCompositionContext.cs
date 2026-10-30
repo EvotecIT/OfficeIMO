@@ -33,72 +33,50 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Returns the default editable content area below the title and above the footer.
         /// </summary>
-        public PowerPointLayoutBox ContentArea(double topCm = 3.65, double bottomMarginCm = 1.65,
-            double horizontalMarginCm = 1.5) {
-            if (topCm < 0) {
-                throw new ArgumentOutOfRangeException(nameof(topCm));
-            }
-            if (bottomMarginCm < 0) {
-                throw new ArgumentOutOfRangeException(nameof(bottomMarginCm));
-            }
-            if (horizontalMarginCm < 0) {
-                throw new ArgumentOutOfRangeException(nameof(horizontalMarginCm));
-            }
+        public PowerPointLayoutBox ContentArea(OfficeLength? top = null, OfficeLength? bottomMargin = null,
+            OfficeLength? horizontalMargin = null) {
+            OfficeLength resolvedTop = top ?? OfficeLength.Centimeters(3.65);
+            OfficeLength resolvedBottom = bottomMargin ?? OfficeLength.Centimeters(1.65);
+            OfficeLength resolvedHorizontal = horizontalMargin ?? OfficeLength.Centimeters(1.5);
+            if (resolvedTop < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(top));
+            if (resolvedBottom < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(bottomMargin));
+            if (resolvedHorizontal < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(horizontalMargin));
 
-            double height = _slideHeightCm - topCm - bottomMarginCm;
-            double width = _slideWidthCm - horizontalMarginCm * 2;
-            if (height <= 0 || width <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(topCm), "Content area does not fit on the slide.");
+            OfficeLength height = OfficeLength.Centimeters(_slideHeightCm) - resolvedTop - resolvedBottom;
+            OfficeLength width = OfficeLength.Centimeters(_slideWidthCm) - resolvedHorizontal * 2;
+            if (height <= OfficeLength.Zero || width <= OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(top), "Content area does not fit on the slide.");
             }
-
-            return new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(horizontalMarginCm),OfficeIMO.OfficeLength.Centimeters(topCm),OfficeIMO.OfficeLength.Centimeters(width),OfficeIMO.OfficeLength.Centimeters(height));
+            return new PowerPointLayoutBox(resolvedHorizontal, resolvedTop, width, height);
         }
 
-        /// <summary>
-        ///     Returns columns inside the default content area.
-        /// </summary>
-        public PowerPointLayoutBox[] ContentColumns(int columnCount, double gutterCm = 0.65,
-            double topCm = 3.65, double bottomMarginCm = 1.65, double horizontalMarginCm = 1.5) {
-            return ContentArea(topCm, bottomMarginCm, horizontalMarginCm).SplitColumns(columnCount,OfficeIMO.OfficeLength.Centimeters(gutterCm));
-        }
+        /// <summary>Returns columns inside the default content area. The default gutter is 0.65 cm.</summary>
+        public PowerPointLayoutBox[] ContentColumns(int columnCount, OfficeLength? gutter = null,
+            OfficeLength? top = null, OfficeLength? bottomMargin = null, OfficeLength? horizontalMargin = null) =>
+            ContentArea(top, bottomMargin, horizontalMargin)
+                .SplitColumns(columnCount, gutter ?? OfficeLength.Centimeters(0.65));
 
-        /// <summary>
-        ///     Returns rows inside the default content area.
-        /// </summary>
-        public PowerPointLayoutBox[] ContentRows(int rowCount, double gutterCm = 0.55,
-            double topCm = 3.65, double bottomMarginCm = 1.65, double horizontalMarginCm = 1.5) {
-            return ContentArea(topCm, bottomMarginCm, horizontalMarginCm).SplitRows(rowCount,OfficeIMO.OfficeLength.Centimeters(gutterCm));
-        }
+        /// <summary>Returns rows inside the default content area. The default gutter is 0.55 cm.</summary>
+        public PowerPointLayoutBox[] ContentRows(int rowCount, OfficeLength? gutter = null,
+            OfficeLength? top = null, OfficeLength? bottomMargin = null, OfficeLength? horizontalMargin = null) =>
+            ContentArea(top, bottomMargin, horizontalMargin)
+                .SplitRows(rowCount, gutter ?? OfficeLength.Centimeters(0.55));
 
-        /// <summary>
-        ///     Returns a row/column grid inside the default content area.
-        /// </summary>
-        public PowerPointLayoutBox[,] ContentGrid(int rowCount, int columnCount, double rowGutterCm = 0.55,
-            double columnGutterCm = 0.55, double topCm = 3.65, double bottomMarginCm = 1.65,
-            double horizontalMarginCm = 1.5) {
-            return ContentArea(topCm, bottomMarginCm, horizontalMarginCm)
-                .SplitGrid(rowCount,columnCount,OfficeIMO.OfficeLength.Centimeters(rowGutterCm),OfficeIMO.OfficeLength.Centimeters(columnGutterCm));
-        }
+        /// <summary>Returns a grid inside the default content area. Both default gutters are 0.55 cm.</summary>
+        public PowerPointLayoutBox[,] ContentGrid(int rowCount, int columnCount, OfficeLength? rowGutter = null,
+            OfficeLength? columnGutter = null, OfficeLength? top = null, OfficeLength? bottomMargin = null,
+            OfficeLength? horizontalMargin = null) =>
+            ContentArea(top, bottomMargin, horizontalMargin).SplitGrid(rowCount, columnCount,
+                rowGutter ?? OfficeLength.Centimeters(0.55), columnGutter ?? OfficeLength.Centimeters(0.55));
 
-        /// <summary>
-        ///     Resolves a named composition preset into reusable regions for a raw designer slide.
-        /// </summary>
+        /// <summary>Resolves a named composition preset and variant into reusable regions for a raw designer slide.</summary>
         public PowerPointCompositionLayout UsePreset(PowerPointCompositionPreset preset = PowerPointCompositionPreset.Auto,
-            double topCm = 3.65, double bottomMarginCm = 1.65, double horizontalMarginCm = 1.5) {
-            return UsePreset(preset, PowerPointCompositionVariant.Auto, topCm, bottomMarginCm, horizontalMarginCm);
-        }
-
-        /// <summary>
-        ///     Resolves a named composition preset and variant into reusable regions for a raw designer slide.
-        /// </summary>
-        public PowerPointCompositionLayout UsePreset(PowerPointCompositionPreset preset,
-            PowerPointCompositionVariant variant, double topCm = 3.65, double bottomMarginCm = 1.65,
-            double horizontalMarginCm = 1.5) {
+            PowerPointCompositionVariant variant = PowerPointCompositionVariant.Auto, OfficeLength? top = null,
+            OfficeLength? bottomMargin = null, OfficeLength? horizontalMargin = null) {
             PowerPointCompositionPreset resolvedPreset = ResolveCompositionPreset(preset);
             PowerPointCompositionVariant resolvedVariant = ResolveCompositionVariant(resolvedPreset, variant);
-            return PowerPointCompositionLayout.Create(resolvedPreset,
-                resolvedVariant,
-                ContentArea(topCm, bottomMarginCm, horizontalMarginCm), _options.DesignIntent.Density);
+            return PowerPointCompositionLayout.Create(resolvedPreset, resolvedVariant,
+                ContentArea(top, bottomMargin, horizontalMargin), _options.DesignIntent.Density);
         }
 
         /// <summary>
@@ -243,7 +221,7 @@ namespace OfficeIMO.PowerPoint {
                 band.FillColor = _dark ? _theme.AccentColor : _theme.AccentColor;
                 band.FillTransparency = _dark ? 55 : 0;
                 band.OutlineColor = _dark ? _theme.AccentLightColor : _theme.AccentColor;
-                band.OutlineWidthPoints = 0.45;
+                band.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.45);
                 band.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(3), distance: OfficeIMO.OfficeLength.Points(0.8), angleDegrees: 90, transparencyPercent: 90);
 
                 PowerPointDesignExtensions.AddMetrics(_slide, _theme, metricList, bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(),
@@ -296,7 +274,7 @@ namespace OfficeIMO.PowerPoint {
                 band.FillColor = _dark ? _theme.AccentColor : _theme.PanelColor;
                 band.FillTransparency = _dark ? 60 : 0;
                 band.OutlineColor = _dark ? _theme.AccentLightColor : _theme.PanelBorderColor;
-                band.OutlineWidthPoints = 0.45;
+                band.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.45);
                 band.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(3), distance: OfficeIMO.OfficeLength.Points(0.8), angleDegrees: 90, transparencyPercent: 90);
 
                 PowerPointAutoShape rule = _slide.AddRectangle(bounds.Left, bounds.Top, OfficeIMO.OfficeLength.Centimeters(0.13), bounds.Height,
@@ -451,7 +429,7 @@ namespace OfficeIMO.PowerPoint {
                 tile.FillColor = accent;
                 tile.FillTransparency = _dark ? 55 : 8;
                 tile.OutlineColor = accent;
-                tile.OutlineWidthPoints = 0.45;
+                tile.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.45);
                 tile.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(2.8), distance: OfficeIMO.OfficeLength.Points(0.7), angleDegrees: 90, transparencyPercent: 90);
             }
 

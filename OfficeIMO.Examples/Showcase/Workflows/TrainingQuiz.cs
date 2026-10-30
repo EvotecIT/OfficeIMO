@@ -23,7 +23,7 @@ internal static class TrainingQuiz {
 
         void AddSlide(string title, string description, string[] points, string label, string fill) {
             PowerPointSlide slide = deck.AddSlide();
-            slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(0), OfficeIMO.OfficeLength.Centimeters(0), OfficeIMO.OfficeLength.Centimeters(33.866), OfficeIMO.OfficeLength.Centimeters(19.05), "Background").Fill(fill).Stroke(fill, 0);
+            slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(0), OfficeIMO.OfficeLength.Centimeters(0), OfficeIMO.OfficeLength.Centimeters(33.866), OfficeIMO.OfficeLength.Centimeters(19.05), "Background").Fill(fill).Stroke(fill, global::OfficeIMO.OfficeLength.Points(0));
             var eyebrow = slide.AddTextBox(label,global::OfficeIMO.OfficeLength.Centimeters(1.6),global::OfficeIMO.OfficeLength.Centimeters(1.2),global::OfficeIMO.OfficeLength.Centimeters(29),global::OfficeIMO.OfficeLength.Centimeters(1));
             eyebrow.FontSize = global::OfficeIMO.OfficeLength.Points(15);
             eyebrow.Color = "526179";

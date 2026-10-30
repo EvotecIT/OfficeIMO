@@ -3,7 +3,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
-    public sealed partial class LegacyPptDocument {
+    internal sealed partial class LegacyPptDocument {
         private void ParseFontCollection(LegacyPptRecord document, LegacyPptImportOptions options) {
             LegacyPptRecord? collection = document.DescendantsAndSelf().FirstOrDefault(record =>
                 record.Type == RecordFontCollection);

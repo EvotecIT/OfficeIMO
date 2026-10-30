@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents text, its category, formatting runs, and ruler from a binary PowerPoint text box.</summary>
-    public sealed class LegacyPptTextBody {
+    internal sealed class LegacyPptTextBody {
         internal LegacyPptTextBody(string text, IReadOnlyList<LegacyPptCharacterRun> characterRuns,
             IReadOnlyList<LegacyPptParagraphRun> paragraphRuns, bool hasStyleRecord,
             bool hasUnprojectedCharacterFormatting, bool hasUnprojectedParagraphFormatting,
@@ -193,7 +193,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// range. The range can include paragraph markers and the terminal marker
     /// immediately after <see cref="LegacyPptTextBody.Text"/>.
     /// </summary>
-    public sealed class LegacyPptTextLanguageRun {
+    internal sealed class LegacyPptTextLanguageRun {
         internal LegacyPptTextLanguageRun(int start, int length,
             ushort? languageId, string? language,
             ushort? alternativeLanguageId, string? alternativeLanguage,
@@ -243,7 +243,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Represents one character-formatting run from a binary PowerPoint text box.</summary>
-    public sealed class LegacyPptCharacterRun {
+    internal sealed class LegacyPptCharacterRun {
         internal LegacyPptCharacterRun(int start, int length, string text,
             bool? bold, bool? italic, bool? underline,
             bool? shadow, bool? farEastHint, bool? kumi, bool? emboss,

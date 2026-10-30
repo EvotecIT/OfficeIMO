@@ -24,7 +24,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             "OfficeIMO Markup Chart Panel");
         panel.FillColor = "F8FAFC";
         panel.OutlineColor = "D9E2EF";
-        panel.OutlineWidthPoints = 0.75;
+        panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.75);
     }
 
     private static void ApplyChartStyle(PowerPointChart chart, OfficeMarkupChartBlock source, OfficeChartData data) {

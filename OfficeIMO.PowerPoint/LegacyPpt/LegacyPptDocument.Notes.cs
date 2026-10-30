@@ -3,7 +3,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
-    public sealed partial class LegacyPptDocument {
+    internal sealed partial class LegacyPptDocument {
         private IReadOnlyDictionary<uint, LegacyPptNotesDirectoryEntry> ReadNotesDirectory(
             LegacyPptRecord document, LegacyPptImportOptions options) {
             LegacyPptRecord? list = document.Children.FirstOrDefault(record =>

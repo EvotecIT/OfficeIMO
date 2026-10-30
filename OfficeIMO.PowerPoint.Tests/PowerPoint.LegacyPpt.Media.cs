@@ -341,7 +341,7 @@ namespace OfficeIMO.Tests {
             LegacyPptMediaKind.MciMovie, @"C:\Media\sample.avi")]
         public void PathMedia_ImportsTypedAndReportsPreservation(
             ExternalObjectFixtureKind fixtureKind,
-            LegacyPptMediaKind expectedKind, string expectedPath) {
+            object expectedKind, string expectedPath) {
             byte[] sourceBytes = CreateExternalObjectFixture(
                 CreateOleTestStorage(expectedKind.ToString()), fixtureKind,
                 compressed: false);
@@ -349,7 +349,7 @@ namespace OfficeIMO.Tests {
             LegacyPptDocument neutral = LegacyPptDocument.Load(
                 sourceBytes);
             LegacyPptMedia media = Assert.Single(neutral.Media);
-            Assert.Equal(expectedKind, media.Kind);
+            Assert.Equal((LegacyPptMediaKind)expectedKind, media.Kind);
             Assert.Equal(expectedPath, media.Path);
             Assert.False(media.HasProjectableAudio);
             Assert.Contains(neutral.Slides[0].Shapes,

@@ -42,7 +42,7 @@ public partial class PowerPointImageExportTests {
 
         PowerPointAutoShape edge = slide.AddRectangle(OfficeIMO.OfficeLength.Points(-12), OfficeIMO.OfficeLength.Points(148), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(48));
         edge.FillColor = "D7263D";
-        edge.OutlineWidthPoints = 0;
+        edge.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
 
         AssertNativeImageRoute(presentation, format, scale: 1.5D);
         PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();

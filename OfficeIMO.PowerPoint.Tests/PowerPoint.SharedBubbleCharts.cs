@@ -560,7 +560,7 @@ namespace OfficeIMO.Tests {
             A.Outline gridlineOutline = majorGridlines
                 .GetFirstChild<C.ChartShapeProperties>()!
                 .GetFirstChild<A.Outline>()!;
-            Assert.Equal(PowerPointUnits.FromPoints(0.5D),
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.5D).ToEmus(),
                 gridlineOutline.Width!.Value);
             Assert.Equal(OfficeChartStyle.Default.GridLineColor,
                 OfficeOpenXmlThemeColorResolver.ResolveColor(
@@ -576,10 +576,10 @@ namespace OfficeIMO.Tests {
             Assert.False(chart.TryGetOfficeSnapshot(out _));
             horizontalAxis.GetFirstChild<C.MajorGridlines>()!.Remove();
 
-            gridlineOutline.Width = checked((int)PowerPointUnits.FromPoints(1D));
+            gridlineOutline.Width = checked((int)global::OfficeIMO.OfficeLength.Points(1D).ToEmus());
             Assert.False(chart.TryGetOfficeSnapshot(out _));
             gridlineOutline.Width =
-                checked((int)PowerPointUnits.FromPoints(0.5D));
+                checked((int)global::OfficeIMO.OfficeLength.Points(0.5D).ToEmus());
             Assert.True(chart.TryGetOfficeSnapshot(out _));
 
             nativeSeries.GetFirstChild<C.ChartShapeProperties>()!
@@ -1733,7 +1733,7 @@ namespace OfficeIMO.Tests {
                 .GetFirstChild<A.Outline>()!;
             Assert.Equal("112233", outline.GetFirstChild<A.SolidFill>()!
                 .RgbColorModelHex!.Val!.Value);
-            Assert.Equal(PowerPointUnits.FromPoints(2.5D),
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(2.5D).ToEmus(),
                 outline.Width!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(
                 presentation.Slides[0].SlidePart.ChartParts.Single()));
@@ -1760,7 +1760,7 @@ namespace OfficeIMO.Tests {
                     new A.Outline(
                         new A.SolidFill(
                             new A.RgbColorModelHex { Val = "AABBCC" })) {
-                        Width = (int)PowerPointUnits.FromPoints(1.25D)
+                        Width = (int)global::OfficeIMO.OfficeLength.Points(1.25D).ToEmus()
                     }));
             nativeSeries.AddChild(nativePoint, true);
 
@@ -1782,7 +1782,7 @@ namespace OfficeIMO.Tests {
             A.Outline outline = properties.GetFirstChild<A.Outline>()!;
             Assert.Equal("AABBCC", outline.GetFirstChild<A.SolidFill>()!
                 .RgbColorModelHex!.Val!.Value);
-            Assert.Equal(PowerPointUnits.FromPoints(1.25D),
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(1.25D).ToEmus(),
                 outline.Width!.Value);
             List<ValidationErrorInfo> validation = new OpenXmlValidator()
                 .Validate(presentation.Slides[0].SlidePart.ChartParts.Single())

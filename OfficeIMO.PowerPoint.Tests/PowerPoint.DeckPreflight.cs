@@ -27,11 +27,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal(PowerPointDeckPreflightSeverity.Error, finding.Severity);
             Assert.Equal(0, finding.SlideIndex);
             Assert.NotNull(finding.Bounds);
+            Assert.Equal(OfficeLength.Points(20), finding.ResolvedFontSize);
             Assert.False(report.IsSuccessful);
 
             string json = report.ToJson(indented: false);
             Assert.Contains("\"schemaVersion\": 1", json, StringComparison.Ordinal);
             Assert.Contains("text-clipped", json, StringComparison.Ordinal);
+            Assert.Contains("\"resolvedFontSizePoints\":20", json, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -69,7 +71,7 @@ namespace OfficeIMO.Tests {
             PowerPointDeckPreflightReport report = presentation.Preflight(new PowerPointDeckPreflightOptions {
                 DetectTextOverflow = false,
                 DetectUnreadableFontReduction = true,
-                MinimumReadableFontSizePoints = 19.5D,
+                MinimumReadableFontSize = global::OfficeIMO.OfficeLength.Points(19.5D),
                 DetectShapeCollisions = false,
                 DetectMissingVisualAssets = false,
                 IncludeVisualSnapshotDiagnostics = false
@@ -190,7 +192,7 @@ namespace OfficeIMO.Tests {
                 DetectShapeCollisions = false,
                 DetectMissingVisualAssets = false,
                 IncludeVisualSnapshotDiagnostics = false,
-                MaximumDecorativeBleedPoints = 24
+                MaximumDecorativeBleed = global::OfficeIMO.OfficeLength.Points(24)
             });
 
             Assert.DoesNotContain(report.Findings, finding => finding.ShapeName == "Intentional plane");

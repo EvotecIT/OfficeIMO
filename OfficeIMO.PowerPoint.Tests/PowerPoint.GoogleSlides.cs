@@ -726,7 +726,7 @@ namespace OfficeIMO.Tests {
             shape.FillColor = "336699";
             shape.FillTransparency = 25;
             shape.OutlineColor = "CC3300";
-            shape.OutlineWidthPoints = 3;
+            shape.OutlineWidth = global::OfficeIMO.OfficeLength.Points(3);
             string? batchBody = null;
             using var httpClient = new HttpClient(new DelegateHandler(async request => {
                 string uri = request.RequestUri!.AbsoluteUri;
@@ -1062,7 +1062,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("CC6633", importedShape.FillColor);
                 Assert.Equal(25, importedShape.FillTransparency);
                 Assert.Equal("336699", importedShape.OutlineColor);
-                Assert.Equal(2.5d, importedShape.OutlineWidthPoints);
+                Assert.Equal(2.5d, importedShape.OutlineWidth?.ToPoints());
                 Assert.Equal("Cell", Assert.Single(slide.Tables).RowItems[0].Cells[0].Text);
                 Assert.Equal("Imported notes", slide.Notes.Text);
                 Assert.Equal("r4", imported.Source.RevisionId);
@@ -1292,7 +1292,7 @@ namespace OfficeIMO.Tests {
             slide.SetBackgroundGradient("112233", "445566", 45.5D);
             PowerPointAutoShape shape = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(20.25D), OfficeIMO.OfficeLength.Points(30.5D), OfficeIMO.OfficeLength.Points(160.75D), OfficeIMO.OfficeLength.Points(90.125D));
             shape.Rotation = 22.5D;
-            shape.OutlineWidthPoints = 1.25D;
+            shape.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.25D);
             using var imageStream = new MemoryStream(imageBytes);
             PowerPointPicture picture = slide.AddImage(imageStream, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(10.5D), OfficeIMO.OfficeLength.Points(20.25D), OfficeIMO.OfficeLength.Points(40.75D), OfficeIMO.OfficeLength.Points(30.5D));
             picture.Crop(10, 5, 0, 0);

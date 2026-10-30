@@ -70,13 +70,13 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Gets or sets the outline width in points.
+        ///     Gets or sets the outline width.
         /// </summary>
-        public double? OutlineWidthPoints {
+        public OfficeLength? OutlineWidth {
             get {
                 A.Outline? outline = GetOutline();
                 int? width = outline?.Width?.Value;
-                return width != null ? width.Value / (double)EmusPerPoint : null;
+                return width != null ? OfficeLength.Emus(width.Value) : null;
             }
             set {
                 int? drawingWidth = value == null
@@ -97,6 +97,16 @@ namespace OfficeIMO.PowerPoint {
 
                 outline.Width = drawingWidth!.Value;
             }
+        }
+
+        /// <summary>Validates a physical width before any DrawingML is changed.</summary>
+        internal static int ToDrawingLineWidth(OfficeLength width, string parameterName) {
+            long emus = width.ToEmus();
+            if (emus < 0L || emus > 20116800L) {
+                throw new ArgumentOutOfRangeException(parameterName,
+                    "Outline width must be representable by DrawingML (0 through 1584 points).");
+            }
+            return checked((int)emus);
         }
 
         internal static int ToDrawingLineWidth(double widthPoints,

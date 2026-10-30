@@ -19,8 +19,8 @@ internal static class ResultsBriefing {
         results.Notes.Text = "These are synthetic figures. Explain sample size and measurement rules before drawing a conclusion from real data. Compare the same response-time definition across weeks.";
         var decision = deck.AddSlide();
         Text(decision, "What the pilot does and does not tell us", 1.5, 1.5, 30, 2, 30, "17365D");
-        decision.AddRectangle(OfficeIMO.OfficeLength.Centimeters(1.5), OfficeIMO.OfficeLength.Centimeters(5), OfficeIMO.OfficeLength.Centimeters(14.5), OfficeIMO.OfficeLength.Centimeters(9)).Fill("E7F6ED").Stroke("B5D8C0", 1);
-        decision.AddRectangle(OfficeIMO.OfficeLength.Centimeters(17), OfficeIMO.OfficeLength.Centimeters(5), OfficeIMO.OfficeLength.Centimeters(15), OfficeIMO.OfficeLength.Centimeters(9)).Fill("EAF1FB").Stroke("CBD5E1", 1);
+        decision.AddRectangle(OfficeIMO.OfficeLength.Centimeters(1.5), OfficeIMO.OfficeLength.Centimeters(5), OfficeIMO.OfficeLength.Centimeters(14.5), OfficeIMO.OfficeLength.Centimeters(9)).Fill("E7F6ED").Stroke("B5D8C0", global::OfficeIMO.OfficeLength.Points(1));
+        decision.AddRectangle(OfficeIMO.OfficeLength.Centimeters(17), OfficeIMO.OfficeLength.Centimeters(5), OfficeIMO.OfficeLength.Centimeters(15), OfficeIMO.OfficeLength.Centimeters(9)).Fill("EAF1FB").Stroke("CBD5E1", global::OfficeIMO.OfficeLength.Points(1));
         Text(decision, "Continue testing", 2.2, 5.7, 13, 1.5, 25, "17365D");
         Text(decision, "First response improved.\nCheck resolution quality before expanding the pilot.", 2.2, 8, 12.7, 5, 23, "17365D");
         Text(decision, "Keep the limits visible", 17.7, 5.7, 13, 1.5, 25, "17365D");
