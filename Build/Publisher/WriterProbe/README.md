@@ -2,7 +2,9 @@
 
 This opt-in contributor tool inventories native publications and synthesizes
 small, template-free PUB files. It stays outside the normal solution and does
-not expose a public Publisher creation or save API. It references the existing
+not expose a public Publisher creation API. Public bounded source saving belongs
+to [OfficeIMO.Publisher](../../../OfficeIMO.Publisher/README.md#save-a-native-publication);
+this probe remains a contributor tool for codec qualification. It references the existing
 Publisher, PDF and shared binary codecs without adding runtime dependencies.
 Template-free creation never reads a source publication or directory template.
 

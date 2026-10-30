@@ -891,7 +891,7 @@ Use the [native codec structure and qualification record](../Build/Publisher/Wri
 #### PUB03 — Native editing and safe save-back
 
 - [ ] Load a supported modern publication, change text of different lengths, formatting, frame placement, images, tables and page/master relationships, then write a separate valid PUB through the owning codec. Verify every supported edit in Microsoft Publisher and through native resave/reopen; preserve provably unaffected content and reject unsafe unsupported edits explicitly.
-- [ ] Provide bounded path, byte and stream saves with operation-level preservation reports, cancellation and validated destination publication. Preserve caller-owned streams and existing destinations on pre-publication failures. Keep macros, linked resources and embedded objects inert; qualify their opaque preservation separately from editable content.
+- [ ] Qualify opaque preservation of macros, linked resources, embedded objects and producer-specific records separately from editable content. Extend the [bounded native source-save contract](../OfficeIMO.Publisher/SUPPORT.md) only with independently verified profile coverage; keep unsupported content inert and unsafe edits refused.
 
 #### PUB04 — Template-free native authoring
 

@@ -1,6 +1,6 @@
 {
   "schema": "officeimo.publisher.native-writer-feasibility.v1",
-  "scope": "Opt-in modern-generation writer feasibility and bounded source-edit qualification; no public native creation/save API or general producer/fidelity qualification.",
+  "scope": "Opt-in modern-generation template-free writer feasibility and bounded source-edit/public-save qualification; no public template-free native creation or general producer/fidelity qualification.",
   "generationSignature": "E8 AC 2C 00",
   "command": [
     "create",
@@ -200,7 +200,7 @@
   ],
   "reproduction": "Build the opt-in probe with the pinned SDK, run the recorded create command with the repository image, then Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full on an isolated copy. Compare native inventories and both PDFs against the explicit candidate expectations. Native artifact hashes identify this observed run; a subsequent native save can include different metadata.",
   "sourceEditing": {
-    "scope": "Bounded modern-generation source edits: single-paragraph text/size/bold specimens below, with separate placement/paint, native text mutation, multi-paragraph and preview-invalidation qualification records.",
+    "scope": "Bounded modern-generation source edits: single-paragraph text/size/bold specimens below, with separate placement/paint, native text mutation, multi-paragraph, preview-invalidation and public-saving qualification records.",
     "codecCommit": "6a0c79187aa5f68f4003f8ddeafa1b2a4a1887d2",
     "codecFiles": [
       {
@@ -1858,6 +1858,231 @@
         "OfficeIMO removes the stale thumbnail without generating a replacement. Native resave recreates it in these cases; raw property hashes do not qualify thumbnail appearance.",
         "Malformed SummaryInformation property-set structure refuses edits; unsupported semantic changes still refuse output.",
         "Repair-free opening, general layout and other opaque/cached-record semantics remain unassessed."
+      ]
+    },
+    "publicSaving": {
+      "scope": "Public bounded byte, file and stream saving of unchanged sources and accepted source edits. No template-free native authoring.",
+      "codecCommit": "56191795fcf82828f669d009b12a02cc82697b2a",
+      "codecFiles": [
+        {
+          "path": "../../../OfficeIMO.Publisher/PublisherDocument.Save.cs",
+          "sha256": "e52a3e6fd7ab9ee349bc4b6cb1a923f10d7ffdcf22a3e46a2189b7f31d9f6ce2",
+          "gitBlobSha256": "e52a3e6fd7ab9ee349bc4b6cb1a923f10d7ffdcf22a3e46a2189b7f31d9f6ce2"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/PublisherSaveOptions.cs",
+          "sha256": "5cdaa5dccd115cfffa290a888f4352f33dd474bd3d1935381dff4457ed1c204e",
+          "gitBlobSha256": "5cdaa5dccd115cfffa290a888f4352f33dd474bd3d1935381dff4457ed1c204e"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/PublisherSaveReport.cs",
+          "sha256": "3fd9dfb4656c647c17c09f41bff8e8d80043b2db47a4e7b5263c262a705fb0a0",
+          "gitBlobSha256": "3fd9dfb4656c647c17c09f41bff8e8d80043b2db47a4e7b5263c262a705fb0a0"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/PublisherSaveTests.cs",
+          "sha256": "b5ce9718e81d784eecd396ec0a57a341680b74d75003591f692cbc3a55c9c5c4",
+          "gitBlobSha256": "b5ce9718e81d784eecd396ec0a57a341680b74d75003591f692cbc3a55c9c5c4"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/PublisherDocument.cs",
+          "sha256": "42b785e1b5233dd2e76ba6773fcb47b5b4a302d5c125d8dd58914547809a03d8",
+          "gitBlobSha256": "b94f1f00da1adf38312f3f8f6a97d6231a02f372bf1950f172f4e1caf6ca9149"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/OfficeIMO.Publisher.csproj",
+          "sha256": "553a6a5ca45f079fa0bd114fa8e38c54b6efad3ce0d587faaeaaafdc82e2299f",
+          "gitBlobSha256": "74f4bee31937c83ee253465e939d131ec8e1200bda316d3b9192b67eeeb00e24"
+        },
+        {
+          "path": "../../../OfficeIMO.Core/Internal/OfficeFileCommit.AtomicWrite.cs",
+          "sha256": "f7d63936dbb8f5c1dfc2085a6c33d4cb6f19b1d0537c6cae03cc780fa8444f61",
+          "gitBlobSha256": "50596e06c8f0f5c77cd9c6b1d8659e0f31747afdf836fa2ae800348c888362dc"
+        },
+        {
+          "path": "../../../OfficeIMO.Core/Internal/OfficeFileCommit.cs",
+          "sha256": "2d5a0cb7353d3540a500d3314c54c1265204938dff55e93b99c1759363ed0f44",
+          "gitBlobSha256": "5443d174ce801b2f14ed03f2e8d92dabbf0a5714cfceec948d0e606e72582131"
+        },
+        {
+          "path": "../../../OfficeIMO.Core/Internal/OfficeStreamWriter.cs",
+          "sha256": "2cd51660e3ab0d7563a8814e52d7c1d0eee42094d5f8eed3e5a9b466888fb024",
+          "gitBlobSha256": "1279b6ee51ace06fe0422db281b93271244f864b90715f872d56741e4d2c8745"
+        }
+      ],
+      "sourceHashScope": "sha256 identifies qualified worktree bytes; gitBlobSha256 identifies Git-normalized files at codecCommit.",
+      "publicApis": [
+        "PublisherDocument.ToPubBytes",
+        "PublisherDocument.ToPubBytesResult",
+        "PublisherDocument.Save(string/Stream)",
+        "PublisherDocument.SaveAsync(string/Stream)"
+      ],
+      "defaults": {
+        "lossPolicy": "Block, including Unassessed",
+        "fileConflictPolicy": "FailIfExists",
+        "maxOutputBytes": 67108864
+      },
+      "qualifiedOperations": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "validationCommand": "Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath <candidate.pub> -OutputDirectory <fresh-output>",
+      "reproduction": "Load each source through the public API. Apply the recorded bounds or same-topology story edit, retaining unmodified run/paragraph attributes. Default byte save refuses the edited unassessed output. Explicit Allow produces identical byte, sync/async file and sync/async stream candidates. Validate each separate candidate with the recorded native command and compare native inventories and initial/resaved PDF content and pixels.",
+      "nativePhysicalPageStates": 4,
+      "cases": [
+        {
+          "name": "rectangle",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Rectangle/native-rectangle.pub",
+            "sha256": "bd876bc5d9e7d9b1b7e22202caea262b7fa931f97aa80b0bfcd64813877553b1"
+          },
+          "edits": {
+            "shapeBoundsPoints": [
+              36,
+              48,
+              120,
+              84
+            ]
+          },
+          "candidateSha256": "1b2c3f3a311eb5da677005926fae024afeb22fcf4bd68eb3e6c69edc6a73d998",
+          "candidateBytes": 37376,
+          "publicOutputRoutesAgree": true,
+          "sourceReadHasLoss": true,
+          "exactSourceCopyHasLoss": false,
+          "sourceUnchanged": true,
+          "changedLogicalStreams": [
+            "\u0005SummaryInformation",
+            "Escher/EscherStm"
+          ],
+          "unaffectedLogicalStreamsByteIdentical": true,
+          "otherSummaryPropertiesAndHeaderUnchanged": true,
+          "directoryMetadataEntries": 16,
+          "nativeRequestedContentVerified": true,
+          "nativePixelsEqualAcrossResave": true,
+          "nativePixelSha256": "b707b4e4cd7690f2451f1d1c24db7f8d7ed7fcc1e80348ca8fcaa205163901fc",
+          "nativePdfFonts": [],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "1b2c3f3a311eb5da677005926fae024afeb22fcf4bd68eb3e6c69edc6a73d998"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "a6eb204d6a90bd4a9d8b0ece1a576d43af02577c7c1bb36fd4e15a7bf6930c0e"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "c4b7aa6628bfa4dd6cbfbb40a47c482fb95d4fa44cb3110b0995a4ac7e9ac4cf"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "cf42ee627cbb183f9d83512485f74a46df9d48d923915a7fd9c790ebbb49dbd6"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "9d0811cc5139b9f94392a449965928b050bda72a7a49d1554aa989c1aa946750"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "8cdf2d2063e296ed78d152d9a84829e170dcdd3ebc86f85bac6332009d98bcd8"
+            }
+          ]
+        },
+        {
+          "name": "text",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "edits": {
+            "text": "Public native save",
+            "fontSizePoints": 18,
+            "bold": true,
+            "paragraphCount": 1,
+            "otherRunAndParagraphAttributes": "Retained from the source paragraph and run"
+          },
+          "candidateSha256": "a02ed7735db8cdd40c557c2afe81f709102685f8d19cdf11126c90c1d48fcd08",
+          "candidateBytes": 37888,
+          "publicOutputRoutesAgree": true,
+          "sourceReadHasLoss": true,
+          "exactSourceCopyHasLoss": false,
+          "sourceUnchanged": true,
+          "changedLogicalStreams": [
+            "\u0005SummaryInformation",
+            "Quill/QuillSub/CONTENTS"
+          ],
+          "unaffectedLogicalStreamsByteIdentical": true,
+          "otherSummaryPropertiesAndHeaderUnchanged": true,
+          "directoryMetadataEntries": 16,
+          "nativeRequestedContentVerified": true,
+          "nativePixelsEqualAcrossResave": true,
+          "nativePixelSha256": "3f5662e979a0b4cf3451c5e617912dfdd203d85b34a074b4e1c66894f472323c",
+          "nativePdfFonts": [
+            [
+              {
+                "text": "Public native save",
+                "size": 18.0,
+                "font": "Arial-BoldMT"
+              },
+              {
+                "text": " ",
+                "size": 18.0,
+                "font": "Calibri-Bold"
+              }
+            ],
+            [
+              {
+                "text": "Public native save",
+                "size": 18.0,
+                "font": "Arial-BoldMT"
+              },
+              {
+                "text": " ",
+                "size": 18.0,
+                "font": "Calibri-Bold"
+              }
+            ]
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "a02ed7735db8cdd40c557c2afe81f709102685f8d19cdf11126c90c1d48fcd08"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "db3e32046a18dc8277509fb75b840cbea8972c2ebaa861e0813bdf35fc0301f9"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "3b2f2e92f3ef0d46c47986c40894753874c23001a08e88e5b01e76179a32dbfb"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "fd3826ffd1d44f81715f24a9d983aff0fa2dabbfa7e6957a0f1985a2b7019e4f"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "cc3b96a612d7fa54021c4f540187bd9a809fd642c60da99734ace40a21ddfccb"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "e8883dd5431622b6859b7f226d1c0d1529a7d11e174a29b7540a568e6dc2a4a6"
+            }
+          ]
+        }
+      ],
+      "limits": [
+        "Only the two exact public-API specimens are independently qualified here. Existing source-edit profile restrictions still apply.",
+        "Default Block rejects Unassessed output. Explicit Allow never bypasses preparation refusal or enables unsupported edits or source-free native creation.",
+        "Exact copying reports this operation separately from original decoding losses and does not reassess native validity, signatures or repair.",
+        "Pre-publication failures preserve destinations; caller streams remain open. I/O/cancellation during stream publication can leave partial output.",
+        "Native text inventory includes its paragraph CR. PDF extraction represents it as a trailing space; visible text is Arial-BoldMT at 18 points, with the terminal space separately reported in nativePdfFonts.",
+        "Repair-free opening, general opaque semantic preservation, cross-platform publication and full Publisher lifecycle coverage remain unassessed."
       ]
     }
   }

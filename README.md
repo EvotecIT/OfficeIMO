@@ -385,11 +385,13 @@ _Dependency footprint:_ only `OfficeIMO.Core`; no OpenDocument SDK and no LibreO
 #### [OfficeIMO.Publisher](OfficeIMO.Publisher/README.md)
 
 Native Publisher publication recovery into positioned pages, styled text stories,
-table cells and embedded image assets, with SVG export and explicit fidelity
-reports. [OfficeIMO.Publisher.Pdf](OfficeIMO.Publisher.Pdf/README.md) adds multi-page
+table cells and embedded image assets, with in-memory authoring, bounded native
+source saving, SVG export and explicit fidelity reports. Source saving supports
+exact copies and documented existing-source edits; source-free native creation
+remains unavailable. [OfficeIMO.Publisher.Pdf](OfficeIMO.Publisher.Pdf/README.md) adds multi-page
 PDF conversion through the shared drawing and PDF engines. The
 [support contract](OfficeIMO.Publisher/SUPPORT.md) identifies profile and rendering
-limits. The reader references only `OfficeIMO.Core` and does not require Publisher.
+limits. The package references only `OfficeIMO.Core` and does not require Publisher.
 The [Reader adapter](OfficeIMO.Reader.Publisher/README.md) retains complete stories,
 physical page inventory and image descriptors for semantic ingestion.
 #### [OfficeIMO.Chm](OfficeIMO.Chm/README.md)

@@ -4,6 +4,8 @@ Read Microsoft Publisher publications into positioned pages, styled text
 stories and embedded image assets, edit supported stories, frames, tables, pictures and
 vector artwork, or create an in-memory publication with pages, masters, styled
 text, embedded pictures, tables and primitive shapes. Render the same current model to SVG or PDF.
+Save an unchanged native source exactly, or save the supported source edits with
+an explicit fidelity policy and an operation report.
 The managed reader handles the Publisher
 2002-and-later compound-document generation without installing Publisher.
 [The support contract](SUPPORT.md) identifies the qualified fixtures and rendering
@@ -37,6 +39,59 @@ also applied to referring pages. Coordinates use points and a top-left origin.
 the applied master. Adding artwork to that copy affects exports of the copy;
 document exports use the publication model. Use the document's typed edit
 operations to change its stories and text frames.
+
+## Save a native publication
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Publisher;
+
+var publication = PublisherDocument.Load("flyer.pub");
+PublisherSaveReport copyReport = publication.Save("flyer-copy.pub");
+
+// After supported edits, accept and inspect the operation's unassessed fidelity.
+var settings = new PublisherSaveOptions {
+    LossPolicy = OfficeConversionLossPolicy.Allow,
+    MaxOutputBytes = 64L * 1024 * 1024
+};
+PublisherSaveReport report = await publication.SaveAsync("flyer-edited.pub", settings);
+foreach (var diagnostic in report.FidelityDiagnostics)
+    Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
+
+var result = publication.ToPubBytesResult(settings);
+byte[] detachedBytes = result.Value;
+```
+
+`ToPubBytes`, `ToPubBytesResult`, `Save` and `SaveAsync` use the same bounded native
+codec. Unchanged semantic content produces a byte-exact copy of the original
+source. Supported edits include existing ordinary frame/shape/picture bounds,
+existing solid scalar paint slots, and a single-story text profile with unchanged
+paragraph count and bounded size/bold changes. The [support contract](SUPPORT.md)
+defines the precise restrictions. Other in-memory edits, including new objects,
+image replacement, table changes and page/master relationships, cannot be saved
+as native PUB through this profile. Source-free native creation is unavailable.
+
+The default loss policy is `Block`, including unassessed fidelity. Edited native
+output requires explicit `Allow`; this policy still refuses unsupported edits and
+unsafe source carriers. `OfficeConversionException.Report` carries a
+`PublisherSaveReport` for policy or preparation refusal. Its diagnostics describe
+this save operation; `SourceReadReport` separately retains the original decoding
+evidence. `IsExactSourceCopy` does not reassess native validity, signatures or
+repair. Saving leaves the original source baseline unchanged.
+
+File destinations require a `.pub` extension and default to `FailIfExists`.
+Select `FileConflictPolicy = OfficeConversionFileConflictPolicy.Replace` for
+atomic replacement. The complete output is prepared and its policy checked before
+publication; preparation, limits and pre-publication cancellation preserve an
+existing destination. An unavailable atomic replacement fails explicitly.
+
+Stream overloads leave the caller's stream open. Seekable streams are replaced,
+truncated and rewound on success; non-seekable streams receive output at their
+current position. Preparation failures preserve existing bytes and position.
+Cancellation or I/O failure during stream publication can leave partial output.
+Asynchronous saves prepare the native bytes in process before asynchronous I/O;
+synchronous stream saves observe cancellation before publication. The default
+output ceiling is 64 MiB and can be set from 1 through `int.MaxValue` bytes.
 
 ## Create pages, masters and styled text
 
@@ -95,7 +150,8 @@ objects after later edits. `HasNativeSource` distinguishes a loaded document fro
 source-free creation. `PublisherPage.HasNativeOrigin` identifies imported page
 definitions even after content or master-assignment edits; added pages and masters
 have no native origin. A source-free document has zero native source/record counts.
-This is in-memory authoring and rendering; native PUB saving is not provided.
+Source-free creation supports in-memory authoring and rendering. Native saving
+requires a loaded publication and the supported source-edit profile below.
 
 Add an embedded picture to a qualified document or master page:
 

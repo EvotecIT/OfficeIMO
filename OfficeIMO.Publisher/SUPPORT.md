@@ -1,7 +1,8 @@
 # Publisher support contract
 
 OfficeIMO.Publisher reads native publications, supports bounded in-memory edits
-and converts the current model. Its public model owns
+and converts the current model. Bounded native source saving supports exact copies
+and the documented edit profiles with operation-level fidelity reports. Its public model owns
 publication pages, master definitions, placed pictures, supported vector artwork,
 styled source stories, native table grids, embedded assets
 and a recovery report. Shared `OfficeDrawing` owns the reconstructed visual scene;
@@ -45,13 +46,14 @@ references do not report missing images.
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
 | Editable vector artwork | `PublisherPage.Shapes` records owner, stable ID, point bounds and placement availability; bounds and solid-paint edits for supported basic geometry; shared text-frame placement and current wrap obstacles | Grouped, transformed, hidden, custom-path, gradient, effected and unresolved artwork is inspection-only; detached editable descriptors do not establish native writable support |
 | Primitive creation | Rectangle, rounded rectangle, ellipse and nondegenerate line descriptors append to qualified document/master pages; shared publication allocator and current SVG/PDF scenes | No native records; unsupported geometry/effects are rejected; new shapes have no story or wrap references |
-| In-memory edits | Document-owned replacement of complete non-table story paragraphs and mapped table-cell paragraphs, bounds changes for qualified frames/tables, and image replacement/bounds changes for supported rectangular PNG/JPEG picture placements; stable IDs, ownership and order, fresh scenes, text ranges and overflow | Picture and table bounds edits reject unsupported graphic placement. Cell edits reject conflicting grids, unsafe partitions and stories also used by ordinary frames; no table topology/styling changes, arbitrary relinking or native save-back; old references remain snapshots |
+| In-memory edits | Document-owned replacement of complete non-table story paragraphs and mapped table-cell paragraphs, bounds changes for qualified frames/tables, and image replacement/bounds changes for supported rectangular PNG/JPEG picture placements; stable IDs, ownership and order, fresh scenes, text ranges and overflow | Picture and table bounds edits reject unsupported graphic placement. Cell edits reject conflicting grids, unsafe partitions and stories also used by ordinary frames; no table topology/styling changes or arbitrary relinking. Native saving accepts only the separate source-edit profile; old references remain snapshots |
 | Table creation | Empty unmerged borderless grids on qualified document/master pages; copied positive finite tracks, one new complete story, shared table/story identifier allocation and current SVG/PDF/Reader projection | No merged-cell authoring, cell decoration or native PUB records; text/model/projection limits and transactional failure behavior apply |
-| Page/master authoring | Source-free `Create` with one empty physical page; appended same-size physical pages and centered single-page masters; explicit qualified direct master assignment or clearing; immutable native-source/page provenance | No resize, deletion, reorder, object moves, paired-master creation or master inheritance; unassessed backgrounds and registrations reject assignment; native PUB saving remains unavailable |
+| Page/master authoring | Source-free `Create` with one empty physical page; appended same-size physical pages and centered single-page masters; explicit qualified direct master assignment or clearing; immutable native-source/page provenance | No resize, deletion, reorder, object moves, paired-master creation or master inheritance; unassessed backgrounds and registrations reject assignment; these changes cannot be saved as native PUB |
 | Ordinary text creation | `AddTextFrame` creates a complete independent styled story and resolved one-frame chain on a qualified document/master page; one column, zero gap/insets, top alignment, no paint/transform/wrap; existing continuation API handles document-page chains | Authored ordinary stories have no implicit final terminator; full overflow is retained. Frame/story IDs reserve atomically; master-owned stories cannot continue across physical pages; no native text records are authored |
 | Text-frame layout edits | `SetTextFrameLayout` replaces equal-width columns/gap, Core padding and Top/Center/Bottom alignment on qualified resolved document/master frames, including mixed text artwork; snapshots expose padding/alignment and operation-specific eligibility | No table stories/aliases, grouped/transformed/unresolved placement, native balancing, distributed alignment or vertical writing. Unqualified native layout overrides remain read-only for this operation; bounds/read behavior stays separate. Changed values are refused by internal native preparation |
 | Continuation-frame creation | Append an ordinary untransformed text frame to a resolved non-table story's tail on an existing document page; one complete styled story, current links/ranges/overflow, copied columns/padding/alignment, no fill/outline, and shared SVG/PDF/Reader projection | The source chain must contain ordinary visible untransformed document-page frames; master chains, ambiguous links and non-tail insertion are rejected; this is in-memory model creation, not native PUB creation |
-| Output | SVG per document page and multi-page PDF through shared engines | No native save-back or editable publication writer |
+| Native source saving | `ToPubBytes(Result)`, `Save` and `SaveAsync` with detached bytes, explicit `.pub` paths or caller-owned streams; exact unchanged source copies and bounded existing-source edits described below | Default strict loss policy blocks unassessed edits. Explicit `Allow` does not enable refused profiles. No source-free writer, general image/table/page topology changes or earlier-generation output |
+| Rendered output | SVG per document page and multi-page PDF through shared engines | Reconstructed output carries source and rendering losses independently of native saving |
 
 `OfficeIMO.Workflows` uses the same native codec for its `publisher-pdf` route,
 file batches and document previews. Source recovery diagnostics survive output
@@ -89,7 +91,7 @@ Every successful edit replaces the current projection and its `ReadReport`.
 load. Validation, cancellation and projection failures leave the current model
 unchanged. Native bytes and compound metadata are retained privately and remain
 inert. The import-time semantic baseline and exact source OfficeArt bindings
-support an internal contributor preparation path: unchanged content copies the
+support the native source-save path: unchanged content copies the
 original bytes; bounded existing anchor and solid-scalar edits replace the
 OfficeArt stream. A single-story profile with unchanged paragraph count can
 replace text of different
@@ -110,9 +112,40 @@ the original native bytes exactly, including its preview. Malformed
 SummaryInformation property-set structure refuses edited output. Other cached-record semantics
 remain unassessed.
 Unsupported semantic changes refuse output. This path does not establish
-repair-free opening, general native edit acceptance or opaque semantic preservation and
-does not expose public native saving. The [writer probe](../Build/Publisher/WriterProbe/README.md#loaded-source-candidates)
-owns its use and qualification limits.
+repair-free opening, general native edit acceptance or opaque semantic preservation.
+The [writer probe](../Build/Publisher/WriterProbe/README.md#loaded-source-candidates)
+records the independently qualified source-edit specimens.
+
+Public native saving prepares and bounds the complete candidate before destination
+publication. `PublisherSaveOptions` defaults to a 64 MiB ceiling, `Block` loss
+policy and `FailIfExists` file conflicts. `Block` also rejects unassessed fidelity;
+`Allow` permits the documented candidate profiles but never bypasses preparation
+refusal. `PublisherSaveReport` separates save diagnostics from its original
+`SourceReadReport`, reports prepared byte count and identifies exact source copies.
+Saving neither changes the semantic model nor rebinds its original source baseline.
+
+Path saves require `.pub` and use shared strict atomic publication, including
+explicit `Replace`. Existing destinations survive preparation, limit, policy and
+pre-publication cancellation failures. Streams remain caller-owned; seekable
+streams are replaced/truncated/rewound, while non-seekable streams receive bytes
+at their current position. Preparation failure preserves bytes and position;
+publication-time stream I/O or cancellation can leave partial output. Async saves
+prepare synchronously before asynchronous destination I/O. Source-free models and
+unsupported changes fail with a save report and no prepared bytes. Byte limits
+and cancellation raise their own exceptions. Exact copies preserve source content
+inertly and do not newly qualify active content, signatures or protected storage;
+edited output refuses unsafe carriers.
+
+Two specimens saved through a compiled public consumer qualify rectangle bounds
+and different-length single-story text with 18-point bold formatting. Byte,
+sync/async file and sync/async stream routes produce identical candidates. Both
+pass native open, PDF export, save-as and reopen; native inventories retain the
+requested content, and native PDF pixels match across resave. Independent compound
+inspection preserves unrelated logical streams, directory metadata and other raw
+SummaryInformation values. The `publicSaving` section of the
+[qualification record](../Build/Publisher/WriterProbe/qualification.json) identifies
+the exact source, codec and artifact hashes. This evidence does not establish
+repair-free opening or broader native editing.
 
 Six exact single-paragraph specimens of this profile have native
 read-only open, PDF export, save-as and read-only reopen evidence in Microsoft
