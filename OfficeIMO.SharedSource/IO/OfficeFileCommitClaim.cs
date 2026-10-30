@@ -67,10 +67,12 @@ namespace OfficeIMO.Core.Internal.IO {
             } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) {
                 claim = null;
                 if (File.Exists(destinationPath) || IsSharingContention(exception)) return false;
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && exception is IOException &&
-                    (exception.HResult == unchecked((int)0x80070050) || exception.HResult == unchecked((int)0x800700B7))) {
+                if (exception is IOException &&
+                    ((RuntimeInformation.IsOSPlatform(OSPlatform.Windows) &&
+                      (exception.HResult == unchecked((int)0x80070050) || exception.HResult == unchecked((int)0x800700B7))) ||
+                     (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && exception.HResult == 17))) {
                     // CreateNew reports the same collision for an owned claim and an
-                    // abandoned one that cannot be reclaimed. Verify actual sharing;
+                    // abandoned one (Unix EEXIST is 17). Verify actual sharing;
                     // permission and other persistent failures must remain errors.
                     try {
                         using (var probe = new FileStream(CreatePath(destinationPath), FileMode.Open, FileAccess.Read, FileShare.Delete)) { }

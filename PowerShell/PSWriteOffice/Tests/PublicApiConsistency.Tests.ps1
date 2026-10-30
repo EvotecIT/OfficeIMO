@@ -225,7 +225,7 @@ Describe 'PSWriteOffice public API consistency' {
                     Word { New-OfficeWord -Path $quietPath }
                     Excel { New-OfficeExcel -Path $quietPath }
                     PowerPoint { New-OfficePowerPoint -Path $quietPath {} }
-                    Markdown { New-OfficeMarkdown -Path $quietPath }
+                    Markdown { New-OfficeMarkdown -Path $quietPath -Content {} }
                     PDF { New-OfficePdf -Path $quietPath { PdfParagraph 'API contract' } }
                     Visio { New-OfficeVisio -Path $quietPath }
                     OpenDocument { New-OfficeOpenDocument -Kind Text -Path $quietPath }
@@ -238,7 +238,7 @@ Describe 'PSWriteOffice public API consistency' {
                     Word { New-OfficeWord -Path $passThruPath -PassThru }
                     Excel { New-OfficeExcel -Path $passThruPath -PassThru }
                     PowerPoint { New-OfficePowerPoint -Path $passThruPath -PassThru {} }
-                    Markdown { New-OfficeMarkdown -Path $passThruPath -PassThru }
+                    Markdown { New-OfficeMarkdown -Path $passThruPath -Content {} -PassThru }
                     PDF { New-OfficePdf -Path $passThruPath -PassThru { PdfParagraph 'API contract' } }
                     Visio { New-OfficeVisio -Path $passThruPath -PassThru }
                     OpenDocument { New-OfficeOpenDocument -Kind Text -Path $passThruPath -PassThru }

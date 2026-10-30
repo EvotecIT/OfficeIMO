@@ -282,7 +282,7 @@ public sealed class ReaderHtmlModularTests {
     [InlineData("blocked.example", false)]
     [InlineData("allowed.example", true)]
     public void PreparedNoscriptImageRespectsDocumentResourceHostPolicy(string host, bool allowed) {
-        var projection = HtmlToMarkdownOptions.CreateOfficeIMOProfile();
+        var projection = MarkdownHtmlImportOptions.CreateOfficeIMOProfile();
         projection.ExcludeSelectors.Add(".remove");
         var conversion = HtmlConversionDocumentOptions.CreateUntrustedProfile();
         HtmlUrlPolicy resourcePolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
