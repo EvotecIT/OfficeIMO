@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes decoded Chart3DBarShape options preserved from a BIFF chart stream.
     /// </summary>
-    public sealed class LegacyXlsChart3DBarShapeOptions {
+    internal sealed class LegacyXlsChart3DBarShapeOptions {
         internal LegacyXlsChart3DBarShapeOptions(byte riser, byte taper) {
             Riser = riser;
             Taper = taper;

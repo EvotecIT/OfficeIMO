@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes preserve-only DBQueryExt metadata for an external query table or PivotCache connection.
     /// </summary>
-    public sealed class LegacyXlsExternalQueryConnection {
+    internal sealed class LegacyXlsExternalQueryConnection {
         /// <summary>
         /// Creates decoded DBQueryExt metadata.
         /// </summary>

@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents a BIFF8 watched-cell reference parsed from a CellWatch record.
     /// </summary>
-    public sealed class LegacyXlsCellWatch {
+    internal sealed class LegacyXlsCellWatch {
         /// <summary>
         /// Creates watched-cell metadata.
         /// </summary>

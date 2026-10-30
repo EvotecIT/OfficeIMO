@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents a parsed legacy XLS XF cell format.
     /// </summary>
-    public sealed class LegacyXlsCellFormat {
+    internal sealed class LegacyXlsCellFormat {
         /// <summary>
         /// Creates a parsed legacy XLS cell format.
         /// </summary>

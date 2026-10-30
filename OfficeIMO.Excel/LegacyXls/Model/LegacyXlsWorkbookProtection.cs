@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents workbook protection metadata parsed from the legacy XLS globals substream.
     /// </summary>
-    public sealed class LegacyXlsWorkbookProtection {
+    internal sealed class LegacyXlsWorkbookProtection {
         /// <summary>
         /// Creates workbook protection metadata.
         /// </summary>

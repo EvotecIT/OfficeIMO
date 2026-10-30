@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel.LegacyXls {
     /// <summary>
     /// Contains the projected OfficeIMO document and the legacy XLS import report produced from the same parse.
     /// </summary>
-    public sealed class LegacyXlsLoadResult : IDisposable, IOfficeConversionReport {
+    internal sealed class LegacyXlsLoadResult : IDisposable, IOfficeConversionReport {
         private readonly ExcelDocument? _document;
         private readonly Lazy<LegacyXlsImportReport> _importReport;
         private readonly Lazy<LegacyXlsImportSummary> _summary;

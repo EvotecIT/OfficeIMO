@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies the grouping criteria stored in an SXRng PivotTable grouping record.
     /// </summary>
-    public enum LegacyXlsPivotGroupingKind {
+    internal enum LegacyXlsPivotGroupingKind {
         /// <summary>Group by numeric value.</summary>
         Numeric = 0,
 

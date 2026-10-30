@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes a preserve-only chart BIFF record discovered during legacy XLS import.
     /// </summary>
-    public sealed class LegacyXlsChartRecord {
+    internal sealed class LegacyXlsChartRecord {
         /// <summary>
         /// Creates chart BIFF record metadata.
         /// </summary>

@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes a ChartFrtInfo future-record identifier range.
     /// </summary>
-    public sealed class LegacyXlsChartFutureRecordRange {
+    internal sealed class LegacyXlsChartFutureRecordRange {
         internal LegacyXlsChartFutureRecordRange(ushort firstRecordType, ushort lastRecordType) {
             FirstRecordType = firstRecordType;
             LastRecordType = lastRecordType;

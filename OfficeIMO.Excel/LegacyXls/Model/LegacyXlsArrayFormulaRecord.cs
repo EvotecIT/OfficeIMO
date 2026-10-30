@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes an Array BIFF record discovered while importing a legacy XLS worksheet.
     /// </summary>
-    public sealed class LegacyXlsArrayFormulaRecord {
+    internal sealed class LegacyXlsArrayFormulaRecord {
         internal LegacyXlsArrayFormulaRecord(
             int firstRow,
             int firstColumn,

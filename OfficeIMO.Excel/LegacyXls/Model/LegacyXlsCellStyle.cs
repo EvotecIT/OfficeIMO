@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Workbook-level cell style metadata parsed from a BIFF Style record.
     /// </summary>
-    public sealed class LegacyXlsCellStyle {
+    internal sealed class LegacyXlsCellStyle {
         internal LegacyXlsCellStyle(
             ushort styleFormatIndex,
             bool isBuiltIn,

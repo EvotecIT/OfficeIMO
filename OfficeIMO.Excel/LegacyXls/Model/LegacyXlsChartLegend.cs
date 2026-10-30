@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes shallow metadata decoded from a chart Legend record.
     /// </summary>
-    public sealed class LegacyXlsChartLegend {
+    internal sealed class LegacyXlsChartLegend {
         internal LegacyXlsChartLegend(uint x, uint y, uint width, uint height, byte spacing, ushort flags) {
             X = x;
             Y = y;

@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes a legacy XLS supporting link discovered from a SupBook record.
     /// </summary>
-    public sealed class LegacyXlsExternalReference {
+    internal sealed class LegacyXlsExternalReference {
         private readonly List<string> _sheetNames;
         private readonly List<LegacyXlsExternalName> _externalNames;
         private readonly List<LegacyXlsExternalCellCache> _cachedCellCaches;

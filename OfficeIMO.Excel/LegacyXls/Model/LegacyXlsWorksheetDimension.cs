@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents the used-range bounds declared by a legacy BIFF worksheet DIMENSIONS record.
     /// </summary>
-    public sealed class LegacyXlsWorksheetDimension {
+    internal sealed class LegacyXlsWorksheetDimension {
         private LegacyXlsWorksheetDimension(int? firstRow, int? firstColumn, int? lastRow, int? lastColumn) {
             FirstRow = firstRow;
             FirstColumn = firstColumn;

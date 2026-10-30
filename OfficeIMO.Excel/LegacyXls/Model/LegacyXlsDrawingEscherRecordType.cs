@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies OfficeArt record types found in legacy XLS MsoDrawing payload headers.
     /// </summary>
-    public enum LegacyXlsDrawingEscherRecordType {
+    internal enum LegacyXlsDrawingEscherRecordType {
         /// <summary>Container for document-wide OfficeArt records.</summary>
         OfficeArtDggContainer = 0xF000,
 

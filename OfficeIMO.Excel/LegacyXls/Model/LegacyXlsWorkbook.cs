@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Neutral workbook model produced from a legacy BIFF `.xls` stream.
     /// </summary>
-    public sealed partial class LegacyXlsWorkbook {
+    internal sealed partial class LegacyXlsWorkbook {
         private readonly List<LegacyXlsWorksheet> _worksheets = new();
         private readonly List<LegacyXlsNumberFormat> _numberFormats = new();
         private readonly List<LegacyXlsFont> _fonts = new();

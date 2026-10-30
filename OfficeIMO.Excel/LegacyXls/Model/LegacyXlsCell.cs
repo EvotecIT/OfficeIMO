@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents a parsed legacy XLS cell using one-based row and column indexes.
     /// </summary>
-    public sealed class LegacyXlsCell {
+    internal sealed class LegacyXlsCell {
         /// <summary>
         /// Creates a parsed legacy XLS cell.
         /// </summary>
