@@ -10,8 +10,9 @@ public sealed partial class XpsDocument {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var document in activeOnly ? _documents.Distinct() : _documentCache.Values.AsEnumerable()) {
             token.ThrowIfCancellationRequested();
-            var structure = ReadOwnedDocumentStructure(document, token);
-            if (structure.HasValue && seen.Add(structure.Value.Part)) yield return structure.Value;
+            // Validate every owner's relationship, then parse each shared payload once.
+            string? part = ResolveOwnedDocumentStructurePart(document, token);
+            if (part != null && seen.Add(part)) yield return (part, ReadDocumentStructurePart(part, token));
         }
     }
 
