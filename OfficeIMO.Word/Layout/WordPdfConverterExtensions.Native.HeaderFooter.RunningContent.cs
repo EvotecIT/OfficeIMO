@@ -275,13 +275,14 @@ public static partial class WordPdfConverterExtensions {
                     NativeTableStyleDefaults cellStyle = GetNativeTableCellStyleDefaults(table, tableStyle,
                         rowIndex, column, span, columnCount, headerRows, footerStart);
                     List<WordElement> elements = EnumerateNativeTableCellElements(cell).ToList();
+                    int rejectedCellJoinUntil = -1;
                     for (int index = 0; index < elements.Count; index++) {
                         if (elements[index] is WordTable nested) {
                             RecordNativeRunningTableJoinDiagnostics(nested, listMarkers, defaults, fontMap, options, depth + 1);
                         } else if (elements[index] is WordParagraph) {
                             // Use the renderer's eligibility, including effective
                             // conditional styles and caller-configured typography.
-                            index = GetNativeJoinedCellParagraphEnd(elements, index,
+                            index = GetNativeJoinedCellParagraphEnd(elements, index, ref rejectedCellJoinUntil,
                                 paragraph => listMarkers.TryGetValue(paragraph, out var marker) ? marker : null,
                                 defaults, cellStyle, fontMap, options);
                         }
