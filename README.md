@@ -20,6 +20,7 @@ dotnet add package OfficeIMO
 
 A Word report, an Excel table with a chart and a PowerPoint deck from the same data, each also saved as PDF:
 
+<!-- powerforge:code source="Build/DocumentationExamples/QuickStart/Program.cs" region="QuickStart" -->
 ```csharp
 using OfficeIMO;
 using OfficeIMO.Excel;
@@ -63,6 +64,7 @@ using (var deck = PowerPointDocument.Create("Sales.pptx")) {
 
 record Sale(string Region, decimal Revenue, double Growth);
 ```
+<!-- /powerforge:code -->
 
 Every format follows the same shape:
 

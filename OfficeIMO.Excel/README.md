@@ -39,6 +39,7 @@ book.Save();
 
 record Order(string Customer, string Region, decimal Total, double Margin);
 ```
+<!-- /powerforge:code -->
 
 `AddTable` writes a native Excel table: a header row from the property names, typed cells and the theme's table style. It returns the `ExcelTable`, and `AddChart` returns the `ExcelChart`, for further changes. `ExcelChartOptions.Row` and `Column` anchor the chart; `Width` and `Height` take an `OfficeLength`.
 
@@ -69,7 +70,6 @@ sheet.AutoFitColumns();
 
 book.Save();
 ```
-<!-- /powerforge:code -->
 
 Rows and columns are 1-based, as in Excel.
 

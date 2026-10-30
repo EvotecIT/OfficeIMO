@@ -3,9 +3,16 @@
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <IsPackable>false</IsPackable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <OfficeIMODocumentationPackageVersion Condition="'$(OfficeIMODocumentationPackageVersion)' == ''">3.5.2</OfficeIMODocumentationPackageVersion>
+    <OfficeIMODocumentationSourceRoot Condition="'$(OfficeIMODocumentationSourceRoot)' == ''">$(MSBuildThisFileDirectory)../../..</OfficeIMODocumentationSourceRoot>
   </PropertyGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(OfficeIMODocumentationUsePublishedPackages)' == 'true'">
     <PackageReference Include="OfficeIMO.Excel" Version="[$(OfficeIMODocumentationPackageVersion)]" />
+    <Compile Include="Published.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(OfficeIMODocumentationUsePublishedPackages)' != 'true'">
+    <ProjectReference Include="$(OfficeIMODocumentationSourceRoot)/OfficeIMO.Excel/OfficeIMO.Excel.csproj" />
+    <Compile Include="Program.cs" />
   </ItemGroup>
 </Project>

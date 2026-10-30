@@ -43,6 +43,7 @@ document.Save();
 
 record Milestone(string Name, string Owner, string Status);
 ```
+<!-- /powerforge:code -->
 
 `AddTable` takes any `IEnumerable<T>`: columns come from public properties, the header row repeats on every page and numbers are right-aligned. `OfficeTableOptions` picks, orders and renames columns:
 
@@ -98,7 +99,6 @@ document.AddImage("logo.png", width: OfficeLength.Centimeters(4));
 document.AddParagraph("Dear customer,");
 document.Save();
 ```
-<!-- /powerforge:code -->
 
 ## Edit an existing document
 
