@@ -123,3 +123,13 @@ test("Canopy PDF distinguishes thousands marks from the sampled decimal conventi
     assert.ok(pdf.pages[0].lines.includes(large)); assert.ok(pdf.pages[0].lines.includes(small));
   }
 });
+
+test("flat PDF percentage labels choose the document culture without scaling their raw values", async () => {
+  const input = { request: { columns: [
+    { id: "amount", title: "Amount", kind: "number", format: { minimumFractionDigits: 2, maximumFractionDigits: 2 } },
+    { id: "share", title: "Share", kind: "number", format: { minimumFractionDigits: 1, maximumFractionDigits: 1, suffix: "%" } }
+  ], recordCount: 1, values: "raw", presentation: "text", timeZone: "utc", revision: "literal-percent" },
+    async *rows() { yield { id: "a", cells: { amount: { value: 1234.5, text: "1234.50" }, share: { value: 18.6, text: "18,6%" } } }; } };
+  const pdf = await inspectPdf(await exportCanopy(input, "pdf")), lines = pdf.pages.flatMap(page => page.lines);
+  assert.ok(lines.includes("1234,50")); assert.ok(lines.includes("18,6%"));
+});

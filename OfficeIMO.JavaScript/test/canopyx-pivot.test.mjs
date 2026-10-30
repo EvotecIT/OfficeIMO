@@ -42,6 +42,43 @@ test("pivot PDF honors explicit grouped number formats without changing captured
   assert.ok(pdf.text.includes("1,010"));
   assert.equal(snapshot.rows[0].cells.v0_1.value, 1010);
 });
+
+test("pivot PDF uses the percentage culture for every numeric column in the document", async () => {
+  for (const [share, amount, expectedShare, expectedAmount, expectedCount] of [
+    ["18,6%", "1234.50", "18,60%", "1234,50", "1,00"],
+    ["18.6%", "1234,50", "18.60%", "1234.50", "1.00"]
+  ]) {
+    const snapshot = structuredClone(fixture.percent);
+    for (const row of snapshot.rows) for (const cell of Object.values(row.cells)) {
+      if (cell.mode?.startsWith("percent")) cell.text = cell.text.replace(/[.,]/g, share.includes(",") ? "," : ".");
+    }
+    snapshot.rows[0].cells.v0_0 = { value: 1234.5, text: amount, mode: "value", numberFormat: "0.00" };
+    snapshot.rows[0].cells.v0_1 = { value: 1, text: "1", mode: "value", numberFormat: "0.00" };
+    snapshot.rows[0].cells.v1_0 = { value: .186, text: share, mode: "percentGrandTotal", numberFormat: "0.00%" };
+    const pdf = await inspectPdf(await exportCanopy(capture(snapshot), "pdf")), lines = pdf.pages.flatMap(page => page.lines);
+    for (const expected of [expectedAmount, expectedShare, expectedCount]) assert.ok(lines.includes(expected), expected);
+    const numeric = lines.filter(line => /^[+-]?\d+[.,]\d+%?$/.test(line));
+    assert.ok(numeric.length > 3);
+    assert.equal(new Set(numeric.map(line => /[.,]/.exec(line)[0])).size, 1,
+      "Amounts, declared decimal counts and percentages use one decimal separator");
+  }
+});
+
+test("pivot PDF keeps undeclared integer counts whole and preserves explicit decimal formats", async () => {
+  const snapshot = structuredClone(fixture.percent);
+  for (const row of snapshot.rows) for (const [id, cell] of Object.entries(row.cells)) {
+    if (id.endsWith("_1")) { delete cell.numberFormat; cell.text = cell.value === null ? "" : cell.value + ",00"; }
+    else if (cell.mode?.startsWith("percent")) cell.text = cell.text.replace(".", ",");
+  }
+  snapshot.rows[0].cells.v0_1 = { value: 731, text: "731,00", mode: "value" };
+  snapshot.rows[0].cells.v4_1 = { value: 947, text: "947", mode: "value", numberFormat: "0.00" };
+  const input = capture(snapshot), pdf = await inspectPdf(await exportCanopy(input, "pdf")), lines = pdf.pages.flatMap(page => page.lines);
+  assert.ok(lines.includes("731")); assert.ok(lines.includes("947,00"));
+  assert.ok(!lines.includes("731,00") && !lines.includes("731.00"));
+  const zip = await readZip(await exportCanopy(input, "xlsx"));
+  assert.match(zip.get("xl/worksheets/sheet1.xml").content, /<v>731<\/v>/);
+  assert.match(zip.get("xl/styles.xml").content, /formatCode="0\.00"/);
+});
 async function retain(name, blob) {
   if (process.env.OFFICEIMO_CANOPY_FIXTURES) await writeFile(process.env.OFFICEIMO_CANOPY_FIXTURES + "/" + name, new Uint8Array(await blob.arrayBuffer()));
 }
@@ -148,7 +185,8 @@ test("explicit pivots reject malformed/ordinary-grouped metadata and cannot sile
   }
   const input = capture(); await assert.rejects(exportCanopy(input, "xlsx", { xlsx: { sheet: { footer: { values: ["recompute"] } } } }), /owns outlines and totals/);
   const bad = capture(), rows = []; for await (const row of bad.rows()) rows.push(row);
-  rows[0].cells.v0_0.numberFormat = undefined; bad.rows = async function* () { yield* rows; };
+  rows[0].cells.v0_0.numberFormat = undefined; rows[0].cells.v0_0.mode = "percentGrandTotal";
+  bad.rows = async function* () { yield* rows; };
   await assert.rejects(exportCanopy(bad, "xlsx"), /mode and native numberFormat/);
   const controller = new AbortController(), aborted = capture(); let returned = false;
   aborted.rows = async function* ({ signal }) { try { yield rows[1]; controller.abort(); signal.throwIfAborted(); } finally { returned = true; } };
