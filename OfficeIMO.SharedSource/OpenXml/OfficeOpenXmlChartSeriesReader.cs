@@ -265,7 +265,7 @@ namespace OfficeIMO.OpenXml.Internal {
             var data = new OfficeSeries(name, values, xValues, seriesColor,
                 pointColors, showMarkers: showMarkers,
                 connectLine: connectLine,
-                markerSize: markerSize, markerShape: markerShape,
+                markerSize: markerSize.HasValue ? OfficeLength.Points(markerSize.Value) : (OfficeLength?)null, markerShape: markerShape,
                 markerOutlineColor: markerOutlineColor, markerOutlineWidth: markerOutlineWidth.HasValue ? OfficeLength.Points(markerOutlineWidth.Value) : (OfficeLength?)null,
                 strokeWidth: width.HasValue ? OfficeLength.Points(width.Value) : (OfficeLength?)null, strokeDashStyle: ReadDash(outline), renderKind: kind, axisGroup: axisGroup)
                 .WithSeriesStyle(seriesPaint)

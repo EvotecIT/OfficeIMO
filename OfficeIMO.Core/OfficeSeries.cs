@@ -61,7 +61,7 @@ public sealed partial class OfficeSeries {
     /// <param name="showMarkers">Whether this series should render markers when the chart layout enables them.</param>
     /// <param name="showInLegend">Whether this series should appear in rendered legends.</param>
     /// <param name="connectLine">Whether this series should render connecting line segments when the chart family supports them.</param>
-    /// <param name="markerSize">Optional source-defined marker diameter in drawing units.</param>
+    /// <param name="markerSize">Optional physical marker diameter, greater than zero. Null uses the renderer or native format default.</param>
     /// <param name="markerShape">Optional source-defined marker shape.</param>
     /// <param name="markerOutlineColor">Optional source-defined marker outline color.</param>
     /// <param name="markerOutlineWidth">Optional source-defined marker outline physical width, greater than zero and at most 1584 points.</param>
@@ -69,7 +69,7 @@ public sealed partial class OfficeSeries {
     /// <param name="strokeDashStyle">Optional source-defined series stroke dash style.</param>
     /// <param name="renderKind">Optional per-series chart kind used by mixed/combo chart renderers.</param>
     /// <param name="axisGroup">Primary or secondary value axis used by combo chart renderers.</param>
-    public OfficeSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors, bool showMarkers, bool showInLegend = true, bool connectLine = true, int? markerSize = null, OfficeChartMarkerShape? markerShape = null, OfficeColor? markerOutlineColor = null, OfficeLength? markerOutlineWidth = null, OfficeLength? strokeWidth = null, OfficeStrokeDashStyle? strokeDashStyle = null, OfficeChartType? renderKind = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)
+    public OfficeSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors, bool showMarkers, bool showInLegend = true, bool connectLine = true, OfficeLength? markerSize = null, OfficeChartMarkerShape? markerShape = null, OfficeColor? markerOutlineColor = null, OfficeLength? markerOutlineWidth = null, OfficeLength? strokeWidth = null, OfficeStrokeDashStyle? strokeDashStyle = null, OfficeChartType? renderKind = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)
         : this(name, values, xValues, bubbleSizes: null, color, pointColors, showMarkers, showInLegend,
             connectLine, markerSize, markerShape, markerOutlineColor, markerOutlineWidth, strokeWidth,
             strokeDashStyle, renderKind, axisGroup) {
@@ -107,7 +107,7 @@ public sealed partial class OfficeSeries {
 
     private OfficeSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues,
         IEnumerable<double>? bubbleSizes, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors,
-        bool showMarkers, bool showInLegend, bool connectLine, int? markerSize,
+        bool showMarkers, bool showInLegend, bool connectLine, OfficeLength? markerSize,
         OfficeChartMarkerShape? markerShape, OfficeColor? markerOutlineColor,
         OfficeLength? markerOutlineWidth, OfficeLength? strokeWidth, OfficeStrokeDashStyle? strokeDashStyle,
         OfficeChartType? renderKind, OfficeChartAxisGroup axisGroup,
@@ -115,7 +115,7 @@ public sealed partial class OfficeSeries {
         if (values == null) {
             throw new ArgumentNullException(nameof(values));
         }
-        if (markerSize is <= 0) {
+        if (markerSize.HasValue && markerSize.Value <= OfficeLength.Zero) {
             throw new ArgumentOutOfRangeException(nameof(markerSize), "Marker size must be greater than zero.");
         }
         OfficeChartStyleBounds.ValidateLineWidth(markerOutlineWidth, nameof(markerOutlineWidth));
@@ -256,8 +256,8 @@ public sealed partial class OfficeSeries {
     /// <summary>Whether this series should render markers when the chart layout enables markers.</summary>
     public bool ShowMarkers { get; }
 
-    /// <summary>Optional source-defined marker diameter in drawing units.</summary>
-    public int? MarkerSize { get; }
+    /// <summary>Optional physical marker diameter, greater than zero. Null uses the renderer or native format default.</summary>
+    public OfficeLength? MarkerSize { get; }
 
     /// <summary>Optional source-defined marker shape.</summary>
     public OfficeChartMarkerShape? MarkerShape { get; }

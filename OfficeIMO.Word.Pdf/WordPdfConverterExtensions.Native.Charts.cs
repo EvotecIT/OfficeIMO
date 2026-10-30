@@ -1262,14 +1262,14 @@ namespace OfficeIMO.Word.Pdf {
                 : null;
         }
 
-        private static int? GetNativeWordChartMarkerSize(OpenXmlElement seriesElement, OpenXmlElement chartElement, OfficeChartType chartKind) {
+        private static OfficeLength? GetNativeWordChartMarkerSize(OpenXmlElement seriesElement, OpenXmlElement chartElement, OfficeChartType chartKind) {
             byte? size = seriesElement.GetFirstChild<Marker>()?.Size?.Val?.Value;
-            if (size.HasValue) return size.Value;
+            if (size.HasValue) return OfficeLength.Points(size.Value);
             MarkerStyleValues? symbol = seriesElement.GetFirstChild<Marker>()?.Symbol?.Val?.Value;
             return IsNativeWordLineLikeChart(chartKind) && (!symbol.HasValue || symbol.Value == MarkerStyleValues.Auto) &&
                 HasNativeWordChartGroupMarkers(chartElement)
-                ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.AutomaticMarkerSize
-                : null;
+                ? OfficeLength.Points(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.AutomaticMarkerSize)
+                : (OfficeLength?)null;
         }
 
         // Office draws automatic markers on line series without a stored marker even when the

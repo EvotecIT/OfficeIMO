@@ -7,7 +7,15 @@ namespace OfficeIMO.Tests;
 public class ChartPhysicalSizeTests {
     [Fact]
     public void SnapshotRetainsExactPhysicalDimensionsThroughResizeAndRendering() {
-        var data = new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Sales", new[] { 4D }) });
+        var marker = new OfficeSeries("Sales", new[] { 4D }, null, null, null, true,
+            markerSize: OfficeLength.Emus(1270001));
+        var data = new OfficeChartData(new[] { "A" }, new[] { marker });
+        Assert.Equal(1270001L, marker.WithLegendVisibility(false).MarkerSize!.Value.ToEmus());
+        Assert.Null(new OfficeSeries("Default", new[] { 4D }).MarkerSize);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeSeries("Invalid", new[] { 4D },
+            null, null, null, true, markerSize: OfficeLength.Zero));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeSeries("Invalid", new[] { 4D },
+            null, null, null, true, markerSize: OfficeLength.Emus(-1)));
         var snapshot = new OfficeChartSnapshot("Sales", null, OfficeChartType.ColumnClustered, data,
             OfficeLength.Emus(1270001), OfficeLength.Inches(2));
         var resized = snapshot.WithSize(OfficeLength.Centimeters(5), snapshot.Height);

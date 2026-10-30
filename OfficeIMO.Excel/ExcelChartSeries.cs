@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
             : this(name, (values ?? Array.Empty<double>()).ToList(), (xValues ?? Array.Empty<double>()).ToList(), chartType, axisGroup, seriesColorArgb, seriesLineWidth: null, seriesLineDashStyle: null, pointColorArgb: null, showMarkers: true, connectLine: true, markerSize: null, markerShape: null, markerOutlineColorArgb: null, markerOutlineWidth: null, ownsValues: true) {
         }
 
-        private ExcelChartSeries(string name, IReadOnlyList<double> values, IReadOnlyList<double>? xValues, OfficeChartType? chartType, OfficeChartAxisGroup axisGroup, string? seriesColorArgb, double? seriesLineWidth, OfficeStrokeDashStyle? seriesLineDashStyle, IReadOnlyList<string?>? pointColorArgb, bool showMarkers, bool connectLine, int? markerSize, OfficeChartMarkerShape? markerShape, string? markerOutlineColorArgb, double? markerOutlineWidth, bool ownsValues, IReadOnlyList<double>? bubbleSizes = null) {
+        private ExcelChartSeries(string name, IReadOnlyList<double> values, IReadOnlyList<double>? xValues, OfficeChartType? chartType, OfficeChartAxisGroup axisGroup, string? seriesColorArgb, double? seriesLineWidth, OfficeStrokeDashStyle? seriesLineDashStyle, IReadOnlyList<string?>? pointColorArgb, bool showMarkers, bool connectLine, OfficeLength? markerSize, OfficeChartMarkerShape? markerShape, string? markerOutlineColorArgb, double? markerOutlineWidth, bool ownsValues, IReadOnlyList<double>? bubbleSizes = null) {
             OfficeChartStyleBounds.ValidateLineWidth(seriesLineWidth, nameof(seriesLineWidth), allowZero: true);
             OfficeChartStyleBounds.ValidateLineWidth(markerOutlineWidth, nameof(markerOutlineWidth), allowZero: true);
             Name = name ?? string.Empty;
@@ -52,7 +52,7 @@ namespace OfficeIMO.Excel {
         internal ExcelChartSeries WithValuesAndXValues(IReadOnlyList<double> values, IReadOnlyList<double>? xValues) =>
             new(Name, values, xValues, ChartType, AxisGroup, SeriesColorArgb, _seriesLineWidth, SeriesLineDashStyle, PointColorArgb, ShowMarkers, ConnectLine, _markerSize, MarkerShape, MarkerOutlineColorArgb, _markerOutlineWidth, ownsValues: false, bubbleSizes: BubbleSizes) { SeriesStyle = SeriesStyle, PointStyles = PointStyles?.Count == values.Count ? PointStyles : null, PointExplosions = PointExplosions?.Count == values.Count ? PointExplosions : null, HasAutomaticColor = HasAutomaticColor };
 
-        internal ExcelChartSeries WithImageExportStyle(string? seriesColorArgb, double? seriesLineWidth, OfficeStrokeDashStyle? seriesLineDashStyle, IReadOnlyList<string?>? pointColorArgb, bool showMarkers, bool? connectLine, int? markerSize, OfficeChartMarkerShape? markerShape, string? markerOutlineColorArgb, double? markerOutlineWidth, bool automaticColor = false) =>
+        internal ExcelChartSeries WithImageExportStyle(string? seriesColorArgb, double? seriesLineWidth, OfficeStrokeDashStyle? seriesLineDashStyle, IReadOnlyList<string?>? pointColorArgb, bool showMarkers, bool? connectLine, OfficeLength? markerSize, OfficeChartMarkerShape? markerShape, string? markerOutlineColorArgb, double? markerOutlineWidth, bool automaticColor = false) =>
             new(Name, Values, XValues, ChartType, AxisGroup, seriesColorArgb ?? SeriesColorArgb, seriesLineWidth ?? _seriesLineWidth, seriesLineDashStyle ?? SeriesLineDashStyle, pointColorArgb ?? PointColorArgb, showMarkers, connectLine ?? ConnectLine, markerSize ?? _markerSize, markerShape ?? MarkerShape, markerOutlineColorArgb ?? MarkerOutlineColorArgb, markerOutlineWidth ?? _markerOutlineWidth, ownsValues: false, bubbleSizes: BubbleSizes) {
                 SeriesStyle = SeriesStyle,
                 PointStyles = PointStyles,
@@ -168,9 +168,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the optional authored marker diameter in drawing units.
         /// </summary>
-        private readonly int? _markerSize;
+        private readonly OfficeLength? _markerSize;
         /// <summary>Gets the authored physical marker size.</summary>
-        public OfficeLength? MarkerSize => _markerSize.HasValue ? OfficeLength.Points(_markerSize.Value) : (OfficeLength?)null;
+        public OfficeLength? MarkerSize => _markerSize;
 
         /// <summary>
         /// Gets the optional authored marker shape.

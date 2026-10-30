@@ -118,9 +118,11 @@ public sealed class WordSharedChartAppearanceTests {
     [Fact]
     public void SharedAppearance_NativeMarkerSizeClampsAtBothBounds() {
         using WordDocument document = WordDocument.Create();
-        foreach (int size in new[] { 1, 100 }) {
+        foreach ((OfficeLength size, byte expected) in new[] {
+            (OfficeLength.Points(1), (byte)2), (OfficeLength.Points(100), (byte)72),
+            (OfficeLength.Points(8.5), (byte)9), (OfficeLength.Points(9.5), (byte)10) }) {
             var chart = document.AddChart(OfficeChartType.Line,Data(OfficeChartType.Line, markerSize: size));
-            Assert.Equal((byte)(size == 1 ? 2 : 72), Series(chart).GetFirstChild<C.Marker>()!.Size!.Val!.Value);
+            Assert.Equal(expected, Series(chart).GetFirstChild<C.Marker>()!.Size!.Val!.Value);
         }
         Assert.Empty(document.ValidateDocument());
     }
@@ -128,7 +130,7 @@ public sealed class WordSharedChartAppearanceTests {
     private static DocumentFormat.OpenXml.OpenXmlCompositeElement Series(WordChart chart) =>
         chart.ChartPart!.ChartSpace!.Descendants<DocumentFormat.OpenXml.OpenXmlCompositeElement>().Single(e => e.LocalName == "ser");
 
-    private static OfficeChartData Data(OfficeChartType kind, bool connect = true, bool legend = true, OfficeColor? color = null, int? markerSize = null) =>
+    private static OfficeChartData Data(OfficeChartType kind, bool connect = true, bool legend = true, OfficeColor? color = null, OfficeLength? markerSize = null) =>
         new OfficeChartData(new[] { "1", "2", "3" }, new[] { new OfficeSeries("Status", new[] { 1d, 2d, 3d },
             kind == OfficeChartType.Scatter ? new[] { 1d, 2d, 3d } : null, color, null, true, legend, connect, markerSize) });
 }

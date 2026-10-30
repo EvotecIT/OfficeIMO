@@ -19,5 +19,7 @@ internal static class OfficeChartStyleBounds {
             throw new ArgumentOutOfRangeException(parameterName, "Line width must be greater than zero and at most 1584 points.");
     }
 
-    internal static int ClampNativeMarkerSize(int size) => Math.Max(2, Math.Min(72, size));
+    internal static OfficeLength ClampNativeMarkerSize(OfficeLength size) =>
+        size < OfficeLength.Points(2) ? OfficeLength.Points(2) :
+        size > OfficeLength.Points(72) ? OfficeLength.Points(72) : size;
 }

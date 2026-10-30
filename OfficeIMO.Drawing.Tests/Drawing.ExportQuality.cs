@@ -42,12 +42,12 @@ public sealed class DrawingExportQualityTests {
     public void SmallAuthoredChartPreservesAbsoluteTitleFontSize() {
         var snapshot = new OfficeChartSnapshot("Small chart", "Title", OfficeChartType.Line,
             new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 3d, 4d }, null, null, null,
-                true, markerSize: 10, markerShape: OfficeChartMarkerShape.Circle, strokeWidth: global::OfficeIMO.OfficeLength.Points(2)) }), global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(30),
+                true, markerSize: OfficeLength.Inches(0.125) + OfficeLength.Points(0.5), markerShape: OfficeChartMarkerShape.Circle, strokeWidth: global::OfficeIMO.OfficeLength.Points(2)) }), global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(30),
             style: new OfficeChartStyle(titleFontSize: 12), layout: new OfficeChartLayout(showLegend: false));
         var drawing = OfficeChartDrawingRenderer.Render(snapshot, useMinimumCanvas: false);
         var title = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Title");
         Assert.Equal(12, title.Font.Size);
-        Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && shape.Shape.Width == 10);
+        Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && shape.Shape.Width == 9.5);
         Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeWidth == 2);
     }
     [Fact]

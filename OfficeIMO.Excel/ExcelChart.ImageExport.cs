@@ -407,7 +407,7 @@ namespace OfficeIMO.Excel {
             for (int i = 0; i < data.Series.Count; i++) {
                 ExcelChartSeries current = data.Series[i];
                 if (styles.TryGetValue(i, out ImageExportSeriesStyle? style)) {
-                    series.Add(current.WithImageExportStyle(style.SeriesColorArgb, style.SeriesLineWidth, style.SeriesLineDashStyle, style.PointColorArgb, style.ShowMarkers, style.ConnectLine, style.MarkerSize, style.MarkerShape, style.MarkerOutlineColorArgb, style.MarkerOutlineWidth, style.AutomaticColor)
+                    series.Add(current.WithImageExportStyle(style.SeriesColorArgb, style.SeriesLineWidth, style.SeriesLineDashStyle, style.PointColorArgb, style.ShowMarkers, style.ConnectLine, style.MarkerSize.HasValue ? OfficeLength.Points(style.MarkerSize.Value) : (OfficeLength?)null, style.MarkerShape, style.MarkerOutlineColorArgb, style.MarkerOutlineWidth, style.AutomaticColor)
                         .WithSeriesStyle(style.SeriesStyle).WithPointStyles(style.PointStyles).WithPointExplosions(style.PointExplosions));
                     changed = true;
                 } else {

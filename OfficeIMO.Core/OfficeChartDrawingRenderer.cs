@@ -878,7 +878,7 @@ public static partial class OfficeChartDrawingRenderer {
         series.StrokeDashStyle ?? OfficeStrokeDashStyle.Solid;
 
     private static double GetMarkerDiameter(OfficeSeries series, double fallbackDiameter) =>
-        series.MarkerSize.HasValue ? Math.Max(1D, series.MarkerSize.Value) : fallbackDiameter;
+        series.MarkerSize.HasValue ? Math.Max(1D, series.MarkerSize.Value.ToPoints()) : fallbackDiameter;
 
     private static void AddMarker(OfficeDrawing drawing, OfficeSeries series, OfficePoint point, double fallbackDiameter, OfficeColor color, double strokeWidth, OfficeChartPointStyle? pointStyle = null) {
         double diameter = GetMarkerDiameter(series, fallbackDiameter);

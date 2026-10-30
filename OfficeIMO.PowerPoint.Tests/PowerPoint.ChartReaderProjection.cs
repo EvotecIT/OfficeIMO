@@ -34,7 +34,7 @@ public sealed class PowerPointChartReaderProjectionTests {
         marker.GetFirstChild<C.Size>()?.Remove();
         Assert.NotNull(marker.Symbol);
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        Assert.Equal(5, snapshot.Data.Series.Single().MarkerSize);
+        Assert.Equal(5, snapshot.Data.Series.Single().MarkerSize?.ToPoints());
     }
 
     [Fact]

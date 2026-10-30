@@ -26,7 +26,7 @@ public sealed class PowerPointChartSeriesPaintTests {
     [InlineData(true)]
     public void NativeRoundTripKeepsMarkerFillIndependentOfConnectingLine(bool pointOverride) {
         var series = new OfficeSeries("Paint", new[] { 2d, 4d }, null, OfficeColor.Blue,
-            null, true, markerSize: 10, markerShape: OfficeChartMarkerShape.Circle,
+            null, true, markerSize: global::OfficeIMO.OfficeLength.Points(10), markerShape: OfficeChartMarkerShape.Circle,
             strokeDashStyle: OfficeStrokeDashStyle.Dash)
             .WithSeriesStyle(new OfficeChartPointStyle(outlineColor: OfficeColor.Red, outlineWidth: global::OfficeIMO.OfficeLength.Points(3)));
         if (pointOverride) series = series.WithPointStyles(new OfficeChartPointStyle?[] { new(fillColor: OfficeColor.Green), null });

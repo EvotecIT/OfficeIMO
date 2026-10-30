@@ -30,7 +30,7 @@ namespace OfficeIMO.Excel {
                 changed |= ApplySeriesMarkerByChartIndex(seriesIndex, marker => ApplyMarker(
                     marker,
                     style.ShowMarkers ? MapMarkerStyle(style.MarkerShape).ToOfficeEnum() : OfficeChartMarkerShape.None,
-                    style.MarkerSize.HasValue ? OfficeLength.Points(OfficeChartStyleBounds.ClampNativeMarkerSize(checked((int)style.MarkerSize.Value.ToPoints()))) : (OfficeLength?)null,
+                    style.MarkerSize.HasValue ? OfficeChartStyleBounds.ClampNativeMarkerSize(style.MarkerSize.Value) : (OfficeLength?)null,
                     style.ShowMarkers && style.SeriesColorArgb != null ? OfficeColor.Parse(NormalizeHexColor(style.SeriesColorArgb)) : (OfficeColor?)null,
                     style.ShowMarkers && style.MarkerOutlineColorArgb != null ? OfficeColor.Parse(NormalizeHexColor(style.MarkerOutlineColorArgb)) : (OfficeColor?)null,
                     style.ShowMarkers ? style.MarkerOutlineWidth : null));

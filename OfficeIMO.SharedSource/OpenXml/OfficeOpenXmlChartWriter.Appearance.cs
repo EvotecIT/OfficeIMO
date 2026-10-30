@@ -138,7 +138,7 @@ namespace OfficeIMO.OpenXml.Internal {
             if (!series.ShowMarkers) marker.Symbol = new C.Symbol { Val = C.MarkerStyleValues.None };
             else if (series.MarkerShape.HasValue || marker.Symbol == null)
                 marker.Symbol = new C.Symbol { Val = MapMarker(series.MarkerShape) };
-            if (series.MarkerSize.HasValue) marker.Size = new C.Size { Val = (byte)OfficeChartStyleBounds.ClampNativeMarkerSize(series.MarkerSize.Value) };
+            if (series.MarkerSize.HasValue) marker.Size = new C.Size { Val = checked((byte)decimal.Round(OfficeChartStyleBounds.ClampNativeMarkerSize(series.MarkerSize.Value).ToEmus() / 12700m, 0, MidpointRounding.AwayFromZero)) };
             OfficeColor? markerFill = series.Color ?? fallbackColor;
             if (markerFill.HasValue || series.MarkerOutlineColor.HasValue || series.MarkerOutlineWidth.HasValue) {
                 C.ChartShapeProperties properties = marker.ChartShapeProperties ?? new C.ChartShapeProperties();

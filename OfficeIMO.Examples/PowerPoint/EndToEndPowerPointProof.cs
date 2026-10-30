@@ -47,7 +47,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     new OfficeSeries("Adoption", new[] { 28D, 43D, 61D, 72D }, null, null, null,
                         showMarkers: false, renderKind: OfficeChartType.ColumnClustered),
                     new OfficeSeries("Conversion", new[] { 6.2D, 7.8D, 9.6D, 11.4D }, null, null, null,
-                        showMarkers: true, markerSize: 8, renderKind: OfficeChartType.Line,
+                        showMarkers: true, markerSize: global::OfficeIMO.OfficeLength.Points(8), renderKind: OfficeChartType.Line,
                         axisGroup: OfficeChartAxisGroup.Secondary)
                 });
             var chartStory = new PowerPointChartStoryContent(OfficeChartType.ColumnClustered, chartData,

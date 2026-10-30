@@ -513,7 +513,7 @@ namespace OfficeIMO.Excel {
                     ResolvePointColors(series.PointColorArgb),
                     series.ShowMarkers,
                     connectLine: series.ConnectLine,
-                    markerSize: (int?)series.MarkerSize?.ToPoints(),
+                    markerSize: series.MarkerSize,
                     markerShape: series.MarkerShape,
                     markerOutlineColor: ResolveArgb(series.MarkerOutlineColorArgb),
                     markerOutlineWidth: series.MarkerOutlineWidth,

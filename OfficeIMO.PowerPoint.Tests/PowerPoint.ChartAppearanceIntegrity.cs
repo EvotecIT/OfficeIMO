@@ -82,13 +82,13 @@ public sealed class PowerPointChartAppearanceIntegrityTests {
     public void SharedReader_PreservesMarkerAppearanceAndSeriesDash() {
         using PowerPointDocument document = PowerPointDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Status", new[] { 1d, 2d },
-            null, OfficeColor.Parse("#168A56"), null, true, markerSize: 9, markerShape: OfficeChartMarkerShape.Diamond,
+            null, OfficeColor.Parse("#168A56"), null, true, markerSize: global::OfficeIMO.OfficeLength.Points(9), markerShape: OfficeChartMarkerShape.Diamond,
             markerOutlineColor: OfficeColor.Parse("#333333"), markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(2), strokeWidth: global::OfficeIMO.OfficeLength.Points(3),
             strokeDashStyle: OfficeStrokeDashStyle.Dash) });
         var chart = document.AddSlide().AddChart(OfficeChartType.Line, data);
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         var series = snapshot.Data.Series.Single();
-        Assert.Equal(9, series.MarkerSize);
+        Assert.Equal(9, series.MarkerSize?.ToPoints());
         Assert.Equal(OfficeChartMarkerShape.Diamond, series.MarkerShape);
         Assert.Equal(OfficeColor.Parse("#333333"), series.MarkerOutlineColor);
         Assert.Equal(2d, series.MarkerOutlineWidth?.ToPoints());
@@ -103,7 +103,7 @@ public sealed class PowerPointChartAppearanceIntegrityTests {
     public void SharedAppearance_PowerPointRestoresLineAndReplacesImportedMarkerFill(OfficeChartType kind) {
         OfficeChartData Data(bool connect, OfficeColor? color = null) => new OfficeChartData(new[] { "1", "2" },
             new[] { new OfficeSeries("Status", new[] { 1d, 2d }, kind == OfficeChartType.Scatter ? new[] { 1d, 2d } : null,
-                color, null, true, connectLine: connect, markerSize: 1) });
+                color, null, true, connectLine: connect, markerSize: global::OfficeIMO.OfficeLength.Points(1)) });
         using PowerPointDocument document = PowerPointDocument.Create();
         var chart = document.AddSlide().AddChart(kind, Data(false));
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot disabled));

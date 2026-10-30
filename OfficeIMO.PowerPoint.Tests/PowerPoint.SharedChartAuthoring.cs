@@ -604,10 +604,10 @@ namespace OfficeIMO.Tests {
             return new OfficeChartData(new[] { "Q1", "Q2", "Q3", "Q4" }, new[] {
                 new OfficeSeries("Actual", new[] { 28D, 43D, 61D, 72D }, null,
                     OfficeColor.Parse("#0B7FAB"), null, showMarkers: true,
-                    markerSize: 7, strokeWidth: global::OfficeIMO.OfficeLength.Points(1.8)),
+                    markerSize: global::OfficeIMO.OfficeLength.Points(7), strokeWidth: global::OfficeIMO.OfficeLength.Points(1.8)),
                 new OfficeSeries("Target", new[] { 35D, 50D, 65D, 80D }, null,
                     OfficeColor.Parse("#4CAF50"), null, showMarkers: true,
-                    markerSize: 7, strokeWidth: global::OfficeIMO.OfficeLength.Points(1.8), strokeDashStyle:
+                    markerSize: global::OfficeIMO.OfficeLength.Points(7), strokeWidth: global::OfficeIMO.OfficeLength.Points(1.8), strokeDashStyle:
                         kind == OfficeChartType.Line || kind == OfficeChartType.LineStacked || kind == OfficeChartType.LineStacked100 ||
                         kind == OfficeChartType.Area || kind == OfficeChartType.AreaStacked || kind == OfficeChartType.AreaStacked100 ||
                         kind == OfficeChartType.Radar ? OfficeStrokeDashStyle.Dash : null)
@@ -636,7 +636,7 @@ namespace OfficeIMO.Tests {
                     renderKind: OfficeChartType.ColumnClustered),
                 new OfficeSeries("Margin", new[] { 22D, 26D, 31D, 35D }, null,
                     OfficeColor.Parse("#E85D04"), null, showMarkers: true,
-                    markerSize: 8, markerShape: OfficeChartMarkerShape.Circle, strokeWidth: global::OfficeIMO.OfficeLength.Points(2),
+                    markerSize: global::OfficeIMO.OfficeLength.Points(8), markerShape: OfficeChartMarkerShape.Circle, strokeWidth: global::OfficeIMO.OfficeLength.Points(2),
                     renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
             });
     }

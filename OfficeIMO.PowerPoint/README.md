@@ -471,7 +471,7 @@ var sharedData = new OfficeChartData(
             showMarkers: false, renderKind: OfficeChartType.ColumnClustered),
         new OfficeSeries("Margin", new[] { 22d, 26d, 31d, 35d },
             xValues: null, color: OfficeColor.Parse("#E85D04"), pointColors: null,
-            showMarkers: true, markerSize: 8, renderKind: OfficeChartType.Line,
+            showMarkers: true, markerSize: global::OfficeIMO.OfficeLength.Points(8), renderKind: OfficeChartType.Line,
             axisGroup: OfficeChartAxisGroup.Secondary)
     });
 

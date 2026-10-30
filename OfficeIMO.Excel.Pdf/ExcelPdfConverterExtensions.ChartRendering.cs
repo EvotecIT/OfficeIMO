@@ -107,7 +107,7 @@ namespace OfficeIMO.Excel.Pdf {
                 ExcelRangeImageRenderer.ResolvePointColors(series.PointColorArgb),
                 series.ShowMarkers,
                 connectLine: series.ConnectLine,
-                markerSize: (int?)series.MarkerSize?.ToPoints(),
+                markerSize: series.MarkerSize,
                 markerShape: series.MarkerShape,
                 markerOutlineColor: ExcelRangeImageRenderer.ResolveArgb(series.MarkerOutlineColorArgb),
                 markerOutlineWidth: series.MarkerOutlineWidth,

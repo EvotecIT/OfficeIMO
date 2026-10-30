@@ -44,7 +44,7 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
         Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot, out string? reason), reason);
         Assert.Equal(new OfficeChartMarkerShape?[] { OfficeChartMarkerShape.Diamond, OfficeChartMarkerShape.Square, OfficeChartMarkerShape.Triangle },
             snapshot.Data.Series.Select(series => series.SharedAppearance!.MarkerShape).ToArray());
-        Assert.All(snapshot.Data.Series, series => Assert.Equal(7, series.SharedAppearance!.MarkerSize));
+        Assert.All(snapshot.Data.Series, series => Assert.Equal(7, series.SharedAppearance!.MarkerSize?.ToPoints()));
     }
 
     [Fact]

@@ -4355,13 +4355,13 @@ OfficeIMO.OfficeSeries.ConnectLine.get -> bool
 OfficeIMO.OfficeSeries.MarkerOutlineColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.OfficeSeries.MarkerOutlineWidth.get -> OfficeIMO.OfficeLength?
 OfficeIMO.OfficeSeries.MarkerShape.get -> OfficeIMO.Drawing.OfficeChartMarkerShape?
-OfficeIMO.OfficeSeries.MarkerSize.get -> int?
+OfficeIMO.OfficeSeries.MarkerSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.OfficeSeries.Name.get -> string!
 OfficeIMO.OfficeSeries.OfficeSeries(string! name, System.Collections.Generic.IEnumerable<double>! values) -> void
 OfficeIMO.OfficeSeries.OfficeSeries(string! name, System.Collections.Generic.IEnumerable<double>! values, System.Collections.Generic.IEnumerable<double>? xValues) -> void
 OfficeIMO.OfficeSeries.OfficeSeries(string! name, System.Collections.Generic.IEnumerable<double>! values, System.Collections.Generic.IEnumerable<double>? xValues, OfficeIMO.OfficeColor? color) -> void
 OfficeIMO.OfficeSeries.OfficeSeries(string! name, System.Collections.Generic.IEnumerable<double>! values, System.Collections.Generic.IEnumerable<double>? xValues, OfficeIMO.OfficeColor? color, System.Collections.Generic.IEnumerable<OfficeIMO.OfficeColor?>? pointColors) -> void
-OfficeIMO.OfficeSeries.OfficeSeries(string! name, System.Collections.Generic.IEnumerable<double>! values, System.Collections.Generic.IEnumerable<double>? xValues, OfficeIMO.OfficeColor? color, System.Collections.Generic.IEnumerable<OfficeIMO.OfficeColor?>? pointColors, bool showMarkers, bool showInLegend = true, bool connectLine = true, int? markerSize = null, OfficeIMO.Drawing.OfficeChartMarkerShape? markerShape = null, OfficeIMO.OfficeColor? markerOutlineColor = null, OfficeIMO.OfficeLength? markerOutlineWidth = null, OfficeIMO.OfficeLength? strokeWidth = null, OfficeIMO.Drawing.OfficeStrokeDashStyle? strokeDashStyle = null, OfficeIMO.OfficeChartType? renderKind = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> void
+OfficeIMO.OfficeSeries.OfficeSeries(string! name, System.Collections.Generic.IEnumerable<double>! values, System.Collections.Generic.IEnumerable<double>? xValues, OfficeIMO.OfficeColor? color, System.Collections.Generic.IEnumerable<OfficeIMO.OfficeColor?>? pointColors, bool showMarkers, bool showInLegend = true, bool connectLine = true, OfficeIMO.OfficeLength? markerSize = null, OfficeIMO.Drawing.OfficeChartMarkerShape? markerShape = null, OfficeIMO.OfficeColor? markerOutlineColor = null, OfficeIMO.OfficeLength? markerOutlineWidth = null, OfficeIMO.OfficeLength? strokeWidth = null, OfficeIMO.Drawing.OfficeStrokeDashStyle? strokeDashStyle = null, OfficeIMO.OfficeChartType? renderKind = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> void
 OfficeIMO.OfficeSeries.PointColors.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeColor?>?
 OfficeIMO.OfficeSeries.PointExplosions.get -> System.Collections.Generic.IReadOnlyList<int>?
 OfficeIMO.OfficeSeries.PointStyles.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeChartPointStyle?>?

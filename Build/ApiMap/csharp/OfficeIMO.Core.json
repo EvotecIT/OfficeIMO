@@ -1366,6 +1366,42 @@
         "OfficeIMO.Html.Tests/Html.OfficeAdapters.cs",
         "OfficeIMO.OpenDocument.Tests/OpenDocument.OdsChartAuthoring.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "OfficeSeries.MarkerSize nullable integer points and markerSize constructor parameter.",
+      "new": "OfficeLength? marker diameter retained through shared snapshots, rendering and native adapters.",
+      "reason": "Shared chart markers follow the physical length contract without rounding fractional points before native serialization.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Core/OfficeChartDrawingRenderer.cs",
+        "OfficeIMO.Core/OfficeChartStyleBounds.cs",
+        "OfficeIMO.Core/OfficeSeries.cs",
+        "OfficeIMO.Drawing.Tests/Drawing.ChartPhysicalSize.cs",
+        "OfficeIMO.Drawing.Tests/Drawing.ExportQuality.cs",
+        "OfficeIMO.Examples/PowerPoint/EndToEndPowerPointProof.cs",
+        "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.ChartRendering.cs",
+        "OfficeIMO.Excel.Tests/Excel.ChartAppearanceIntegrity.cs",
+        "OfficeIMO.Excel.Tests/Excel.SharedChartAuthoring.cs",
+        "OfficeIMO.Excel/ExcelChart.ImageExport.cs",
+        "OfficeIMO.Excel/ExcelChart.SharedStyles.cs",
+        "OfficeIMO.Excel/ExcelChartSeries.cs",
+        "OfficeIMO.Excel/Imaging/ExcelRangeImageRenderer.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentChartDrawingTests.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ChartAppearanceIntegrity.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ChartAutomaticAppearance.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ChartReaderProjection.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ChartSeriesPaint.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.SharedChartAuthoring.cs",
+        "OfficeIMO.PowerPoint/README.md",
+        "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlChartSeriesReader.cs",
+        "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlChartWriter.Appearance.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.Charts.cs",
+        "OfficeIMO.Word.Tests/Word.ChartSeriesAppearanceReadback.cs",
+        "OfficeIMO.Word.Tests/Word.SharedChartAppearance.cs"
+      ],
+      "note": "Core retains positive sizes without a native upper cap, null and exact EMUs through copies. Native writers preserve their existing format minimum/72-point maximum and round whole points away from zero. Contextual drawing font sizes stay numeric; no earlier font proposal or compatibility wrapper is restored."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

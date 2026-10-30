@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests {
                 new OfficeSeries("Styled", new[] { 12D, 18D }, xValues: null,
                     color: OfficeColor.ParseHex("#2563EB"),
                     pointColors: new OfficeColor?[] { OfficeColor.ParseHex("#DC2626"), OfficeColor.ParseHex("#16A34A") },
-                    showMarkers: true, connectLine: true, markerSize: 9,
+                    showMarkers: true, connectLine: true, markerSize: OfficeLength.Inches(0.125) + OfficeLength.Points(0.5),
                     markerShape: OfficeChartMarkerShape.Diamond,
                     markerOutlineColor: OfficeColor.ParseHex("#111827"), markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(1.5D),
                     strokeWidth: global::OfficeIMO.OfficeLength.Points(2.25D), strokeDashStyle: OfficeStrokeDashStyle.Dash,
@@ -184,7 +184,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2.25D, series.SeriesLineWidth?.ToPoints());
             Assert.Equal(OfficeStrokeDashStyle.Dash, series.SeriesLineDashStyle);
             Assert.Equal(new[] { "DC2626", "16A34A" }, series.PointColorArgb);
-            Assert.Equal(9, series.MarkerSize?.ToPoints());
+            Assert.Equal(10, series.MarkerSize?.ToPoints());
             Assert.Equal(OfficeChartMarkerShape.Diamond, series.MarkerShape);
             Assert.Equal("111827", series.MarkerOutlineColorArgb);
             Assert.Equal(1.5D, series.MarkerOutlineWidth?.ToPoints());
@@ -195,7 +195,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SharedContract.MarkerSize.xlsx");
             var sharedData = new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
                 new OfficeSeries("Trend", new[] { 12D, 18D }, xValues: null,
-                    color: null, pointColors: null, showMarkers: true, markerSize: 300,
+                    color: null, pointColors: null, showMarkers: true, markerSize: global::OfficeIMO.OfficeLength.Points(300),
                     renderKind: OfficeChartType.Line)
             });
 
