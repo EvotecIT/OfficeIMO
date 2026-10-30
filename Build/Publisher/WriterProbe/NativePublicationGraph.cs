@@ -11,17 +11,29 @@ internal static class NativePublicationGraph {
     internal const ushort OrderedPageCount = 6;
     internal const ushort MasterPageCount = 1;
     internal const ushort SpecialPageBoundary = 5;
-    internal const uint TextStoryKey = 1;
+    internal const uint DrawingId = 1;
+    internal const uint RootShapeId = DrawingId << 10;
     private const int PhysicalPageIndex = 1;
 
-    internal static Graph Create(string kind, uint documentId, uint width, uint height) {
+    internal static Graph Create(CandidatePublicationSpec specification, uint documentId) {
+        uint width = specification.WidthEmu, height = specification.HeightEmu;
         uint firstPageId = documentId + 1;
         uint masterId = firstPageId;
         uint physicalId = firstPageId + PhysicalPageIndex;
-        uint shapeId = firstPageId + OrderedPageCount;
-        bool hasShape = kind != "blank";
-        bool hasStory = kind is "text" or "styled-text" or "shape";
-        uint quillDocumentId = shapeId + (hasShape ? 1U : 0U);
+        uint firstObjectId = firstPageId + OrderedPageCount;
+        var objects = new List<ObjectBinding>();
+        var stories = new List<StoryBinding>();
+        for (int index = 0; index < specification.Objects.Count; index++) {
+            CandidateObjectSpec source = specification.Objects[index];
+            StoryBinding? story = null;
+            if (source.Story != null) {
+                uint key = (uint)stories.Count + 1;
+                story = new StoryBinding(source.Story, key, key);
+                stories.Add(story);
+            }
+            objects.Add(new ObjectBinding(source, firstObjectId + (uint)index, RootShapeId + (uint)index + 1, story));
+        }
+        uint quillDocumentId = firstObjectId + (uint)objects.Count;
         uint printBlockId = quillDocumentId + 3;
         uint masterGeometryId = printBlockId + 1;
         uint colorSchemeId = masterGeometryId + 1;
@@ -35,10 +47,10 @@ internal static class NativePublicationGraph {
         var chunks = new List<NativeRecord> { new(0x44, null, document) };
         for (int index = 0; index < OrderedPageCount; index++) {
             bool isMaster = index < MasterPageCount;
-            bool containsShape = index == PhysicalPageIndex && hasShape;
+            bool containsObjects = index == PhysicalPageIndex;
             var fields = new List<byte[]> {
-                Scalar(1, 0x20, containsShape ? 1U : 0U),
-                Variable(2, 0xA0, containsShape ? Scalar(0, 0x70, shapeId) : Array.Empty<byte>())
+                Scalar(1, 0x20, containsObjects ? (uint)objects.Count : 0U),
+                Variable(2, 0xA0, containsObjects ? objects.Select(item => Scalar(0, 0x70, item.Id)).ToArray() : Array.Empty<byte[]>())
             };
             if (isMaster) fields.Add(Scalar(3, 0x70, masterGeometryId));
             if (!isMaster) fields.Add(Scalar(0x0D, 0x68, masterId));
@@ -49,23 +61,23 @@ internal static class NativePublicationGraph {
             fields.Add(Scalar(0x10, 0x20, isMaster ? 3U : 5U));
             chunks.Add(new NativeRecord(0x43, documentId, Chunk(fields.ToArray())));
         }
-        if (hasShape) chunks.Add(new NativeRecord(kind == "image" ? 0x20U : 1U, physicalId,
-            hasStory ? Chunk(Scalar(0x27, 0x20, TextStoryKey), Scalar(0x28, 0x20, 0)) : Chunk()));
+        foreach (ObjectBinding item in objects) chunks.Add(new NativeRecord(item.Source.NativeKind, physicalId,
+            item.Story != null ? Chunk(Scalar(0x27, 0x20, item.Story.Key), Scalar(0x28, 0x20, 0)) : Chunk()));
         // The ordinary native loader obtains its Quill document through field
         // 0x20 and kind 0x5B. Its frame/story catalogs use generated rows for the
-        // text-bearing object; blank and image retain empty catalogs.
+        // ordered text-bearing objects; publications without stories retain empty catalogs.
         chunks.Add(new NativeRecord(0x5B, documentId, Chunk(
             Scalar(1, 0x70, quillDocumentId + 1), Scalar(2, 0x70, quillDocumentId + 2),
             Variable(10, 0x98, Scalar(1, 0x20, 0x08000000)))));
-        chunks.Add(new NativeRecord(0x61, quillDocumentId, hasStory
-            ? Chunk(Scalar(1, 0x20, 1), Variable(2, 0xA0, Variable(0, 0x88,
-                Scalar(1, 0x20, TextStoryKey), Scalar(3, 0x68, shapeId))))
+        chunks.Add(new NativeRecord(0x61, quillDocumentId, stories.Count != 0
+            ? Chunk(Scalar(1, 0x20, (uint)stories.Count), Variable(2, 0xA0, objects.Where(item => item.Story != null)
+                .Select(item => Variable(0, 0x88, Scalar(1, 0x20, item.Story!.Key), Scalar(3, 0x68, item.Id))).ToArray()))
             : Chunk()));
-        // IdLayout (field 7) uses 1, following the independently authored
-        // one-story controls. It is separate from the frame reference count.
-        chunks.Add(new NativeRecord(0x65, quillDocumentId, hasStory
-            ? Chunk(Scalar(1, 0x20, 1), Variable(2, 0xA0, Variable(0, 0x88,
-                Scalar(1, 0x20, TextStoryKey), Scalar(7, 0x20, 1))))
+        // Fresh creation assigns stable progressive layout identifiers. IdLayout
+        // is separate from the frame reference count and from retained native keys.
+        chunks.Add(new NativeRecord(0x65, quillDocumentId, stories.Count != 0
+            ? Chunk(Scalar(1, 0x20, (uint)stories.Count), Variable(2, 0xA0, stories.Select(story =>
+                Variable(0, 0x88, Scalar(1, 0x20, story.Key), Scalar(7, 0x20, story.LayoutId))).ToArray()))
             : Chunk()));
         // The normal native loader requires OhPrintBlock (document field 3).
         // Normal opening accesses row zero of Rgdnb. One empty typed OplDnb
@@ -74,9 +86,12 @@ internal static class NativePublicationGraph {
             Variable(2, 0x90, Variable(0, 0x88)))));
         chunks.Add(new NativeRecord(0x4C, masterId, CandidateMasterGeometry.Create(width, height)));
         chunks.Add(new NativeRecord(0x5C, documentId, CandidateColorScheme.CreateDefault()));
-        return new Graph(chunks, shapeId);
+        return new Graph(specification, chunks, objects, stories);
     }
 
-    internal sealed record Graph(IReadOnlyList<NativeRecord> Chunks, uint ShapeId);
+    internal sealed record Graph(CandidatePublicationSpec Source, IReadOnlyList<NativeRecord> Chunks,
+        IReadOnlyList<ObjectBinding> Objects, IReadOnlyList<StoryBinding> Stories);
+    internal sealed record ObjectBinding(CandidateObjectSpec Source, uint Id, uint Spid, StoryBinding? Story);
+    internal sealed record StoryBinding(CandidateStorySpec Source, uint Key, uint LayoutId);
     internal sealed record NativeRecord(uint Kind, uint? Parent, byte[] Bytes);
 }

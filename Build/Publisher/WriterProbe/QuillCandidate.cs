@@ -1,5 +1,4 @@
 using System.Text;
-using OfficeIMO.Drawing;
 using static OfficeIMO.Publisher.WriterProbe.NativeEncoding;
 
 namespace OfficeIMO.Publisher.WriterProbe;
@@ -9,18 +8,21 @@ internal static class QuillCandidate {
     private const int FirstPayloadOffset = 512;
     private const int MinimumStreamBytes = 1024;
 
-    internal static byte[] Create(string? text, OfficeRichTextParagraph? paragraph) {
+    internal static byte[] Create(IReadOnlyList<NativePublicationGraph.StoryBinding> stories) {
+        string? text = stories.Count == 0 ? null : string.Concat(stories.Select(story => story.Source.Text));
         var records = new List<QuillRecord>();
         if (text != null) {
             records.Add(new QuillRecord("TEXT", 0, Encoding.Unicode.GetBytes(text)));
             records.Add(new QuillRecord("SYID", 0, Bytes(writer => {
-                writer.Write(NativePublicationGraph.TextStoryKey);
-                writer.Write(1U); writer.Write(NativePublicationGraph.TextStoryKey);
+                writer.Write(stories.Max(story => story.Key));
+                writer.Write((uint)stories.Count);
+                foreach (var story in stories) writer.Write(story.Key);
             })));
             records.Add(new QuillRecord("STRS", 0, Bytes(writer => {
-                writer.Write(1U); writer.Write(8U); writer.Write(0U); // Count, record size, clean flags hypothesis.
-                writer.Write((uint)text.Length); writer.Write(0U); // Per-story length table plus final zero.
-                writer.Write(Chunk()); // One self-inclusive, empty SDF record.
+                writer.Write((uint)stories.Count); writer.Write(8U); writer.Write(0U); // Count, record size, clean flags hypothesis.
+                foreach (var story in stories) writer.Write((uint)story.Source.Text.Length);
+                writer.Write(0U); // Final zero follows the per-story length table.
+                foreach (var story in stories) writer.Write(Chunk()); // One self-inclusive, empty SDF per story.
             })));
         }
         records.AddRange(QuillDefaultLibraries.Create());
@@ -29,10 +31,18 @@ internal static class QuillCandidate {
             // actual serialized position even when the other libraries grow.
             int textEnd = FirstPayloadOffset + text.Length * 2;
             int firstPageOffset = Align(FirstPayloadOffset + records.Sum(record => record.Body.Length), QuillTextFormatting.PageBytes);
-            IReadOnlyList<QuillFormattingRange> characterRanges = paragraph == null
-                ? new[] { new QuillFormattingRange(textEnd, Chunk(Scalar(0x0C, 0x22, 18 * 12700))) }
-                : QuillCharacterFormatting.FromParagraph(paragraph, FirstPayloadOffset);
-            records.AddRange(QuillTextFormatting.CreateRecords(textEnd, firstPageOffset, characterRanges));
+            var characterRanges = new List<QuillFormattingRange>();
+            var paragraphRanges = new List<QuillFormattingRange>();
+            int storyStart = FirstPayloadOffset;
+            foreach (var story in stories) {
+                int storyEnd = storyStart + story.Source.Text.Length * 2;
+                if (story.Source.Paragraph == null)
+                    characterRanges.Add(new QuillFormattingRange(storyEnd, Chunk(Scalar(0x0C, 0x22, 18 * 12700))));
+                else characterRanges.AddRange(QuillCharacterFormatting.FromParagraph(story.Source.Paragraph, storyStart));
+                paragraphRanges.Add(new QuillFormattingRange(storyEnd, Chunk()));
+                storyStart = storyEnd;
+            }
+            records.AddRange(QuillTextFormatting.CreateRecords(textEnd, firstPageOffset, characterRanges, paragraphRanges));
         }
         var positionedRecords = new List<(QuillRecord Record, int Offset)>();
         int payloadEnd = FirstPayloadOffset;

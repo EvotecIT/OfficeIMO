@@ -15,7 +15,7 @@ internal static class NativeSchemaPrefix {
     private const uint ObservedProducerBuild = 20527;
     private const int FixedHeaderBytes = 44;
 
-    internal static byte[] Create(string kind, uint documentId, int streamLength, int trailerOffset) {
+    internal static byte[] Create(IReadOnlyList<uint> objectKinds, uint documentId, int streamLength, int trailerOffset) {
         var classes = new List<ClassDescriptor> {
             new(0x43, Marker6: true, Marker7: true, Trait9: 1, Trait12: 5),
             new(0x44, Marker6: true, Marker7: true, Trait9: 1, Trait12: 5),
@@ -26,7 +26,7 @@ internal static class NativeSchemaPrefix {
             new(0x61, Marker6: true, Marker7: false, Trait9: 2, Trait12: 5),
             new(0x65, Marker6: false, Marker7: false, Trait9: 2, Trait12: 5)
         };
-        if (kind != "blank") classes.Add(kind == "image"
+        foreach (uint kind in objectKinds) classes.Add(kind == 0x20
             ? new ClassDescriptor(0x20, Marker6: false, Marker7: false, Trait9: null, Trait12: 3)
             : new ClassDescriptor(1, Marker6: true, Marker7: false, Trait9: 1, Trait12: 1));
         byte[] catalog = Chunk(Scalar(1, 0x20, (uint)classes.Count), Scalar(2, 0x20, ObservedPropertyVersion),

@@ -1,16 +1,14 @@
 using OfficeIMO.Drawing.Binary;
 using static OfficeIMO.Publisher.WriterProbe.NativeEncoding;
+using static OfficeIMO.Publisher.WriterProbe.NativePublicationGraph;
 
 namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Constructs the probe's calculated, format-owned OfficeArt drawing topology.</summary>
 internal static class CandidateOfficeArt {
-    private const uint DrawingId = 1;
-    private const uint RootShapeId = DrawingId << 10;
-
-    internal static byte[] Create(string kind, byte[]? image, uint nativeShapeId, uint width, uint height) {
-        bool hasLeaf = kind != "blank";
-        uint shapeCount = hasLeaf ? 2U : 1U;
+    internal static byte[] Create(Graph graph) {
+        byte[]? image = Image(graph);
+        uint shapeCount = (uint)graph.Objects.Count + 1;
         uint lastShapeId = RootShapeId + shapeCount - 1;
         byte[] fdgg = Art(0, 0xF006, Bytes(writer => {
             // Follow the native/PPT allocation convention: one beyond the
@@ -28,22 +26,26 @@ internal static class CandidateOfficeArt {
         byte[] root = Art(15, 0xF004,
             Art(1, 0xF009, new byte[16]),
             Art(2, 0xF00A, Bytes(writer => { writer.Write(RootShapeId); writer.Write(5U); })));
-        byte[] leaf = hasLeaf ? Leaf(kind, image != null, nativeShapeId, lastShapeId, width, height) : Array.Empty<byte>();
+        byte[][] shapes = new[] { root }.Concat(graph.Objects.Select(item => Leaf(item, graph.Source.WidthEmu, graph.Source.HeightEmu))).ToArray();
         byte[] drawing = Art(15, 0xF002,
             Art((ushort)(DrawingId << 4), 0xF008, Bytes(writer => { writer.Write(shapeCount); writer.Write(lastShapeId); })),
-            Art(15, 0xF003, root, leaf));
+            Art(15, 0xF003, shapes));
         return Join(dgg, new byte[4], drawing);
     }
 
-    internal static byte[] CreateImageDelayStream(byte[]? image) => image == null ? Array.Empty<byte>()
-        : OfficeArtBlipStoreEntryWriter.CreateBlipRecord(image, ContentType(image));
+    internal static byte[] CreateImageDelayStream(Graph graph) {
+        byte[]? image = Image(graph);
+        return image == null ? Array.Empty<byte>() : OfficeArtBlipStoreEntryWriter.CreateBlipRecord(image, ContentType(image));
+    }
+
+    private static byte[]? Image(Graph graph) => graph.Objects.SingleOrDefault(item => item.Source.Image != null)?.Source.Image;
 
     private static string ContentType(byte[] image) =>
         image.Length >= 8 && image[0] == 0x89 && image[1] == 0x50 ? "image/png" : "image/jpeg";
 
-    private static byte[] Leaf(string kind, bool hasImage, uint nativeShapeId, uint shapeId, uint width, uint height) {
-        bool isTextBox = kind is "text" or "styled-text";
-        bool hasStory = isTextBox || kind == "shape";
+    private static byte[] Leaf(ObjectBinding item, uint width, uint height) {
+        bool isTextBox = item.Source.Kind == CandidateObjectKind.TextBox;
+        bool hasImage = item.Source.Image != null;
         var properties = new List<(ushort Id, uint Value)> {
             (0x181, 0x0000FF), // Solid red in the common OfficeArt RGB encoding.
             (0x1BF, 0x00100010),
@@ -62,14 +64,15 @@ internal static class CandidateOfficeArt {
         });
         uint Coord(double points, uint pageSize) => unchecked((uint)(int)(points * 12700 - pageSize / 2D));
         return Art(15, 0xF004,
-            Art((ushort)(((kind == "image" ? 75 : isTextBox ? 202 : 1) << 4) | 2), 0xF00A,
-                Bytes(writer => { writer.Write(shapeId); writer.Write(0xA00U); })),
+            Art((ushort)(((item.Source.Kind == CandidateObjectKind.Picture ? 75 : isTextBox ? 202 : 1) << 4) | 2), 0xF00A,
+                Bytes(writer => { writer.Write(item.Spid); writer.Write(0xA00U); })),
             Art((ushort)((properties.Count << 4) | 3), 0xF00B, fopt),
-            Art(0, 0xF010, Client((0x2001, Coord(72, width)), (0x2002, Coord(72, height)),
-                (0x2003, Coord(360, width)), (0x2004, Coord(180, height)))),
-            Art(0, 0xF011, Client((0x6801, nativeShapeId))),
+            Art(0, 0xF010, Client((0x2001, Coord(item.Source.Placement.Left, width)), (0x2002, Coord(item.Source.Placement.Top, height)),
+                (0x2003, Coord(item.Source.Placement.Left + item.Source.Placement.Width, width)),
+                (0x2004, Coord(item.Source.Placement.Top + item.Source.Placement.Height, height)))),
+            Art(0, 0xF011, Client((0x6801, item.Id))),
             // Publisher's native text-bearing shapes carry this ClientTextbox
             // OPL with their story key and the observed client record header.
-            hasStory ? Art(0x01AA, 0xF00D, Client((0x2001, NativePublicationGraph.TextStoryKey))) : Array.Empty<byte>());
+            item.Story != null ? Art(0x01AA, 0xF00D, Client((0x2001, item.Story.Key))) : Array.Empty<byte>());
     }
 }

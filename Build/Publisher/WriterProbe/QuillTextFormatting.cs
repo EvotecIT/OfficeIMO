@@ -6,15 +6,18 @@ namespace OfficeIMO.Publisher.WriterProbe;
 internal static class QuillTextFormatting {
     internal const int PageBytes = 512;
 
-    /// <summary>Creates one character page, one paragraph page and both required indexes.</summary>
-    internal static IEnumerable<QuillRecord> CreateRecords(int absoluteTextEnd, int firstPageOffset, IReadOnlyList<QuillFormattingRange> characterRanges) {
+    /// <summary>Creates character and paragraph pages from the same ordered story plan.</summary>
+    internal static IEnumerable<QuillRecord> CreateRecords(int absoluteTextEnd, int firstPageOffset,
+        IReadOnlyList<QuillFormattingRange> characterRanges, IReadOnlyList<QuillFormattingRange> paragraphRanges) {
         if (firstPageOffset % PageBytes != 0) throw new ArgumentException("The first formatting page must be aligned to 512 bytes.", nameof(firstPageOffset));
         if (characterRanges.Count == 0 || characterRanges[^1].AbsoluteEnd != absoluteTextEnd)
             throw new ArgumentException("Character formatting must cover the complete text section.", nameof(characterRanges));
+        if (paragraphRanges.Count == 0 || paragraphRanges[^1].AbsoluteEnd != absoluteTextEnd)
+            throw new ArgumentException("Paragraph formatting must cover the complete text section.", nameof(paragraphRanges));
         int characterPageOffset = firstPageOffset;
         int paragraphPageOffset = checked(characterPageOffset + PageBytes);
         yield return new QuillRecord("FDPC", 0, Page(characterRanges), PageBytes);
-        yield return new QuillRecord("FDPP", 0, Page(new[] { new QuillFormattingRange(absoluteTextEnd, Chunk()) }), PageBytes);
+        yield return new QuillRecord("FDPP", 0, Page(paragraphRanges), PageBytes);
         yield return new QuillRecord("BTEC", 0, Index(absoluteTextEnd, characterPageOffset));
         yield return new QuillRecord("BTEP", 0, Index(absoluteTextEnd, paragraphPageOffset));
     }

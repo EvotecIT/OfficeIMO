@@ -48,8 +48,12 @@ retain occurrence indices. Opaque payloads remain opaque; matching inspected
 values do not establish semantic equivalence.
 
 `create` never reads a PUB, copies an existing compound stream or invokes
-Publisher. It synthesizes a current experimental profile with identifiers from
-256, typed Contents header properties, a minimal class catalog, an explicit page
+Publisher. Semantic cases produce one page/object/story specification. Native
+object identities, story keys, layout identifiers and SPIDs are allocated once
+in object order, then shared by the Contents, OfficeArt and Quill serializers.
+Plain text keeps the minimal qualified formatting, while styled text uses the
+shared paragraph/run values. The tool synthesizes a current experimental profile
+with identifiers from 256, typed Contents header properties, a minimal class catalog, an explicit page
 role record and generated root CompObj identification. The canonical compound
 writer serializes a fresh directory model carrying the independently observed
 Publisher root and QuillSub storage class IDs. No source publication supplies
