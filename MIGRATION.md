@@ -15,6 +15,19 @@ its default remains half a point. Paper cell padding uses lengths, and
 `TableParagraphSpacingPoints` and `TableLineSpacingPoints` become
 `TableParagraphSpacing` and nullable `TableLineSpacing`.
 
+## Word watermark, template and embedded-object lengths
+
+Watermark `Width`, `Height`, `HorizontalOffset` and `VerticalOffset` use nullable
+`OfficeLength`, including constructor and `AddWatermark` offsets. Null removes
+a direct value; scale and rotation remain numeric. Replace `Width = 144` with
+`Width = OfficeLength.Points(144)`.
+
+`WordTemplateImage` dimensions use nullable lengths. Replace a pixel argument
+such as `width: 96` with `width: OfficeLength.Pixels(96)`. Omitted dimensions
+continue to use the image's intrinsic size or aspect ratio. Embedded-object
+options, `Icon` and direct `AddEmbeddedObject` dimensions also use lengths;
+the omitted icon frame remains 64.8pt square.
+
 ## PowerPoint layout utility lengths
 
 Alignment, distribution, stack, grid, fit and group utilities take `OfficeLength`

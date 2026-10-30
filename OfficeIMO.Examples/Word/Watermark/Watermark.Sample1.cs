@@ -54,8 +54,8 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine(watermark.Width);
 
                 // width and height in points (HTML wise)
-                watermark.Height = 100.15;
-                watermark.Width = 500.18;
+                watermark.Height = global::OfficeIMO.OfficeLength.Points(100.15);
+                watermark.Width = global::OfficeIMO.OfficeLength.Points(500.18);
 
                 document.AddPageBreak();
                 document.AddPageBreak();

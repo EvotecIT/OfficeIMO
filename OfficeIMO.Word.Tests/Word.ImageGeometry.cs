@@ -17,8 +17,10 @@ public sealed class WordImageLengthTests {
     public void LengthsKeepExactFrameEmusAndSignedFloatingOffsets() {
         using var document = WordDocument.Create();
         using var source = new MemoryStream(Gif);
-        var image = document.AddParagraph().AddImage(source, "pixel.gif", OfficeLength.Points(12), OfficeLength.Points(8),
+        var image = document.AddParagraph().AddImage(source, "pixel.gif", OfficeLength.Emus(7), OfficeLength.Emus(11),
             options: new WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText });
+        Assert.Equal(OfficeLength.Emus(7), image.Width);
+        Assert.Equal(OfficeLength.Emus(11), image.Height);
         image.Width = OfficeLength.Emus(12345);
         image.Height = OfficeLength.Emus(67891);
         image.HorizontalPositionOffset = OfficeLength.Millimeters(1);

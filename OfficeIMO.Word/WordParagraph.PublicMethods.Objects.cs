@@ -41,10 +41,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="filePath">Path to the object file.</param>
         /// <param name="imageFilePath">Preview image path.</param>
-        /// <param name="width">Optional width in points.</param>
-        /// <param name="height">Optional height in points.</param>
+        /// <param name="width">Optional physical width; defaults to 64.8 points.</param>
+        /// <param name="height">Optional physical height; defaults to 64.8 points.</param>
         /// <returns>The created embedded object.</returns>
-        public WordEmbeddedObject AddEmbeddedObject(string filePath, string imageFilePath, double? width = null, double? height = null) {
+        public WordEmbeddedObject AddEmbeddedObject(string filePath, string imageFilePath, global::OfficeIMO.OfficeLength? width = null, global::OfficeIMO.OfficeLength? height = null) {
             var wordEmbeddedObject = new WordEmbeddedObject(this, this._document, filePath, imageFilePath, "", width, height);
             return wordEmbeddedObject;
         }

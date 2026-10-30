@@ -1103,7 +1103,7 @@ OfficeIMO.Word.WordDocument.AddEmbeddedDocument(string! fileName, OfficeIMO.Word
 OfficeIMO.Word.WordDocument.AddEmbeddedFragment(string! htmlContent, OfficeIMO.Word.WordAlternativeFormatImportPartType type) -> OfficeIMO.Word.WordEmbeddedDocument!
 OfficeIMO.Word.WordDocument.AddEmbeddedFragmentAfter(OfficeIMO.Word.WordParagraph! paragraph, string! htmlContent, OfficeIMO.Word.WordAlternativeFormatImportPartType type = OfficeIMO.Word.WordAlternativeFormatImportPartType.Html) -> OfficeIMO.Word.WordEmbeddedDocument!
 OfficeIMO.Word.WordDocument.AddEmbeddedObject(string! filePath, OfficeIMO.Word.WordEmbeddedObjectOptions! options) -> OfficeIMO.Word.WordEmbeddedObject!
-OfficeIMO.Word.WordDocument.AddEmbeddedObject(string! filePath, string! imageFilePath, double? width = null, double? height = null) -> OfficeIMO.Word.WordEmbeddedObject!
+OfficeIMO.Word.WordDocument.AddEmbeddedObject(string! filePath, string! imageFilePath, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Word.WordEmbeddedObject!
 OfficeIMO.Word.WordDocument.AddEndnoteProperties(OfficeIMO.Word.WordNumberFormat? numberingFormat = null, OfficeIMO.Word.WordEndnotePosition? position = null, OfficeIMO.Word.WordNoteNumberRestart? restartNumbering = null, int? startNumber = null) -> OfficeIMO.Word.WordEndnoteSettings!
 OfficeIMO.Word.WordDocument.AddEquation(OfficeIMO.Drawing.OfficeMathExpression! expression) -> OfficeIMO.Word.WordEquation!
 OfficeIMO.Word.WordDocument.AddEquation(string! omml) -> OfficeIMO.Word.WordEquation!
@@ -1480,15 +1480,15 @@ OfficeIMO.Word.WordEmbeddedDocument.ToStream() -> System.IO.MemoryStream!
 OfficeIMO.Word.WordEmbeddedDocument.WordEmbeddedDocument(OfficeIMO.Word.WordDocument! wordDocument, string! fileNameOrContent, OfficeIMO.Word.WordAlternativeFormatImportPartType? alternativeFormatImportPartType, bool htmlFragment) -> void
 OfficeIMO.Word.WordEmbeddedObject
 OfficeIMO.Word.WordEmbeddedObject.Paragraph.get -> OfficeIMO.Word.WordParagraph!
-OfficeIMO.Word.WordEmbeddedObject.WordEmbeddedObject(OfficeIMO.Word.WordParagraph! wordParagraph, OfficeIMO.Word.WordDocument! wordDocument, string! fileName, string! fileImage, string! description, double? width = null, double? height = null) -> void
+OfficeIMO.Word.WordEmbeddedObject.WordEmbeddedObject(OfficeIMO.Word.WordParagraph! wordParagraph, OfficeIMO.Word.WordDocument! wordDocument, string! fileName, string! fileImage, string! description, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> void
 OfficeIMO.Word.WordEmbeddedObjectOptions
 OfficeIMO.Word.WordEmbeddedObjectOptions.DisplayAsIcon.get -> bool
 OfficeIMO.Word.WordEmbeddedObjectOptions.DisplayAsIcon.set -> void
-OfficeIMO.Word.WordEmbeddedObjectOptions.Height.get -> double
+OfficeIMO.Word.WordEmbeddedObjectOptions.Height.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordEmbeddedObjectOptions.Height.set -> void
 OfficeIMO.Word.WordEmbeddedObjectOptions.IconPath.get -> string?
 OfficeIMO.Word.WordEmbeddedObjectOptions.IconPath.set -> void
-OfficeIMO.Word.WordEmbeddedObjectOptions.Width.get -> double
+OfficeIMO.Word.WordEmbeddedObjectOptions.Width.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordEmbeddedObjectOptions.Width.set -> void
 OfficeIMO.Word.WordEmbeddedObjectOptions.WordEmbeddedObjectOptions() -> void
 OfficeIMO.Word.WordEndNote
@@ -1809,7 +1809,7 @@ OfficeIMO.Word.WordHeader.AddShape(OfficeIMO.Word.WordShapeType shapeType, Offic
 OfficeIMO.Word.WordHeader.AddShapeDrawing(OfficeIMO.Word.WordShapeType shapeType, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> OfficeIMO.Word.WordShape!
 OfficeIMO.Word.WordHeader.AddTextBox(string! text, OfficeIMO.Word.WordImageTextWrapping wrapTextImage = OfficeIMO.Word.WordImageTextWrapping.Square) -> OfficeIMO.Word.WordTextBox!
 OfficeIMO.Word.WordHeader.AddTextBoxVml(string! text) -> OfficeIMO.Word.WordTextBox!
-OfficeIMO.Word.WordHeader.AddWatermark(OfficeIMO.Word.WordWatermarkStyle watermarkStyle, string! textOrFilePath, double? horizontalOffset = null, double? verticalOffset = null, double scale = 1) -> OfficeIMO.Word.WordWatermark!
+OfficeIMO.Word.WordHeader.AddWatermark(OfficeIMO.Word.WordWatermarkStyle watermarkStyle, string! textOrFilePath, OfficeIMO.OfficeLength? horizontalOffset = null, OfficeIMO.OfficeLength? verticalOffset = null, double scale = 1) -> OfficeIMO.Word.WordWatermark!
 OfficeIMO.Word.WordHeaderFooter
 OfficeIMO.Word.WordHeaderFooter.AddBookmark(string! bookmarkName) -> OfficeIMO.Word.WordBookmark!
 OfficeIMO.Word.WordHeaderFooter.AddField(OfficeIMO.Word.WordFieldBuilder! builder, bool advanced = false) -> OfficeIMO.Word.WordField!
@@ -2883,7 +2883,7 @@ OfficeIMO.Word.WordParagraph.AddDatePicker(System.DateTime? date = null, string?
 OfficeIMO.Word.WordParagraph.AddDeletedText(string! text, string! author, System.DateTime? date = null) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordParagraph.AddDropDownList(System.Collections.Generic.IEnumerable<string!>! items, string? alias = null, string? tag = null) -> OfficeIMO.Word.WordDropDownList!
 OfficeIMO.Word.WordParagraph.AddEmbeddedObject(string! filePath, OfficeIMO.Word.WordEmbeddedObjectOptions! options) -> OfficeIMO.Word.WordEmbeddedObject!
-OfficeIMO.Word.WordParagraph.AddEmbeddedObject(string! filePath, string! imageFilePath, double? width = null, double? height = null) -> OfficeIMO.Word.WordEmbeddedObject!
+OfficeIMO.Word.WordParagraph.AddEmbeddedObject(string! filePath, string! imageFilePath, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Word.WordEmbeddedObject!
 OfficeIMO.Word.WordParagraph.AddEndNote(string! text) -> OfficeIMO.Word.WordEndNote!
 OfficeIMO.Word.WordParagraph.AddEquation(OfficeIMO.Drawing.OfficeMathExpression! expression) -> OfficeIMO.Word.WordEquation!
 OfficeIMO.Word.WordParagraph.AddEquation(string! omml) -> OfficeIMO.Word.WordEquation!
@@ -3516,7 +3516,7 @@ OfficeIMO.Word.WordSection.AddSmartArt(OfficeIMO.Word.WordSmartArtType type) -> 
 OfficeIMO.Word.WordSection.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.TableGrid) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordSection.AddTextBox(string! text, OfficeIMO.Word.WordImageTextWrapping wrapTextImage = OfficeIMO.Word.WordImageTextWrapping.Square) -> OfficeIMO.Word.WordTextBox!
 OfficeIMO.Word.WordSection.AddTextBoxVml(string! text) -> OfficeIMO.Word.WordTextBox!
-OfficeIMO.Word.WordSection.AddWatermark(OfficeIMO.Word.WordWatermarkStyle watermarkStyle, string! textOrFilePath, double? horizontalOffset = null, double? verticalOffset = null, double scale = 1) -> OfficeIMO.Word.WordWatermark!
+OfficeIMO.Word.WordSection.AddWatermark(OfficeIMO.Word.WordWatermarkStyle watermarkStyle, string! textOrFilePath, OfficeIMO.OfficeLength? horizontalOffset = null, OfficeIMO.OfficeLength? verticalOffset = null, double scale = 1) -> OfficeIMO.Word.WordWatermark!
 OfficeIMO.Word.WordSection.Bookmarks.get -> System.Collections.Generic.List<OfficeIMO.Word.WordBookmark!>!
 OfficeIMO.Word.WordSection.Borders.get -> OfficeIMO.Word.WordBorders!
 OfficeIMO.Word.WordSection.BreakType.get -> OfficeIMO.Word.WordSectionBreakType
@@ -4608,9 +4608,9 @@ OfficeIMO.Word.WordTemplateImage
 OfficeIMO.Word.WordTemplateImage.Content.get -> byte[]!
 OfficeIMO.Word.WordTemplateImage.Description.get -> string!
 OfficeIMO.Word.WordTemplateImage.FileName.get -> string!
-OfficeIMO.Word.WordTemplateImage.Height.get -> double?
-OfficeIMO.Word.WordTemplateImage.Width.get -> double?
-OfficeIMO.Word.WordTemplateImage.WordTemplateImage(byte[]! content, string! fileName, double? width = null, double? height = null, string! description = "") -> void
+OfficeIMO.Word.WordTemplateImage.Height.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordTemplateImage.Width.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordTemplateImage.WordTemplateImage(byte[]! content, string! fileName, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string! description = "") -> void
 OfficeIMO.Word.WordTemplateOptions
 OfficeIMO.Word.WordTemplateOptions.Culture.get -> System.Globalization.CultureInfo!
 OfficeIMO.Word.WordTemplateOptions.Culture.set -> void
@@ -4786,9 +4786,9 @@ OfficeIMO.Word.WordWatermark.FontFamily.get -> string?
 OfficeIMO.Word.WordWatermark.FontFamily.set -> void
 OfficeIMO.Word.WordWatermark.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordWatermark.FontSize.set -> void
-OfficeIMO.Word.WordWatermark.Height.get -> double?
+OfficeIMO.Word.WordWatermark.Height.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordWatermark.Height.set -> void
-OfficeIMO.Word.WordWatermark.HorizontalOffset.get -> double?
+OfficeIMO.Word.WordWatermark.HorizontalOffset.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordWatermark.HorizontalOffset.set -> void
 OfficeIMO.Word.WordWatermark.Opacity.get -> double?
 OfficeIMO.Word.WordWatermark.Opacity.set -> void
@@ -4799,12 +4799,12 @@ OfficeIMO.Word.WordWatermark.Stroked.get -> bool
 OfficeIMO.Word.WordWatermark.Stroked.set -> void
 OfficeIMO.Word.WordWatermark.Text.get -> string!
 OfficeIMO.Word.WordWatermark.Text.set -> void
-OfficeIMO.Word.WordWatermark.VerticalOffset.get -> double?
+OfficeIMO.Word.WordWatermark.VerticalOffset.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordWatermark.VerticalOffset.set -> void
-OfficeIMO.Word.WordWatermark.Width.get -> double?
+OfficeIMO.Word.WordWatermark.Width.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordWatermark.Width.set -> void
-OfficeIMO.Word.WordWatermark.WordWatermark(OfficeIMO.Word.WordDocument! wordDocument, OfficeIMO.Word.WordSection! wordSection, OfficeIMO.Word.WordHeader! wordHeader, OfficeIMO.Word.WordWatermarkStyle style, string! textOrFilePath, double? horizontalOffset = null, double? verticalOffset = null, double scale = 1) -> void
-OfficeIMO.Word.WordWatermark.WordWatermark(OfficeIMO.Word.WordDocument! wordDocument, OfficeIMO.Word.WordSection! wordSection, OfficeIMO.Word.WordWatermarkStyle style, string! textOrFilePath, double? horizontalOffset = null, double? verticalOffset = null, double scale = 1) -> void
+OfficeIMO.Word.WordWatermark.WordWatermark(OfficeIMO.Word.WordDocument! wordDocument, OfficeIMO.Word.WordSection! wordSection, OfficeIMO.Word.WordHeader! wordHeader, OfficeIMO.Word.WordWatermarkStyle style, string! textOrFilePath, OfficeIMO.OfficeLength? horizontalOffset = null, OfficeIMO.OfficeLength? verticalOffset = null, double scale = 1) -> void
+OfficeIMO.Word.WordWatermark.WordWatermark(OfficeIMO.Word.WordDocument! wordDocument, OfficeIMO.Word.WordSection! wordSection, OfficeIMO.Word.WordWatermarkStyle style, string! textOrFilePath, OfficeIMO.OfficeLength? horizontalOffset = null, OfficeIMO.OfficeLength? verticalOffset = null, double scale = 1) -> void
 OfficeIMO.Word.WordWatermarkStyle
 OfficeIMO.Word.WordWatermarkStyle.Image = 1 -> OfficeIMO.Word.WordWatermarkStyle
 OfficeIMO.Word.WordWatermarkStyle.Text = 0 -> OfficeIMO.Word.WordWatermarkStyle
@@ -4880,7 +4880,7 @@ static OfficeIMO.Word.WordDocumentComparer.CompareStructure(string! sourcePath, 
 static OfficeIMO.Word.WordDocumentComparer.CompareStructure(string! sourcePath, string! targetPath, OfficeIMO.Word.WordComparisonOptions? options) -> OfficeIMO.Word.WordComparisonResult!
 static OfficeIMO.Word.WordDocumentComparer.CreateRedlineDocument(string! sourcePath, string! targetPath, string! outputPath, OfficeIMO.Word.WordComparisonRedlineOptions? options = null) -> OfficeIMO.Word.WordComparisonResult!
 static OfficeIMO.Word.WordDocumentRegexExtensions.Find(this OfficeIMO.Word.WordDocument! document, System.Text.RegularExpressions.Regex! regex) -> OfficeIMO.Word.WordSearchResult!
-static OfficeIMO.Word.WordEmbeddedObjectOptions.Icon(string? iconPath = null, double? width = null, double? height = null) -> OfficeIMO.Word.WordEmbeddedObjectOptions!
+static OfficeIMO.Word.WordEmbeddedObjectOptions.Icon(string? iconPath = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Word.WordEmbeddedObjectOptions!
 static OfficeIMO.Word.WordField.AddField(OfficeIMO.Word.WordParagraph! paragraph, OfficeIMO.Word.WordFieldBuilder! builder, bool advanced = false) -> OfficeIMO.Word.WordField!
 static OfficeIMO.Word.WordField.AddField(OfficeIMO.Word.WordParagraph! paragraph, OfficeIMO.Word.WordFieldCode! fieldCode, OfficeIMO.Word.WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false) -> OfficeIMO.Word.WordField!
 static OfficeIMO.Word.WordField.AddField(OfficeIMO.Word.WordParagraph! paragraph, OfficeIMO.Word.WordFieldType wordFieldType, OfficeIMO.Word.WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false, System.Collections.Generic.List<string!>? parameters = null) -> OfficeIMO.Word.WordField!

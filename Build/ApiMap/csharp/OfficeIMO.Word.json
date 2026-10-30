@@ -8016,6 +8016,128 @@
       ],
       "applied": "phase-b-applied",
       "note": "HTML, iWork, RTF, native DOC and PowerShell consumers convert at their existing twip boundaries. PowerShell numeric parameter semantics are unchanged."
+    },
+    {
+      "member": "Word watermark, template-image and embedded-object frames",
+      "action": "change",
+      "category": "units",
+      "old": "Watermark size/offset, template image size and embedded-object size accept numeric points or pixels.",
+      "target": "OfficeLength and nullable OfficeLength for physical frames and offsets; scale and rotation retain numeric values.",
+      "reason": "Every public media frame uses a physical length while preserving native VML points, DrawingML dimensions, intrinsic image sizing and 64.8pt embedded-icon defaults.",
+      "applied": "phase-b-applied",
+      "signatures": [
+        {
+          "path": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
+          "before": [
+            "public WordEmbeddedObject AddEmbeddedObject(string filePath, string imageFilePath, double? width = null, double? height = null)"
+          ],
+          "after": [
+            "public WordEmbeddedObject AddEmbeddedObject(string filePath, string imageFilePath, global::OfficeIMO.OfficeLength? width = null, global::OfficeIMO.OfficeLength? height = null)"
+          ]
+        },
+        {
+          "path": "OfficeIMO.Word/WordEmbeddedObject.cs",
+          "before": [
+            "public WordEmbeddedObject(WordParagraph wordParagraph, WordDocument wordDocument, string fileName, string fileImage, string description, double? width = null, double? height = null)"
+          ],
+          "after": [
+            "public WordEmbeddedObject(WordParagraph wordParagraph, WordDocument wordDocument, string fileName, string fileImage, string description, global::OfficeIMO.OfficeLength? width = null, global::OfficeIMO.OfficeLength? height = null)"
+          ]
+        },
+        {
+          "path": "OfficeIMO.Word/WordEmbeddedObjectOptions.cs",
+          "before": [
+            "public double Width { get; set; } = 64.8;",
+            "public double Height { get; set; } = 64.8;",
+            "public static WordEmbeddedObjectOptions Icon(string? iconPath = null, double? width = null, double? height = null)"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength Width { get; set; } = global::OfficeIMO.OfficeLength.Points(64.8);",
+            "public global::OfficeIMO.OfficeLength Height { get; set; } = global::OfficeIMO.OfficeLength.Points(64.8);",
+            "public static WordEmbeddedObjectOptions Icon(string? iconPath = null, global::OfficeIMO.OfficeLength? width = null, global::OfficeIMO.OfficeLength? height = null)"
+          ]
+        },
+        {
+          "path": "OfficeIMO.Word/WordHeader.cs",
+          "before": [
+            "public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string textOrFilePath, double? horizontalOffset = null, double? verticalOffset = null, double scale = 1.0)"
+          ],
+          "after": [
+            "public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string textOrFilePath, global::OfficeIMO.OfficeLength? horizontalOffset = null, global::OfficeIMO.OfficeLength? verticalOffset = null, double scale = 1.0)"
+          ]
+        },
+        {
+          "path": "OfficeIMO.Word/WordParagraph.PublicMethods.Objects.cs",
+          "before": [
+            "public WordEmbeddedObject AddEmbeddedObject(string filePath, string imageFilePath, double? width = null, double? height = null)"
+          ],
+          "after": [
+            "public WordEmbeddedObject AddEmbeddedObject(string filePath, string imageFilePath, global::OfficeIMO.OfficeLength? width = null, global::OfficeIMO.OfficeLength? height = null)"
+          ]
+        },
+        {
+          "path": "OfficeIMO.Word/WordSection.PublicMethods.cs",
+          "before": [
+            "public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string textOrFilePath, double? horizontalOffset = null, double? verticalOffset = null, double scale = 1.0)"
+          ],
+          "after": [
+            "public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string textOrFilePath, global::OfficeIMO.OfficeLength? horizontalOffset = null, global::OfficeIMO.OfficeLength? verticalOffset = null, double scale = 1.0)"
+          ]
+        },
+        {
+          "path": "OfficeIMO.Word/WordTemplate.Models.cs",
+          "before": [
+            "public WordTemplateImage(byte[] content, string fileName, double? width = null, double? height = null, string description = \"\")",
+            "public double? Width { get; }",
+            "public double? Height { get; }"
+          ],
+          "after": [
+            "public WordTemplateImage(byte[] content, string fileName, global::OfficeIMO.OfficeLength? width = null, global::OfficeIMO.OfficeLength? height = null, string description = \"\")",
+            "public global::OfficeIMO.OfficeLength? Width { get; }",
+            "public global::OfficeIMO.OfficeLength? Height { get; }"
+          ]
+        },
+        {
+          "path": "OfficeIMO.Word/WordWatermark.cs",
+          "before": [
+            "public double? Width",
+            "public double? Height",
+            "public double? HorizontalOffset",
+            "public double? VerticalOffset",
+            "public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordWatermarkStyle style, string textOrFilePath, double? horizontalOffset = null, double? verticalOffset = null, double scale = 1.0)",
+            "public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordHeader wordHeader, WordWatermarkStyle style, string textOrFilePath, double? horizontalOffset = null, double? verticalOffset = null, double scale = 1.0)"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength? Width",
+            "public global::OfficeIMO.OfficeLength? Height",
+            "public global::OfficeIMO.OfficeLength? HorizontalOffset",
+            "public global::OfficeIMO.OfficeLength? VerticalOffset",
+            "public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordWatermarkStyle style, string textOrFilePath, global::OfficeIMO.OfficeLength? horizontalOffset = null, global::OfficeIMO.OfficeLength? verticalOffset = null, double scale = 1.0)",
+            "public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordHeader wordHeader, WordWatermarkStyle style, string textOrFilePath, global::OfficeIMO.OfficeLength? horizontalOffset = null, global::OfficeIMO.OfficeLength? verticalOffset = null, double scale = 1.0)"
+          ]
+        }
+      ],
+      "files": [
+        "OfficeIMO.Examples/Word/MarketReadiness/MarketReadinessProofGallery.TemplateBinding.cs",
+        "OfficeIMO.Examples/Word/Watermark/Watermark.Sample1.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.StructuredBlocks.cs",
+        "OfficeIMO.Word.Tests/Word.CultureInvariant.cs",
+        "OfficeIMO.Word.Tests/Word.EmbeddedObjects.cs",
+        "OfficeIMO.Word.Tests/Word.TemplateBinding.cs",
+        "OfficeIMO.Word.Tests/Word.Watermark.cs",
+        "OfficeIMO.Word/WordDocument.PublicMethods.cs",
+        "OfficeIMO.Word/WordEmbeddedObject.cs",
+        "OfficeIMO.Word/WordEmbeddedObjectOptions.cs",
+        "OfficeIMO.Word/WordHeader.cs",
+        "OfficeIMO.Word/WordParagraph.PublicMethods.Objects.cs",
+        "OfficeIMO.Word/WordSection.PublicMethods.cs",
+        "OfficeIMO.Word/WordTemplate.Models.cs",
+        "OfficeIMO.Word/WordTemplate.cs",
+        "OfficeIMO.Word/WordWatermark.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordWatermarkCommand.cs",
+        "Website/content/blog/generate-docx-from-template-dotnet.md",
+        "Website/content/docs/word/templates/index.md"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

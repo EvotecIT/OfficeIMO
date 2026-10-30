@@ -25,18 +25,18 @@ namespace OfficeIMO.Word {
         /// <param name="fileName">Path to the file to embed.</param>
         /// <param name="fileImage">Path to the icon representing the embedded object.</param>
         /// <param name="description">Description for the embedded object.</param>
-        /// <param name="width">Width of the icon in points. Defaults to <c>64.8</c>.</param>
-        /// <param name="height">Height of the icon in points. Defaults to <c>64.8</c>.</param>
-        public WordEmbeddedObject(WordParagraph wordParagraph, WordDocument wordDocument, string fileName, string fileImage, string description, double? width = null, double? height = null) {
+        /// <param name="width">Physical icon width; defaults to 64.8 points.</param>
+        /// <param name="height">Physical icon height; defaults to 64.8 points.</param>
+        public WordEmbeddedObject(WordParagraph wordParagraph, WordDocument wordDocument, string fileName, string fileImage, string description, global::OfficeIMO.OfficeLength? width = null, global::OfficeIMO.OfficeLength? height = null) {
 
 
             _document = wordDocument;
             _authoringParagraph = wordParagraph;
 
-            width ??= 64.8;
-            height ??= 64.8;
+            width ??= global::OfficeIMO.OfficeLength.Points(64.8);
+            height ??= global::OfficeIMO.OfficeLength.Points(64.8);
 
-            var embeddedObject = ConvertFileToEmbeddedObject(wordDocument, fileName, fileImage, width.Value, height.Value);
+            var embeddedObject = ConvertFileToEmbeddedObject(wordDocument, fileName, fileImage, width.Value.ToPoints(), height.Value.ToPoints());
 
             Run run = new Run();
             run.Append(embeddedObject);
@@ -66,7 +66,7 @@ namespace OfficeIMO.Word {
                 throw new ArgumentException("An icon path must be provided for embedded objects on this platform.", nameof(options));
             }
 
-            var embeddedObject = ConvertFileToEmbeddedObject(wordDocument, fileName, iconPath!, options.Width, options.Height);
+            var embeddedObject = ConvertFileToEmbeddedObject(wordDocument, fileName, iconPath!, options.Width.ToPoints(), options.Height.ToPoints());
 
             Run run = new Run();
             run.Append(embeddedObject);
@@ -204,7 +204,7 @@ namespace OfficeIMO.Word {
             shapetype1.Append(path1);
             shapetype1.Append(lock1);
 
-            var style = "width:" + width + "pt;height:" + height + "pt";
+            var style = "width:" + width.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "pt;height:" + height.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "pt";
 
             V.Shape shape1 = new V.Shape() {
                 Id = "_x0000_i1029",

@@ -291,7 +291,7 @@ namespace OfficeIMO.Word {
             var imageRun = new Run();
             var wrapper = new WordParagraph(document, paragraph, imageRun);
             using (var stream = new MemoryStream(image.GetContentUnsafe(), writable: false)) {
-                var wordImage = new WordImage(document, wrapper, stream, image.FileName, image.Width, image.Height, description: image.Description);
+                var wordImage = new WordImage(document, wrapper, stream, image.FileName, image.Width?.ToPixels(), image.Height?.ToPixels(), description: image.Description);
                 imageRun.Append(wordImage._Image);
             }
             anchor.InsertAfterSelf(imageRun);

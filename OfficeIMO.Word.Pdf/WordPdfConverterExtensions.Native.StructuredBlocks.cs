@@ -439,8 +439,8 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            double width = watermark.Width is > 0D ? watermark.Width.Value : 144D;
-            double height = watermark.Height is > 0D ? watermark.Height.Value : 144D;
+            double width = watermark.Width?.ToPoints() is double widthPoints && widthPoints > 0D ? widthPoints : 144D;
+            double height = watermark.Height?.ToPoints() is double heightPoints && heightPoints > 0D ? heightPoints : 144D;
             var pdfWatermark = new PdfCore.PdfImageWatermark(preparedBytes, width, height);
             if (watermark.Rotation.HasValue) {
                 pdfWatermark.RotationAngle = watermark.Rotation.Value;
@@ -476,8 +476,8 @@ namespace OfficeIMO.Word.Pdf {
                 return fontSize.Value;
             }
 
-            double? width = watermark.Width;
-            double? height = watermark.Height;
+            double? width = watermark.Width?.ToPoints();
+            double? height = watermark.Height?.ToPoints();
             string text = watermark.Text ?? string.Empty;
             if (!width.HasValue || !height.HasValue || width.Value <= 0D || height.Value <= 0D || text.Length == 0) {
                 return fontSize;
