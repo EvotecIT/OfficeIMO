@@ -31,7 +31,7 @@ jobs:
           suite: website
   website-build:
     needs: changes
-    if: needs.changes.outputs.selected == 'true'
+    if: github.event_name == 'pull_request' && needs.changes.outputs.selected == 'true'
     uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@396e00acba04dcaae4c3c95433338f4df65fbc01
     with:
       website_root: Website
@@ -47,3 +47,28 @@ jobs:
       powerforge_repository: EvotecIT/PSPublishModule
       powerforge_ref: 9d7ff674528e837ea295a2a23d2fbc6856fd0e3a
       report_artifact_name: powerforge-website-reports
+
+  website-build-manual:
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' && needs.changes.outputs.selected == 'true'
+    # The CI wrapper has its own branch-wide cancellation group. Manual runs
+    # use its canonical runner directly and retain this caller's unique group.
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-run.yml@396e00acba04dcaae4c3c95433338f4df65fbc01
+    with:
+      website_root: Website
+      pipeline_config: Website/pipeline.json
+      engine_mode: source
+      runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
+      timeout_minutes: 90
+      dotnet_version: "10.0.114"
+      dotnet_workloads: wasm-tools
+      powerforge_repository: EvotecIT/PSPublishModule
+      powerforge_ref: 9d7ff674528e837ea295a2a23d2fbc6856fd0e3a
+      report_artifact_name: powerforge-website-reports
+      pipeline_mode: ci
+      credential_mode: standard
+      use_playwright_cache: true
