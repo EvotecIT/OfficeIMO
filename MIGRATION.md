@@ -1,5 +1,34 @@
 # Upgrading OfficeIMO
 
+## Publisher document edits and drawing snapshots
+
+`PublisherPage.Drawing` is replaced by `CreateDrawing()`, which returns a
+detached scene. Use `PublisherDocument.ReplaceStoryParagraphs` and
+`SetTextFrameBounds` for supported publication edits that must reach document
+SVG, PDF and in-memory Reader output. Fetch current page, story and frame
+snapshots after each successful edit; previously returned objects keep their
+previous values. Native PUB saving remains unavailable.
+
+For render-only annotations, export the drawing copy directly. Previously:
+
+```csharp
+publication.Pages[0].Drawing.AddShape(annotation, 24, 24);
+File.WriteAllText("annotated.svg", publication.ToSvg());
+```
+
+Now:
+
+```csharp
+var drawing = publication.Pages[0].CreateDrawing();
+drawing.AddShape(annotation, 24, 24);
+File.WriteAllText("annotated.svg", OfficeDrawingSvgExporter.ToSvg(drawing));
+```
+
+`ReadReport` describes the current reconstructed state and is refreshed after
+edits. Use `SourceReadReport` when retaining the initial decode-only evidence.
+The [Publisher API guide](OfficeIMO.Publisher/README.md#edit-stories-and-frame-bounds)
+documents supported edits, rejection boundaries and cancellation behavior.
+
 ## Word document append
 
 `WordDocument.AppendDocument` now keeps the page setup of each document: the destination's final section properties become a section break before the appended content, which starts in its own section (a new page unless the source section says otherwise). To continue the appended content in the destination's section, as a workaround that moved the destination's closing `w:sectPr` did before, pass `new WordDocumentMergeOptions { SectionMode = WordMergeSectionMode.UseDestinationSections }`.

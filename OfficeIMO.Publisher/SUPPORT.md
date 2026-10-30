@@ -1,6 +1,7 @@
 # Publisher support contract
 
-OfficeIMO.Publisher is a native read-and-convert library. Its public model owns
+OfficeIMO.Publisher reads native publications, supports bounded in-memory edits
+and converts the current model. Its public model owns
 publication pages, master definitions, styled source stories, native table grids, embedded assets
 and a recovery report. Shared `OfficeDrawing` owns the reconstructed visual scene;
 the optional PDF package consumes that scene without another native decoder.
@@ -39,6 +40,7 @@ references do not report missing images.
 | Pictures | Embedded and delayed OfficeArt payload extraction, Publisher GIF envelopes, positioned images, source crop and supported custom-path masks | WMF/EMF use a supplied application codec or reported placeholder; native custom-mask appearance remains unqualified |
 | Picture controls | Source-RGB transparency keys, encoded-RGB brightness/contrast, preserve-grays tone handling, BT.709 grayscale and a 50-percent two-color threshold; original assets remain available | Color space, effect ordering and native Publisher pixels remain unqualified; recoloring and extended color controls are unassessed; invalid tone values or unresolved keys report omission |
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
+| In-memory edits | Document-owned replacement of complete non-table story paragraphs and bounds changes for resolved, visible, untransformed top-level frames; stable IDs and links, fresh scenes, text ranges and overflow | No table edits, grouped/transformed frame edits, relinking, object creation or native save-back; old page/story/frame references remain snapshots |
 | Output | SVG per document page and multi-page PDF through shared engines | No native save-back or editable publication writer |
 
 `OfficeIMO.Workflows` uses the same native codec for its `publisher-pdf` route,
@@ -67,6 +69,16 @@ Source object counts measure recovered descriptors and distinct projected
 objects. They do not measure pixel fidelity or prove that all content of an
 object survived. Complete source stories remain inspectable even when their
 visual placement is incomplete.
+
+Every successful edit replaces the current projection and its `ReadReport`.
+`SourceReadReport` remains the immutable decode-only evidence from the initial
+load. Validation, cancellation and projection failures leave the current model
+unchanged. Native bytes and compound metadata are retained privately and remain
+inert; their retention is not a qualified unknown-record preservation or save
+operation. `PublisherPage.CreateDrawing()` returns a detached scene for callers
+that need render-only annotations. Document SVG/PDF exports use the canonical
+publication state, and the Reader extension projects its current stories,
+tables, physical pages and assets without serializing or reopening it.
 
 `PublisherPage.TextFrames` records recovered frame geometry and links. Assigned
 UTF-16 ranges refer to normalized `PublisherTextStory.Text`; they are derived

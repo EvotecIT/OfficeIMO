@@ -139,7 +139,7 @@ public sealed class PublisherNativeComparisonTests {
                 AssertNear(marker.Top, native.Top);
                 AssertNear(marker.Width, native.Width);
                 AssertNear(marker.Height, native.Height);
-                OfficeDrawingShape projected = Assert.Single(PublisherNativeTests.Elements(publication.Pages[index].Drawing).OfType<OfficeDrawingShape>(), shape => Near(marker.Left, shape.X) && Near(marker.Top, shape.Y));
+                OfficeDrawingShape projected = Assert.Single(PublisherNativeTests.Elements(publication.Pages[index].CreateDrawing()).OfType<OfficeDrawingShape>(), shape => Near(marker.Left, shape.X) && Near(marker.Top, shape.Y));
                 AssertNear(marker.Width, projected.Shape.Width);
                 AssertNear(marker.Height, projected.Shape.Height);
             }
@@ -173,7 +173,7 @@ public sealed class PublisherNativeComparisonTests {
             PublisherPage page = publication.Pages[index];
             Assert.Equal(NativeId(assignment.MasterPageId), page.MasterPageId);
             string[] assignedMarkers = nativeMaster.Shapes.Where(shape => shape.Type == 17).Select(shape => NormalizeParagraphs(shape.Text!)).ToArray();
-            OfficeDrawingRichText[] projectedFrames = PublisherNativeTests.Elements(page.Drawing).OfType<OfficeDrawingRichText>().ToArray();
+            OfficeDrawingRichText[] projectedFrames = PublisherNativeTests.Elements(page.CreateDrawing()).OfType<OfficeDrawingRichText>().ToArray();
             Assert.Equal(assignedMarkers.Length, projectedFrames.Count(frame => allMasterMarkers.Contains(NormalizeParagraphs(PublisherNativeTests.Text(frame)))));
             foreach (NativeShape marker in nativeMaster.Shapes.Where(shape => shape.Type == 17)) {
                 string text = NormalizeParagraphs(marker.Text!);
@@ -243,7 +243,7 @@ public sealed class PublisherNativeComparisonTests {
             Assert.Equal(expected.GetPixel(point.X, point.Y), actual.GetPixel(point.X, point.Y));
 
         ExpectedShape geometry = Assert.Single(contract.Expected.Shapes, shape => shape.Kind == "Image");
-        OfficeDrawingImage projected = Assert.Single(publication.Pages.SelectMany(page => PublisherNativeTests.Elements(page.Drawing)).OfType<OfficeDrawingImage>());
+        OfficeDrawingImage projected = Assert.Single(publication.Pages.SelectMany(page => PublisherNativeTests.Elements(page.CreateDrawing())).OfType<OfficeDrawingImage>());
         AssertNear(geometry.Left, projected.Projection.X);
         AssertNear(geometry.Top, projected.Projection.Y);
         AssertNear(geometry.Width, projected.Projection.Width);
@@ -279,7 +279,7 @@ public sealed class PublisherNativeComparisonTests {
         PublisherDocument publication = Load(caseId, contract);
         ExpectedShape expected = Assert.Single(contract.Expected.Shapes);
         OfficeDrawingShape shape = Assert.Single(
-            PublisherNativeTests.Elements(Assert.Single(publication.Pages).Drawing).OfType<OfficeDrawingShape>(),
+            PublisherNativeTests.Elements(Assert.Single(publication.Pages).CreateDrawing()).OfType<OfficeDrawingShape>(),
             item => Near(expected.Left, item.X) && Near(expected.Top, item.Y));
 
         AssertNear(expected.Left, shape.X);

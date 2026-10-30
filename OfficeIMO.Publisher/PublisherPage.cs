@@ -4,9 +4,10 @@ namespace OfficeIMO.Publisher;
 
 /// <summary>A recovered publication page. Coordinates and dimensions are points, with a local top-left origin.</summary>
 public sealed class PublisherPage {
+    private readonly OfficeDrawing _drawing;
     internal PublisherPage(uint id, string name, uint? masterPageId, OfficeDrawing drawing,
         IReadOnlyList<PublisherTextFrame> textFrames, IReadOnlyList<PublisherTable> tables) {
-        Id = id; Name = name; MasterPageId = masterPageId; Drawing = drawing;
+        Id = id; Name = name; MasterPageId = masterPageId; _drawing = drawing;
         TextFrames = Array.AsReadOnly(textFrames.ToArray());
         Tables = Array.AsReadOnly(tables.ToArray());
     }
@@ -16,14 +17,14 @@ public sealed class PublisherPage {
     public string Name { get; }
     /// <summary>Applied master page identifier, when declared in the source.</summary>
     public uint? MasterPageId { get; }
-    /// <summary>Recovered drawing scene, including the applied master. Changes affect exported graphics, not the original .pub bytes.</summary>
-    public OfficeDrawing Drawing { get; }
+    /// <summary>Creates a detached drawing snapshot, including the applied master. Changes to this copy do not edit the publication.</summary>
+    public OfficeDrawing CreateDrawing() => _drawing.Clone();
     /// <summary>Native text frames owned by this page. Frames inherited from a master are listed on that master page.</summary>
     public IReadOnlyList<PublisherTextFrame> TextFrames { get; }
     /// <summary>Native tables owned by this page. Tables inherited from a master are listed on that master page.</summary>
     public IReadOnlyList<PublisherTable> Tables { get; }
     /// <summary>Page width in points.</summary>
-    public double Width => Drawing.Width;
+    public double Width => _drawing.Width;
     /// <summary>Page height in points.</summary>
-    public double Height => Drawing.Height;
+    public double Height => _drawing.Height;
 }

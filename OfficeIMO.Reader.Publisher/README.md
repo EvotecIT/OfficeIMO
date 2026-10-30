@@ -36,6 +36,33 @@ Content detection recognizes the compound-file Contents and Quill stream pair,
 including publications with an unfamiliar filename extension. The native codec
 then validates the actual supported generation.
 
+## Reading an in-memory publication
+
+Project a loaded publication directly when another workflow already owns the
+document or has edited its stories and frames:
+
+```csharp
+using OfficeIMO.Publisher;
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Publisher;
+
+var publication = PublisherDocument.Load("newsletter.pub");
+OfficeDocumentReadResult result = publication.ToOfficeDocumentReadResult(
+    sourceName: "newsletter.pub",
+    readerOptions: new ReaderOptions { MaxChars = 4_000, ComputeHashes = true });
+```
+
+The extension projects the document's current model through the same semantic
+owner as file and stream reads. It does not save, reopen or take ownership of the
+document. `sourceName` supplies a logical citation name and is never opened; its
+default is `document.pub`. Output budgets and cancellation still apply. Enforce
+native input limits when loading the publication.
+
+In-memory results have no source byte hash, length or timestamp. With
+`ComputeHashes = true`, chunk hashes describe the current semantic content and
+requested image payload hashes describe the retained assets. Story edits appear
+in subsequent results; already returned results remain snapshots.
+
 ## Projection contract
 
 Every source story appears once in native story order, including text that

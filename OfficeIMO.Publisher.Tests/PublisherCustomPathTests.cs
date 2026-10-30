@@ -33,7 +33,7 @@ public sealed class PublisherCustomPathTests {
                 [0x1C0] = 0x0000FF00, [0x1FF] = 0x00080008
             });
         PublisherDocument publication = PublisherDocument.Load(input);
-        var artwork = PublisherNativeTests.Elements(publication.Pages[0].Drawing).OfType<OfficeDrawingShape>()
+        var artwork = PublisherNativeTests.Elements(publication.Pages[0].CreateDrawing()).OfType<OfficeDrawingShape>()
             .Where(item => item.SourceElementIds?.Contains("publisher-object-293") == true).ToArray();
         bool noFill = (flags & 0x02000000) != 0, noLine = (flags & 0x00400000) != 0;
         if (noFill && noLine) Assert.Empty(artwork);
@@ -95,8 +95,6 @@ public sealed class PublisherCustomPathTests {
         Assert.Equal(OfficeShapeKind.Path, shape.Kind);
         Assert.Equal(new[] { OfficePathCommandKind.MoveTo, OfficePathCommandKind.LineTo,
             OfficePathCommandKind.LineTo, OfficePathCommandKind.Close }, shape.PathCommands.Select(command => command.Kind));
-        Assert.Contains("publisher-object-293", PublisherNativeTests.Elements(publication.Pages[0].Drawing)
-            .OfType<OfficeDrawingShape>().Single(item => ReferenceEquals(item.Shape, shape)).SourceElementIds!);
     }
 
     [Fact]
@@ -239,6 +237,6 @@ public sealed class PublisherCustomPathTests {
         return stream.ToArray();
     }
 
-    private static OfficeShape Artwork(PublisherDocument publication) => PublisherNativeTests.Elements(publication.Pages[0].Drawing)
+    private static OfficeShape Artwork(PublisherDocument publication) => PublisherNativeTests.Elements(publication.Pages[0].CreateDrawing())
         .OfType<OfficeDrawingShape>().Single(item => item.SourceElementIds?.Contains("publisher-object-293") == true).Shape;
 }

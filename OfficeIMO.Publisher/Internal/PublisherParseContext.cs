@@ -16,6 +16,18 @@ internal sealed class PublisherParseContext {
     private int _imageStoreEntries;
     private long _tableModelItems, _tableModelCharacters;
     internal IReadOnlyList<OfficeConversionFidelityDiagnostic> Diagnostics => _diagnostics;
+    // Called on the decode-only context. Each projection starts with the same
+    // source evidence and budgets, never with an earlier projection's work.
+    internal PublisherParseContext ForProjection(CancellationToken token) {
+        var result = new PublisherParseContext(Options, token) {
+            Records = Records, ImageBytes = ImageBytes,
+            _imageStoreEntries = _imageStoreEntries, _imageProcessingBytes = _imageProcessingBytes,
+            _imageProcessingPixels = _imageProcessingPixels, _pathWorkItems = _pathWorkItems
+        };
+        foreach (OfficeConversionFidelityDiagnostic diagnostic in _diagnostics)
+            result.Add(diagnostic.Code, diagnostic.Message, diagnostic.LossKind, diagnostic.Location);
+        return result;
+    }
     internal void Record() {
         Token.ThrowIfCancellationRequested();
         if (Records >= Options.Limits.MaxRecords) throw new InvalidDataException("Publisher native record limit exceeded.");
@@ -86,7 +98,8 @@ internal sealed class PublisherParseContext {
                     throw new InvalidDataException("Publisher projected gradient stop work limit exceeded.");
             }
             if (element is OfficeIMO.Drawing.OfficeDrawingRichText text) {
-                long characters = text.Paragraphs.Count != 0 ? text.Paragraphs.Sum(paragraph => paragraph.Runs.Sum(run => (long)run.Text.Length))
+                long characters = text.Paragraphs.Count != 0 ? text.Paragraphs.Sum(paragraph => paragraph.Runs.Sum(run => (long)run.Text.Length)
+                    + (paragraph.Label?.Run.Text.Length ?? 0))
                     : text.Runs.Sum(run => (long)run.Text.Length);
                 _projectedCharacters += characters;
                 if (_projectedCharacters > Options.Limits.MaxTextCharacters) throw new InvalidDataException("Publisher projected text character limit exceeded.");

@@ -17,7 +17,7 @@ public sealed class PublisherDrawingBoundaryTests {
         PublisherDocument document = PublisherDocument.Load(input);
         Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_PAGE_BLEED_CLIPPED"
             && diagnostic.Location == "Contents/object/" + objectId);
-        OfficeDrawing page = document.Pages[file == "Simple.pub" ? 0 : 1].Drawing;
+        OfficeDrawing page = document.Pages[file == "Simple.pub" ? 0 : 1].CreateDrawing();
         foreach (OfficeDrawing copy in new[] { page, page.Clone() }) {
             OfficeDrawingRichText[] frames = PublisherNativeTests.Elements(copy).OfType<OfficeDrawingRichText>()
                 .Where(frame => frame.SourceElementIds?.Contains("publisher-object-" + objectId) == true).ToArray();

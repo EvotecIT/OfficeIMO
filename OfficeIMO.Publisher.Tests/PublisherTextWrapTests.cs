@@ -9,10 +9,10 @@ public sealed class PublisherTextWrapTests {
         PublisherPage page = document.Pages.Single(item => item.TextFrames.Any(frame => frame.Id == 327));
         PublisherTextFrame frame = page.TextFrames.Single(item => item.Id == 327);
         Assert.Equal(new uint[] { 345, 346 }, frame.WrapObjectIds);
-        OfficeDrawingImage picture = PublisherNativeTests.Elements(page.Drawing).OfType<OfficeDrawingImage>()
+        OfficeDrawingImage picture = PublisherNativeTests.Elements(page.CreateDrawing()).OfType<OfficeDrawingImage>()
             .Single(item => item.SourceElementIds?.Contains("publisher-object-346") == true);
         OfficeImagePlacement bounds = picture.Projection.Placement;
-        OfficeDrawingRichText[] regions = PublisherNativeTests.Elements(page.Drawing).OfType<OfficeDrawingRichText>()
+        OfficeDrawingRichText[] regions = PublisherNativeTests.Elements(page.CreateDrawing()).OfType<OfficeDrawingRichText>()
             .Where(item => item.SourceElementIds?.Contains("publisher-object-327") == true).ToArray();
         Assert.NotEmpty(regions);
         Assert.True(frame.X < bounds.X + bounds.Width && frame.X + frame.Width > bounds.X);

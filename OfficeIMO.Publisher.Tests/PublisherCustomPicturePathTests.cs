@@ -19,7 +19,7 @@ public sealed class PublisherCustomPicturePathTests {
         PublisherDocument publication = PublisherDocument.Load(input, options);
         PublisherDocument control = PublisherDocument.Load(original, options);
         Assert.Equal(control.Images.SelectMany(image => image.GetBytes()), publication.Images.SelectMany(image => image.GetBytes()));
-        OfficeDrawingGroup group = publication.Pages.SelectMany(page => PublisherNativeTests.Elements(page.Drawing))
+        OfficeDrawingGroup group = publication.Pages.SelectMany(page => PublisherNativeTests.Elements(page.CreateDrawing()))
             .OfType<OfficeDrawingGroup>().Single(item => item.SourceElementIds?.Contains("publisher-object-362") == true);
         Assert.Single(group.InnerDrawing.Images);
         Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_INVALID");
@@ -42,7 +42,7 @@ public sealed class PublisherCustomPicturePathTests {
             [0x140] = 0, [0x141] = 0, [0x142] = 60000, [0x143] = 60000, [0x144] = 1
         }, 0, new() { [0x145] = PublisherCustomPathTests.Vertices(new[] { (20000, 20000), (50000, 20000), (20000, 50000) }, elementSize) }, 362);
         PublisherDocument publication = PublisherDocument.Load(input, new PublisherReadOptions { ImageCodec = new SolidCodec() });
-        OfficeDrawingGroup group = publication.Pages.SelectMany(page => PublisherNativeTests.Elements(page.Drawing))
+        OfficeDrawingGroup group = publication.Pages.SelectMany(page => PublisherNativeTests.Elements(page.CreateDrawing()))
             .OfType<OfficeDrawingGroup>().Single(item => item.SourceElementIds?.Contains("publisher-object-362") == true);
         Assert.Equal(group.ClipPath.Width * 5 / 6, group.ClipPath.Commands[1].Point.X, 6);
         Assert.Equal(group.ClipPath.Height * 5 / 6, group.ClipPath.Commands[2].Point.Y, 6);
@@ -62,7 +62,7 @@ public sealed class PublisherCustomPicturePathTests {
         PublisherDocument publication = PublisherDocument.Load(input, options);
         PublisherDocument control = PublisherDocument.Load(original, options);
         Assert.Equal(control.Images.SelectMany(image => image.GetBytes()), publication.Images.SelectMany(image => image.GetBytes()));
-        OfficeDrawingGroup group = publication.Pages.SelectMany(page => PublisherNativeTests.Elements(page.Drawing))
+        OfficeDrawingGroup group = publication.Pages.SelectMany(page => PublisherNativeTests.Elements(page.CreateDrawing()))
             .OfType<OfficeDrawingGroup>().Single(item => item.SourceElementIds?.Contains("publisher-object-362") == true);
         Assert.Equal(OfficeClipPathKind.Path, group.ClipPath.Kind);
         Assert.Equal(new OfficePoint(group.ClipPath.Width / 4, group.ClipPath.Height / 4), group.ClipPath.Commands[0].Point);

@@ -75,6 +75,7 @@ internal sealed class PublisherEscherReader {
         var shape = new PublisherEscherShape(id, fsp.Initial >> 4, flags, properties, relativeToParent: space.HasValue) {
             GroupTransform = (anchor != null ? space?.ClientTransform : space?.Transform) ?? OfficeTransform.Identity,
             LayoutTransform = (anchor != null ? space?.ClientLayoutTransform : space?.LayoutTransform) ?? OfficeTransform.Identity,
+            HasPublicationGroupParent = space?.HasPublicationGroup ?? false,
             HiddenByGroup = space?.Hidden ?? false
         };
         if (anchor != null) {
@@ -212,13 +213,15 @@ internal sealed class PublisherEscherData {
 
 internal sealed class PublisherEscherShape {
     internal PublisherEscherShape(uint id, int type, uint flags, IReadOnlyList<OfficeArtProperty> properties, bool relativeToParent = false) {
-        Id = id; Type = type; Flags = flags; Properties = properties;
+        Id = id; Type = type; Flags = flags; Properties = properties; HasParentDrawingSpace = relativeToParent;
         Style = OfficeArtShapeStyle.Decode(properties); Transform = OfficeArtShapeTransform.Decode(flags, properties, relativeToParent);
     }
     internal uint Id { get; }
     internal int Type { get; }
     internal uint Flags { get; }
     internal bool IsGroup => (Flags & 1) != 0;
+    internal bool HasParentDrawingSpace { get; }
+    internal bool HasPublicationGroupParent { get; set; }
     internal IReadOnlyList<OfficeArtProperty> Properties { get; }
     internal OfficeArtShapeStyle Style { get; }
     internal OfficeArtShapeTransform Transform { get; }

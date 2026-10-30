@@ -53,7 +53,7 @@ public sealed class PublisherPdfTests {
         Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_METAFILE_RASTERIZED" && item.LossKind == OfficeConversionLossKind.Approximation);
         Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, item => item.Code == "IMAGE_SOURCE_DECODE_FALLBACK");
         Assert.Equal(baseline.Images.Select(image => image.GetBytes()), document.Images.Select(image => image.GetBytes()), ByteArrayComparer.Instance);
-        OfficeDrawingImage projected = PublisherNativeTests.Elements(document.Pages[0].Drawing).OfType<OfficeDrawingImage>().First();
+        OfficeDrawingImage projected = PublisherNativeTests.Elements(document.Pages[0].CreateDrawing()).OfType<OfficeDrawingImage>().First();
         Assert.Equal("image/png", projected.ContentType);
         Assert.True(OfficeRasterImageDecoder.TryDecode(projected.Bytes, out OfficeRasterImage? raster));
         Assert.Equal(OfficeColor.FromRgb(20, 160, 40), raster!.GetPixel(0, 0));

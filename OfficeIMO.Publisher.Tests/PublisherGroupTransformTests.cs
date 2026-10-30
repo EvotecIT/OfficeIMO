@@ -67,7 +67,7 @@ public sealed class PublisherGroupTransformTests {
     public void Nonuniform_group_scaling_follows_child_rotation_in_artwork_and_frame_corners(bool relative, double angle) {
         PublisherDocument document = CreateNonuniformGroup(relative, angle);
         PublisherTextFrame frame = Assert.Single(document.Pages[0].TextFrames);
-        var artwork = PublisherNativeTests.Elements(document.Pages[0].Drawing).OfType<OfficeDrawingEffectGroup>()
+        var artwork = PublisherNativeTests.Elements(document.Pages[0].CreateDrawing()).OfType<OfficeDrawingEffectGroup>()
             .Single(item => item.SourceElementIds?.Contains("publisher-object-3") == true
                 || PublisherNativeTests.Elements(item.InnerDrawing).Any(element => element.SourceElementIds?.Contains("publisher-object-3") == true));
         foreach (OfficePoint unit in new[] { new OfficePoint(0, 0), new OfficePoint(1, 0), new OfficePoint(1, 1) }) {
@@ -97,13 +97,13 @@ public sealed class PublisherGroupTransformTests {
             OfficePoint expected = Transform(new OfficePoint(frame.X + point.X, frame.Y + point.Y), centerX, centerY, angle, horizontal, vertical);
             Equal(expected, frame.PageTransform.TransformPoint(point));
         }
-        OfficeDrawingEffectGroup artwork = PublisherNativeTests.Elements(page.Drawing).OfType<OfficeDrawingEffectGroup>()
+        OfficeDrawingEffectGroup artwork = PublisherNativeTests.Elements(page.CreateDrawing()).OfType<OfficeDrawingEffectGroup>()
             .Single(group => PublisherNativeTests.Elements(group.InnerDrawing).OfType<OfficeDrawingImage>()
                 .Any(image => image.SourceElementIds?.Contains("publisher-object-346") == true));
         OfficeDrawingImage image = PublisherNativeTests.Elements(artwork.InnerDrawing).OfType<OfficeDrawingImage>()
             .Single(item => item.SourceElementIds?.Contains("publisher-object-346") == true);
         OfficeDrawingImage original = PublisherDocument.Load(PublisherNativeTests.Fixture("SampleNewsletter.pub"))
-            .Pages.SelectMany(item => PublisherNativeTests.Elements(item.Drawing)).OfType<OfficeDrawingImage>()
+            .Pages.SelectMany(item => PublisherNativeTests.Elements(item.CreateDrawing())).OfType<OfficeDrawingImage>()
             .Single(item => item.SourceElementIds?.Contains("publisher-object-346") == true);
         foreach (OfficePoint point in new[] { new OfficePoint(0, 0), new OfficePoint(1, 0), new OfficePoint(1, 1) }) {
             OfficePoint unrotated = original.Projection.CreateUnitSquareTransform().TransformPoint(point);
@@ -142,7 +142,7 @@ public sealed class PublisherGroupTransformTests {
     public void Hidden_group_content_is_inert_and_no_longer_excludes_printable_story_text() {
         PublisherDocument baseline = PublisherDocument.Load(PublisherNativeTests.Fixture("SampleNewsletter.pub"));
         PublisherDocument hidden = PublisherDocument.Load(MutateGroup(0, false, false, hidden: true));
-        Assert.DoesNotContain(hidden.Pages.SelectMany(page => PublisherNativeTests.Elements(page.Drawing)),
+        Assert.DoesNotContain(hidden.Pages.SelectMany(page => PublisherNativeTests.Elements(page.CreateDrawing())),
             element => element.SourceElementIds?.Any(id => id is "publisher-object-345" or "publisher-object-346") == true);
         Assert.Contains(hidden.TextStories, story => story.Text == baseline.TextStories.Single(item => item.Id ==
             baseline.Pages.SelectMany(page => page.TextFrames).Single(frame => frame.Id == 345).StoryId).Text);
@@ -157,7 +157,7 @@ public sealed class PublisherGroupTransformTests {
         PublisherDocument control = PublisherDocument.Load(PublisherNativeTests.Fixture("SampleNewsletter.pub"));
         PublisherDocument transformed = PublisherDocument.Load(MutateGroup(30, true, false));
         PublisherPage page = control.Pages.Single(item => item.TextFrames.Any(frame => frame.Id == 345));
-        OfficeDrawingImage picture = PublisherNativeTests.Elements(page.Drawing).OfType<OfficeDrawingImage>()
+        OfficeDrawingImage picture = PublisherNativeTests.Elements(page.CreateDrawing()).OfType<OfficeDrawingImage>()
             .Single(item => item.SourceElementIds?.Contains("publisher-object-346") == true);
         // This native picture declares the standard 36,576-EMU wrap distance on every side.
         double distance = 36576 / 12700D;
@@ -168,7 +168,7 @@ public sealed class PublisherGroupTransformTests {
             new OfficePoint(picture.Projection.X - distance, picture.Projection.Y + picture.Projection.Height + distance),
             new OfficePoint(picture.Projection.X + picture.Projection.Width + distance, picture.Projection.Y + picture.Projection.Height + distance)
         }.Select(point => Transform(point, centerX, centerY, 30, true, false)).ToArray();
-        OfficeDrawingRichText[] regions = transformed.Pages.SelectMany(item => PublisherNativeTests.Elements(item.Drawing))
+        OfficeDrawingRichText[] regions = transformed.Pages.SelectMany(item => PublisherNativeTests.Elements(item.CreateDrawing()))
             .OfType<OfficeDrawingRichText>().Where(item => item.SourceElementIds?.Contains("publisher-object-327") == true)
             .OrderBy(item => item.Y).ToArray();
         Assert.Equal(2, regions.Length);
@@ -181,18 +181,18 @@ public sealed class PublisherGroupTransformTests {
         byte[] input = MutateGroup(30, true, false);
         PublisherDocument document = PublisherDocument.Load(input);
         PublisherPage page = document.Pages.Single(item => item.TextFrames.Any(frame => frame.Id == 345));
-        Assert.Equal(OfficeDrawingSvgExporter.ToSvg(page.Drawing), OfficeDrawingSvgExporter.ToSvg(page.Drawing.Clone()));
+        Assert.Equal(OfficeDrawingSvgExporter.ToSvg(page.CreateDrawing()), OfficeDrawingSvgExporter.ToSvg(page.CreateDrawing().Clone()));
     }
 
     [Fact]
     public void Off_page_group_picture_is_retained_when_reflection_moves_it_onto_the_page() {
         PublisherDocument control = PublisherDocument.Load(PublisherNativeTests.Fixture("SampleNewsletter.pub"));
-        OfficeDrawingImage original = control.Pages.SelectMany(page => PublisherNativeTests.Elements(page.Drawing))
+        OfficeDrawingImage original = control.Pages.SelectMany(page => PublisherNativeTests.Elements(page.CreateDrawing()))
             .OfType<OfficeDrawingImage>().Single(image => image.SourceElementIds?.Contains("publisher-object-346") == true);
         double offsetY = -original.Projection.Y - 20D;
         PublisherDocument reflected = PublisherDocument.Load(MutateGroup(0, false, true, yOffsetPoints: offsetY));
         PublisherPage page = reflected.Pages.Single(item => item.TextFrames.Any(frame => frame.Id == 345));
-        OfficeDrawingEffectGroup artwork = PublisherNativeTests.Elements(page.Drawing).OfType<OfficeDrawingEffectGroup>()
+        OfficeDrawingEffectGroup artwork = PublisherNativeTests.Elements(page.CreateDrawing()).OfType<OfficeDrawingEffectGroup>()
             .Single(group => PublisherNativeTests.Elements(group.InnerDrawing).OfType<OfficeDrawingImage>()
                 .Any(image => image.SourceElementIds?.Contains("publisher-object-346") == true));
         OfficeDrawingImage picture = PublisherNativeTests.Elements(artwork.InnerDrawing).OfType<OfficeDrawingImage>().Single();

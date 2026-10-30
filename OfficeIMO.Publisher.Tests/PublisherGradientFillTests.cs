@@ -158,7 +158,7 @@ public sealed class PublisherGradientFillTests {
     public void Fill_boolean_masks_control_visibility_and_custom_mapping() {
         PublisherDocument hidden = Load(4, extra: new() { [0x1BF] = 0x00100000 });
         Assert.DoesNotContain(hidden.ReadReport.FidelityDiagnostics, item => item.Code.StartsWith("PUB_GRADIENT", StringComparison.Ordinal));
-        Assert.All(PublisherNativeTests.Elements(hidden.Pages[0].Drawing).OfType<OfficeDrawingShape>()
+        Assert.All(PublisherNativeTests.Elements(hidden.Pages[0].CreateDrawing()).OfType<OfficeDrawingShape>()
             .Where(item => item.SourceElementIds?.Contains("publisher-object-293") == true), item => Assert.Null(item.Shape.FillGradient));
         PublisherDocument custom = Load(4, extra: new() { [0x1BF] = 0x00120012 });
         Assert.Null(Artwork(custom).FillGradient);
@@ -181,7 +181,7 @@ public sealed class PublisherGradientFillTests {
     public void Picture_fill_is_below_the_image_and_does_not_reappear_in_its_outline() {
         const string fixture = "SampleBrochure.pub";
         PublisherDocument original = PublisherDocument.Load(PublisherNativeTests.Fixture(fixture));
-        OfficeDrawingImage picture = original.Pages.SelectMany(page => PublisherNativeTests.Elements(page.Drawing)).OfType<OfficeDrawingImage>().First();
+        OfficeDrawingImage picture = original.Pages.SelectMany(page => PublisherNativeTests.Elements(page.CreateDrawing())).OfType<OfficeDrawingImage>().First();
         string sourceId = picture.SourceElementIds!.Single();
         uint id = uint.Parse(sourceId.Substring("publisher-object-".Length), System.Globalization.CultureInfo.InvariantCulture);
         var properties = new Dictionary<ushort, uint> {
@@ -189,7 +189,7 @@ public sealed class PublisherGradientFillTests {
             [0x1BF] = 0x00100010, [0x1C0] = 0, [0x1CB] = 12700, [0x1FF] = 0x00080008
         };
         PublisherDocument document = PublisherDocument.Load(PublisherDrawingFixture.Mutate(properties, 75, fixture: fixture, objectId: id));
-        OfficeDrawingElement[] layers = document.Pages.SelectMany(page => PublisherNativeTests.Elements(page.Drawing))
+        OfficeDrawingElement[] layers = document.Pages.SelectMany(page => PublisherNativeTests.Elements(page.CreateDrawing()))
             .Where(item => item.SourceElementIds?.Contains(sourceId) == true).ToArray();
         Assert.Collection(layers,
             item => Assert.NotNull(Assert.IsType<OfficeDrawingShape>(item).Shape.FillGradient),
@@ -211,7 +211,7 @@ public sealed class PublisherGradientFillTests {
         return PublisherDrawingFixture.Mutate(values, 1, complex == null ? null : new() { [0x197] = complex });
     }
 
-    internal static OfficeShape Artwork(PublisherDocument document) => PublisherNativeTests.Elements(document.Pages[0].Drawing)
+    internal static OfficeShape Artwork(PublisherDocument document) => PublisherNativeTests.Elements(document.Pages[0].CreateDrawing())
         .OfType<OfficeDrawingShape>().Single(item => item.SourceElementIds?.Contains("publisher-object-293") == true).Shape;
 
     internal static byte[] Stops(params (uint Color, uint Position)[] entries) {

@@ -125,7 +125,7 @@ public sealed class PublisherGeometryGuideTests {
         }) { Bounds = new PublisherNativeRectangle(0, 0, nativeWidth, nativeHeight) });
         PublisherDocument publication = new PublisherPageProjector(source, new PublisherQuillText(), escher,
             new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Project();
-        OfficeShape shape = PublisherNativeTests.Elements(publication.Pages[0].Drawing).OfType<OfficeDrawingShape>()
+        OfficeShape shape = PublisherNativeTests.Elements(publication.Pages[0].CreateDrawing()).OfType<OfficeDrawingShape>()
             .Single(item => item.SourceElementIds?.Contains("publisher-object-2") == true).Shape;
         Assert.Equal(OfficeShapeKind.Path, shape.Kind);
         Assert.Equal(nativeWidth / 12700D, shape.Width, 10);
@@ -204,7 +204,7 @@ public sealed class PublisherGeometryGuideTests {
         PublisherDocument publication = PublisherDocument.Load(input, options);
         PublisherDocument control = PublisherDocument.Load(original, options);
         Assert.Equal(control.Images.SelectMany(image => image.GetBytes()), publication.Images.SelectMany(image => image.GetBytes()));
-        var group = publication.Pages.SelectMany(page => PublisherNativeTests.Elements(page.Drawing))
+        var group = publication.Pages.SelectMany(page => PublisherNativeTests.Elements(page.CreateDrawing()))
             .OfType<OfficeDrawingGroup>().Single(item => item.SourceElementIds?.Contains("publisher-object-362") == true);
         Assert.Equal(OfficeClipPathKind.Path, group.ClipPath.Kind);
         Assert.Equal(new OfficePoint(group.ClipPath.Width / 4, group.ClipPath.Height / 4), group.ClipPath.Commands[0].Point);
@@ -236,7 +236,7 @@ public sealed class PublisherGeometryGuideTests {
         return stream.ToArray();
     }
     private static int Guide(int index) => unchecked((int)0x80000000) | index;
-    private static OfficeShape Artwork(PublisherDocument publication) => PublisherNativeTests.Elements(publication.Pages[0].Drawing)
+    private static OfficeShape Artwork(PublisherDocument publication) => PublisherNativeTests.Elements(publication.Pages[0].CreateDrawing())
         .OfType<OfficeDrawingShape>().Single(item => item.SourceElementIds?.Contains("publisher-object-293") == true).Shape;
     private sealed class SolidCodec : IOfficeRasterImageCodec {
         public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {

@@ -1,7 +1,8 @@
 # OfficeIMO.Publisher
 
-Recover Microsoft Publisher publications into positioned pages, styled text
-stories, and embedded image assets. The managed reader handles the Publisher
+Read Microsoft Publisher publications into positioned pages, styled text
+stories and embedded image assets, edit supported stories and frame bounds, and
+render the current model. The managed reader handles the Publisher
 2002-and-later compound-document generation without installing Publisher.
 [The support contract](SUPPORT.md) identifies the qualified fixtures and rendering
 limits.
@@ -30,10 +31,64 @@ foreach (var diagnostic in publication.ReadReport.FidelityDiagnostics)
 `Pages` follows publication order and excludes utility pages and master
 definitions. `MasterPages` exposes the recovered definitions; their content is
 also applied to referring pages. Coordinates use points and a top-left origin.
-Each page's `Drawing` is the shared `OfficeDrawing` model. Callers can add artwork
-to that scene for subsequent exports. Recovered page content is held in a detached
-clipped group; this API does not directly edit native text frames or modify the
-publication file.
+`CreateDrawing()` returns a detached shared `OfficeDrawing` snapshot, including
+the applied master. Adding artwork to that copy affects exports of the copy;
+document exports use the publication model. Use the document's typed edit
+operations to change its stories and text frames.
+
+## Edit stories and frame bounds
+
+For a publication with an ordinary, resolved, untransformed top-level text frame:
+
+```csharp
+using OfficeIMO.Drawing;
+using OfficeIMO.Publisher;
+
+var publication = PublisherDocument.Load("flyer.pub");
+var frame = publication.Pages[0].TextFrames[0];
+
+publication.ReplaceStoryParagraphs(frame.StoryId, new[] {
+    new OfficeRichTextParagraph(new[] {
+        new OfficeRichTextRun("Updated publication", 18, OfficeColor.Black,
+            bold: true, fontFamily: "Arial")
+    })
+});
+publication.SetTextFrameBounds(frame.Id, 72, 72, 360, 108);
+File.WriteAllText("edited.svg", publication.ToSvg());
+```
+
+`ReplaceStoryParagraphs` replaces a complete non-table story. It derives `Text`
+from the supplied paragraphs, normalizes carriage returns to newlines, and
+retains the source's final paragraph-terminator convention, including after
+clearing and repopulating the story. An empty paragraph collection clears the
+story. Styled runs, paragraph layout, list labels and tab settings use the
+shared drawing types. Complete text remains available when it overflows.
+Body runs and labels require well-formed UTF-16 and positive finite font sizes;
+labels also reject control characters. Labels count toward the story run and
+character ceilings, the publication's edit budget and cumulative projection
+work, while remaining separate from `PublisherTextStory.Text`.
+
+`SetTextFrameBounds` uses page-local points. Width and height must be positive
+and finite; negative offsets allow artwork to bleed beyond the clipped page.
+Grouped, rotated, reflected, hidden, unresolved and table frames are rejected.
+Both operations retain identifiers, ownership and frame links, then recalculate
+the current page scenes, assigned text ranges and overflow. SVG and the optional
+PDF package consume those scenes; the Reader adapter can project the current
+in-memory document directly.
+
+Each operation validates and projects its candidate before changing the
+document. Failed or cancelled edits leave the preceding state usable. Concurrent
+mutation is unsupported. Fetch `Pages`, `MasterPages`, `TextStories` and frames
+again after an edit: previously returned objects remain snapshots.
+`ReadReport` describes the current reconstruction; `SourceReadReport` retains
+the original native decoding evidence without projection findings.
+
+These edits change the in-memory publication and rendered outputs. Native PUB
+save-back, object creation, table editing and frame relinking are not provided
+by this API. Retaining private native source data does not establish opaque
+preservation or a native save contract.
+
+## Recovered content and layout
 
 `TextStories` retains complete decoded text, including content that cannot be
 placed or does not fit a frame. Paragraphs carry recovered font names, sizes,

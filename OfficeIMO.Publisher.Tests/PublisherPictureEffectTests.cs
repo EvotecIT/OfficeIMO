@@ -120,7 +120,7 @@ public sealed class PublisherPictureEffectTests {
         PublisherDrawingFixture.Mutate(values, 1, fixture: "SampleBrochure.pub", objectId: objectId);
 
     internal static OfficeRasterImage ProjectedRaster(PublisherDocument document, uint objectId) {
-        OfficeDrawingImage image = PublisherNativeTests.Elements(document.Pages[PicturePageIndex(document, objectId)].Drawing)
+        OfficeDrawingImage image = PublisherNativeTests.Elements(document.Pages[PicturePageIndex(document, objectId)].CreateDrawing())
             .OfType<OfficeDrawingImage>().Single(item => item.SourceElementIds?.Contains("publisher-object-" + objectId) == true);
         Assert.Equal("image/png", image.ContentType);
         Assert.True(OfficeRasterImageDecoder.TryDecode(image.Bytes, out OfficeRasterImage? raster));
@@ -128,7 +128,7 @@ public sealed class PublisherPictureEffectTests {
     }
 
     internal static int PicturePageIndex(PublisherDocument document, uint objectId) => document.Pages
-        .Select((page, index) => (page, index)).Single(entry => PublisherNativeTests.Elements(entry.page.Drawing)
+        .Select((page, index) => (page, index)).Single(entry => PublisherNativeTests.Elements(entry.page.CreateDrawing())
             .OfType<OfficeDrawingImage>().Any(image => image.SourceElementIds?.Contains("publisher-object-" + objectId) == true)).index;
 
     private sealed class PictureCodec : IOfficeRasterImageCodec {

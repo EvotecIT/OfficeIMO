@@ -25,7 +25,7 @@ public sealed class PublisherPropertyOverrideTests {
         }) { Bounds = new PublisherNativeRectangle(-100 * 12700, -100 * 12700, 100 * 12700, 100 * 12700) });
         PublisherDocument publication = new PublisherPageProjector(source, new PublisherQuillText(), escher,
             new PublisherParseContext(new PublisherReadOptions(), default)).Project();
-        Assert.DoesNotContain(PublisherNativeTests.Elements(publication.Pages[0].Drawing), item => item is OfficeDrawingImage);
+        Assert.DoesNotContain(PublisherNativeTests.Elements(publication.Pages[0].CreateDrawing()), item => item is OfficeDrawingImage);
         Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_IMAGE_REFERENCE_UNRESOLVED");
         Assert.Equal(unsupported, publication.ReadReport.FidelityDiagnostics.Any(item => item.Code == "PUB_IMAGE_DATA_UNSUPPORTED"
             && item.Location == "Contents/object/2"));

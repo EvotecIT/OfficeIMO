@@ -52,6 +52,6 @@ internal static class ManagedComparison {
     private static object Page(PublisherPage page) => new {
         page.Id, page.Name, page.MasterPageId, page.Width, page.Height,
         page.TextFrames, page.Tables,
-        drawingElements = page.Drawing.Elements.Count
+        drawingElements = page.CreateDrawing().Elements.Count
     };
 }

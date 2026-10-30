@@ -31,7 +31,7 @@ public sealed class PublisherTextFlowTests {
         Assert.StartsWith(recovered, story.Text);
         Assert.Equal(frames.Sum(frame => frame.TextLength), recovered.Length);
         foreach (PublisherTextFrame frame in frames.Where(frame => frame.TextLength > 0)) {
-            string painted = string.Concat(PublisherNativeTests.Elements(document.Pages.Single(page => page.Id == frame.PageId).Drawing)
+            string painted = string.Concat(PublisherNativeTests.Elements(document.Pages.Single(page => page.Id == frame.PageId).CreateDrawing())
                 .OfType<OfficeDrawingRichText>().Where(text => text.SourceElementIds?.Contains("publisher-object-" + frame.Id) == true)
                 .Select(PublisherNativeTests.Text));
             string assigned = story.Text.Substring(frame.TextStart!.Value, frame.TextLength!.Value);
@@ -48,7 +48,7 @@ public sealed class PublisherTextFlowTests {
         PublisherDocument document = PublisherDocument.Load(input);
         PublisherTextFrame frame = document.Pages[0].TextFrames.Single(item => item.Id == 293);
         Assert.Equal(2, frame.ColumnCount);
-        OfficeDrawingRichText[] columns = PublisherNativeTests.Elements(document.Pages[0].Drawing).OfType<OfficeDrawingRichText>()
+        OfficeDrawingRichText[] columns = PublisherNativeTests.Elements(document.Pages[0].CreateDrawing()).OfType<OfficeDrawingRichText>()
             .Where(item => item.SourceElementIds?.Contains("publisher-object-293") == true).ToArray();
         Assert.Equal(2, columns.Length); Assert.True(columns[0].X < columns[1].X);
         Assert.Equal(columns[0].Width, columns[1].Width); Assert.Equal(columns[0].Y, columns[1].Y);

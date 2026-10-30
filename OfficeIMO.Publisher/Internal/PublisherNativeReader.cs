@@ -3,7 +3,7 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Publisher.Internal;
 
 internal static class PublisherNativeReader {
-    internal static PublisherDocument Read(OfficeCompoundFile compound, PublisherReadOptions options, CancellationToken token) {
+    internal static PublisherDocument Read(OfficeCompoundFile compound, PublisherReadOptions options, CancellationToken token, byte[] originalBytes) {
         var context = new PublisherParseContext(options, token);
         PublisherBinaryData contents = Required(compound, "Contents");
         contents.Range(0, 4);
@@ -22,7 +22,8 @@ internal static class PublisherNativeReader {
             if (stream.StartsWith("VBA/", StringComparison.OrdinalIgnoreCase) || stream.StartsWith("Objects/", StringComparison.OrdinalIgnoreCase))
                 context.Add("PUB_ACTIVE_CONTENT_OMITTED", "Macros and embedded application objects remain inert and are not projected onto publication pages.", OfficeConversionLossKind.Omission, stream);
         }
-        return new PublisherPageProjector(publication, text, escher, context).Project();
+        return new PublisherModelState(publication, text, escher, context,
+            new PublisherNativeSource(originalBytes, compound)).Project(token);
     }
     private static PublisherBinaryData Required(OfficeCompoundFile compound, string name) =>
         Optional(compound, name) ?? throw new InvalidDataException("Required Publisher stream is missing: " + name);
