@@ -98,7 +98,11 @@ replace text of different
 lengths and edit font size/bold through retained per-run OPLs, Quill text, story lengths,
 formatting endpoints and page indexes. A single original run can split into
 styled runs, and matching run counts can be edited again. Each changed story has
-one existing frame; story identities and order remain fixed. Source layouts have
+one existing frame or a complete resolved chain of ordinary, visible,
+untransformed document-page frames. Linked-story saving retains the native
+chain, frame identities, page ownership and geometry; it does not relink frames.
+Unresolved, unavailable, grouped, transformed and master-page chains refuse
+changed-story output. Story identities and order remain fixed. Source layouts have
 one directory with at most 20 descriptors and no table stories. Repeated
 byte-identical OPLs can share native page storage, with all story lengths, range
 endpoints, page indexes and later-page start headers remapped. The original
@@ -107,7 +111,7 @@ gain text. Each paragraph's
 native definition and endpoint are retained independently; character ranges can
 cross paragraph boundaries. Making a paragraph empty refuses output when its
 source CR has a distinct OPL from the last visible run. Unsupported run merges,
-linked changed stories, other formatting and chained directories refuse
+other formatting and chained directories refuse
 output. Edited output removes the optional [SummaryInformation thumbnail](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-oleps/f7933d28-2cc4-4b36-bc23-8861cbcd37c4) so it
 cannot retain that stale content preview. The shared OLE property-set editor
 retains the other raw property values and header; unrelated logical streams and
@@ -177,6 +181,21 @@ Native PDF pixels match across resave, and independent checks retain paragraph
 OPLs, other character tokens, unrelated Quill payloads, logical streams and
 directory metadata. The `multipleStoryEditing` qualification record identifies
 these exact specimens and their scope.
+
+Seven linked-story specimens from the native two-page newsletter qualify
+same-count growth/shrinkage, paragraph-count increases/decreases, formatting-page
+allocation/retirement, size/bold changes, a neighboring title edit and re-editing
+after native resave. Complete stories and body size/bold values survive in
+Publisher's resaved Quill storage, including overflow. Native inventories retain
+the two-frame chain, physical-page ownership and geometry; visible frame text is
+checked in chain order. When the complete story fits the first frame, Publisher
+reports a lone paragraph CR for the empty trailing frame. Native PDF pixels and
+text spans match before and after resave across 28 physical page states.
+Independent storage comparison retains native Contents, artwork, unrelated
+logical streams and Quill payloads, directory metadata and other SummaryInformation
+values. The `linkedStoryEditing` qualification record binds these exact specimens
+to their source and codec hashes. Other producers and chain profiles, repair-free
+opening and general opaque semantics remain unassessed.
 
 Native client anchors can omit zero-valued coordinates. The independently
 produced ZeroAnchors control qualifies all four coordinate positions: the reader

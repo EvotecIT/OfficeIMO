@@ -130,10 +130,11 @@ size/bold edits use each original native range. Character ranges can cross
 paragraph boundaries; each paragraph retains its own FDPP definition and end.
 Adjacent identical character OPLs coalesce. Making a paragraph empty is refused when its source CR has a different
 OPL from the last visible run, because that would substitute an unqualified
-typing style. Formatting-page overflow also refuses output.
+typing style. Directory capacity and native style-mapping limits still refuse output.
 
-The multiple-story/page path retains existing story identities and order, requires
-one frame per changed story, and admits one directory with at most 20 descriptors
+The multiple-story/page path retains existing story identities and order, admits
+one frame or a complete resolved ordinary document-page chain per changed story,
+and admits one directory with at most 20 descriptors
 and no table stories. It verifies every FDPC/FDPP page against its BTE index
 and shares byte-identical OPLs within each page.
 Story lengths, endpoints, page offsets and later-page header starts are remapped;
@@ -144,6 +145,19 @@ retire pages and relocate enlarged indexes. Nonzero unassigned header bytes,
 unknown page metadata, directory capacity and ambiguous source definitions guard
 that operation. Chained directories and zero-paragraph native stories remain
 unavailable. The original accepted single-story/one-page encoding path remains first.
+
+Linked-story source saving preserves existing native links, frame identities,
+physical-page ownership and geometry. It requires every chain member to be
+available, ordinary, visible and untransformed. Unresolved, grouped, transformed
+and master-page chains remain unsupported for changed stories. The
+`sourceEditing.linkedStoryEditing` qualification record contains seven public-save
+specimens from the independent two-page Newsletter control, including a re-edit
+of Publisher-resaved output. Complete native-resaved text and body size/bold,
+unchanged Contents/artwork and other storage, retained frame links/geometry and
+native PDF pixel/span equality are verified across 28 physical page states.
+Visible frame slices are checked in order; an empty trailing frame can report
+a lone paragraph CR after the complete story fits the preceding frame. This
+does not qualify other chain profiles, repair-free opening or renderer parity.
 
 Other formatting changes, run merges, nonuniform-source paragraph-count changes, tables, image replacement,
 page/master relationships, new objects and source-free publications have no writer in this path. Every

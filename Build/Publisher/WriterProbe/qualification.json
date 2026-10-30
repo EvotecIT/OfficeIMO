@@ -200,7 +200,7 @@
   ],
   "reproduction": "Build the opt-in probe with the pinned SDK, run the recorded create command with the repository image, then Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full on an isolated copy. Compare native inventories and both PDFs against the explicit candidate expectations. Native artifact hashes identify this observed run; a subsequent native save can include different metadata.",
   "sourceEditing": {
-    "scope": "Bounded modern-generation source edits with separately recorded placement/paint, native text mutation, paragraph, thumbnail, public-save, multiple-story/page and paragraph-topology/allocation qualification.",
+    "scope": "Bounded modern-generation source edits with separately recorded placement/paint, native text mutation, paragraph, thumbnail, public-save, multiple-story/page, paragraph-topology/allocation and linked-story qualification.",
     "codecCommit": "6a0c79187aa5f68f4003f8ddeafa1b2a4a1887d2",
     "codecFiles": [
       {
@@ -4069,6 +4069,882 @@
         "The single directory holds at most20descriptors; output requiring more formatting pages refuses rather than dropping styles.",
         "Native pixels and spans compare physical pages before/after native resave, not OfficeIMO renderer parity or general font coverage.",
         "Thirteen prior accepted outputs remain byte-identical, including the internal template-free combined candidate. Source-free native creation remains unavailable."
+      ]
+    },
+    "linkedStoryEditing": {
+      "scope": "Complete resolved ordinary document-page linked-story editing through the public native source-save APIs.",
+      "codecCommit": "7a4ff465e6126a332d29fcedce0559a5b91d3c0c",
+      "codecFiles": [
+        {
+          "path": "../../../Build/Publisher/Invoke-NativeComparisonCase.ps1",
+          "sha256": "08742ffabfe228ea90c6bd64b4d88a7bbc1f4679f2364698b318f76a96e44f21",
+          "gitBlobSha256": "fcd291b16cada039bad9fd33d76c45fb0d65808e57313ed615f5f06d7b085123"
+        },
+        {
+          "path": "../../../Build/Publisher/Invoke-NativePublisherOperation.ps1",
+          "sha256": "c7d9428a3da4b7a82362c10e737cc9f8965c4a67e6e6c59c13d8b008ef831bae",
+          "gitBlobSha256": "c7d9428a3da4b7a82362c10e737cc9f8965c4a67e6e6c59c13d8b008ef831bae"
+        },
+        {
+          "path": "../../../Build/Publisher/New-NativeComparisonCorpus.ps1",
+          "sha256": "bb3362c3cf09097b0ae46fdb5afd3b2b164f2e9dba4fd057d4f3db3c0561cd8f",
+          "gitBlobSha256": "bb3362c3cf09097b0ae46fdb5afd3b2b164f2e9dba4fd057d4f3db3c0561cd8f"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherNativeWriter.Compare.cs",
+          "sha256": "8dab167c07c4719ead0040b01ff427d11091e5b6fecb63360b95861e606e7f8d",
+          "gitBlobSha256": "8dab167c07c4719ead0040b01ff427d11091e5b6fecb63360b95861e606e7f8d"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherNativeWriter.cs",
+          "sha256": "aba3827c2db2ee01a4e830cd10843b068791e330c58ba6bb805e1a163ef2e2d0",
+          "gitBlobSha256": "aba3827c2db2ee01a4e830cd10843b068791e330c58ba6bb805e1a163ef2e2d0"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.cs",
+          "sha256": "03a9830828eb672145cd9fb2f7cf7dc352c296d9c6ba48fa8d53447221c6fc72",
+          "gitBlobSha256": "03a9830828eb672145cd9fb2f7cf7dc352c296d9c6ba48fa8d53447221c6fc72"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Topology.cs",
+          "sha256": "e7cef8a437cc6ec80a8ed809086d97ac103a602d0886ee04835e92c9191713b5",
+          "gitBlobSha256": "e7cef8a437cc6ec80a8ed809086d97ac103a602d0886ee04835e92c9191713b5"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillSourceLayout.cs",
+          "sha256": "9ecd58973c47d9835d4aa86708703f9ff6c4463c142124dbbaaaf87a435f3bf3",
+          "gitBlobSha256": "9ecd58973c47d9835d4aa86708703f9ff6c4463c142124dbbaaaf87a435f3bf3"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillStoriesWriter.cs",
+          "sha256": "edd3469cd905e56e6c9eef04c8be91fc4887af43520b0a3fb6526eee9744e99e",
+          "gitBlobSha256": "edd3469cd905e56e6c9eef04c8be91fc4887af43520b0a3fb6526eee9744e99e"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillPageAllocator.cs",
+          "sha256": "c5e636e76e3d7da3ff758af9862d76d86ed5a8d50c94516dcf23e81f4c0e7f9d",
+          "gitBlobSha256": "c5e636e76e3d7da3ff758af9862d76d86ed5a8d50c94516dcf23e81f4c0e7f9d"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherModelImporter.Chains.cs",
+          "sha256": "d24ea3039a1991b85d4396801893d17e0d51c87d5870846d71d995865d4d3893",
+          "gitBlobSha256": "d24ea3039a1991b85d4396801893d17e0d51c87d5870846d71d995865d4d3893"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherModelImporter.Text.cs",
+          "sha256": "f9a469b5a891e34190eb17f19be5424f8d74df18da682be22bc704b3a7eda1ef",
+          "gitBlobSha256": "f9a469b5a891e34190eb17f19be5424f8d74df18da682be22bc704b3a7eda1ef"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/PublisherLinkedStoryWritingTests.cs",
+          "sha256": "e56ee2a09a56559258c660da5aa5aa375194bcb667040c8e50268c32d39e07ee",
+          "gitBlobSha256": "e56ee2a09a56559258c660da5aa5aa375194bcb667040c8e50268c32d39e07ee"
+        }
+      ],
+      "sourceHashScope": "sha256 identifies qualified worktree bytes; gitBlobSha256 identifies Git-normalized files at codecCommit.",
+      "profile": {
+        "existingFramesOnly": true,
+        "chain": "Complete resolved native membership/order; every member available, ordinary, visible, untransformed and owned by a document page.",
+        "nativeLinksOwnershipGeometryRetained": true,
+        "oneFrameBehaviorRetained": true,
+        "maximumDescriptors": 20,
+        "tableStories": false
+      },
+      "control": {
+        "contract": {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Newsletter/native-newsletter.json",
+          "sha256": "e8c36a40069a083d5a119e4e143aa8478f8b271d4eca0f1f78a390905ecf203c"
+        },
+        "producer": {
+          "name": "Microsoft Publisher",
+          "version": "16.0",
+          "executableVersion": "16.0.20527.20088",
+          "powershell": "7.6.9",
+          "culture": "pl-PL",
+          "textFont": {
+            "family": "Arial",
+            "file": "arial.ttf",
+            "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+          },
+          "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+          "automationSecurity": 3
+        },
+        "publication": {
+          "name": "native-newsletter.pub",
+          "sha256": "def04c4f03de132d9b0f652e3acf63ce7340e3057e2e70738ae255a89e6a2c83"
+        },
+        "reference": {
+          "name": "native-newsletter.pdf",
+          "sha256": "f6526c85d317c319794cbbf9b24f73bc7b819630fa495d51304339fafa67c4a1"
+        },
+        "bodyStoryId": 3,
+        "bodyFrameIds": [
+          297,
+          298
+        ],
+        "physicalPages": 2
+      },
+      "validationCommand": "Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath <candidate.pub> -OutputDirectory <fresh-output>",
+      "qualifiedOperations": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "nativePhysicalPageStates": 28,
+      "verifiedInEveryCase": [
+        "Complete native-resaved Quill text, paragraph counts and body size/bold match the requested edits, including overflow.",
+        "Native Contents and artwork are byte-identical to the source; native inventories retain physical-page ownership, geometry and links.",
+        "Visible native frame slices match in chain order; an empty trailing frame can expose a lone paragraph CR after the complete story fits the first frame.",
+        "Native initial/resaved PDF pixels and text spans match on both physical pages.",
+        "Unrelated logical streams and Quill payloads, source paragraph definitions and other character fields, directory metadata and other SummaryInformation values are retained.",
+        "Default strict loss policy blocks unassessed output; unresolved-chain edits remain refused under Allow while unchanged input remains exact-copyable."
+      ],
+      "cases": [
+        {
+          "name": "grow",
+          "mode": "grow",
+          "prefix": "",
+          "sourceSha256": "def04c4f03de132d9b0f652e3acf63ce7340e3057e2e70738ae255a89e6a2c83",
+          "candidateSha256": "e6abdd32387726c0b5962c847075859a4ec548186c572ee81b6c79e17b6a6968",
+          "candidateBytes": 45056,
+          "beforeParagraphCounts": [
+            1,
+            10
+          ],
+          "afterParagraphCounts": [
+            1,
+            10
+          ],
+          "beforeFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "afterFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "completeNativeStoryUtf16Sha256": [
+            {
+              "id": 2,
+              "sha256": "f0b67d3cb48b81b786b73eb0a267c059b0c7a4565b3b78f610b9c7902fbff465"
+            },
+            {
+              "id": 3,
+              "sha256": "598cfc4c0f6e135dead3e8a148908fc37d14971fb51a689942af296e8210cec6"
+            }
+          ],
+          "unchangedNativeContentsAndArtwork": true,
+          "directoryMetadataEntries": 16,
+          "nativeChainOwnershipAndGeometryRetained": true,
+          "nativeCompleteTextAndBodySizeBoldVerified": true,
+          "nativePixelsAndSpansEqualAcrossResave": true,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "ce67d1f042562a999ee6ed955871b644fa0989f2eb0bd1ba166f4d157521459f"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "d8fe19f6a5cf56636c65b5559ae2e993849dadba3fcf5dd1b0d3b2913865ff22"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "e6abdd32387726c0b5962c847075859a4ec548186c572ee81b6c79e17b6a6968"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "11960e5a6772799c67ae63e1b0d124bcfb1ea13075ef3916b686166957f3a244"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "a30d46343241f96b7ba26482cce88a2436d95307a74888f56f87f4fd7aabdb04"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "d81c5ba4fffa07beb1125862ebae1b5729ca0e5b7e261c0ed929b0f150aebfc4"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "bd5405f70b660157b71508f9fdc96c677f56f537ea5ca4e62152b7a8aa04a923"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "cb5da067241f11f54f43fd29512edc5dcd0e3500b136a5fd0d6851ced75b9ea8"
+            }
+          ],
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Newsletter/native-newsletter.pub",
+            "sha256": "def04c4f03de132d9b0f652e3acf63ce7340e3057e2e70738ae255a89e6a2c83"
+          },
+          "editRecipe": {
+            "targetStoryId": 3,
+            "mode": "grow",
+            "prefix": "",
+            "text": "10 paragraphs: Linked section N. followed by180lowercase x characters, N0..9.",
+            "otherFormatting": "Retain source Arial and all attributes except requested size/bold. Retain final source paragraph CR."
+          },
+          "unrelatedQuillPayloadCount": 9,
+          "nativeVisibleSlices": [
+            {
+              "stage": "initial",
+              "firstFrameCharacters": 258,
+              "lastFrameCharacters": 1732,
+              "emptyTailReportsParagraphCr": false,
+              "completeStoryCharacters": 1990
+            },
+            {
+              "stage": "resaved",
+              "firstFrameCharacters": 258,
+              "lastFrameCharacters": 1732,
+              "emptyTailReportsParagraphCr": false,
+              "completeStoryCharacters": 1990
+            }
+          ]
+        },
+        {
+          "name": "shrink",
+          "mode": "shrink",
+          "prefix": "",
+          "sourceSha256": "def04c4f03de132d9b0f652e3acf63ce7340e3057e2e70738ae255a89e6a2c83",
+          "candidateSha256": "5891e05183d30102417ee3e04f984d4e40fb40c1a136369a5e0056c9dea6114f",
+          "candidateBytes": 44032,
+          "beforeParagraphCounts": [
+            1,
+            10
+          ],
+          "afterParagraphCounts": [
+            1,
+            10
+          ],
+          "beforeFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "afterFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "completeNativeStoryUtf16Sha256": [
+            {
+              "id": 2,
+              "sha256": "f0b67d3cb48b81b786b73eb0a267c059b0c7a4565b3b78f610b9c7902fbff465"
+            },
+            {
+              "id": 3,
+              "sha256": "41879a8f7b930d68950e152109f7aaa5c19d0c3e899ca9be5936f1a187fb0754"
+            }
+          ],
+          "unchangedNativeContentsAndArtwork": true,
+          "directoryMetadataEntries": 16,
+          "nativeChainOwnershipAndGeometryRetained": true,
+          "nativeCompleteTextAndBodySizeBoldVerified": true,
+          "nativePixelsAndSpansEqualAcrossResave": true,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "fd71d39d1c6c3d0187f6915ed82015d3a71c3d8eb553838d78d7f6e696ccda7a"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "b42a520ea9fa9867d6d8da733386cbcbdf9270f9c06c0909381479459c4f75fd"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "5891e05183d30102417ee3e04f984d4e40fb40c1a136369a5e0056c9dea6114f"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "d2e928aa02cd97bae8ef1f71c742a9046320f8aa081a7b75193f7c436db8a5f2"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "61aed22066b94a62366b02e81a4b13fbba26d00d39999b648653da0230107e91"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "cbfc865024ac3424c7b59cea5c1dc4c870ecf179a61aff6e1aaf661854da635d"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "b720aa0774e303fa7144e7901c3c361672638aa6db75343d33050fc592044654"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "f54ed10ed94b316f6ccc523bc26b6e3211d83e16615a709d3c41464a063ae3cb"
+            }
+          ],
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Newsletter/native-newsletter.pub",
+            "sha256": "def04c4f03de132d9b0f652e3acf63ce7340e3057e2e70738ae255a89e6a2c83"
+          },
+          "editRecipe": {
+            "targetStoryId": 3,
+            "mode": "shrink",
+            "prefix": "",
+            "text": "10 paragraphs: Short N, N0..9.",
+            "otherFormatting": "Retain source Arial and all attributes except requested size/bold. Retain final source paragraph CR."
+          },
+          "unrelatedQuillPayloadCount": 9,
+          "nativeVisibleSlices": [
+            {
+              "stage": "initial",
+              "firstFrameCharacters": 48,
+              "lastFrameCharacters": 32,
+              "emptyTailReportsParagraphCr": false,
+              "completeStoryCharacters": 80
+            },
+            {
+              "stage": "resaved",
+              "firstFrameCharacters": 48,
+              "lastFrameCharacters": 32,
+              "emptyTailReportsParagraphCr": false,
+              "completeStoryCharacters": 80
+            }
+          ]
+        },
+        {
+          "name": "allocate",
+          "mode": "allocate",
+          "prefix": "",
+          "sourceSha256": "def04c4f03de132d9b0f652e3acf63ce7340e3057e2e70738ae255a89e6a2c83",
+          "candidateSha256": "1aaabf072853b89ded3bc95e310535315f0b6f7e08f61835ab885b151b643476",
+          "candidateBytes": 52224,
+          "beforeParagraphCounts": [
+            1,
+            10
+          ],
+          "afterParagraphCounts": [
+            1,
+            240
+          ],
+          "beforeFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "afterFormatPages": {
+            "FDPC": 1,
+            "FDPP": 3
+          },
+          "completeNativeStoryUtf16Sha256": [
+            {
+              "id": 2,
+              "sha256": "f0b67d3cb48b81b786b73eb0a267c059b0c7a4565b3b78f610b9c7902fbff465"
+            },
+            {
+              "id": 3,
+              "sha256": "d0faf00e6b1c472e8a4fdf916e1e9b8bc282361c0cdc085062fb0121d2c300a7"
+            }
+          ],
+          "unchangedNativeContentsAndArtwork": true,
+          "directoryMetadataEntries": 16,
+          "nativeChainOwnershipAndGeometryRetained": true,
+          "nativeCompleteTextAndBodySizeBoldVerified": true,
+          "nativePixelsAndSpansEqualAcrossResave": true,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "566ecccff6099b1bb6fce17c16148973b3ab7e59386db32b6ba502a6c187973a"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "ec8fff42c6edebbc35d3c2ed03e16f03d66b088986db99b6e42c16400f435931"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "1aaabf072853b89ded3bc95e310535315f0b6f7e08f61835ab885b151b643476"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "e1869e45a5473010dcfa4063a746a9224031990a3ffd20c1dc28f6dcee53c5e6"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "9c0f5e591f862de0806362647d5266c3e1707635ec6bde57da43f36f334fcf82"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "0164e297825893e6d8c96a5e488b4bdd9e525fa1d9470d0c1bc3e905f149a58c"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "99c9d8798ec8eb58cf75f70b1b9262d12b7861be8102cef7d257bb2b913d8ff2"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "135ba48cd7031a9536a56dc747c139e8bc580e4bdc569c17564b58b23f7756e8"
+            }
+          ],
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Newsletter/native-newsletter.pub",
+            "sha256": "def04c4f03de132d9b0f652e3acf63ce7340e3057e2e70738ae255a89e6a2c83"
+          },
+          "editRecipe": {
+            "targetStoryId": 3,
+            "mode": "allocate",
+            "prefix": "",
+            "text": "240 paragraphs: Linked paragraph N, N1..240.",
+            "otherFormatting": "Retain source Arial and all attributes except requested size/bold. Retain final source paragraph CR."
+          },
+          "unrelatedQuillPayloadCount": 9,
+          "nativeVisibleSlices": [
+            {
+              "stage": "initial",
+              "firstFrameCharacters": 114,
+              "lastFrameCharacters": 597,
+              "emptyTailReportsParagraphCr": false,
+              "completeStoryCharacters": 4932
+            },
+            {
+              "stage": "resaved",
+              "firstFrameCharacters": 114,
+              "lastFrameCharacters": 597,
+              "emptyTailReportsParagraphCr": false,
+              "completeStoryCharacters": 4932
+            }
+          ]
+        },
+        {
+          "name": "retire",
+          "mode": "retire",
+          "prefix": "",
+          "sourceSha256": "def04c4f03de132d9b0f652e3acf63ce7340e3057e2e70738ae255a89e6a2c83",
+          "candidateSha256": "a727afa1a158ef8ca30386ce659a86d30afb61b3c18ccf8c3be4e8783e2be096",
+          "candidateBytes": 44032,
+          "beforeParagraphCounts": [
+            1,
+            10
+          ],
+          "afterParagraphCounts": [
+            1,
+            1
+          ],
+          "beforeFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "afterFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "completeNativeStoryUtf16Sha256": [
+            {
+              "id": 2,
+              "sha256": "f0b67d3cb48b81b786b73eb0a267c059b0c7a4565b3b78f610b9c7902fbff465"
+            },
+            {
+              "id": 3,
+              "sha256": "7e7841a1d652f7aef93826699c550019d19a9c8532c83ef6655c2ce9d0643e2f"
+            }
+          ],
+          "unchangedNativeContentsAndArtwork": true,
+          "directoryMetadataEntries": 16,
+          "nativeChainOwnershipAndGeometryRetained": true,
+          "nativeCompleteTextAndBodySizeBoldVerified": true,
+          "nativePixelsAndSpansEqualAcrossResave": true,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "7b80e86df2228f38a1ec3ac4048b723d01b2ceaf0a71e88afa9f1b670506da85"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "9170178160d67231af65c4f74863b0f7a4c4670b0ca7b402f40bd3c45646a00f"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "a727afa1a158ef8ca30386ce659a86d30afb61b3c18ccf8c3be4e8783e2be096"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "f7c096ae58696aec70e31e2cd338f03df7f37f839816d11a685c746f70efdb57"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "bcd91e50fcace4d2f74e9e7a1051d5eed75a4f3fd326b82a707277328150d4d4"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "e6a3262cb034723078c59eb655ed811ad4a7fb7c77ef3cbe4ee74cfed40a7189"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "7bce56c7e43dc29f5f936e112abaf8d946f1a2c16054bb898b5a4b717238b434"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "1108f71fbaa202fc4403bb26c010ea0d377be5e8b63ea8f41249b46bd03f9ef8"
+            }
+          ],
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Newsletter/native-newsletter.pub",
+            "sha256": "def04c4f03de132d9b0f652e3acf63ce7340e3057e2e70738ae255a89e6a2c83"
+          },
+          "editRecipe": {
+            "targetStoryId": 3,
+            "mode": "retire",
+            "prefix": "",
+            "text": "One paragraph: Only remaining linked paragraph.",
+            "otherFormatting": "Retain source Arial and all attributes except requested size/bold. Retain final source paragraph CR."
+          },
+          "unrelatedQuillPayloadCount": 9,
+          "nativeVisibleSlices": [
+            {
+              "stage": "initial",
+              "firstFrameCharacters": 32,
+              "lastFrameCharacters": 1,
+              "emptyTailReportsParagraphCr": true,
+              "completeStoryCharacters": 32
+            },
+            {
+              "stage": "resaved",
+              "firstFrameCharacters": 32,
+              "lastFrameCharacters": 1,
+              "emptyTailReportsParagraphCr": true,
+              "completeStoryCharacters": 32
+            }
+          ]
+        },
+        {
+          "name": "styles",
+          "mode": "styles",
+          "prefix": "",
+          "sourceSha256": "def04c4f03de132d9b0f652e3acf63ce7340e3057e2e70738ae255a89e6a2c83",
+          "candidateSha256": "187648e1eda66320eeccb93245e773ae2e1cb24344587ba41c4119323e48d5c7",
+          "candidateBytes": 45056,
+          "beforeParagraphCounts": [
+            1,
+            10
+          ],
+          "afterParagraphCounts": [
+            1,
+            10
+          ],
+          "beforeFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "afterFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "completeNativeStoryUtf16Sha256": [
+            {
+              "id": 2,
+              "sha256": "f0b67d3cb48b81b786b73eb0a267c059b0c7a4565b3b78f610b9c7902fbff465"
+            },
+            {
+              "id": 3,
+              "sha256": "598cfc4c0f6e135dead3e8a148908fc37d14971fb51a689942af296e8210cec6"
+            }
+          ],
+          "unchangedNativeContentsAndArtwork": true,
+          "directoryMetadataEntries": 16,
+          "nativeChainOwnershipAndGeometryRetained": true,
+          "nativeCompleteTextAndBodySizeBoldVerified": true,
+          "nativePixelsAndSpansEqualAcrossResave": true,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "b5c361af839a057f29b91161717b7707bce066b4a31a7abaafa832fe3d39bc3a"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "021a6235de99fbe506941fbe8291a8423b6a7b3e28906dc9c26120c0abeeb542"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "187648e1eda66320eeccb93245e773ae2e1cb24344587ba41c4119323e48d5c7"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "0d883523f25b9a550d2b4002832077002d9a92c0cb0c99a49eccf6266a7a0de2"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "20174c19cad18452540c5b932722d0efe19f90f43913968f678a3d4f1111b965"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "94d7562d580036acd05dc2ccd0a26cb2d0adcbf20e4867bc0cb867ea985012b9"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "a7ad67cb731e9e4a2d81b52fc489d84753bbe1717cba91c01716f24b8b527cd4"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "04e69f2f55cbf2a9918abe9b170c99b589db99899e935477d040ce234ecb441d"
+            }
+          ],
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Newsletter/native-newsletter.pub",
+            "sha256": "def04c4f03de132d9b0f652e3acf63ce7340e3057e2e70738ae255a89e6a2c83"
+          },
+          "editRecipe": {
+            "targetStoryId": 3,
+            "mode": "styles",
+            "prefix": "",
+            "text": "The grow text with18point bold body text.",
+            "otherFormatting": "Retain source Arial and all attributes except requested size/bold. Retain final source paragraph CR."
+          },
+          "unrelatedQuillPayloadCount": 9,
+          "nativeVisibleSlices": [
+            {
+              "stage": "initial",
+              "firstFrameCharacters": 106,
+              "lastFrameCharacters": 953,
+              "emptyTailReportsParagraphCr": false,
+              "completeStoryCharacters": 1990
+            },
+            {
+              "stage": "resaved",
+              "firstFrameCharacters": 106,
+              "lastFrameCharacters": 953,
+              "emptyTailReportsParagraphCr": false,
+              "completeStoryCharacters": 1990
+            }
+          ]
+        },
+        {
+          "name": "neighbor",
+          "mode": "neighbor",
+          "prefix": "",
+          "sourceSha256": "def04c4f03de132d9b0f652e3acf63ce7340e3057e2e70738ae255a89e6a2c83",
+          "candidateSha256": "cf1310df39013b05f2ec6fee0c5130be028f1174dbff323eb31d9fea953ac3a9",
+          "candidateBytes": 45056,
+          "beforeParagraphCounts": [
+            1,
+            10
+          ],
+          "afterParagraphCounts": [
+            1,
+            10
+          ],
+          "beforeFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "afterFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "completeNativeStoryUtf16Sha256": [
+            {
+              "id": 2,
+              "sha256": "cbe2552af58e9302feb12bc23d1f8cb9270778066b2a434bcf77433cca93d1d6"
+            },
+            {
+              "id": 3,
+              "sha256": "598cfc4c0f6e135dead3e8a148908fc37d14971fb51a689942af296e8210cec6"
+            }
+          ],
+          "unchangedNativeContentsAndArtwork": true,
+          "directoryMetadataEntries": 16,
+          "nativeChainOwnershipAndGeometryRetained": true,
+          "nativeCompleteTextAndBodySizeBoldVerified": true,
+          "nativePixelsAndSpansEqualAcrossResave": true,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "fe17b6e45b3d09e1376f256e1751c9d35d2a3f2e4cb5fc6cdcc8eaf8c1a12ccd"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "d8fe19f6a5cf56636c65b5559ae2e993849dadba3fcf5dd1b0d3b2913865ff22"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "cf1310df39013b05f2ec6fee0c5130be028f1174dbff323eb31d9fea953ac3a9"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "f873807e9cae6abfeb99d2f197ff86ce0654802c511f56b35b55d61cdaf27112"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "8a4b6130e2a7d7fc0380c75c43b0c840d1b50867e2dc9d1c3fd3379663ac00ff"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "b80b6c0ba9d34c2765799f7174647dff708f73f7d66ec0f1b3d9ff214b544600"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "d2971d0bb684db29140b322aa847e5ac75c4453d49ddd13d36edc7c0e1e9a070"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "dc90c0799b8883c7018488f0fb6fc0510625e646e9cb3d84186ca6de49c5c062"
+            }
+          ],
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Newsletter/native-newsletter.pub",
+            "sha256": "def04c4f03de132d9b0f652e3acf63ce7340e3057e2e70738ae255a89e6a2c83"
+          },
+          "editRecipe": {
+            "targetStoryId": 3,
+            "mode": "neighbor",
+            "prefix": "",
+            "text": "The grow text plus story2 replaced by Updated newsletter title.",
+            "otherFormatting": "Retain source Arial and all attributes except requested size/bold. Retain final source paragraph CR."
+          },
+          "unrelatedQuillPayloadCount": 9,
+          "nativeVisibleSlices": [
+            {
+              "stage": "initial",
+              "firstFrameCharacters": 258,
+              "lastFrameCharacters": 1732,
+              "emptyTailReportsParagraphCr": false,
+              "completeStoryCharacters": 1990
+            },
+            {
+              "stage": "resaved",
+              "firstFrameCharacters": 258,
+              "lastFrameCharacters": 1732,
+              "emptyTailReportsParagraphCr": false,
+              "completeStoryCharacters": 1990
+            }
+          ]
+        },
+        {
+          "name": "reedit",
+          "mode": "retire",
+          "prefix": "Second save: ",
+          "sourceSha256": "9c0f5e591f862de0806362647d5266c3e1707635ec6bde57da43f36f334fcf82",
+          "candidateSha256": "198ac8fa41a1619b09563a5a0e7acf809e55a69a9d8c859b8c3250be4f3f5a0f",
+          "candidateBytes": 51712,
+          "beforeParagraphCounts": [
+            1,
+            240
+          ],
+          "afterParagraphCounts": [
+            1,
+            1
+          ],
+          "beforeFormatPages": {
+            "FDPC": 1,
+            "FDPP": 3
+          },
+          "afterFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "completeNativeStoryUtf16Sha256": [
+            {
+              "id": 2,
+              "sha256": "f0b67d3cb48b81b786b73eb0a267c059b0c7a4565b3b78f610b9c7902fbff465"
+            },
+            {
+              "id": 3,
+              "sha256": "de17f5b841b60cc08152693c5eed485ff2e7c8a2d6436f36f429fbd57d45b232"
+            }
+          ],
+          "unchangedNativeContentsAndArtwork": true,
+          "directoryMetadataEntries": 16,
+          "nativeChainOwnershipAndGeometryRetained": true,
+          "nativeCompleteTextAndBodySizeBoldVerified": true,
+          "nativePixelsAndSpansEqualAcrossResave": true,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "7600753aa21ceb88a2555b449dd2a4142f2800e65f8b39d8c95630be87a4cbd1"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "9170178160d67231af65c4f74863b0f7a4c4670b0ca7b402f40bd3c45646a00f"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "198ac8fa41a1619b09563a5a0e7acf809e55a69a9d8c859b8c3250be4f3f5a0f"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "3b2f70ab20d460a6495ee1807cb1d2ef85b0d7c69e9076fd9cea02ebde0e14c4"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "04efe5f267b406fdc271c310b993a39f5fc7ce6bd100416d394a1e90987a9a84"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "9f38a40be7d423ddf5259c261ccfe3c6b07ec01383dbe071baa9d4bb66341bc4"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "c6a2a9c7fea8c05492eb8e60db9d1d1d2227a6ec09871d0bc9d0c720761b741c"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "cd83ae0212cc2b568f293a7976cb1e8f369d6533b76973005680bcecd2941d08"
+            }
+          ],
+          "source": {
+            "nativeResavedCase": "allocate",
+            "sha256": "9c0f5e591f862de0806362647d5266c3e1707635ec6bde57da43f36f334fcf82"
+          },
+          "editRecipe": {
+            "targetStoryId": 3,
+            "mode": "retire",
+            "prefix": "Second save: ",
+            "text": "One paragraph: Only remaining linked paragraph.",
+            "otherFormatting": "Retain source Arial and all attributes except requested size/bold. Retain final source paragraph CR."
+          },
+          "unrelatedQuillPayloadCount": 9,
+          "nativeVisibleSlices": [
+            {
+              "stage": "initial",
+              "firstFrameCharacters": 45,
+              "lastFrameCharacters": 1,
+              "emptyTailReportsParagraphCr": true,
+              "completeStoryCharacters": 45
+            },
+            {
+              "stage": "resaved",
+              "firstFrameCharacters": 45,
+              "lastFrameCharacters": 1,
+              "emptyTailReportsParagraphCr": true,
+              "completeStoryCharacters": 45
+            }
+          ]
+        }
+      ],
+      "limits": [
+        "Exact two-page ordinary-chain specimens only. Repair-free opening and broad opaque semantics remain unassessed.",
+        "Visible native frame slices are checked in chain order; complete text and body size/bold are independently verified in native-resaved Quill.",
+        "Native pixels compare initial/resaved physical pages, not OfficeIMO renderer parity.",
+        "Other producers, grouped/transformed/master chains, arbitrary relinking and source-free native creation are not qualified by these specimens."
       ]
     }
   }

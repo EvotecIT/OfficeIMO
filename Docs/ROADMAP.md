@@ -890,7 +890,7 @@ Use the [native codec structure and qualification record](../Build/Publisher/Wri
 
 #### PUB03 — Native editing and safe save-back
 
-- [ ] Extend the [native source-save profiles](../OfficeIMO.Publisher/SUPPORT.md) to paragraph-count changes from nonuniform definitions, native story clearing and chained Quill directories. Support linked-story editing, fonts and paragraph formatting, frame layout, image replacement, tables and page/master relationships through the owning codec. Verify every supported edit in Microsoft Publisher and through native resave/reopen; preserve provably unaffected content and reject unsafe unsupported edits explicitly.
+- [ ] Extend the [native source-save profiles](../OfficeIMO.Publisher/SUPPORT.md) to paragraph-count changes from nonuniform definitions, native story clearing and chained Quill directories. Broaden linked-story coverage beyond the qualified ordinary document-page chain profile. Support fonts and paragraph formatting, frame layout, image replacement, tables and page/master relationships through the owning codec. Verify every supported edit in Microsoft Publisher and through native resave/reopen; preserve provably unaffected content and reject unsafe unsupported edits explicitly.
 - [ ] Qualify opaque preservation of macros, linked resources, embedded objects and producer-specific records separately from editable content. Extend the [bounded native source-save contract](../OfficeIMO.Publisher/SUPPORT.md) only with independently verified profile coverage; keep unsupported content inert and unsafe edits refused.
 
 #### PUB04 — Template-free native authoring

@@ -67,8 +67,10 @@ codec. Unchanged semantic content produces a byte-exact copy of the original
 source. Supported edits include existing ordinary frame/shape/picture bounds,
 existing solid scalar paint slots, and ordinary text stories with bounded
 size/bold changes. Paragraph counts can change when the source paragraphs have
-uniform projected formatting and matching native definitions. Changed stories
-require one existing frame each. Formatting pages can be allocated or retired
+uniform projected formatting and matching native definitions. A changed story
+can use one existing frame or a complete resolved chain of ordinary, visible,
+untransformed document-page frames. Native links, ownership and frame identities
+remain fixed. Formatting pages can be allocated or retired
 inside the admitted single-directory profile, which has at most 20 descriptors.
 Ambiguous source definitions, unsupported directory layouts and zero-paragraph
 native story states are refused. The [support contract](SUPPORT.md)
