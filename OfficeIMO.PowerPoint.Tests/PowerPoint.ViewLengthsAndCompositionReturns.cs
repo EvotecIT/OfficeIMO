@@ -50,6 +50,13 @@ public sealed class PowerPointViewLengthsAndCompositionReturns {
             Assert.Equal(3, callout.Count);
             Assert.All(callout, shape => Assert.DoesNotContain(shape, title));
             Assert.IsType<PowerPointTextBox>(callout[2]).Text = "Edited callout";
+            var explicitText = context.AddTextBlock("Physical font", context.ContentArea(), OfficeLength.Inches(0.1875));
+            Assert.Equal(OfficeLength.Points(13.5), explicitText.FontSize);
+            var defaultText = context.AddTextBlock("Default font", context.ContentArea());
+            Assert.Equal(OfficeLength.Points(12), defaultText.FontSize);
+            int count = context.Slide.Shapes.Count;
+            Assert.Throws<ArgumentOutOfRangeException>(() => context.AddTextBlock("Invalid font", context.ContentArea(), OfficeLength.Zero));
+            Assert.Equal(count, context.Slide.Shapes.Count);
             Assert.Empty(context.AddMetricStrip(Array.Empty<PowerPointMetric>(), context.ContentArea()));
         });
         var options = PowerPointCompositionOptions.FromBrief(PowerPointDesignBrief.FromBrand("#008C95", "composition-return-proof"));
@@ -62,5 +69,8 @@ public sealed class PowerPointViewLengthsAndCompositionReturns {
         var text = loaded.Slides.Single().TextBoxes.Select(box => box.Text).ToArray();
         Assert.Contains("Edited title", text);
         Assert.Contains("Edited callout", text);
+        var textBoxes = loaded.Slides.Single().TextBoxes;
+        Assert.Equal(OfficeLength.Points(13.5), textBoxes.Single(box => box.Text == "Physical font").FontSize);
+        Assert.Equal(OfficeLength.Points(12), textBoxes.Single(box => box.Text == "Default font").FontSize);
     }
 }

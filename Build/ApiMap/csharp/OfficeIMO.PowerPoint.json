@@ -12857,6 +12857,19 @@
       ],
       "applied": "phase-b-applied",
       "note": "Classic comment native coordinates are eighth-points (576/inch), unlike modern EMUs. Convert creation, edits and inspection at that boundary; preserve full native Int32 range after quantization and existing Reader numeric wire units. Bounds queries using PowerPointLayoutBox specify includePartial explicitly; coordinate queries retain the default. No comment width/height is invented."
+    },
+    {
+      "member": "PowerPointSlideCompositionContext.AddTextBlock(string text, PowerPointLayoutBox bounds, int fontSize = 12, bool bold = false, string? color = null)",
+      "action": "change",
+      "category": "units",
+      "target": "AddTextBlock(string text, PowerPointLayoutBox bounds, OfficeLength? fontSize = null, bool bold = false, string? color = null)",
+      "reason": "The composition callback is a public authoring surface. Font size is physical, including fractional points; the default remains 12pt. Validate the native DrawingML range before adding a shape.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointSlideCompositionContext.cs",
+        "OfficeIMO.PowerPoint/PowerPointDesignExtensions.Utilities.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ViewLengthsAndCompositionReturns.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

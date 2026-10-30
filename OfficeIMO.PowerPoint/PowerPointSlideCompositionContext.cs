@@ -103,17 +103,19 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Adds a raw themed text block at the requested bounds.
+        ///     Adds a themed text block at the requested bounds. The default font size is 12pt.
         /// </summary>
-        public PowerPointTextBox AddTextBlock(string text, PowerPointLayoutBox bounds, int fontSize = 12,
+        public PowerPointTextBox AddTextBlock(string text, PowerPointLayoutBox bounds, OfficeLength? fontSize = null,
             bool bold = false, string? color = null) {
             if (text == null) {
                 throw new ArgumentNullException(nameof(text));
             }
 
+            double resolvedFontSize = (fontSize ?? OfficeLength.Points(12)).ToPoints();
+            _ = PowerPointTextDefaults.ToDrawingFontSize(resolvedFontSize, nameof(fontSize));
             string resolvedColor = color ?? (_dark ? _theme.AccentLightColor : _theme.SecondaryTextColor);
             return PowerPointDesignExtensions.AddText(_slide, text, bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(),
-                bounds.Height.ToCentimeters(), fontSize, resolvedColor, _theme.BodyFontName, bold);
+                bounds.Height.ToCentimeters(), resolvedFontSize, resolvedColor, _theme.BodyFontName, bold);
         }
 
         /// <summary>
