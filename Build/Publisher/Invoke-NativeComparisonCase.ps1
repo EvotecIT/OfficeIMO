@@ -28,7 +28,7 @@ param(
     [string] $NativeEditText,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextStories', 'TextFormattingPages', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -569,6 +569,16 @@ try {
         'TextFormattingPages' {
             $paragraphs = @(1..96 | ForEach-Object { 'Paragraph {0:D2} preserves its native formatting.' -f $_ })
             $null = Add-TextFrame $page 'FormattingPages' ($paragraphs -join "`r") 72 72 360 648
+        }
+        'TextFormattingMany' {
+            $paragraphs = @(1..240 | ForEach-Object { 'Paragraph {0:D3} preserves its native formatting.' -f $_ })
+            $null = Add-TextFrame $page 'ManyFormattingPages' ($paragraphs -join "`r") 72 72 360 648
+        }
+        'TextCharacterPages' {
+            $null = Add-TextFrame $page 'Character12' 'Character page font twelve' 72 72 360 72 12
+            $null = Add-TextFrame $page 'Character14' 'Character page font fourteen' 72 216 360 72 14
+            $null = Add-TextFrame $page 'Character16' 'Character page font sixteen' 72 396 360 72 16
+            $null = Add-TextFrame $page 'Character18' 'Character page font eighteen' 72 576 360 72 18
         }
         'ZeroAnchors' {
             $null = Add-TextFrame $page 'ZeroLeft' 'Left at native zero' 306 72 234 72

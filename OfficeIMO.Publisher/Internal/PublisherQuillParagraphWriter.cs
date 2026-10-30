@@ -2,8 +2,8 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.Internal;
 
-/// <summary>Plans one character and paragraph page for an unchanged paragraph topology, retaining source OPLs and native CR formatting.</summary>
-internal static class PublisherQuillParagraphWriter {
+/// <summary>Plans source-bound paragraph/character ranges and uniform-source topology changes, retaining native OPLs and CR formatting.</summary>
+internal static partial class PublisherQuillParagraphWriter {
     internal static bool TryWrite(PublisherBinaryData data, PublisherParseContext context, PublisherQuillStoryStyles binding,
         PublisherTextStory before, PublisherTextStory after, int textOffset, CancellationToken token,
         out byte[]? characterPage, out byte[]? paragraphPage) {
@@ -17,8 +17,8 @@ internal static class PublisherQuillParagraphWriter {
         PublisherTextStory before, PublisherTextStory after, int outputTextOffset, CancellationToken token,
         out List<PublisherQuillFormattingRange> pc, out List<PublisherQuillFormattingRange> pp) {
         pc = new(); pp = new();
-        // Local lists can be captured by the range-coalescing helper.
-        var charactersOut = pc;
+        if (before.Paragraphs.Count != after.Paragraphs.Count)
+            return TryPlanTopology(data, context, binding, before, after, outputTextOffset, token, pc, pp);
         PublisherQuillStyleUse[] characters = binding.Uses.Where(use => use.Tag == "FDPC").ToArray();
         PublisherQuillStyleUse[] paragraphs = binding.Uses.Where(use => use.Tag == "FDPP").ToArray();
         if (paragraphs.Length != before.Paragraphs.Count) return false;
@@ -52,13 +52,13 @@ internal static class PublisherQuillParagraphWriter {
                 if (style == null) return false;
                 if (newRuns[index].Text.Length == 0) continue;
                 position = checked(position + newRuns[index].Text.Length * 2);
-                if (!Append(position, style)) return false;
+                AppendRange(pc, position, style);
             }
             byte[]? terminator = PublisherQuillCharacterStyleWriter.Rewrite(data, cr.Value.DirectDefinition,
                 oldRuns[oldRuns.Count - 1], newRuns[newRuns.Count - 1], context);
             if (terminator == null) return false;
             position = checked(position + 2);
-            if (!Append(position, terminator)) return false;
+            AppendRange(pc, position, terminator);
             pp.Add(new PublisherQuillFormattingRange(position, Copy(paragraph.DirectDefinition)));
             originalPosition = checked(oldCursor + 1);
         }
@@ -74,14 +74,12 @@ internal static class PublisherQuillParagraphWriter {
             Buffer.BlockCopy(data.Bytes, span.Offset, bytes, 0, bytes.Length);
             return bytes;
         }
-        bool Append(int end, byte[] style) {
-            // One original character range can span several paragraphs. Keep
-            // identical adjacent definitions shared by one continuous range.
-            if (charactersOut.Count != 0 && charactersOut[charactersOut.Count - 1].Style.SequenceEqual(style))
-                charactersOut[charactersOut.Count - 1] = new PublisherQuillFormattingRange(end, charactersOut[charactersOut.Count - 1].Style);
-            else charactersOut.Add(new PublisherQuillFormattingRange(end, style));
-            return true;
-        }
+    }
+
+    private static void AppendRange(List<PublisherQuillFormattingRange> ranges, int end, byte[] style) {
+        if (ranges.Count != 0 && ranges[ranges.Count - 1].Style.SequenceEqual(style))
+            ranges[ranges.Count - 1] = new PublisherQuillFormattingRange(end, ranges[ranges.Count - 1].Style);
+        else ranges.Add(new PublisherQuillFormattingRange(end, style));
     }
 
     private static byte[]? Pack(IReadOnlyList<PublisherQuillFormattingRange> ranges) =>

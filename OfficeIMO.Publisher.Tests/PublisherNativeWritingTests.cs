@@ -160,7 +160,7 @@ public sealed class PublisherNativeWritingTests {
     }
 
     [Theory]
-    [InlineData("multi-paragraph-story")]
+    [InlineData("empty-story")]
     [InlineData("italic-format")]
     [InlineData("page")]
     [InlineData("master")]
@@ -182,8 +182,7 @@ public sealed class PublisherNativeWritingTests {
             : PublisherDocument.Load(PublisherNativeTests.Fixture(file));
         PublisherPage page = document.Pages[0];
         switch (mutation) {
-            case "multi-paragraph-story": document.ReplaceStoryParagraphs(document.TextStories[0].Id,
-                Paragraphs("First paragraph").Concat(Paragraphs("Second paragraph")).ToArray()); break;
+            case "empty-story": document.ReplaceStoryParagraphs(document.TextStories[0].Id, Array.Empty<OfficeRichTextParagraph>()); break;
             case "italic-format":
                 OfficeRichTextParagraph originalParagraph = document.TextStories[0].Paragraphs[0];
                 OfficeRichTextRun run = originalParagraph.Runs[0];
@@ -403,15 +402,16 @@ public sealed class PublisherNativeWritingTests {
     }
 
     [Fact]
-    public void Styled_paragraph_exceeding_the_native_formatting_page_refuses_bytes_without_losing_model_text() {
+    public void Distinct_character_styles_allocate_an_additional_native_page_and_keep_each_run() {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/Text/native-text.pub"));
         ReplaceRuns(document, Enumerable.Range(0, 4).Select(index =>
-            new OfficeRichTextRun("Part " + index, 12, OfficeColor.Black, fontFamily: "Arial")).ToArray());
+            new OfficeRichTextRun("Part " + index, 12 + index * 2, OfficeColor.Black, fontFamily: "Arial")).ToArray());
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
-        Assert.False(prepared.IsPrepared);
-        Assert.Throws<NotSupportedException>(() => prepared.CopyBytes());
-        Assert.Contains(prepared.FidelityDiagnostics, item => item.Location == "Quill" && item.LossKind == OfficeConversionLossKind.Failure);
-        Assert.Equal("Part 0Part 1Part 2Part 3\n", document.TextStories[0].Text);
+        Assert.True(prepared.IsPrepared);
+        PublisherDocument saved = PublisherDocument.Load(prepared.CopyBytes());
+        Assert.Equal("Part 0Part 1Part 2Part 3\n", saved.TextStories[0].Text);
+        Assert.Equal(new[] { 12D, 14D, 16D, 18D }, saved.TextStories[0].Paragraphs[0].Runs.Select(run => run.FontSize));
+        Assert.True(saved.SourceStyleCatalog.Stories[0].Uses.Where(use => use.Tag == "FDPC").Select(use => use.ChunkId).Distinct().Count() > 1);
     }
 
     [Theory]
@@ -460,7 +460,7 @@ public sealed class PublisherNativeWritingTests {
     }
 
     [Fact]
-    public void Multiple_paragraph_styles_exceeding_one_native_page_refuse_the_candidate() {
+    public void Multiple_styled_paragraphs_save_through_shared_native_definitions() {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/TextParagraphs/native-textparagraphs.pub"));
         PublisherTextStory story = document.TextStories[0];
         document.ReplaceStoryParagraphs(story.Id, story.Paragraphs.Select(paragraph => {
@@ -472,9 +472,13 @@ public sealed class PublisherNativeWritingTests {
                 paragraph.LineHeightFactor).WithTabStops(paragraph.TabStops);
         }).ToArray());
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
-        Assert.False(prepared.IsPrepared);
-        Assert.Contains(prepared.FidelityDiagnostics, item => item.Location == "Quill" && item.LossKind == OfficeConversionLossKind.Failure);
-        Assert.Equal("Plain Bold\nPlain Bold\nPlain Bold\n", document.TextStories[0].Text);
+        Assert.True(prepared.IsPrepared);
+        PublisherDocument saved = PublisherDocument.Load(prepared.CopyBytes());
+        Assert.Equal("Plain Bold\nPlain Bold\nPlain Bold\n", saved.TextStories[0].Text);
+        Assert.All(saved.TextStories[0].Paragraphs, paragraph => {
+            Assert.Equal(new[] { 12D, 18D }, paragraph.Runs.Select(run => run.FontSize));
+            Assert.Equal(new[] { false, true }, paragraph.Runs.Select(run => run.Bold));
+        });
     }
 
     private static void ReplaceParagraphs(PublisherDocument document, string[] text, double[] sizes, bool[] bold) {

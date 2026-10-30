@@ -2,6 +2,7 @@ namespace OfficeIMO.Publisher.Internal;
 
 /// <summary>Admits the observed single-directory Quill layout and verifies every existing formatting-page index before relocation.</summary>
 internal sealed class PublisherQuillSourceLayout {
+    internal const int MaximumDescriptors = 20;
     private PublisherQuillSourceLayout(PublisherBinaryData data, IReadOnlyList<PublisherQuillChunk> chunks) {
         Data = data; Chunks = chunks;
         Text = Find("TEXT"); StoryIds = Find("SYID"); StoryLengths = Find("STRS");
@@ -21,7 +22,7 @@ internal sealed class PublisherQuillSourceLayout {
         var data = new PublisherBinaryData(source, "Quill/QuillSub/CONTENTS");
         IReadOnlyList<PublisherQuillChunk> chunks = PublisherQuillDirectory.Read(data, context);
         int pc = chunks.Count(chunk => chunk.Tag == "FDPC"), pp = chunks.Count(chunk => chunk.Tag == "FDPP");
-        if (pc < 1 || pp < 1 || chunks.Count > 20) return null;
+        if (pc < 1 || pp < 1 || chunks.Count > MaximumDescriptors) return null;
         string[] expected = new[] { "TEXT", "STSH", "STSH", "STSH" }.Concat(Enumerable.Repeat("FDPP", pp))
             .Concat(Enumerable.Repeat("FDPC", pc)).Concat(new[] { "SYID", "SGP ", "INK ", "BTEP", "BTEC", "FONT", "STRS", "MCLD", "PL  " }).ToArray();
         if (!chunks.Select(chunk => chunk.Tag).SequenceEqual(expected)

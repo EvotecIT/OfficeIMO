@@ -70,7 +70,7 @@ public sealed class PublisherMultipleStoryWritingTests {
     }
 
     [Fact]
-    public void Distinct_styles_exceeding_existing_shared_page_capacity_refuse_output_without_changing_the_model() {
+    public void Distinct_styles_exceeding_the_native_directory_profile_refuse_output_without_changing_the_model() {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/TextFormattingPages/native-textformattingpages.pub"));
         PublisherTextStory source = Assert.Single(document.TextStories);
         var paragraphs = source.Paragraphs.Select((paragraph, index) => ReplaceParagraph(paragraph, paragraph.Runs[0].Text, 12 + index, true)).ToArray();

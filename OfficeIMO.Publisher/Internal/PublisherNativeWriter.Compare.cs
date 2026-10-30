@@ -58,13 +58,17 @@ internal sealed partial class PublisherNativeWriter {
     }
 
     private static bool CanRewriteStory(PublisherTextStory before, PublisherTextStory after) {
-        if (before.Id != after.Id || before.Paragraphs.Count == 0 || before.Paragraphs.Count != after.Paragraphs.Count) return false;
-        for (int paragraph = 0; paragraph < before.Paragraphs.Count; paragraph++) {
-            OfficeRichTextParagraph a = before.Paragraphs[paragraph], b = after.Paragraphs[paragraph];
+        if (before.Id != after.Id || before.Paragraphs.Count == 0 || after.Paragraphs.Count == 0) return false;
+        bool reshape = before.Paragraphs.Count != after.Paragraphs.Count;
+        if (reshape && before.Paragraphs.Any(paragraph => paragraph.Runs.Count != 1 || paragraph.Label != null
+            || !ParagraphFormattingEqual(before.Paragraphs[0], paragraph)
+            || !RunFormattingEqual(before.Paragraphs[0].Runs[0], paragraph.Runs[0]))) return false;
+        for (int paragraph = 0; paragraph < after.Paragraphs.Count; paragraph++) {
+            OfficeRichTextParagraph a = before.Paragraphs[reshape ? 0 : paragraph], b = after.Paragraphs[paragraph];
             if (a.Runs.Count < 1 || b.Runs.Count < 1 || a.Runs.Count != 1 && a.Runs.Count != b.Runs.Count
                 || a.Label != null || b.Label != null || !ParagraphFormattingEqual(a, b)) return false;
             for (int index = 0; index < b.Runs.Count; index++)
-                if (b.Runs[index].Text.Length == 0 && (before.Paragraphs.Count == 1 || b.Runs.Count != 1)
+                if (b.Runs[index].Text.Length == 0 && (!reshape && before.Paragraphs.Count == 1 || b.Runs.Count != 1)
                     || !RunOtherFormattingEqual(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index])) return false;
         }
         return true;
