@@ -1,28 +1,26 @@
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
-        private const long MaximumWorksheetProjectedCells = 1_000_000;
-
         private static IReadOnlyList<TableChunk> CreateWorksheetSceneChunks(
             WorksheetPdfExportPlan plan, ExcelToPdfOptions options, int columns,
             double availableWidth, double availableHeight, double scale) {
             // A constrained fit axis controls its breaks; the unlimited axis retains manual breaks.
             IReadOnlyList<TableChunk> requested = CreateTableChunks(plan, options, columns,
-                honorRowBreaks: !IsFitToHeight(plan.PageSetup), honorColumnBreaks: !IsFitToWidth(plan.PageSetup),
-                maximumProjectedCells: MaximumWorksheetProjectedCells);
+                options.MaxMaterializedWorksheetCells,
+                honorRowBreaks: !IsFitToHeight(plan.PageSetup), honorColumnBreaks: !IsFitToWidth(plan.PageSetup));
             var chunks = new List<TableChunk>();
             long projectedCells = 0;
             foreach (TableChunk requestedChunk in requested) {
                 var columnSegments = SplitWorksheetColumns(plan, requestedChunk.StartColumn,
                     requestedChunk.ColumnCount, availableWidth / scale);
                 var rowSegments = SplitWorksheetRows(plan, requestedChunk.RowIndexes,
-                    requestedChunk.HeaderRowCount, availableHeight / scale);
+                    requestedChunk.HeaderRowCount, availableHeight / scale, options.MaxMaterializedWorksheetCells);
                 IReadOnlyList<int> titles = plan.ExportData.PrintTitleColumnIndexes;
                 int repeatedColumns = 0;
                 foreach ((int startColumn, int columnCount) in columnSegments) {
                     while (repeatedColumns < titles.Count && titles[repeatedColumns] < startColumn) repeatedColumns++;
                     foreach (IReadOnlyList<int> rowIndexes in rowSegments) {
                         long cells = (long)rowIndexes.Count * (columnCount + repeatedColumns);
-                        if (cells > MaximumWorksheetProjectedCells - projectedCells)
+                        if (cells > options.MaxMaterializedWorksheetCells - projectedCells)
                             throw new NotSupportedException("Worksheet page projection exceeds the supported cell budget.");
                         projectedCells += cells;
                         chunks.Add(new TableChunk(rowIndexes, GetChunkHeaderRowCount(plan, rowIndexes),
@@ -40,7 +38,7 @@ namespace OfficeIMO.Excel.Pdf {
                 : chunks.OrderBy(chunk => chunk.StartColumn).ThenBy(BodyRow).ToArray();
         }
 
-        private static double ResolveWorksheetPlanScale(WorksheetPdfExportPlan plan, int columns, double availableWidth, double availableHeight) {
+        private static double ResolveWorksheetPlanScale(WorksheetPdfExportPlan plan, ExcelToPdfOptions options, int columns, double availableWidth, double availableHeight) {
             if (!ExcelPageSetupGeometry.HasFitToPageScale(plan.PageSetup)) return GetWorksheetAuthoredScale(plan.PageSetup);
             double scale = 1D;
             // Fit before choosing page breaks. A retained banner/chart can extend beyond
@@ -59,7 +57,7 @@ namespace OfficeIMO.Excel.Pdf {
                 scale = Math.Min(scale, availableHeight * plan.PageSetup!.FitToHeight!.Value / Math.Max(1D, (Math.Max(heights.Sum(), objects.Bottom) - objects.Top)));
                 var rows = Enumerable.Range(0, plan.ExportedRows).ToArray();
                 scale = FindWorksheetFitScale(scale, candidate => SplitWorksheetRows(plan, rows,
-                    plan.ExportData.HeaderRowCount, availableHeight / candidate).Count, plan.PageSetup!.FitToHeight!.Value);
+                    plan.ExportData.HeaderRowCount, availableHeight / candidate, options.MaxMaterializedWorksheetCells).Count, plan.PageSetup!.FitToHeight!.Value);
             }
             return scale;
         }
@@ -103,7 +101,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static IReadOnlyList<IReadOnlyList<int>> SplitWorksheetRows(
-            WorksheetPdfExportPlan plan, IReadOnlyList<int> rowIndexes, int headerRowCount, double maximumHeight) {
+            WorksheetPdfExportPlan plan, IReadOnlyList<int> rowIndexes, int headerRowCount, double maximumHeight, long maximumProjectedCells) {
             if (rowIndexes.Count == 0) return new[] { rowIndexes };
             int headerRows = Math.Min(headerRowCount, rowIndexes.Count);
             var initialHeaderIndexes = rowIndexes.Take(headerRows).ToArray();
@@ -121,7 +119,7 @@ namespace OfficeIMO.Excel.Pdf {
                 double height = GetExportedRowHeightPoints(plan, row);
                 if (currentBody.Count > 0 && currentHeight + height > bodyCapacity) {
                     projectedIndexes += headerIndexes.Count + currentBody.Count;
-                    if (projectedIndexes > MaximumWorksheetProjectedCells)
+                    if (projectedIndexes > maximumProjectedCells)
                         throw new NotSupportedException("Worksheet repeated rows exceed the supported page projection budget.");
                     result.Add(headerIndexes.Concat(currentBody).ToList());
                     currentBody.Clear();
@@ -129,7 +127,7 @@ namespace OfficeIMO.Excel.Pdf {
                 }
                 if (currentBody.Count == 0) {
                     while (visitedTitleCount < repeating.Count && repeating[visitedTitleCount] < row) visitedTitleCount++;
-                    if (projectedIndexes + visitedTitleCount + initialHeaderIndexes.Length > MaximumWorksheetProjectedCells)
+                    if (projectedIndexes + visitedTitleCount + initialHeaderIndexes.Length > maximumProjectedCells)
                         throw new NotSupportedException("Worksheet repeated rows exceed the supported page projection budget.");
                     // Automatic page breaks can newly reach part or all of a middle title
                     // block, so repeat its visited rows and reserve their height on this page.
@@ -141,7 +139,7 @@ namespace OfficeIMO.Excel.Pdf {
                 currentHeight += height;
             }
             if (currentBody.Count > 0 || result.Count == 0) {
-                if (headerIndexes.Count + currentBody.Count > MaximumWorksheetProjectedCells - projectedIndexes)
+                if (headerIndexes.Count + currentBody.Count > maximumProjectedCells - projectedIndexes)
                     throw new NotSupportedException("Worksheet repeated rows exceed the supported page projection budget.");
                 result.Add(headerIndexes.Concat(currentBody).ToList());
             }

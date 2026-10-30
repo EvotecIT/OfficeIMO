@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel.Pdf {
                 for (int areaIndex = 0; areaIndex < plans.Count; areaIndex++) {
                     WorksheetPdfExportPlan plan = plans[areaIndex];
                     int columns = plan.ExportData.Values.GetLength(1);
-                    double worksheetScale = ResolveWorksheetPlanScale(plan, columns, availableWidth, availableHeight);
+                    double worksheetScale = ResolveWorksheetPlanScale(plan, options, columns, availableWidth, availableHeight);
                     IReadOnlyList<TableChunk> chunks = plan.HasTable
                         ? CreateWorksheetSceneChunks(plan, options, columns, availableWidth, availableHeight, worksheetScale)
                         : new[] { new TableChunk(Array.Empty<int>(), 0, 0, 0) };
@@ -291,8 +291,9 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static double[] GetExportedRowHeightPrefix(WorksheetPdfExportPlan plan) {
             if (plan.RowHeightPrefix != null) return plan.RowHeightPrefix;
-            var prefix = new double[plan.ExportedRows + 1];
-            for (int row = 0; row < plan.ExportedRows; row++)
+            int sourceRows = plan.ExportData.Values.GetLength(0);
+            var prefix = new double[sourceRows + 1];
+            for (int row = 0; row < sourceRows; row++)
                 prefix[row + 1] = prefix[row] + GetExportedRowHeightPoints(plan, row);
             return plan.RowHeightPrefix = prefix;
         }

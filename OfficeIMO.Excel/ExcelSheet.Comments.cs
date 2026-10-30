@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
+using System.Threading;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Excel {
@@ -146,8 +147,9 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        internal void AddImportedComments(IReadOnlyList<(int Row, int Column, string Text)> imported, string author) {
+        internal void AddImportedComments(IReadOnlyList<(int Row, int Column, string Text)> imported, string author, CancellationToken cancellationToken) {
             if (imported.Count == 0) return;
+            cancellationToken.ThrowIfCancellationRequested();
             WriteLock(() => {
                 var commentsPart = GetOrCreateCommentsPart();
                 var comments = commentsPart.Comments ??= new Comments();
@@ -159,6 +161,7 @@ namespace OfficeIMO.Excel {
                 var root = document.Root ?? throw new InvalidDataException("Comment drawing has no root element.");
                 int shapeId = NextVmlShapeId(root);
                 foreach (var item in imported) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string reference = A1.CellReference(item.Row, item.Column);
                     var comment = new Comment { Reference = reference, AuthorId = authorId };
                     comment.Append(BuildCommentText(item.Text));
@@ -167,6 +170,7 @@ namespace OfficeIMO.Excel {
                 }
                 DeferPartSave(commentsPart);
                 SaveVmlDocument(vmlPart, document);
+                cancellationToken.ThrowIfCancellationRequested();
             });
         }
 

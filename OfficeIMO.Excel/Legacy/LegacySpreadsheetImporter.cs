@@ -99,7 +99,7 @@ public static class LegacySpreadsheetImporter {
                     if (!string.IsNullOrWhiteSpace(cell.Comment)) comments.Add((cell.Row, cell.Column, cell.Comment!));
                 }
                 cancellationToken.ThrowIfCancellationRequested();
-                target.AddImportedComments(comments, "Legacy source");
+                target.AddImportedComments(comments, "Legacy source", cancellationToken);
             }
             foreach (LegacySpreadsheetName name in model.Names) {
                 cancellationToken.ThrowIfCancellationRequested();

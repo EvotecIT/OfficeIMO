@@ -115,14 +115,14 @@ namespace OfficeIMO.Excel.Pdf {
             return cellReference.Replace("$", string.Empty).ToUpperInvariant();
         }
 
-        private static IReadOnlyList<TableChunk> CreateTableChunks(WorksheetPdfExportPlan plan, ExcelToPdfOptions options, int exportedColumns, bool honorRowBreaks = true, bool honorColumnBreaks = true, long maximumProjectedCells = long.MaxValue) {
+        private static IReadOnlyList<TableChunk> CreateTableChunks(WorksheetPdfExportPlan plan, ExcelToPdfOptions options, int exportedColumns, long maximumProjectedCells, bool honorRowBreaks = true, bool honorColumnBreaks = true) {
             IReadOnlyList<TableAxisChunk> rowChunks = CreateTableAxisChunks(
                 plan.ExportedRows,
                 options.UseWorksheetPageBreaks && honorRowBreaks ? GetManualRowBreakOffsets(plan) : new List<int>());
             IReadOnlyList<TableAxisChunk> columnChunks = CreateTableAxisChunks(
                 exportedColumns,
                 options.UseWorksheetPageBreaks && honorColumnBreaks ? GetManualColumnBreakOffsets(plan) : new List<int>());
-            if (maximumProjectedCells != long.MaxValue) {
+            {
                 long projectedRows = 0;
                 IReadOnlyList<int> titleRows = plan.ExportData.RepeatingRowIndexes;
                 int titleRowCount = 0;
