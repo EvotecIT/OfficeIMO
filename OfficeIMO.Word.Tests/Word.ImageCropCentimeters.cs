@@ -100,8 +100,6 @@ public partial class Word {
         string xml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         Assert.Throws<ArgumentOutOfRangeException>(() => image.SetCrop(OfficeIMO.OfficeLength.Centimeters(7.62D), OfficeIMO.OfficeLength.Centimeters(6.35D), OfficeIMO.OfficeLength.Centimeters(0D), OfficeIMO.OfficeLength.Centimeters(0D)));
         Assert.Equal(xml, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
-        Assert.Throws<ArgumentOutOfRangeException>(() => image.CropLeft = OfficeIMO.OfficeLength.Centimeters(double.NaN));
-        Assert.Equal(xml, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
     }
 
     [Theory]

@@ -72,12 +72,6 @@ namespace OfficeIMO.Tests {
                         OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100)));
                 Assert.Empty(slide.Shapes);
             }
-
-            PowerPointAutoShape shape = slide.AddRectangle(
-                OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100));
-            Assert.Throws<ArgumentOutOfRangeException>(() =>
-                shape.OutlineWidth = global::OfficeIMO.OfficeLength.Points(double.NaN));
-            Assert.Null(shape.OutlineWidth?.ToPoints());
         }
 
         [Fact]

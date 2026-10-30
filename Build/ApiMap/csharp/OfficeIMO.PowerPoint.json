@@ -12870,6 +12870,18 @@
         "OfficeIMO.PowerPoint/PowerPointDesignExtensions.Utilities.cs",
         "OfficeIMO.PowerPoint.Tests/PowerPoint.ViewLengthsAndCompositionReturns.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "action": "remove",
+      "old": "A nonfinite physical-length factory call inside an image setter rejection assertion.",
+      "new": "Keep reachable finite image geometry guards; shared OfficeLength factory tests own nonfinite rejection.",
+      "reason": "The factory throws before the setter, so the assertion cannot verify document mutation or setter validation.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ImageExport.CustomGeometry.cs"
+      ],
+      "note": "All finite crop/stroke rejection and native XML/state assertions remain. No production behavior or golden is changed."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

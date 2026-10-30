@@ -8153,6 +8153,18 @@
         "OfficeIMO.Word/README.md"
       ],
       "note": "The six physical properties retain their native signed Int16/Int32 storage limits, rounded through OfficeLength.ToTwips before creating or changing table properties. Null clears only the existing native attribute."
+    },
+    {
+      "phase": "B",
+      "action": "remove",
+      "old": "A nonfinite physical-length factory call inside an image setter rejection assertion.",
+      "new": "Keep reachable finite image geometry guards; shared OfficeLength factory tests own nonfinite rejection.",
+      "reason": "The factory throws before the setter, so the assertion cannot verify document mutation or setter validation.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Word.Tests/Word.ImageCropCentimeters.cs"
+      ],
+      "note": "All finite crop/stroke rejection and native XML/state assertions remain. No production behavior or golden is changed."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
