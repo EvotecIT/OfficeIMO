@@ -17,6 +17,11 @@ layout, and SVG rendering use shared OfficeIMO engines.
 
 ## Read and inspect a publication
 
+Text runs retain native font names, size, referenced color, bold/italic,
+strikethrough, baseline and supported underline patterns. Native underline weight,
+long-dash and compound-pattern differences carry explicit approximation reports.
+Font availability and native layout fidelity remain separate rendering concerns.
+
 ```csharp
 using OfficeIMO.Publisher;
 

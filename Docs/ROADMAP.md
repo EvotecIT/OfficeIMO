@@ -884,13 +884,13 @@ Use the [native codec structure and qualification record](../Build/Publisher/Wri
 
 #### PUB02 — Qualified reading and rendering
 
-- [ ] Qualify native frame breaks, column balancing and tight/through picture wrapping; complete style-library metadata, numbering sequences, additional tab alignments/leaders, drop caps and cached dynamic-field display against independently produced publications.
+- [ ] Qualify native frame breaks, column balancing and tight/through picture wrapping; complete style-library metadata, numbering sequences, additional tab alignments/leaders, drop caps, native underline weights/long-dash/compound patterns and cached dynamic-field display against independently produced publications.
 - [ ] Extend unsupported native preset geometries, advanced path commands and separate paint groups, device-pixel guide operands and limousine scaling, remaining non-solid fills, individual table styling, picture recoloring and extended color controls, and background/master inheritance with precise per-feature loss reporting. Resolve WMF/EMF projection through the existing shared image owner and an explicitly qualified dependency boundary.
 - [ ] Compare OfficeIMO PDF/SVG output with native Publisher references across the corpus. Record content recovery, object geometry, text flow and visible appearance separately, including later producers, transformed groups, image crops, tables and multilingual fonts. Keep exact native-layout claims limited to the evidence that qualifies them.
 
 #### PUB03 — Native editing and safe save-back
 
-- [ ] Extend the [native source-save profiles](../OfficeIMO.Publisher/SUPPORT.md) to paragraph-count changes from nonuniform definitions, native story clearing and chained Quill directories. Broaden linked-story coverage beyond the qualified ordinary document-page chain profile. Support fonts and paragraph formatting, frame layout, image replacement, tables and page/master relationships through the owning codec. Verify every supported edit in Microsoft Publisher and through native resave/reopen; preserve provably unaffected content and reject unsafe unsupported edits explicitly.
+- [ ] Extend the [native source-save profiles](../OfficeIMO.Publisher/SUPPORT.md) to paragraph-count changes from nonuniform definitions, native story clearing and chained Quill directories. Broaden linked-story coverage beyond the qualified ordinary document-page chain profile. Implement font/color resource growth and character/paragraph formatting, frame layout, image replacement, tables and page/master relationships through the owning codec. Verify every supported edit in Microsoft Publisher and through native resave/reopen; preserve provably unaffected content and reject unsafe unsupported edits explicitly.
 - [ ] Qualify opaque preservation of macros, linked resources, embedded objects and producer-specific records separately from editable content. Extend the [bounded native source-save contract](../OfficeIMO.Publisher/SUPPORT.md) only with independently verified profile coverage; keep unsupported content inert and unsafe edits refused.
 
 #### PUB04 — Template-free native authoring

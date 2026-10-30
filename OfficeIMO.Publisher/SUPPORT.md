@@ -20,6 +20,18 @@ The generation signature does not establish qualification for every Publisher
 release or object type. Independent producer files exercise real native storage;
 they are not produced by an OfficeIMO writer.
 
+Two independent native controls qualify twelve whole-frame character-attribute
+combinations and all eighteen automation underline choices across five physical
+pages. Saved Quill underline values differ from the automation enum. Seven native
+kinds map directly to shared patterns; the remaining eleven retain an explicit
+approximation. The `characterReading` section of the
+[qualification record](../Build/Publisher/WriterProbe/qualification.json) identifies
+the fixtures, native values and reader source. Managed SVG/PDF inspection confirms
+that the recovered decorations reach output; it does not establish matching native
+decoration geometry, font availability or script metrics.
+Both controls exercise two chained Quill directories. This reading evidence does
+not extend the admitted single-directory native story-save profile.
+
 Inline OfficeArt picture data stays in the preserved source and reports omitted
 artwork; positioned reconstruction uses image-store references. Cleared picture
 references do not report missing images.
@@ -31,6 +43,7 @@ references do not report missing images.
 | Document pages | Native order, physical size and page clipping, including empty physical pages | Master and utility roles follow the ordered native reference array and its role boundaries; malformed boundaries are rejected |
 | Master pages | Recovered definitions applied to referring pages | Missing references report omission; nested master inheritance is unassessed |
 | Text | UTF-16 stories, styled paragraphs, referenced native style values, explicit reciprocal links or complete native story/frame catalog bindings, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; source style pairs and use ranges are retained internally, while names, builtin selectors and auxiliary inheritance metadata remain unassessed |
+| Character formatting | Native font names, size, referenced color, bold/italic, strikethrough, superscript/subscript and none, single, words-only, double, dotted, dashed and wavy underlines | Native underline weight, long-dash, compound and unknown patterns use the closest shared pattern with `PUB_TEXT_UNDERLINE_APPROXIMATED`. Font availability, exact metrics and decoration geometry remain separate rendering limits |
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs | Numbering sequences, additional tab alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval |
 | Tables | `PublisherPage.Tables` exposes current tracks, spans, styled paragraphs, text and placement; qualified anchor-cell text edits preserve complete story partitions, and qualified bounds edits scale tracks proportionally; master tables remain on their master | Separate `CanEditCellText`/`CanEditBounds` and limitation properties identify supported operations. Unavailable frame geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`; individual cell borders, fills and padding are unassessed |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |

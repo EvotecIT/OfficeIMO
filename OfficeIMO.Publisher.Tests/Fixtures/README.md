@@ -50,6 +50,17 @@ Its four text frames qualify recovery of those omitted coordinates.
 TextFormattingMany has 240 paragraphs across three native paragraph-formatting
 pages, retaining overflow. TextCharacterPages has four independent stories in
 Arial 12, 14, 16 and 18 points, producing two native character-formatting pages.
+TextCharacterAttributes has twelve whole-frame attribute controls across two
+pages: regular/italic, single/double underline, strikethrough, superscript/subscript,
+Arial/Cambria/Courier New/Consolas, red text and combined blue bold/italic text.
+TextUnderlinePatterns records all eighteen automation underline choices across
+three pages. Its saved Quill values differ from the automation enum; native
+weight, long-dash and compound patterns are distinct from the shared model's
+representable patterns. The fixture contracts record each requested attribute,
+and their native PDFs are independent appearance references.
+Both files use two chained Quill directories, with 22 and 26 descriptors.
+They also provide independent inputs for the remaining chained-directory
+story-writer work; reading them does not qualify native story save-back.
 Newsletter adds a two-page linked story
 and a picture. TableLabel adds a custom page size, styled 2-by-2 table, picture
 and Polish/Greek characters. Brochure adds two 792-by-612-point landscape sides,

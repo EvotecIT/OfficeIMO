@@ -132,6 +132,23 @@ Adjacent identical character OPLs coalesce. Making a paragraph empty is refused 
 OPL from the last visible run, because that would substitute an unqualified
 typing style. Directory capacity and native style-mapping limits still refuse output.
 
+The `characterReading` qualification section binds two independent native controls
+to typed font/color/decorations and all eighteen automation underline choices.
+Quill's stored underline values have their own mapping; unsupported weights,
+long-dash and compound patterns carry approximation reports. Native and managed
+PDF/SVG references establish recovered content and visible decorations separately
+from exact font metrics or decoration geometry.
+
+The separate `sourceEditing.fontTableExtensionExperiment` records one appended
+Consolas FONT entry with zero hint bytes and eight updated body script selectors.
+Static text-component inspection shows that loading resolves names and replaces
+saved font IDs with local IDs. Native open/export/save/reopen retains the complete
+text and Consolas body font, with identical native pixels and spans across resave.
+The original paragraph-CR definition remains separate, including its Calibri
+whitespace span and mixed whole-range font name. This isolated experiment does
+not add product font writing or establish repair-free opening; source saving
+still supports only its documented size/bold formatting edits.
+
 The multiple-story/page path retains existing story identities and order, admits
 one frame or a complete resolved ordinary document-page chain per changed story,
 and admits one directory with at most 20 descriptors

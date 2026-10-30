@@ -4946,6 +4946,390 @@
         "Native pixels compare initial/resaved physical pages, not OfficeIMO renderer parity.",
         "Other producers, grouped/transformed/master chains, arbitrary relinking and source-free native creation are not qualified by these specimens."
       ]
+    },
+    "fontTableExtensionExperiment": {
+      "scope": "Isolated source-stream experiment; no production font-writing contract.",
+      "source": {
+        "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+        "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+      },
+      "recipe": {
+        "fontFamily": "Consolas",
+        "newFontIndex": 33,
+        "newFontEntrySuffixHex": "00000000",
+        "bodyScriptSelectors": 8,
+        "fontTable": "Append an indexed UTF16 entry, retaining existing entries and suffixes; relocate FONT to EOF and clear its superseded payload.",
+        "paragraphTerminator": "Retain the original separate CR definition."
+      },
+      "candidateSha256": "1a3f2110327767f23485d95c975ac004599fab0327c95db292231da2e5cf6725",
+      "qualifiedOperations": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "nativeBodyFontSelectorsResolvedToConsolas": true,
+      "nativePdfTextFont": "Consolas",
+      "nativePdfSpans": [
+        {
+          "text": "Publisher text",
+          "font": "Consolas",
+          "size": 12.0
+        },
+        {
+          "text": " ",
+          "font": "Calibri",
+          "size": 9.960000038146973
+        }
+      ],
+      "nativeWholeRangeFontNames": [
+        "",
+        ""
+      ],
+      "nativePixelsAndSpansEqualAcrossResave": true,
+      "nativePixelSha256": "bb2a869100ba0680bd3a75702e2ec2804711789b5b2abe4c4e52ac0b62402730",
+      "nativeArtifacts": [
+        {
+          "name": "candidate-input.pub",
+          "sha256": "1a3f2110327767f23485d95c975ac004599fab0327c95db292231da2e5cf6725"
+        },
+        {
+          "name": "native-initial-inventory.json",
+          "sha256": "03c271d09aa77c595f19831b5044390ea69e56a2a0bc074848716fa282fa48f8"
+        },
+        {
+          "name": "native-resaved.pub",
+          "sha256": "49ebea28739c673e13adec0de17f7d60910bce7193c6f62f7738701a12e6e7a8"
+        },
+        {
+          "name": "native-resaved-inventory.json",
+          "sha256": "cb3350fc660d7e31b4a0e524a4cd34568a3cc14a2e8c46b31fb2b8049af94913"
+        },
+        {
+          "name": "native-initial.pdf",
+          "sha256": "e661623c20820ee37a1de2fcad71b28591bf5eb4a05c05affaad7f4cc1a9e9f4"
+        },
+        {
+          "name": "native-resaved.pdf",
+          "sha256": "9fdcda0003d7fb6d23cd6e82bf883d84550b8e309562362d9bd1d575237b268c"
+        }
+      ],
+      "staticEvidence": {
+        "target": "PTXT9.DLL",
+        "version": "16.0.20527.20016",
+        "sha256": "6597f92367dcb44a3ae6d957012abf503d8a7ce8d0ce1ffab36c564223bcd7e4",
+        "provider": "REA6.5.0/Ghidra12.1.4",
+        "profileDigest": "dcc676845881c04a2d22833fb35d26569462e033daee5e99a95edac5aa61ac05",
+        "loadNameResolution": "0x1800109c0 calls 0x18000e9a0 by name and replaces the saved low 16-bit font ID; the other two suffix bytes can supply empty cache hints.",
+        "fontNameLimit": "The observed lookup admits at most 32 UTF-16 code units.",
+        "classification": "Static implementation evidence plus one native behavioral specimen; decompiler output is not original source."
+      },
+      "limits": [
+        "Isolated appended FONT entry with a zero suffix and eight body script selectors. No product font writer or repair-free proof.",
+        "The original CR definition remains unchanged; a Calibri whitespace span and empty whole-range Font.Name remain visible. Body-font proof uses native-resaved selectors and non-whitespace PDF text."
+      ]
     }
+  },
+  "characterReading": {
+    "scope": "Independent native whole-frame character attributes and saved underline-kind mapping; no general native renderer parity.",
+    "readerCommit": "ebbf4b0337c670e705c303585879d9a18620d4ac",
+    "sourceFiles": [
+      {
+        "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillStyleReader.cs",
+        "sha256": "bddbb37608c076a2d3e79358bddb8e798bad17c6eec18eb34873c35f1bb2ad3b",
+        "gitBlobSha256": "271827afa7ab6116b129576edd3d467541dba960af4b7269f9178bb12e7ddeca"
+      },
+      {
+        "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillStyles.cs",
+        "sha256": "ac764c398499386e16ced9c56e652d967c8fe6dac1594bf79951f2376b13cc83",
+        "gitBlobSha256": "5f6bcba265d53b6c40ee318ec722b44e23169c867f499c8f3897032f009b009e"
+      },
+      {
+        "path": "../../../OfficeIMO.Publisher.Tests/PublisherCharacterAttributeReadingTests.cs",
+        "sha256": "f69fc71938d6eaa3e7239e05cef502d6d552cd06527f8c13faa993805cdcea21",
+        "gitBlobSha256": "f69fc71938d6eaa3e7239e05cef502d6d552cd06527f8c13faa993805cdcea21"
+      },
+      {
+        "path": "../../../Build/Publisher/Add-NativeCharacterAttributeControl.ps1",
+        "sha256": "200c1f8a2efe5c9f042ce94dbb5958b0c8351bc4647aba3f919ac8ecc0b75efd",
+        "gitBlobSha256": "200c1f8a2efe5c9f042ce94dbb5958b0c8351bc4647aba3f919ac8ecc0b75efd"
+      },
+      {
+        "path": "../../../Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "sha256": "e259b5c4a020c179e82ebaf969f1619286145d79f82d7cd4335a855b0072df8c",
+        "gitBlobSha256": "de5a7103cb25bbcdb60ad17ab86058ec364d8c3156e5c9417651b52b331de4a8"
+      },
+      {
+        "path": "../../../Build/Publisher/Invoke-NativePublisherOperation.ps1",
+        "sha256": "59b83a9afc3d577bf9a458fe603d51ee791a708b0bee1dcd89444dfd87544b26",
+        "gitBlobSha256": "59b83a9afc3d577bf9a458fe603d51ee791a708b0bee1dcd89444dfd87544b26"
+      },
+      {
+        "path": "../../../Build/Publisher/New-NativeComparisonCorpus.ps1",
+        "sha256": "cc9a86d19f8c84edfb1123041c05bcced394d4bb578117a2cbed632150608e08",
+        "gitBlobSha256": "cc9a86d19f8c84edfb1123041c05bcced394d4bb578117a2cbed632150608e08"
+      }
+    ],
+    "sourceHashScope": "sha256 identifies qualified worktree bytes; gitBlobSha256 identifies Git-normalized files at readerCommit.",
+    "controls": [
+      {
+        "case": "TextCharacterAttributes",
+        "contract": {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextCharacterAttributes/native-textcharacterattributes.json",
+          "sha256": "3458aa3323f70cce70d3a12113364ac2665fad529c1a442817f294847fffb8dd"
+        },
+        "files": [
+          {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextCharacterAttributes/native-textcharacterattributes.pub",
+            "sha256": "6bd37dbba41ee7caf9393446866d8ac48f230ff851605297af63c98acb7000fe"
+          },
+          {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextCharacterAttributes/native-textcharacterattributes.pdf",
+            "sha256": "71da70a130d06c5ba98b3cb83800c1010b8f7a1dcfe0e8b8de0c851d212c9dc3"
+          }
+        ],
+        "physicalPages": 2,
+        "stories": 12,
+        "producer": {
+          "name": "Microsoft Publisher",
+          "version": "16.0",
+          "executableVersion": "16.0.20527.20088",
+          "powershell": "7.6.9",
+          "culture": "pl-PL",
+          "textFont": {
+            "family": "Arial",
+            "file": "arial.ttf",
+            "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+          },
+          "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+          "automationSecurity": 3
+        },
+        "quillDirectories": [
+          {
+            "offset": 24,
+            "descriptors": 19,
+            "next": 28160
+          },
+          {
+            "offset": 28160,
+            "descriptors": 3,
+            "next": 4294967295
+          }
+        ],
+        "quillDescriptors": 22
+      },
+      {
+        "case": "TextUnderlinePatterns",
+        "contract": {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextUnderlinePatterns/native-textunderlinepatterns.json",
+          "sha256": "984416be603591fc887044a734e63e91163223ecc48ddaba2c62f17f2c3f9524"
+        },
+        "files": [
+          {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextUnderlinePatterns/native-textunderlinepatterns.pub",
+            "sha256": "5cb4bd00b71f3ac357c6163bfe60790467c869d96dcfd81b3d40120c11482e54"
+          },
+          {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextUnderlinePatterns/native-textunderlinepatterns.pdf",
+            "sha256": "43919d210c33983c7f3fe0f8e1f35f3cec972f45e02ae2db81807413baddef97"
+          }
+        ],
+        "physicalPages": 3,
+        "stories": 18,
+        "producer": {
+          "name": "Microsoft Publisher",
+          "version": "16.0",
+          "executableVersion": "16.0.20527.20088",
+          "powershell": "7.6.9",
+          "culture": "pl-PL",
+          "textFont": {
+            "family": "Arial",
+            "file": "arial.ttf",
+            "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+          },
+          "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+          "automationSecurity": 3
+        },
+        "quillDirectories": [
+          {
+            "offset": 24,
+            "descriptors": 19,
+            "next": 31744
+          },
+          {
+            "offset": 31744,
+            "descriptors": 7,
+            "next": 4294967295
+          }
+        ],
+        "quillDescriptors": 26
+      }
+    ],
+    "attributes": [
+      "Font family and size",
+      "Referenced RGB colors",
+      "Bold and italic",
+      "Single strikethrough",
+      "Superscript and subscript",
+      "Representable underline patterns with explicit approximation of remaining native kinds"
+    ],
+    "nativeUnderlineMap": [
+      {
+        "automationValue": 0,
+        "nativeQuillValue": 0,
+        "sharedPattern": "None",
+        "approximation": false
+      },
+      {
+        "automationValue": 1,
+        "nativeQuillValue": 1,
+        "sharedPattern": "Single",
+        "approximation": false
+      },
+      {
+        "automationValue": 2,
+        "nativeQuillValue": 2,
+        "sharedPattern": "Words",
+        "approximation": false
+      },
+      {
+        "automationValue": 3,
+        "nativeQuillValue": 3,
+        "sharedPattern": "Double",
+        "approximation": false
+      },
+      {
+        "automationValue": 4,
+        "nativeQuillValue": 4,
+        "sharedPattern": "Dotted",
+        "approximation": false
+      },
+      {
+        "automationValue": 5,
+        "nativeQuillValue": 6,
+        "sharedPattern": "Single",
+        "approximation": true
+      },
+      {
+        "automationValue": 6,
+        "nativeQuillValue": 7,
+        "sharedPattern": "Dashed",
+        "approximation": false
+      },
+      {
+        "automationValue": 7,
+        "nativeQuillValue": 9,
+        "sharedPattern": "Dashed",
+        "approximation": true
+      },
+      {
+        "automationValue": 8,
+        "nativeQuillValue": 10,
+        "sharedPattern": "Dashed",
+        "approximation": true
+      },
+      {
+        "automationValue": 9,
+        "nativeQuillValue": 11,
+        "sharedPattern": "Wavy",
+        "approximation": false
+      },
+      {
+        "automationValue": 10,
+        "nativeQuillValue": 16,
+        "sharedPattern": "Wavy",
+        "approximation": true
+      },
+      {
+        "automationValue": 11,
+        "nativeQuillValue": 17,
+        "sharedPattern": "Dotted",
+        "approximation": true
+      },
+      {
+        "automationValue": 12,
+        "nativeQuillValue": 18,
+        "sharedPattern": "Dashed",
+        "approximation": true
+      },
+      {
+        "automationValue": 13,
+        "nativeQuillValue": 19,
+        "sharedPattern": "Dashed",
+        "approximation": true
+      },
+      {
+        "automationValue": 14,
+        "nativeQuillValue": 20,
+        "sharedPattern": "Dashed",
+        "approximation": true
+      },
+      {
+        "automationValue": 15,
+        "nativeQuillValue": 21,
+        "sharedPattern": "Dashed",
+        "approximation": true
+      },
+      {
+        "automationValue": 16,
+        "nativeQuillValue": 22,
+        "sharedPattern": "Dashed",
+        "approximation": true
+      },
+      {
+        "automationValue": 17,
+        "nativeQuillValue": 23,
+        "sharedPattern": "Wavy",
+        "approximation": true
+      }
+    ],
+    "strikethrough": {
+      "nativeField": "10",
+      "nativeTrueToken": "100A",
+      "plainControls": "No direct strikethrough field; explicit-off inheritance is not independently qualified by these controls."
+    },
+    "approximationCode": "PUB_TEXT_UNDERLINE_APPROXIMATED",
+    "approximationLocation": "Quill/underline/<native value>",
+    "visualEvidence": {
+      "nativeReferencePages": 5,
+      "managedPdfPages": 5,
+      "managedSvgPages": 5,
+      "observation": "All character controls and underline patterns reach rendered output. Native weight, dash length, compound patterns, font availability and baseline/decoration geometry remain separate limits."
+    },
+    "installedComparisonFontFiles": [
+      {
+        "file": "arial.ttf",
+        "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+      },
+      {
+        "file": "ariali.ttf",
+        "sha256": "86b32db9a06f9694e2a3760c42e5117bcdc5cc1255bb5186ca8ce0305e22f288"
+      },
+      {
+        "file": "cambria.ttc",
+        "sha256": "84e70ccc1664482f4a960442c7a166c91a1b2cf98ff88c33cb73f79403f66d7b"
+      },
+      {
+        "file": "cour.ttf",
+        "sha256": "e4a66a0259718d0c8f4b6e14319b4803ced45afbddf3abba8b8c3e2006856206"
+      },
+      {
+        "file": "courbi.ttf",
+        "sha256": "2d61f452de49b57d9ef14ce8896bc1cd2ed8285c2e9fb2e73e78a4b23f91d308"
+      },
+      {
+        "file": "consola.ttf",
+        "sha256": "cf00b507b3286870cc5064ebd0633c303f70b491a4af25eec2d32df413db0179"
+      }
+    ],
+    "limits": [
+      "Exact specimens from Publisher16.0.20527.20088 only; broad producer/script/font-metric coverage remains unassessed.",
+      "The eighteen automation choices use Quill-specific stored values. Seven kinds are representable; eleven require explicit approximation.",
+      "Product native formatting edits remain limited to size/bold until the independent font/character writer is implemented and qualified.",
+      "Both controls have two Quill directories, with 22 and 26 descriptors. They are readable, but changed-story saving remains outside the current single-directory profile."
+    ]
   }
 }
