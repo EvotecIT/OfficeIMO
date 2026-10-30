@@ -160,7 +160,11 @@ public sealed class ReaderPowerPointExtractionTests {
             PowerPointTextBox link = source.AddTextBox("Open ");
             link.Paragraphs[0].AddRun("destination")
                 .SetHyperlink(target, "Jump to destination");
-            target.AddTitle("Destination");
+            target.AddTitle("Destination",
+                left: global::OfficeIMO.OfficeLength.Emus(540000),
+                top: global::OfficeIMO.OfficeLength.Emus(360000),
+                width: global::OfficeIMO.OfficeLength.Emus(7200000),
+                height: global::OfficeIMO.OfficeLength.Emus(700000));
             bytes = binary
                 ? presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt })
                 : presentation.ToBytes();
@@ -319,7 +323,12 @@ public sealed class ReaderPowerPointExtractionTests {
         using PowerPointDocument presentation =
             PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddTitle("Reader extraction contract");
+        // Reader parity needs a title placeholder within the base binary text-style contract.
+        slide.AddTitle("Reader extraction contract",
+            left: global::OfficeIMO.OfficeLength.Emus(540000),
+            top: global::OfficeIMO.OfficeLength.Emus(360000),
+            width: global::OfficeIMO.OfficeLength.Emus(7200000),
+            height: global::OfficeIMO.OfficeLength.Emus(700000));
         PowerPointTextBox list = slide.AddTextBox(string.Empty);
         list.SetBullets(new[] { "Parent bullet" });
         list.AddBullets(new[] { "Nested bullet" }, level: 1);

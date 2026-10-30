@@ -12882,6 +12882,28 @@
         "OfficeIMO.PowerPoint.Tests/PowerPoint.ImageExport.CustomGeometry.cs"
       ],
       "note": "All finite crop/stroke rejection and native XML/state assertions remain. No production behavior or golden is changed."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "fix",
+      "old": "Hidden title placeholders reserve the visible authoring content frame.",
+      "new": "Only visible title placeholders contribute to the automatic content top edge.",
+      "reason": "A hidden full-slide title must not prevent an otherwise valid table or chart from being authored. Existing Reader saved-artifact filtering proof exercises this path.",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointSlide.AuthoringLayout.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Legacy Reader fixtures use automatic titles with layout-engine tracking outside the base binary character-style contract.",
+      "new": "Use existing explicit physical title geometry to construct base-style title placeholders for binary/PPTX parity fixtures.",
+      "reason": "Keep actual Reader title, list, link, notes, stream and cancellation checks reachable without bypassing native-write preflight or changing Modern authoring defaults.",
+      "files": [
+        "OfficeIMO.Reader.Tests/Reader.PowerPointExtraction.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

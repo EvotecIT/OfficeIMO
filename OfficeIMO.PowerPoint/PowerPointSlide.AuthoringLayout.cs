@@ -23,7 +23,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private double AuthoringTitleBottom() => TextBoxes
-            .Where(shape => shape.PlaceholderType == PowerPointPlaceholderType.Title || shape.PlaceholderType == PowerPointPlaceholderType.CenteredTitle)
+            .Where(shape => !shape.Hidden && (shape.PlaceholderType == PowerPointPlaceholderType.Title || shape.PlaceholderType == PowerPointPlaceholderType.CenteredTitle))
             .Select(shape => shape.TryGetExportBoundsPoints(out _, out double top, out _, out double height) ? top + height : 0D)
             .DefaultIfEmpty(0D).Max();
 
