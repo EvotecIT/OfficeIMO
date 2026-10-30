@@ -1,5 +1,21 @@
 # Upgrading OfficeIMO
 
+## Word inspection lengths
+
+`WordDocument.Inspect()` returns physical lengths as `OfficeLength`.
+Read `PageWidth`, `PageHeight`, `MarginTop/Bottom/Left/Right`, `HeaderMargin`,
+`FooterMargin`, `ColumnSpacing`, `IndentStart/End/FirstLine`, `SpaceAbove/Below`
+and tab `Position` without the former `Points` suffix. Table snapshots expose
+`ColumnWidths`. Run snapshots have one nullable `FontSize`, retaining half-point
+precision; `FontSizePoints` and the truncated integer twin are removed.
+Inline-image `Width` and `Height` are lengths rather than pixel numbers.
+
+Replace `section.PageWidthPoints` with `section.PageWidth?.ToPoints()` when a
+numeric point value is needed. Use `image.Width?.ToPixels()` at a pixel boundary.
+Absent overrides remain null; zero and negative hanging indentation retain
+their meaning. ODT image conversion now preserves the physical frame in either
+direction instead of mixing point and pixel measurements.
+
 Excel and PowerPoint image builders and format-named twins are removed. Use
 `ToImage(options)`, `ToImage(options, out report)`, `ToImageAsync(options)`,
 `SaveAsImage(pathOrStream, options)` or `SaveAsImages(folder, options)`.

@@ -74,7 +74,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                         throw new NotSupportedException("The Word image payload is incomplete or unsupported.");
                     }
                     target.AddImage(bytes, storedFileName,
-                        OdfLength.Points(image.Width ?? 72D), OdfLength.Points(image.Height ?? 72D),
+                        OdfLength.Points(image.Width?.ToPoints() ?? 72D), OdfLength.Points(image.Height?.ToPoints() ?? 72D),
                         image.IsInline ? OdtImageAnchor.Inline : OdtImageAnchor.Paragraph);
                     images++;
                     wrote = true;

@@ -7125,6 +7125,30 @@
         "Docs/officeimo.word.legacy-doc-compatibility.md",
         "Docs/officeimo.word-excel-interoperability.md"
       ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "Word inspection page, paragraph, tab, table-grid, run-font and inline-image geometry uses point/pixel numbers and unit-suffixed members. WordRunInfo has integral FontSize and precise FontSizePoints twins.",
+      "new": "Inspection snapshots use OfficeLength with unit-free names: PageWidth/PageHeight, MarginTop/Bottom/Left/Right, HeaderMargin/FooterMargin, ColumnSpacing, IndentStart/End/FirstLine, SpaceAbove/Below, Position, ColumnWidths, FontSize and image Width/Height.",
+      "reason": "Inspection result models are part of the public geometry contract. Preserve native precision, nullable absence, zero and signed indentation without implicit unit interpretation.",
+      "note": "The shared snapshots retain physical dimensions; Google Docs point/pixel request and checkpoint boundaries convert explicitly, retaining their existing serialized numeric contract. Saved DOCX inspection covers half-point font sizes and signed twentieth-point spacing.",
+      "files": [
+        "OfficeIMO.OpenDocument.Converters.Tests/OpenDocumentConversionContracts.cs",
+        "OfficeIMO.Word.GoogleDocs/GoogleDocsApiPayloadBuilder.Styles.cs",
+        "OfficeIMO.Word.GoogleDocs/GoogleDocsBatchCompiler.cs",
+        "OfficeIMO.Word.GoogleDocs/GoogleDocsDiffPlan.cs",
+        "OfficeIMO.Word.OpenDocument/WordOpenDocumentConversionExtensions.Notes.cs",
+        "OfficeIMO.Word.OpenDocument/WordOpenDocumentConversionExtensions.ParagraphLayout.cs",
+        "OfficeIMO.Word.OpenDocument/WordOpenDocumentConversionExtensions.WordParagraphs.cs",
+        "OfficeIMO.Word.OpenDocument/WordOpenDocumentConversionExtensions.cs",
+        "OfficeIMO.Word.Tests/Word.TablePreferredWidths.cs",
+        "OfficeIMO.Word/PublicAPI.Shipped.txt",
+        "OfficeIMO.Word/WordDocument.Inspection.cs",
+        "OfficeIMO.Word/WordInspectionSnapshot.cs",
+        "OfficeIMO.Word.Tests/Word.Inspection.PhysicalLengths.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

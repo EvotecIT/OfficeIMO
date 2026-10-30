@@ -111,17 +111,17 @@ public sealed class OpenDocumentConversionContracts {
         WordRunInfo run = Assert.Single(converted.Runs);
 
         Assert.Equal("Center", converted.Alignment);
-        Assert.Equal(18, converted.IndentStartPoints!.Value, 3);
-        Assert.Equal(9, converted.IndentEndPoints!.Value, 3);
-        Assert.Equal(12, converted.IndentFirstLinePoints!.Value, 3);
-        Assert.Equal(6, converted.SpaceAbovePoints!.Value, 3);
-        Assert.Equal(8, converted.SpaceBelowPoints!.Value, 3);
+        Assert.Equal(18, converted.IndentStart!.Value.ToPoints(), 3);
+        Assert.Equal(9, converted.IndentEnd!.Value.ToPoints(), 3);
+        Assert.Equal(12, converted.IndentFirstLine!.Value.ToPoints(), 3);
+        Assert.Equal(6, converted.SpaceAbove!.Value.ToPoints(), 3);
+        Assert.Equal(8, converted.SpaceBelow!.Value.ToPoints(), 3);
         Assert.Equal("EAF2F8", converted.ShadingFillColorHex);
         Assert.True(run.Bold);
         Assert.True(run.Italic);
         Assert.True(run.Underline);
         Assert.True(run.Strike);
-        Assert.Equal(13, run.FontSize);
+        Assert.Equal(13, run.FontSize?.ToPoints());
         Assert.Equal("Aptos", run.FontFamily);
         Assert.Equal("123456", run.ColorHex);
         Assert.Equal("Yellow", run.HighlightColor);
@@ -352,6 +352,16 @@ public sealed class OpenDocumentConversionContracts {
         Assert.Equal("Before", string.Concat(converted.Runs.Take(imageIndex).Select(run => run.Text)));
         Assert.Equal("After", string.Concat(converted.Runs.Skip(imageIndex + 1).Select(run => run.Text)));
         Assert.Equal("target", converted.BookmarkName);
+        WordInlineImageInfo image = converted.Runs[imageIndex].InlineImage!;
+        Assert.Equal(OdfLength.Centimeters(1).ToPoints(), image.Width!.Value.ToPoints(), 1);
+        Assert.Equal(OdfLength.Centimeters(1).ToPoints(), image.Height!.Value.ToPoints(), 1);
+        using var savedWord = new MemoryStream(target.ToBytes());
+        using WordDocument loadedWord = WordDocument.Load(savedWord);
+        OdtDocument roundTrip = loadedWord.ToOpenDocumentResult().Value;
+        OdtDocument loadedOdt = OdtDocument.Load(new MemoryStream(roundTrip.ToBytes()));
+        var exportedImage = Assert.Single(loadedOdt.Paragraphs.SelectMany(item => item.Images));
+        Assert.Equal(OdfLength.Centimeters(1).ToPoints(), exportedImage.Width.ToPoints(), 1);
+        Assert.Equal(OdfLength.Centimeters(1).ToPoints(), exportedImage.Height.ToPoints(), 1);
         Assert.Contains(conversion.Report.Mappings, mapping =>
             mapping.Feature == "bookmarks" && mapping.Status == OdfConversionMappingStatus.Converted);
     }

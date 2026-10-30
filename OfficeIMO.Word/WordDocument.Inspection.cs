@@ -71,16 +71,16 @@ namespace OfficeIMO.Word {
                     Index = sectionIndex,
                     SectionBreakType = ResolveSectionBreakType(section, sectionIndex),
                     Orientation = NormalizeOpenXmlEnumValue(section._sectionProperties?.GetFirstChild<PageSize>()?.Orient) ?? section.PageOrientation.ToString(),
-                    PageWidthPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageSize>()?.Width?.Value),
-                    PageHeightPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageSize>()?.Height?.Value),
-                    MarginTopPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Top?.Value),
-                    MarginBottomPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Bottom?.Value),
-                    MarginLeftPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Left?.Value),
-                    MarginRightPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Right?.Value),
-                    HeaderMarginPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Header?.Value),
-                    FooterMarginPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Footer?.Value),
+                    PageWidth = ReadTwipLength(section._sectionProperties?.GetFirstChild<PageSize>()?.Width?.Value),
+                    PageHeight = ReadTwipLength(section._sectionProperties?.GetFirstChild<PageSize>()?.Height?.Value),
+                    MarginTop = ReadTwipLength(section._sectionProperties?.GetFirstChild<PageMargin>()?.Top?.Value),
+                    MarginBottom = ReadTwipLength(section._sectionProperties?.GetFirstChild<PageMargin>()?.Bottom?.Value),
+                    MarginLeft = ReadTwipLength(section._sectionProperties?.GetFirstChild<PageMargin>()?.Left?.Value),
+                    MarginRight = ReadTwipLength(section._sectionProperties?.GetFirstChild<PageMargin>()?.Right?.Value),
+                    HeaderMargin = ReadTwipLength(section._sectionProperties?.GetFirstChild<PageMargin>()?.Header?.Value),
+                    FooterMargin = ReadTwipLength(section._sectionProperties?.GetFirstChild<PageMargin>()?.Footer?.Value),
                     ColumnCount = section.ColumnCount,
-                    ColumnSpacingPoints = section.ColumnsSpace?.ToPoints(),
+                    ColumnSpacing = section.ColumnsSpace,
                     HasColumnSeparator = section._sectionProperties?.GetFirstChild<Columns>()?.Separator?.Value ?? false,
                     PageNumberStart = section._sectionProperties?.GetFirstChild<PageNumberType>()?.Start?.Value,
                     HeaderCount = CountHeaderParts(section.Header),
@@ -219,11 +219,11 @@ namespace OfficeIMO.Word {
                 ListIndex = hasListMarker && listMarker.Info.Ordered ? listMarker.Index : null,
                 ListStyleName = paragraph.ListStyle?.ToString(),
                 Alignment = NormalizeOpenXmlEnumValue(paragraph._paragraphProperties?.Justification?.Val),
-                IndentStartPoints = paragraph.IndentationBefore?.ToPoints(),
-                IndentEndPoints = paragraph.IndentationAfter?.ToPoints(),
-                IndentFirstLinePoints = ResolveIndentFirstLinePoints(paragraph),
-                SpaceAbovePoints = paragraph.LineSpacingBefore?.ToPoints(),
-                SpaceBelowPoints = paragraph.LineSpacingAfter?.ToPoints(),
+                IndentStart = paragraph.IndentationBefore,
+                IndentEnd = paragraph.IndentationAfter,
+                IndentFirstLine = ResolveIndentFirstLine(paragraph),
+                SpaceAbove = paragraph.LineSpacingBefore,
+                SpaceBelow = paragraph.LineSpacingAfter,
                 LineSpacing = paragraph.LineSpacing,
                 LineSpacingValue = paragraph.NativeLineSpacingValue,
                 LineSpacingRule = paragraph.NativeLineSpacingRule?.ToString()
@@ -305,8 +305,7 @@ namespace OfficeIMO.Word {
                     UnderlineStyle = run.Underline,
                     Strike = run.Strike || run.DoubleStrike,
                     DoubleStrike = run.DoubleStrike,
-                    FontSize = run.NativeFontSizePoints is double points ? checked((int)points) : null,
-                    FontSizePoints = run.NativeFontSizePoints,
+                    FontSize = run.FontSize,
                     FontFamily = run.FontFamily,
                     ColorHex = NormalizeColorHex(run.ColorHex),
                     HighlightColor = NormalizeOpenXmlEnumValue(run.Highlight),
@@ -356,7 +355,7 @@ namespace OfficeIMO.Word {
                 snapshot.AddTabStop(new WordTabStopInfo {
                     Alignment = NormalizeOpenXmlEnumValue(tabStop.Alignment),
                     Leader = NormalizeOpenXmlEnumValue(tabStop.Leader),
-                    PositionPoints = Helpers.ConvertTwipsToPoints(tabStop.Position),
+                    Position = OfficeLength.Points(tabStop.Position / 20D),
                 });
             }
 
@@ -389,8 +388,8 @@ namespace OfficeIMO.Word {
             Bytes = !includeImageBytes || image.IsExternal ? null : image.ToBytes(),
             Description = image.Description,
             Title = image.Title,
-            Width = (image.Width?.ToPixels()),
-            Height = (image.Height?.ToPixels()),
+            Width = image.Width,
+            Height = image.Height,
             IsInline = image.WrapText == WordImageTextWrapping.InLineWithText,
             WrapText = image.WrapText?.ToString(),
         };
@@ -436,13 +435,13 @@ namespace OfficeIMO.Word {
             var gridColumnWidths = table.GridColumnWidth;
             if (gridColumnWidths.Count > 0) {
                 foreach (var width in gridColumnWidths) {
-                    snapshot.AddColumnWidth(width.ToPoints());
+                    snapshot.AddColumnWidth(width);
                 }
             } else if (table.Rows.Count > 0) {
                 foreach (var cell in table.Rows[0].Cells) {
-                    // Snapshot columns are physical points. Zero marks an unresolved preference
+                    // Snapshot columns are physical lengths. Zero marks an unresolved preference
                     // for destination adapters; percentages are never interpreted as twips.
-                    snapshot.AddColumnWidth(WordTableWidthNative.AbsoluteCellPoints(cell) ?? 0D);
+                    snapshot.AddColumnWidth(OfficeLength.Points(WordTableWidthNative.AbsoluteCellPoints(cell) ?? 0D));
                 }
             }
 
@@ -561,13 +560,13 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static double? ResolveIndentFirstLinePoints(WordParagraph paragraph) {
+        private static OfficeLength? ResolveIndentFirstLine(WordParagraph paragraph) {
             if (paragraph.IndentationFirstLine.HasValue) {
-                return paragraph.IndentationFirstLine.Value.ToPoints();
+                return paragraph.IndentationFirstLine.Value;
             }
 
             if (paragraph.IndentationHanging.HasValue) {
-                return -paragraph.IndentationHanging.Value.ToPoints();
+                return OfficeLength.Zero - paragraph.IndentationHanging.Value;
             }
 
             return null;
@@ -692,20 +691,20 @@ namespace OfficeIMO.Word {
             return char.ToUpperInvariant(text[0]) + text.Substring(1);
         }
 
-        private static double? ConvertTwipsToPoints(uint? twips) {
+        private static OfficeLength? ReadTwipLength(uint? twips) {
             if (!twips.HasValue) {
                 return null;
             }
 
-            return Helpers.ConvertTwipsToPoints((int)twips.Value);
+            return OfficeLength.Points(twips.Value / 20D);
         }
 
-        private static double? ConvertTwipsToPoints(int? twips) {
+        private static OfficeLength? ReadTwipLength(int? twips) {
             if (!twips.HasValue) {
                 return null;
             }
 
-            return Helpers.ConvertTwipsToPoints(twips.Value);
+            return OfficeLength.Points(twips.Value / 20D);
         }
     }
 }

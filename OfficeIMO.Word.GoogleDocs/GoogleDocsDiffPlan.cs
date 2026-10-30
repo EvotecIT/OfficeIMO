@@ -142,7 +142,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             };
             foreach (WordSectionInfo section in snapshot.Sections) {
                 string sectionPath = GoogleWorkspaceCheckpointFormat.Format($"section/{section.Index}");
-                result[sectionPath] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{section.SectionBreakType}|{section.Orientation}|{section.PageWidthPoints}|{section.PageHeightPoints}|{section.MarginTopPoints}|{section.MarginBottomPoints}|{section.MarginLeftPoints}|{section.MarginRightPoints}|{section.ColumnCount}"));
+                result[sectionPath] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{section.SectionBreakType}|{section.Orientation}|{section.PageWidth?.ToPoints()}|{section.PageHeight?.ToPoints()}|{section.MarginTop?.ToPoints()}|{section.MarginBottom?.ToPoints()}|{section.MarginLeft?.ToPoints()}|{section.MarginRight?.ToPoints()}|{section.ColumnCount}"));
                 AddBlocks(result, sectionPath, section.Elements);
                 AddBlocks(result, sectionPath + "/header/default", section.DefaultHeader?.Elements);
                 AddBlocks(result, sectionPath + "/footer/default", section.DefaultFooter?.Elements);
@@ -205,16 +205,16 @@ namespace OfficeIMO.Word.GoogleDocs {
 
         private static string ParagraphFingerprint(WordParagraphInfo paragraph) {
             string runs = string.Join("~", paragraph.Runs.Select(RunFingerprint));
-            string tabs = string.Join("~", paragraph.TabStops.Select(tab => GoogleWorkspaceCheckpointFormat.Format($"{tab.Alignment}|{tab.Leader}|{tab.PositionPoints}")));
-            return GoogleWorkspaceCheckpointFormat.Format($"{paragraph.Text}|{paragraph.StyleId}|{paragraph.StyleName}|{paragraph.Alignment}|{paragraph.IsListItem}|{paragraph.IsOrderedList}|{paragraph.ListLevel}|{paragraph.ListStyleName}|{paragraph.IndentStartPoints}|{paragraph.IndentEndPoints}|{paragraph.IndentFirstLinePoints}|{paragraph.SpaceAbovePoints}|{paragraph.SpaceBelowPoints}|{paragraph.LineSpacingValue}|{paragraph.LineSpacingRule}|{paragraph.ShadingFillColorHex}|{ParagraphBorderFingerprint(paragraph.LeftBorder)}|{ParagraphBorderFingerprint(paragraph.RightBorder)}|{ParagraphBorderFingerprint(paragraph.TopBorder)}|{ParagraphBorderFingerprint(paragraph.BottomBorder)}|{paragraph.IsRightToLeft}|{paragraph.KeepWithNext}|{paragraph.KeepLinesTogether}|{paragraph.AvoidWidowAndOrphan}|{paragraph.PageBreakBefore}|{paragraph.BookmarkName}|{paragraph.BookmarkId}|{tabs}|{runs}");
+            string tabs = string.Join("~", paragraph.TabStops.Select(tab => GoogleWorkspaceCheckpointFormat.Format($"{tab.Alignment}|{tab.Leader}|{tab.Position.ToPoints()}")));
+            return GoogleWorkspaceCheckpointFormat.Format($"{paragraph.Text}|{paragraph.StyleId}|{paragraph.StyleName}|{paragraph.Alignment}|{paragraph.IsListItem}|{paragraph.IsOrderedList}|{paragraph.ListLevel}|{paragraph.ListStyleName}|{paragraph.IndentStart?.ToPoints()}|{paragraph.IndentEnd?.ToPoints()}|{paragraph.IndentFirstLine?.ToPoints()}|{paragraph.SpaceAbove?.ToPoints()}|{paragraph.SpaceBelow?.ToPoints()}|{paragraph.LineSpacingValue}|{paragraph.LineSpacingRule}|{paragraph.ShadingFillColorHex}|{ParagraphBorderFingerprint(paragraph.LeftBorder)}|{ParagraphBorderFingerprint(paragraph.RightBorder)}|{ParagraphBorderFingerprint(paragraph.TopBorder)}|{ParagraphBorderFingerprint(paragraph.BottomBorder)}|{paragraph.IsRightToLeft}|{paragraph.KeepWithNext}|{paragraph.KeepLinesTogether}|{paragraph.AvoidWidowAndOrphan}|{paragraph.PageBreakBefore}|{paragraph.BookmarkName}|{paragraph.BookmarkId}|{tabs}|{runs}");
         }
 
         private static string RunFingerprint(WordRunInfo run) =>
-            GoogleWorkspaceCheckpointFormat.Format($"{run.Text}|{run.Bold}|{run.Italic}|{run.Underline}|{run.Strike}|{run.FontFamily}|{run.FontSize}|{run.ColorHex}|{run.HighlightColor}|{run.VerticalTextAlignment}|{run.CapsStyle}|{run.HyperlinkUri}|{run.HyperlinkAnchor}|{InlineImageFingerprint(run.InlineImage)}");
+            GoogleWorkspaceCheckpointFormat.Format($"{run.Text}|{run.Bold}|{run.Italic}|{run.Underline}|{run.Strike}|{run.FontFamily}|{(run.FontSize is OfficeLength size ? checked((int)size.ToPoints()) : (int?)null)}|{run.ColorHex}|{run.HighlightColor}|{run.VerticalTextAlignment}|{run.CapsStyle}|{run.HyperlinkUri}|{run.HyperlinkAnchor}|{InlineImageFingerprint(run.InlineImage)}");
 
         private static string InlineImageFingerprint(WordInlineImageInfo? image) => image == null
             ? string.Empty
-            : GoogleWorkspaceCheckpointFormat.Format($"{image.FileName}|{image.ContentType}|{Hash(image.Bytes ?? Array.Empty<byte>())}|{image.Description}|{image.Title}|{image.Width}|{image.Height}|{image.IsInline}|{image.WrapText}");
+            : GoogleWorkspaceCheckpointFormat.Format($"{image.FileName}|{image.ContentType}|{Hash(image.Bytes ?? Array.Empty<byte>())}|{image.Description}|{image.Title}|{image.Width?.ToPixels()}|{image.Height?.ToPixels()}|{image.IsInline}|{image.WrapText}");
 
         private static string CommentFingerprint(CommentThreadEntry entry) =>
             $"{entry.Comment.Author}|{entry.Comment.Initials}|{entry.Comment.Text}|{entry.IsResolved}";

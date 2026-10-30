@@ -9,11 +9,11 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (source.Alignment != null && TryMapWordAlignment(source.Alignment, out OdtParagraphAlignment alignment)) {
             target.Alignment = alignment;
         }
-        if (source.IndentStartPoints.HasValue) target.IndentStart = OdfLength.Points(source.IndentStartPoints.Value);
-        if (source.IndentEndPoints.HasValue) target.IndentEnd = OdfLength.Points(source.IndentEndPoints.Value);
-        if (source.IndentFirstLinePoints.HasValue) target.FirstLineIndent = OdfLength.Points(source.IndentFirstLinePoints.Value);
-        if (source.SpaceAbovePoints.HasValue) target.SpaceAbove = OdfLength.Points(source.SpaceAbovePoints.Value);
-        if (source.SpaceBelowPoints.HasValue) target.SpaceBelow = OdfLength.Points(source.SpaceBelowPoints.Value);
+        if (source.IndentStart.HasValue) target.IndentStart = OdfLength.Points(source.IndentStart.Value.ToPoints());
+        if (source.IndentEnd.HasValue) target.IndentEnd = OdfLength.Points(source.IndentEnd.Value.ToPoints());
+        if (source.IndentFirstLine.HasValue) target.FirstLineIndent = OdfLength.Points(source.IndentFirstLine.Value.ToPoints());
+        if (source.SpaceAbove.HasValue) target.SpaceAbove = OdfLength.Points(source.SpaceAbove.Value.ToPoints());
+        if (source.SpaceBelow.HasValue) target.SpaceBelow = OdfLength.Points(source.SpaceBelow.Value.ToPoints());
         if (source.IsRightToLeft) target.WritingMode = "rl-tb";
         if (TryMapWordLineHeight(source, out OdfLength lineHeight)) target.LineHeight = lineHeight;
         if (OdfColor.TryParse(source.ShadingFillColorHex, out OdfColor background)) target.BackgroundColor = background;

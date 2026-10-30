@@ -2382,10 +2382,10 @@ OfficeIMO.Word.WordInlineImageInfo.ContentType.get -> string?
 OfficeIMO.Word.WordInlineImageInfo.Description.get -> string?
 OfficeIMO.Word.WordInlineImageInfo.FileName.get -> string?
 OfficeIMO.Word.WordInlineImageInfo.FilePath.get -> string?
-OfficeIMO.Word.WordInlineImageInfo.Height.get -> double?
+OfficeIMO.Word.WordInlineImageInfo.Height.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordInlineImageInfo.IsInline.get -> bool
 OfficeIMO.Word.WordInlineImageInfo.Title.get -> string?
-OfficeIMO.Word.WordInlineImageInfo.Width.get -> double?
+OfficeIMO.Word.WordInlineImageInfo.Width.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordInlineImageInfo.WordInlineImageInfo() -> void
 OfficeIMO.Word.WordInlineImageInfo.WrapText.get -> string?
 OfficeIMO.Word.WordLine
@@ -3374,9 +3374,9 @@ OfficeIMO.Word.WordParagraphInfo.AvoidWidowAndOrphan.get -> bool
 OfficeIMO.Word.WordParagraphInfo.BookmarkId.get -> int?
 OfficeIMO.Word.WordParagraphInfo.BookmarkName.get -> string?
 OfficeIMO.Word.WordParagraphInfo.BottomBorder.get -> OfficeIMO.Word.WordParagraphBorderInfo?
-OfficeIMO.Word.WordParagraphInfo.IndentEndPoints.get -> double?
-OfficeIMO.Word.WordParagraphInfo.IndentFirstLinePoints.get -> double?
-OfficeIMO.Word.WordParagraphInfo.IndentStartPoints.get -> double?
+OfficeIMO.Word.WordParagraphInfo.IndentEnd.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordParagraphInfo.IndentFirstLine.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordParagraphInfo.IndentStart.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraphInfo.InlineFields.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordInlineFieldInfo!>!
 OfficeIMO.Word.WordParagraphInfo.IsListItem.get -> bool
 OfficeIMO.Word.WordParagraphInfo.IsOrderedList.get -> bool?
@@ -3394,8 +3394,8 @@ OfficeIMO.Word.WordParagraphInfo.RightBorder.get -> OfficeIMO.Word.WordParagraph
 OfficeIMO.Word.WordParagraphInfo.Runs.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordRunInfo!>!
 OfficeIMO.Word.WordParagraphInfo.ShadingFillColorHex.get -> string?
 OfficeIMO.Word.WordParagraphInfo.ShadingPattern.get -> OfficeIMO.Word.WordShadingPattern?
-OfficeIMO.Word.WordParagraphInfo.SpaceAbovePoints.get -> double?
-OfficeIMO.Word.WordParagraphInfo.SpaceBelowPoints.get -> double?
+OfficeIMO.Word.WordParagraphInfo.SpaceAbove.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordParagraphInfo.SpaceBelow.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraphInfo.StyleId.get -> string?
 OfficeIMO.Word.WordParagraphInfo.StyleName.get -> string?
 OfficeIMO.Word.WordParagraphInfo.TabStops.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordTabStopInfo!>!
@@ -3596,8 +3596,7 @@ OfficeIMO.Word.WordRunInfo.ColorHex.get -> string?
 OfficeIMO.Word.WordRunInfo.DoubleStrike.get -> bool
 OfficeIMO.Word.WordRunInfo.Endnote.get -> OfficeIMO.Word.WordEndnoteInfo?
 OfficeIMO.Word.WordRunInfo.FontFamily.get -> string?
-OfficeIMO.Word.WordRunInfo.FontSize.get -> int?
-OfficeIMO.Word.WordRunInfo.FontSizePoints.get -> double?
+OfficeIMO.Word.WordRunInfo.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordRunInfo.Footnote.get -> OfficeIMO.Word.WordFootnoteInfo?
 OfficeIMO.Word.WordRunInfo.HighlightColor.get -> string?
 OfficeIMO.Word.WordRunInfo.HyperlinkAnchor.get -> string?
@@ -3757,7 +3756,7 @@ OfficeIMO.Word.WordSectionColumn.Width.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordSectionColumn.WordSectionColumn(OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength? spaceAfter = null) -> void
 OfficeIMO.Word.WordSectionInfo
 OfficeIMO.Word.WordSectionInfo.ColumnCount.get -> int?
-OfficeIMO.Word.WordSectionInfo.ColumnSpacingPoints.get -> double?
+OfficeIMO.Word.WordSectionInfo.ColumnSpacing.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordSectionInfo.DefaultFooter.get -> OfficeIMO.Word.WordHeaderFooterInfo?
 OfficeIMO.Word.WordSectionInfo.DefaultHeader.get -> OfficeIMO.Word.WordHeaderFooterInfo?
 OfficeIMO.Word.WordSectionInfo.DifferentFirstPage.get -> bool
@@ -3769,7 +3768,7 @@ OfficeIMO.Word.WordSectionInfo.EvenHeader.get -> OfficeIMO.Word.WordHeaderFooter
 OfficeIMO.Word.WordSectionInfo.FirstFooter.get -> OfficeIMO.Word.WordHeaderFooterInfo?
 OfficeIMO.Word.WordSectionInfo.FirstHeader.get -> OfficeIMO.Word.WordHeaderFooterInfo?
 OfficeIMO.Word.WordSectionInfo.FooterCount.get -> int
-OfficeIMO.Word.WordSectionInfo.FooterMarginPoints.get -> double?
+OfficeIMO.Word.WordSectionInfo.FooterMargin.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordSectionInfo.HasColumnSeparator.get -> bool
 OfficeIMO.Word.WordSectionInfo.HasExplicitDefaultFooter.get -> bool
 OfficeIMO.Word.WordSectionInfo.HasExplicitDefaultHeader.get -> bool
@@ -3778,16 +3777,16 @@ OfficeIMO.Word.WordSectionInfo.HasExplicitEvenHeader.get -> bool
 OfficeIMO.Word.WordSectionInfo.HasExplicitFirstFooter.get -> bool
 OfficeIMO.Word.WordSectionInfo.HasExplicitFirstHeader.get -> bool
 OfficeIMO.Word.WordSectionInfo.HeaderCount.get -> int
-OfficeIMO.Word.WordSectionInfo.HeaderMarginPoints.get -> double?
+OfficeIMO.Word.WordSectionInfo.HeaderMargin.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordSectionInfo.Index.get -> int
-OfficeIMO.Word.WordSectionInfo.MarginBottomPoints.get -> double?
-OfficeIMO.Word.WordSectionInfo.MarginLeftPoints.get -> double?
-OfficeIMO.Word.WordSectionInfo.MarginRightPoints.get -> double?
-OfficeIMO.Word.WordSectionInfo.MarginTopPoints.get -> double?
+OfficeIMO.Word.WordSectionInfo.MarginBottom.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordSectionInfo.MarginLeft.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordSectionInfo.MarginRight.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordSectionInfo.MarginTop.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordSectionInfo.Orientation.get -> string?
-OfficeIMO.Word.WordSectionInfo.PageHeightPoints.get -> double?
+OfficeIMO.Word.WordSectionInfo.PageHeight.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordSectionInfo.PageNumberStart.get -> int?
-OfficeIMO.Word.WordSectionInfo.PageWidthPoints.get -> double?
+OfficeIMO.Word.WordSectionInfo.PageWidth.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordSectionInfo.SectionBreakType.get -> string?
 OfficeIMO.Word.WordSectionInfo.WordSectionInfo() -> void
 OfficeIMO.Word.WordSetField
@@ -4178,7 +4177,7 @@ OfficeIMO.Word.WordTabStop.WordTabStop(OfficeIMO.Word.WordParagraph! wordParagra
 OfficeIMO.Word.WordTabStopInfo
 OfficeIMO.Word.WordTabStopInfo.Alignment.get -> string?
 OfficeIMO.Word.WordTabStopInfo.Leader.get -> string?
-OfficeIMO.Word.WordTabStopInfo.PositionPoints.get -> double
+OfficeIMO.Word.WordTabStopInfo.Position.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordTabStopInfo.WordTabStopInfo() -> void
 OfficeIMO.Word.WordTable
 OfficeIMO.Word.WordTable.AddComment(string! author, string! initials, string! comment) -> OfficeIMO.Word.WordComment!
@@ -4471,7 +4470,7 @@ OfficeIMO.Word.WordTableHorizontalAnchor.Page = 2 -> OfficeIMO.Word.WordTableHor
 OfficeIMO.Word.WordTableHorizontalAnchor.Text = 0 -> OfficeIMO.Word.WordTableHorizontalAnchor
 OfficeIMO.Word.WordTableInfo
 OfficeIMO.Word.WordTableInfo.ColumnCount.get -> int
-OfficeIMO.Word.WordTableInfo.ColumnWidthPoints.get -> System.Collections.Generic.IReadOnlyList<double>!
+OfficeIMO.Word.WordTableInfo.ColumnWidths.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeLength>!
 OfficeIMO.Word.WordTableInfo.Description.get -> string?
 OfficeIMO.Word.WordTableInfo.HasHorizontalMerges.get -> bool
 OfficeIMO.Word.WordTableInfo.HasVerticalMerges.get -> bool

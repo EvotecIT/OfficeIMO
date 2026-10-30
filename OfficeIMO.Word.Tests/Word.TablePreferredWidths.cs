@@ -206,7 +206,7 @@ public partial class Word {
         };
         table.GridColumnWidth = new List<OfficeLength>();
         WordTableInfo snapshot = Assert.Single(document.Inspect().Sections.SelectMany(section => section.Elements).OfType<WordTableInfo>());
-        Assert.Equal(new[] { 72D, 0D, 0D }, snapshot.ColumnWidthPoints);
+        Assert.Equal(new[] { 72D, 0D, 0D }, snapshot.ColumnWidths.Select(width => width.ToPoints()));
         Assert.Equal(WordTableWidth.Percent(37.02), table.Rows[0].Cells[1].Width);
         Assert.Null(table.Rows[0].Cells[2].Width);
     }

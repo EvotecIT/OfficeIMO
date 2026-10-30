@@ -378,11 +378,11 @@ namespace OfficeIMO.Word.GoogleDocs {
         private static bool HasFormatting(WordParagraphInfo paragraph) {
             return !string.IsNullOrWhiteSpace(paragraph.StyleId)
                 || !string.IsNullOrWhiteSpace(paragraph.Alignment)
-                || paragraph.IndentStartPoints.HasValue
-                || paragraph.IndentEndPoints.HasValue
-                || paragraph.IndentFirstLinePoints.HasValue
-                || paragraph.SpaceAbovePoints.HasValue
-                || paragraph.SpaceBelowPoints.HasValue
+                || paragraph.IndentStart.HasValue
+                || paragraph.IndentEnd.HasValue
+                || paragraph.IndentFirstLine.HasValue
+                || paragraph.SpaceAbove.HasValue
+                || paragraph.SpaceBelow.HasValue
                 || paragraph.LineSpacingValue.HasValue
                 || !string.IsNullOrWhiteSpace(paragraph.ShadingFillColorHex)
                 || paragraph.LeftBorder != null
@@ -432,11 +432,11 @@ namespace OfficeIMO.Word.GoogleDocs {
                 ListLevel = paragraph.ListLevel,
                 ListStyleName = paragraph.ListStyleName,
                 Alignment = paragraph.Alignment,
-                IndentStartPoints = paragraph.IndentStartPoints,
-                IndentEndPoints = paragraph.IndentEndPoints,
-                IndentFirstLinePoints = paragraph.IndentFirstLinePoints,
-                SpaceAbovePoints = paragraph.SpaceAbovePoints,
-                SpaceBelowPoints = paragraph.SpaceBelowPoints,
+                IndentStartPoints = paragraph.IndentStart?.ToPoints(),
+                IndentEndPoints = paragraph.IndentEnd?.ToPoints(),
+                IndentFirstLinePoints = paragraph.IndentFirstLine?.ToPoints(),
+                SpaceAbovePoints = paragraph.SpaceAbove?.ToPoints(),
+                SpaceBelowPoints = paragraph.SpaceBelow?.ToPoints(),
                 LineSpacingPercent = ResolveLineSpacingPercent(paragraph),
                 ShadingFillColorHex = paragraph.ShadingFillColorHex,
                 LeftBorder = ConvertParagraphBorder(paragraph.LeftBorder),
@@ -463,7 +463,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                     Italic = run.Italic,
                     Underline = run.Underline,
                     Strike = run.Strike,
-                    FontSize = run.FontSize,
+                    FontSize = run.FontSize is OfficeLength fontSize ? checked((int)fontSize.ToPoints()) : null,
                     FontFamily = run.FontFamily,
                     ForegroundColorHex = run.ColorHex,
                     HighlightColor = run.HighlightColor,
@@ -481,8 +481,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                         Bytes = run.InlineImage.Bytes,
                         Description = run.InlineImage.Description,
                         Title = run.InlineImage.Title,
-                        Width = run.InlineImage.Width,
-                        Height = run.InlineImage.Height,
+                        Width = run.InlineImage.Width?.ToPixels(),
+                        Height = run.InlineImage.Height?.ToPixels(),
                         IsInline = run.InlineImage.IsInline,
                         WrapText = run.InlineImage.WrapText,
                     },
@@ -493,7 +493,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                 converted.AddTabStop(new GoogleDocsTabStop {
                     Alignment = tabStop.Alignment,
                     Leader = tabStop.Leader,
-                    OffsetPoints = tabStop.PositionPoints,
+                    OffsetPoints = tabStop.Position.ToPoints(),
                 });
             }
 
@@ -550,16 +550,16 @@ namespace OfficeIMO.Word.GoogleDocs {
         }
 
         private static bool HasSectionLayout(WordSectionInfo section) {
-            return section.PageWidthPoints.HasValue
-                || section.PageHeightPoints.HasValue
-                || section.MarginTopPoints.HasValue
-                || section.MarginBottomPoints.HasValue
-                || section.MarginLeftPoints.HasValue
-                || section.MarginRightPoints.HasValue
-                || section.HeaderMarginPoints.HasValue
-                || section.FooterMarginPoints.HasValue
+            return section.PageWidth.HasValue
+                || section.PageHeight.HasValue
+                || section.MarginTop.HasValue
+                || section.MarginBottom.HasValue
+                || section.MarginLeft.HasValue
+                || section.MarginRight.HasValue
+                || section.HeaderMargin.HasValue
+                || section.FooterMargin.HasValue
                 || (section.ColumnCount.HasValue && section.ColumnCount.Value > 1)
-                || section.ColumnSpacingPoints.HasValue
+                || section.ColumnSpacing.HasValue
                 || section.HasColumnSeparator
                 || section.DifferentFirstPage
                 || section.PageNumberStart.HasValue
@@ -573,16 +573,16 @@ namespace OfficeIMO.Word.GoogleDocs {
 
             return new GoogleDocsSectionStyle {
                 Orientation = section.Orientation,
-                PageWidthPoints = section.PageWidthPoints,
-                PageHeightPoints = section.PageHeightPoints,
-                MarginTopPoints = section.MarginTopPoints,
-                MarginBottomPoints = section.MarginBottomPoints,
-                MarginLeftPoints = section.MarginLeftPoints,
-                MarginRightPoints = section.MarginRightPoints,
-                HeaderMarginPoints = section.HeaderMarginPoints,
-                FooterMarginPoints = section.FooterMarginPoints,
+                PageWidthPoints = section.PageWidth?.ToPoints(),
+                PageHeightPoints = section.PageHeight?.ToPoints(),
+                MarginTopPoints = section.MarginTop?.ToPoints(),
+                MarginBottomPoints = section.MarginBottom?.ToPoints(),
+                MarginLeftPoints = section.MarginLeft?.ToPoints(),
+                MarginRightPoints = section.MarginRight?.ToPoints(),
+                HeaderMarginPoints = section.HeaderMargin?.ToPoints(),
+                FooterMarginPoints = section.FooterMargin?.ToPoints(),
                 ColumnCount = section.ColumnCount,
-                ColumnSpacingPoints = section.ColumnSpacingPoints,
+                ColumnSpacingPoints = section.ColumnSpacing?.ToPoints(),
                 HasColumnSeparator = section.HasColumnSeparator,
                 UseFirstPageHeaderFooter = section.DifferentFirstPage,
                 PageNumberStart = section.PageNumberStart,
@@ -601,8 +601,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                 HasVerticalMerges = table.HasVerticalMerges,
             };
 
-            foreach (var width in table.ColumnWidthPoints) {
-                converted.AddColumnWidth(width);
+            foreach (var width in table.ColumnWidths) {
+                converted.AddColumnWidth(width.ToPoints());
             }
 
             foreach (var row in table.Rows) {
