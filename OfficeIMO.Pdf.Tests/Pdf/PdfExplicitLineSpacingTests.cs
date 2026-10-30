@@ -12,7 +12,7 @@ public sealed class PdfExplicitLineSpacingTests {
     [InlineData(true, 14D)]
     public void Table_text_shrinking_retains_explicit_paragraph_spacing(bool exact, double expected) {
         var runs = new[] { new PdfTextRun("Q\nThisIdentifierShouldShrinkToFit\nZ", fontSize: global::OfficeIMO.OfficeLength.Points(30), font: PdfStandardFont.Courier) };
-        var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, lineHeight: 3, fontSize: 8,
+        var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, lineHeight: 3, fontSize: global::OfficeIMO.OfficeLength.Points(8),
             lineSpacing: exact ? PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(14)) : PdfLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(20))) });
         var style = new PdfTableStyle { HeaderRowCount = 0, FontSize = global::OfficeIMO.OfficeLength.Points(18), MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(7),
             ShrinkTextToFit = true, ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(180) }, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0) };
@@ -112,7 +112,7 @@ public sealed class PdfExplicitLineSpacingTests {
             content.Row(row => row.PercentColumn(100, column => column.Paragraph(text, style: style)))))).ToBytes();
         var runs = new[] { new PdfTextRun("A\n", fontSize: global::OfficeIMO.OfficeLength.Points(8)), new PdfTextRun("B\n", fontSize: global::OfficeIMO.OfficeLength.Points(mixed ? 32 : 8)), new PdfTextRun("C", fontSize: global::OfficeIMO.OfficeLength.Points(8)) };
         var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs,
-            fontSize: (style.FontSize?.ToPoints()), lineSpacing: style.LineSpacing) });
+            fontSize: style.FontSize, lineSpacing: style.LineSpacing) });
         var tableStyle = PdfTableStyles.Minimal(); tableStyle.HeaderRowCount = 0;
         tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0); tableStyle.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
         return PdfDocument.Create(Options()).Table(new[] { new[] { cell } }, style: tableStyle).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

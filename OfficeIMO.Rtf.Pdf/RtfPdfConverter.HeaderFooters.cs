@@ -36,7 +36,7 @@ internal static partial class RtfPdfConverter {
         if (!options.IncludeHeaderFooters || declarations.Count == 0) return;
 
         if (!HasRunningStoryPresentationOverrides(options.PdfOptions, isFooter: false)) {
-            double distance = GetRunningStoryDistance(setup.HeaderDistanceTwips);
+            OfficeLength distance = OfficeLength.Points(GetRunningStoryDistance(setup.HeaderDistanceTwips));
             configureHeader(header => {
                 RtfHeaderFooter? story = GetDefaultHeaderFooter(declarations, isFooter: false);
                 if (story != null) header.Content(CreateRunningStory(story), distance);
@@ -49,7 +49,7 @@ internal static partial class RtfPdfConverter {
             RecordPlainRunningImageDiagnostics(isFooter: false);
         }
         if (!HasRunningStoryPresentationOverrides(options.PdfOptions, isFooter: true)) {
-            double distance = GetRunningStoryDistance(setup.FooterDistanceTwips);
+            OfficeLength distance = OfficeLength.Points(GetRunningStoryDistance(setup.FooterDistanceTwips));
             configureFooter(footer => {
                 RtfHeaderFooter? story = GetDefaultHeaderFooter(declarations, isFooter: true);
                 if (story != null) footer.Content(CreateRunningStory(story), distance);

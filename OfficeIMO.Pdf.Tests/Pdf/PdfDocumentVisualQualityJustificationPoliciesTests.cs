@@ -162,7 +162,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void CharacterJustificationRetainsInlineBoxGeometryWhileDistributingItsNeighbors() {
         byte[] bytes = PdfDocument.Create(JustificationPolicyOptions()).Paragraph(paragraph => paragraph.Runs(new[] {
-            new PdfTextRun("A"), PdfTextRun.Inline(new PdfInlineBox(20, 10, background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0, 1, 0))), new PdfTextRun("B")
+            new PdfTextRun("A"), PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(10), background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0, 1, 0))), new PdfTextRun("B")
         }), PdfAlign.Justify, style: CharacterJustificationPolicy()).ToBytes();
         Letter[] letters = ReadJustificationPolicyLetters(bytes);
         Assert.Equal("AB", string.Concat(letters.Select(letter => letter.Value)));

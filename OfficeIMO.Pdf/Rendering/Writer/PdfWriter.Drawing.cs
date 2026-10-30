@@ -26,10 +26,10 @@ internal static partial class PdfWriter {
 
     private static bool DrawPanelBorder(StringBuilder sb, PdfPanelStyle style, double x, double y, double w, double h, bool artifact = false,
         bool drawTop = true, bool drawBottom = true) {
-        double radius = style.CornerRadius;
+        double radius = style.CornerRadius.ToPoints();
         if (!style.HasSideBorders && drawTop && drawBottom) {
-            if (style.BorderColor.HasValue && style.BorderWidth > 0) {
-                DrawRoundedRowRect(sb, style.BorderColor.Value, style.BorderWidth, x, y, w, h, radius, true, true, true, true, artifact);
+            if (style.BorderColor.HasValue && style.BorderWidth.ToPoints() > 0) {
+                DrawRoundedRowRect(sb, style.BorderColor.Value, style.BorderWidth.ToPoints(), x, y, w, h, radius, true, true, true, true, artifact);
                 return true;
             }
 
@@ -40,10 +40,10 @@ internal static partial class PdfWriter {
         PdfPanelBorder? right = ResolvePanelSideBorder(style.RightBorderSnapshot, style);
         PdfPanelBorder? bottom = drawBottom ? ResolvePanelSideBorder(style.BottomBorderSnapshot, style) : null;
         PdfPanelBorder? left = ResolvePanelSideBorder(style.LeftBorderSnapshot, style);
-        x -= IsRenderablePanelBorderSide(left) ? left!.Offset : 0D;
-        y -= IsRenderablePanelBorderSide(bottom) ? bottom!.Offset : 0D;
-        w += (IsRenderablePanelBorderSide(left) ? left!.Offset : 0D) + (IsRenderablePanelBorderSide(right) ? right!.Offset : 0D);
-        h += (IsRenderablePanelBorderSide(top) ? top!.Offset : 0D) + (IsRenderablePanelBorderSide(bottom) ? bottom!.Offset : 0D);
+        x -= IsRenderablePanelBorderSide(left) ? left!.Offset.ToPoints() : 0D;
+        y -= IsRenderablePanelBorderSide(bottom) ? bottom!.Offset.ToPoints() : 0D;
+        w += (IsRenderablePanelBorderSide(left) ? left!.Offset.ToPoints() : 0D) + (IsRenderablePanelBorderSide(right) ? right!.Offset.ToPoints() : 0D);
+        h += (IsRenderablePanelBorderSide(top) ? top!.Offset.ToPoints() : 0D) + (IsRenderablePanelBorderSide(bottom) ? bottom!.Offset.ToPoints() : 0D);
         if (w <= 0D || h <= 0D) throw new ArgumentException("Panel border offsets must leave positive border dimensions.");
         double x2 = x + w;
         double y2 = y + h;
@@ -55,10 +55,10 @@ internal static partial class PdfWriter {
             // Panel side borders are standalone (no thin border underneath), so each sits centred on the
             // path (outerBorderWidth == its own width -> no inset).
             bool drawnRounded = false;
-            if (IsRenderablePanelBorderSide(top)) { DrawRoundedSideStroke(sb, top!.Color!.Value, top.Width, top.Width, RoundedRectSide.Top, x, y, w, h, radius, drawTop, drawTop, drawBottom, drawBottom, artifact); drawnRounded = true; }
-            if (IsRenderablePanelBorderSide(right)) { DrawRoundedSideStroke(sb, right!.Color!.Value, right.Width, right.Width, RoundedRectSide.Right, x, y, w, h, radius, drawTop, drawTop, drawBottom, drawBottom, artifact); drawnRounded = true; }
-            if (IsRenderablePanelBorderSide(bottom)) { DrawRoundedSideStroke(sb, bottom!.Color!.Value, bottom.Width, bottom.Width, RoundedRectSide.Bottom, x, y, w, h, radius, drawTop, drawTop, drawBottom, drawBottom, artifact); drawnRounded = true; }
-            if (IsRenderablePanelBorderSide(left)) { DrawRoundedSideStroke(sb, left!.Color!.Value, left.Width, left.Width, RoundedRectSide.Left, x, y, w, h, radius, drawTop, drawTop, drawBottom, drawBottom, artifact); drawnRounded = true; }
+            if (IsRenderablePanelBorderSide(top)) { DrawRoundedSideStroke(sb, top!.Color!.Value, top.Width.ToPoints(), top.Width.ToPoints(), RoundedRectSide.Top, x, y, w, h, radius, drawTop, drawTop, drawBottom, drawBottom, artifact); drawnRounded = true; }
+            if (IsRenderablePanelBorderSide(right)) { DrawRoundedSideStroke(sb, right!.Color!.Value, right.Width.ToPoints(), right.Width.ToPoints(), RoundedRectSide.Right, x, y, w, h, radius, drawTop, drawTop, drawBottom, drawBottom, artifact); drawnRounded = true; }
+            if (IsRenderablePanelBorderSide(bottom)) { DrawRoundedSideStroke(sb, bottom!.Color!.Value, bottom.Width.ToPoints(), bottom.Width.ToPoints(), RoundedRectSide.Bottom, x, y, w, h, radius, drawTop, drawTop, drawBottom, drawBottom, artifact); drawnRounded = true; }
+            if (IsRenderablePanelBorderSide(left)) { DrawRoundedSideStroke(sb, left!.Color!.Value, left.Width.ToPoints(), left.Width.ToPoints(), RoundedRectSide.Left, x, y, w, h, radius, drawTop, drawTop, drawBottom, drawBottom, artifact); drawnRounded = true; }
             return drawnRounded;
         }
 
@@ -71,14 +71,14 @@ internal static partial class PdfWriter {
     }
 
     private static bool IsRenderablePanelBorderSide(PdfPanelBorder? side) =>
-        side?.Color != null && side.Width > 0;
+        side?.Color != null && side.Width.ToPoints() > 0;
 
     private static PdfPanelBorder? ResolvePanelSideBorder(PdfPanelBorder? sideBorder, PdfPanelStyle style) {
         if (sideBorder != null) {
             return sideBorder;
         }
 
-        if (!style.BorderColor.HasValue || style.BorderWidth <= 0) {
+        if (!style.BorderColor.HasValue || style.BorderWidth.ToPoints() <= 0) {
             return null;
         }
 
@@ -89,20 +89,20 @@ internal static partial class PdfWriter {
     }
 
     private static bool DrawPanelHBorder(StringBuilder sb, PdfPanelBorder? border, double x1, double x2, double y, bool artifact = false) {
-        if (border?.Color == null || border.Width <= 0) {
+        if (border?.Color == null || border.Width.ToPoints() <= 0) {
             return false;
         }
 
-        DrawHLine(sb, border.Color.Value, border.Width, x1, x2, y, artifact);
+        DrawHLine(sb, border.Color.Value, border.Width.ToPoints(), x1, x2, y, artifact);
         return true;
     }
 
     private static bool DrawPanelVBorder(StringBuilder sb, PdfPanelBorder? border, double x, double yTop, double yBottom, bool artifact = false) {
-        if (border?.Color == null || border.Width <= 0) {
+        if (border?.Color == null || border.Width.ToPoints() <= 0) {
             return false;
         }
 
-        DrawVLine(sb, border.Color.Value, border.Width, x, yTop, yBottom, artifact);
+        DrawVLine(sb, border.Color.Value, border.Width.ToPoints(), x, yTop, yBottom, artifact);
         return true;
     }
 

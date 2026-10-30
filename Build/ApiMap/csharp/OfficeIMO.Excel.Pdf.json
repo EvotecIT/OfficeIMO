@@ -522,6 +522,19 @@
       "files": [
         "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.WorksheetContent.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "action": "fix",
+      "old": "Merged-cell PDF fragments round full dimensions, offsets and fragment dimensions independently after double containment.",
+      "new": "Convert once, enforce full-size containment in the exact OfficeLength domain, and compare viewport extents without floating-point addition.",
+      "reason": "Imported custom row heights can make rounded fragment plus offset exceed rounded full height by one EMU and abort export across a manual break.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.SheetData.PageProjection.cs",
+        "OfficeIMO.Pdf/Model/PdfTableCellViewport.cs"
+      ],
+      "note": "Both axes retain the positive/nonnegative/out-of-bounds guards. A saved XLSX with15.1236pt custom rows and a split merge reproduces the failure in both WorksheetCanvas and FlowTable; keep the saved PDF page and text assertions."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

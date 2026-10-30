@@ -95,7 +95,7 @@ public partial class Word {
             .Header(header => header.AlignLeft().Text("Import header {page}/{pages}"))
             .Footer(footer => footer.AlignCenter().Text("Import footer {page}"))
             .Canvas(canvas => canvas
-                .Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), 36D, 120D, 120D, 60D, alternativeText: "Data visualization")
+                .Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(60D), alternativeText: "Data visualization")
                 .Text("Kort beskrivning", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(184D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(18D), fontSize: global::OfficeIMO.OfficeLength.Points(9D)))
             .Canvas(canvas => canvas.Text("1 Bottom annotation", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(415D), global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(18D), fontSize: global::OfficeIMO.OfficeLength.Points(7D)))
             .PageBreak()

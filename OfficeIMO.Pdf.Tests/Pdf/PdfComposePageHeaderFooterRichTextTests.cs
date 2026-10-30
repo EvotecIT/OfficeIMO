@@ -177,7 +177,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void HeaderFooterRichText_RejectsInteractiveAndInlineRuns() {
             var link = PdfTextRun.Link("Link", "https://example.com");
-            var inline = PdfTextRun.Inline(new PdfInlineBox(12, 8));
+            var inline = PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(8)));
 
             Assert.Throws<ArgumentException>(() =>
                 PdfDocument.Create().Header(header => header.Text(text => text.Run(link))));

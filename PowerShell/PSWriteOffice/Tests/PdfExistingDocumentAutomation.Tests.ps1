@@ -284,7 +284,7 @@ Describe 'General existing-page visual stamping' {
             $options.CompressContentStreams = $false
         } -Content {
             param($canvas, $page)
-            $null = $canvas.Text("Canvas overlay $($page.PageNumber)/$($page.PageCount)", [OfficeIMO.OfficeLength]::Points(36), [OfficeIMO.OfficeLength]::Points(36), [OfficeIMO.OfficeLength]::Points($page.Width - 72), [OfficeIMO.OfficeLength]::Points(24), [OfficeIMO.OfficeLength]::Points(11))
+            $null = $canvas.Text("Canvas overlay $($page.PageNumber)/$($page.PageCount)", [OfficeIMO.OfficeLength]::Points(36), [OfficeIMO.OfficeLength]::Points(36), ($page.Width - [OfficeIMO.OfficeLength]::Points(72)), [OfficeIMO.OfficeLength]::Points(24), [OfficeIMO.OfficeLength]::Points(11))
         } -PassThru | Should -BeOfType System.IO.FileInfo
 
         $configured | Should -HaveCount 1

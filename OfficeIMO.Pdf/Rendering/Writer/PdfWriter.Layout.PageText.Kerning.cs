@@ -8,7 +8,7 @@ internal static partial class PdfWriter {
             PdfStandardFont font = ResolvePageTextRunFont(run, baseFont);
             PdfNamedFontFace? named = options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace face) ? face : null;
             double size = (run.FontSize?.ToPoints()) ?? fontSize;
-            double width = run.InlineElement?.Width ?? MeasureRichText(run.Text, font, named, size, run.Baseline, options,
+            double width = run.InlineElement?.Width.ToPoints() ?? MeasureRichText(run.Text, font, named, size, run.Baseline, options,
                 run.FeatureSettings, run.HorizontalTextScaling, (run.CharacterSpacing.ToPoints()), run.TextDirection,
                 preservesPaintedGlyphs: run.PreservesPaintedGlyphs);
             segments[index] = new RichSeg(run.Text, run.Bold, run.Italic, run.Underline, run.Strike,

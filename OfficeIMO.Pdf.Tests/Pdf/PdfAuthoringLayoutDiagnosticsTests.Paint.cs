@@ -15,8 +15,8 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     [InlineData("canvas", true)]
     public void InlineBorderOverhangUsesPaintInsteadOfItsLayoutAdvance(string frame, bool border) {
         var report = new PdfConversionReport();
-        var box = new PdfInlineBox(120, 8, background: global::OfficeIMO.OfficeColor.Black,
-            borderColor: border ? global::OfficeIMO.OfficeColor.Black : null, borderWidth: 2);
+        var box = new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(8), background: global::OfficeIMO.OfficeColor.Black,
+            borderColor: border ? global::OfficeIMO.OfficeColor.Black : null, borderWidth: global::OfficeIMO.OfficeLength.Points(2));
         var cell = new PdfTableCell(new[] { PdfTextRun.Inline(box) });
         PdfTableStyle style = CreateTableStyle(18);
         style.ClipTextToCellBounds = true;
@@ -55,8 +55,8 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     [InlineData("canvas", true)]
     public void ViewportChecksPaintBeforeInvisibleLineSlotsAreOmitted(string frame, bool hidden) {
         var report = new PdfConversionReport();
-        var cell = new PdfTableCell("A").WithViewport(new PdfTableCellViewport(hidden ? 240 : 120, 18, 120, 18,
-            offsetX: hidden ? 120 : 0));
+        var cell = new PdfTableCell("A").WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(hidden ? 240 : 120), global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(18),
+            offsetX: global::OfficeIMO.OfficeLength.Points(hidden ? 120 : 0)));
         using PdfPigDocument pdf = PdfPigDocument.Open(RenderPaintTable(frame, CreateOptions(report), cell, CreateTableStyle(18)));
         Assert.Equal(hidden, report.Warnings.Any(warning => warning.Code == "table-cell-paint-clipped"));
         Assert.Equal(hidden, report.HasLoss);
@@ -71,7 +71,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     public void CellParagraphFramesHonorTheEffectiveExpandedClip(bool canvas, bool strict) {
         var report = new PdfConversionReport();
         var runs = new[] { PdfTextRun.Normal("AAAA") };
-        var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, leftIndent: -6) });
+        var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, leftIndent: global::OfficeIMO.OfficeLength.Points(-6)) });
         PdfTableStyle style = CreateTableStyle(18);
         style.ClipTextToCellBounds = strict;
         using PdfPigDocument pdf = PdfPigDocument.Open(RenderPaintTable(canvas ? "canvas" : "flow", CreateOptions(report), cell, style));
@@ -114,8 +114,8 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         var report = new PdfConversionReport();
         byte[] bytes = PdfDocument.Create(CreateOptions(report)).Canvas(canvas => canvas.Effect(
             new OfficeTransform(scale, 0, 0, scale, 0, 0), opacity, effect => effect.TextBox(
-                new[] { PdfTextRun.Inline(new PdfInlineBox(120, 8, borderColor: global::OfficeIMO.OfficeColor.Black, borderWidth: 2)) },
-                global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(18), new PdfCanvasTextBoxStyle { FontSize = 9, PaddingX = 0, PaddingY = 0 }))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+                new[] { PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(8), borderColor: global::OfficeIMO.OfficeColor.Black, borderWidth: global::OfficeIMO.OfficeLength.Points(2))) },
+                global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(18), new PdfCanvasTextBoxStyle { FontSize = global::OfficeIMO.OfficeLength.Points(9), PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0) }))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.NotEmpty(bytes);
         Assert.Equal(expected, report.Warnings.Any(warning => warning.Code == "canvas-text-box-paint-clipped"));
     }
@@ -149,11 +149,11 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
             if (diagnose) options.ReportDiagnosticsTo(report, "SubsetProbe");
             var runs = new[] { PdfTextRun.Normal("ABC"), PdfTextRun.Tab(PdfTabLeaderStyle.Dots),
                 PdfTextRun.Normal("Z", backgroundColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D)),
-                PdfTextRun.Inline(new PdfInlineBox(120, 8, borderColor: global::OfficeIMO.OfficeColor.Black, borderWidth: 2)) };
+                PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(8), borderColor: global::OfficeIMO.OfficeColor.Black, borderWidth: global::OfficeIMO.OfficeLength.Points(2))) };
             if (frame == "annotation") return PdfDocument.Create(options).Canvas(canvas =>
                 canvas.FreeTextAnnotation("ABC\nZ", global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(10), fontSize: global::OfficeIMO.OfficeLength.Points(9), padding: global::OfficeIMO.OfficeLength.Points(0))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
             if (frame == "textbox") return PdfDocument.Create(options).Canvas(canvas => canvas.TextBox(runs, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(18),
-                new PdfCanvasTextBoxStyle { FontSize = 9, PaddingX = 0, PaddingY = 0 })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+                new PdfCanvasTextBoxStyle { FontSize = global::OfficeIMO.OfficeLength.Points(9), PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0) })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
             PdfTableStyle style = CreateTableStyle(18);
             style.ClipTextToCellBounds = true;
             return RenderPaintTable(frame, options, new PdfTableCell(runs).WithNoWrap(), style);
@@ -189,7 +189,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         var report = new PdfConversionReport();
         var document = PdfDocument.Create(CreateOptions(report));
         var runs = inline
-            ? new[] { PdfTextRun.Inline(new PdfInlineBox(5.004D, 8, borderColor: global::OfficeIMO.OfficeColor.Black, borderWidth: 2)) }
+            ? new[] { PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(5.004D), global::OfficeIMO.OfficeLength.Points(8), borderColor: global::OfficeIMO.OfficeColor.Black, borderWidth: global::OfficeIMO.OfficeLength.Points(2))) }
             : new[] { PdfTextRun.Normal("T", fontSize: global::OfficeIMO.OfficeLength.Points(9), font: PdfStandardFont.TimesItalic) };
         var style = new PdfParagraphStyle { RightIndent = global::OfficeIMO.OfficeLength.Points(212D - 5.004D) };
         if (column) document.Row(row => row.PercentColumn(100, content =>
@@ -206,8 +206,8 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     public void EmptyInlineBoxAndWhitespaceHaveNoPaintToClip() {
         var report = new PdfConversionReport();
         byte[] bytes = PdfDocument.Create(CreateOptions(report)).Canvas(canvas => canvas.TextBox(new[] {
-            PdfTextRun.Normal("   "), PdfTextRun.Inline(new PdfInlineBox(8, 40))
-        }, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(4), new PdfCanvasTextBoxStyle { FontSize = 9, PaddingX = 0, PaddingY = 0 })).ToBytes();
+            PdfTextRun.Normal("   "), PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(40)))
+        }, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(4), new PdfCanvasTextBoxStyle { FontSize = global::OfficeIMO.OfficeLength.Points(9), PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0) })).ToBytes();
         Assert.NotEmpty(bytes);
         Assert.DoesNotContain(report.Warnings, warning => warning.Code == "canvas-text-box-paint-clipped");
     }
@@ -222,7 +222,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
             OfficePathCommand.LineTo(40, 12), OfficePathCommand.LineTo(20, 12), OfficePathCommand.Close()
         }, OfficeFillRule.EvenOdd);
         byte[] bytes = PdfDocument.Create(CreateOptions(report)).Canvas(canvas => canvas.Clip(global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), clip,
-            child => child.Text(new[] { PdfTextRun.Inline(new PdfInlineBox(120, 8, background: global::OfficeIMO.OfficeColor.Black)) },
+            child => child.Text(new[] { PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(8), background: global::OfficeIMO.OfficeColor.Black)) },
                 global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(18)))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.NotEmpty(bytes);
         Assert.Single(report.Warnings, warning => warning.Code == "canvas-text-canvas-clip-paint-clipped");
@@ -233,7 +233,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     public void FrameDoesNotClaimLossOfPaintAlreadyRemovedByAnAncestor() {
         var report = new PdfConversionReport();
         byte[] bytes = PdfDocument.Create(CreateOptions(report)).Canvas(canvas => canvas.Clip(global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(18),
-            child => child.Text(new[] { PdfTextRun.Inline(new PdfInlineBox(40, 8, background: global::OfficeIMO.OfficeColor.Black, borderColor: global::OfficeIMO.OfficeColor.Black, borderWidth: 2)) },
+            child => child.Text(new[] { PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(8), background: global::OfficeIMO.OfficeColor.Black, borderColor: global::OfficeIMO.OfficeColor.Black, borderWidth: global::OfficeIMO.OfficeLength.Points(2))) },
                 global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(18)))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.NotEmpty(bytes);
         Assert.Single(report.Warnings, warning => warning.Code == "canvas-text-canvas-clip-paint-clipped");

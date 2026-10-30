@@ -19,10 +19,10 @@ namespace OfficeIMO.Examples.Pdf {
             var doc = PdfDocument.Create(document => {
                 document.Page(page => {
                     page.Size(PdfPageSizes.A5);
-                    page.Margin(36, 42, 36, 42);
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(36), global::OfficeIMO.OfficeLength.Points(42), global::OfficeIMO.OfficeLength.Points(36), global::OfficeIMO.OfficeLength.Points(42));
                     page.DefaultTextStyle(x => x
                         .Font(PdfStandardFont.Helvetica)
-                        .FontSize(10)
+                        .FontSize(global::OfficeIMO.OfficeLength.Points(10))
                         .Color(global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55)));
                     page.Header(h => h.AlignLeft().Text("OfficeIMO.Pdf compose DSL gate"));
 
@@ -38,8 +38,8 @@ namespace OfficeIMO.Examples.Pdf {
                                 new PdfPanelStyle {
                                     Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
-                                    PaddingX = 9,
-                                    PaddingY = 7
+                                    PaddingX = global::OfficeIMO.OfficeLength.Points(9),
+                                    PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                                 });
                             column.Item().PageBreak();
 

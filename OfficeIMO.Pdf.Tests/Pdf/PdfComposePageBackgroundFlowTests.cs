@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests.Pdf {
                     BackgroundColor = global::OfficeIMO.OfficeColor.White
                 })
                 .Page(page => page
-                    .Size(300, 400)
+                    .Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400))
                     .Background(global::OfficeIMO.OfficeColor.FromRgb(238, 242, 255))
                     .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("PageBackgroundMarker")))))
                 .ToBytes();
@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests.Pdf {
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
                 })
                 .Compose(compose => compose.Page(page => page
-                    .Margin(72)
+                    .Margin(global::OfficeIMO.OfficeLength.Points(72))
                     .Content(content => content
                         .Item(item => item
                             .H1("DirectComposeTitle")
@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests.Pdf {
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
                 })
                 .Compose(compose => compose.Page(page => page
-                    .Margin(72)
+                    .Margin(global::OfficeIMO.OfficeLength.Points(72))
                     .Content(content => content
                         .Item(item => item.Paragraph(paragraph => paragraph.Text("DirectPageOne")))
                         .PageBreak()
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests.Pdf {
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
                 })
                 .Compose(compose => compose.Page(page => page
-                    .Margin(72)
+                    .Margin(global::OfficeIMO.OfficeLength.Points(72))
                     .Content(content => content
                         .Column(column => column
                             .Item(item => item

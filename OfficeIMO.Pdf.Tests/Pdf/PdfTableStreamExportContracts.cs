@@ -93,13 +93,13 @@ public class PdfTableStreamExportContracts {
     public void WordEditableConversionPreservesMixedSourcePageSizes() {
         byte[] source = PdfDocument.Create().Compose(composer => {
             composer.Page(page => page
-                .Size(420D, 595D)
-                .Margin(36D)
+                .Size(global::OfficeIMO.OfficeLength.Points(420D), global::OfficeIMO.OfficeLength.Points(595D))
+                .Margin(global::OfficeIMO.OfficeLength.Points(36D))
                 .Content(content => content.Column(column =>
                     column.Item().Paragraph(paragraph => paragraph.Text("Small invoice page")))));
             composer.Page(page => page
-                .Size(612D, 792D)
-                .Margin(36D)
+                .Size(global::OfficeIMO.OfficeLength.Points(612D), global::OfficeIMO.OfficeLength.Points(792D))
+                .Margin(global::OfficeIMO.OfficeLength.Points(36D))
                 .Content(content => content.Column(column =>
                     column.Item().Paragraph(paragraph => paragraph.Text("Letter invoice page")))));
         }).ToBytes();

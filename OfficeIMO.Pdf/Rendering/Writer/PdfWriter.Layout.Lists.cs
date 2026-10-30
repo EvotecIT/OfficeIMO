@@ -106,7 +106,7 @@ internal static partial class PdfWriter {
             double spaceAdvance = style?.MarkerGap.HasValue == true ? 0D :
                 EstimateSimpleTextWidthForOptions(" ", markerFont, markerNamedFont, markerSize, currentOpts, style?.MarkerFeatureSettings);
             double markerGap = GetListMarkerGap(style, spaceAdvance);
-            double listLeftIndent = style?.LeftIndent ?? 0D;
+            double listLeftIndent = style?.LeftIndent.ToPoints() ?? 0D;
             // Keep the marker at the frame origin when the requested inset leaves
             // no room for its column. The same preparation serves nested frames
             // and continued footnotes, so their placement uses this inset too.
@@ -141,7 +141,7 @@ internal static partial class PdfWriter {
                 items.Add(new PreparedListItem(item, markers[itemIndex], textLayout, firstLineOffset, markerFallbacks[itemIndex]));
             }
 
-            double spacingBefore = style?.SpacingBefore ?? 0D;
+            double spacingBefore = style?.SpacingBefore.ToPoints() ?? 0D;
             if (topLevelSpacing) {
                 spacingBefore = ResolveTopLevelSpacingBefore(spacingBefore);
             }

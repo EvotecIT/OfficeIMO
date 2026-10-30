@@ -26,7 +26,7 @@ public class PdfContainerAndColumnTests {
     public void Columns_LeadingBreakLeavesTheFirstColumnEmpty() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Columns(columns => columns.ColumnBreak().Text("Right only"),
-                new PdfMultiColumnOptions { Gap = 24 }).ToBytes();
+                new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(24) }).ToBytes();
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal(1, read.NumberOfPages);
         Assert.Equal(318, read.GetPage(1).Letters[0].StartBaseLine.X, 1);
@@ -44,7 +44,7 @@ public class PdfContainerAndColumnTests {
                 columns.Paragraph(paragraph => paragraph.Text("Left two"));
                 columns.ColumnBreak();
                 columns.Paragraph(paragraph => paragraph.Text("Right one"));
-            }, new PdfMultiColumnOptions { ColumnCount = 2, Gap = 24, BalanceLastPage = false })
+            }, new PdfMultiColumnOptions { ColumnCount = 2, Gap = global::OfficeIMO.OfficeLength.Points(24), BalanceLastPage = false })
             .ToBytes();
 
         IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Load(bytes).Reader.TextBlocks();
@@ -65,10 +65,10 @@ public class PdfContainerAndColumnTests {
             }, new PdfPanelStyle {
                 Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.95D, 1D),
                 BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1D, 0.2D, 0.4D),
-                BorderWidth = 1.5D,
-                PaddingX = 12D,
-                PaddingY = 10D,
-                MaxWidth = 300D,
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(1.5D),
+                PaddingX = global::OfficeIMO.OfficeLength.Points(12D),
+                PaddingY = global::OfficeIMO.OfficeLength.Points(10D),
+                MaxWidth = global::OfficeIMO.OfficeLength.Points(300D),
                 Align = PdfAlign.Center
             })
             .ToBytes();
@@ -102,9 +102,9 @@ public class PdfContainerAndColumnTests {
         }, new PdfPanelStyle {
             Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.95D, 1D),
             BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1D, 0.2D, 0.4D),
-            BorderWidth = 1.5D,
-            PaddingX = 8D,
-            PaddingY = 6D,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(1.5D),
+            PaddingX = global::OfficeIMO.OfficeLength.Points(8D),
+            PaddingY = global::OfficeIMO.OfficeLength.Points(6D),
             KeepTogether = false
         });
 
@@ -127,8 +127,8 @@ public class PdfContainerAndColumnTests {
                 .PageBreak()
                 .Text("After break"), new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.95D, 1D),
-                    PaddingX = 6D,
-                    PaddingY = 6D
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(6D),
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(6D)
                 })
             .ToBytes();
 
@@ -162,7 +162,7 @@ public class PdfContainerAndColumnTests {
                 .Text("ColumnLine07").LineBreak()
                 .Text("ColumnLine08")), new PdfMultiColumnOptions {
                     ColumnCount = 2,
-                    Gap = 20,
+                    Gap = global::OfficeIMO.OfficeLength.Points(20),
                     BalanceLastPage = true,
                     BalanceParagraphLines = true
                 })
@@ -202,7 +202,7 @@ public class PdfContainerAndColumnTests {
                 .Text("KeepLine07").LineBreak()
                 .Text("KeepLine08")), new PdfMultiColumnOptions {
                     ColumnCount = 2,
-                    Gap = 20,
+                    Gap = global::OfficeIMO.OfficeLength.Points(20),
                     BalanceLastPage = true,
                     BalanceParagraphLines = true
                 })
@@ -240,7 +240,7 @@ public class PdfContainerAndColumnTests {
                 .Text("ColumnLine07 ").InlineBox(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8)).Text("after").LineBreak()
                 .Text("ColumnLine08 ").InlineBox(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8)).Text("after")), new PdfMultiColumnOptions {
                     ColumnCount = 2,
-                    Gap = 20,
+                    Gap = global::OfficeIMO.OfficeLength.Points(20),
                     BalanceLastPage = true,
                     BalanceParagraphLines = true
                 })
@@ -272,7 +272,7 @@ public class PdfContainerAndColumnTests {
                 "amber bronze copper denim emerald fuchsia garnet hazel ivory jade khaki lilac magenta navy ochre peach quartz ruby silver teal umber violet wheat yellow zinc"),
                 align: PdfAlign.Justify), new PdfMultiColumnOptions {
                     ColumnCount = 2,
-                    Gap = 20,
+                    Gap = global::OfficeIMO.OfficeLength.Points(20),
                     BalanceLastPage = true,
                     BalanceParagraphLines = true
                 })

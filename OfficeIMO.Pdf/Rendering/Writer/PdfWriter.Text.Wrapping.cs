@@ -675,16 +675,16 @@ internal static partial class PdfWriter {
                             fontSize, options, lineSpacing, out currentRunAscent, out currentRunDescent);
                     inlineHeight = RunLineHeight(runFontSize);
                 } else {
-                    currentRunAscent = Math.Max(0D, inlineElement.BaselineOffset + inlineElement.Height);
-                    currentRunDescent = Math.Max(0D, -inlineElement.BaselineOffset);
-                    inlineHeight = Math.Max(GetAscenderForOptions(baseFont, fontSize, options), inlineElement.BaselineOffset + inlineElement.Height)
-                        + Math.Max(GetDescenderForOptions(baseFont, fontSize, options), -inlineElement.BaselineOffset);
+                    currentRunAscent = Math.Max(0D, inlineElement.BaselineOffset.ToPoints() + inlineElement.Height.ToPoints());
+                    currentRunDescent = Math.Max(0D, -inlineElement.BaselineOffset.ToPoints());
+                    inlineHeight = Math.Max(GetAscenderForOptions(baseFont, fontSize, options), inlineElement.BaselineOffset.ToPoints() + inlineElement.Height.ToPoints())
+                        + Math.Max(GetDescenderForOptions(baseFont, fontSize, options), -inlineElement.BaselineOffset.ToPoints());
                     if (lineSpacing?.FontLineBoxMultiplier != null)
                         inlineHeight = Math.Max(lineHeight, currentRunAscent + currentRunDescent);
                 }
-                PrepareLineFrame(inlineHeight, inlineElement.Width);
+                PrepareLineFrame(inlineHeight, inlineElement.Width.ToPoints());
                 double currentMaxWidth = CurrentMaxWidth();
-                if (inlineElement.Width > currentMaxWidth + 0.001D &&
+                if (inlineElement.Width.ToPoints() > currentMaxWidth + 0.001D &&
                     inlineElement is not PdfInlineImage { AllowFrameOverflow: true }) {
                     throw new ArgumentException("Inline element width exceeds the available paragraph width.");
                 }
@@ -694,28 +694,28 @@ internal static partial class PdfWriter {
                         ? MeasureRichTabField(effectiveRuns, runIndex, 0, baseFont, fontSize, options, whitespaceMode)
                         : null;
                 if (pendingLeadingIsTab) {
-                    ResolvePendingLeadingTabForCurrentLine(inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
-                    RevalidateLeadingTabFrame(inlineHeight, inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
+                    ResolvePendingLeadingTabForCurrentLine(inlineElement.Width.ToPoints(), spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
+                    RevalidateLeadingTabFrame(inlineHeight, inlineElement.Width.ToPoints(), spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
                     currentMaxWidth = CurrentMaxWidth();
                 }
 
-                ResolveBufferedTab(inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField, inlineHeight);
+                ResolveBufferedTab(inlineElement.Width.ToPoints(), spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField, inlineHeight);
 
                 List<RichSeg> currentLine = lines[lines.Count - 1];
                 double leadingAdvance = currentLine.Count > 0 || pendingLeadingIsTab || whitespaceMode == PdfTextWhitespaceMode.Preserve ? pendingLeadingAdvance : 0D;
                 if ((currentLine.Count > 0 || whitespaceMode == PdfTextWhitespaceMode.Preserve && leadingAdvance > 0D)
                     && MinimumCandidateWidth(CreateRunKerningProbe(string.Empty, run, baseFont, fontSize, options), null,
-                        lineWidth + leadingAdvance + inlineElement.Width) > currentMaxWidth + 0.001D) {
+                        lineWidth + leadingAdvance + inlineElement.Width.ToPoints()) > currentMaxWidth + 0.001D) {
                     if (pendingLeadingAdvance > 0D) {
                         MarkRichLineTextSeparator(currentLine);
                     }
 
                     StartNewLine();
-                    PrepareLineFrame(inlineHeight, inlineElement.Width);
+                    PrepareLineFrame(inlineHeight, inlineElement.Width.ToPoints());
                     currentLine = lines[lines.Count - 1];
                     if (pendingLeadingIsTab) {
-                        ResolvePendingLeadingTabForCurrentLine(inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
-                        RevalidateLeadingTabFrame(inlineHeight, inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
+                        ResolvePendingLeadingTabForCurrentLine(inlineElement.Width.ToPoints(), spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
+                        RevalidateLeadingTabFrame(inlineHeight, inlineElement.Width.ToPoints(), spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
                     }
 
                     leadingAdvance = pendingLeadingIsTab ? pendingLeadingAdvance : 0D;
@@ -735,7 +735,7 @@ internal static partial class PdfWriter {
                         : inlineRuleWidth ?? CurrentMaxWidth();
                     inlineElement = ResolveInlineRule(rule, Math.Min(CurrentMaxWidth(), ruleFrameWidth) - lineWidth - leadingAdvance, purpose);
                 }
-                double inlineAndLeadingWidth = leadingAdvance + inlineElement.Width;
+                double inlineAndLeadingWidth = leadingAdvance + inlineElement.Width.ToPoints();
                 if (AppendPendingSourceTab(leadingAdvance)) leadingAdvance = 0D;
                 currentLine.Add(new RichSeg(
                     string.Empty,
@@ -751,7 +751,7 @@ internal static partial class PdfWriter {
                     fontForRun,
                     runFontSize,
                     baseline,
-                    inlineElement.Width,
+                    inlineElement.Width.ToPoints(),
                     leadingSpace: leadingAdvance != 0D,
                     leadingAdvance: leadingAdvance,
                     leadingSpaceIsExpandable: pendingLeadingIsExpandable,

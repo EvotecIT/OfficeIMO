@@ -85,7 +85,7 @@ public sealed class ReaderComparisonViewModelTests {
     private static void CreateDocument(string path, int pageCount, double width) {
         PdfDocument.Create(compose => {
             for (int index = 0; index < pageCount; index++) {
-                compose.Page(page => page.Size(width, 620D));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(620D)));
             }
         }).Save(path);
     }

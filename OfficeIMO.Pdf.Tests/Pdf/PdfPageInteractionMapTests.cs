@@ -318,7 +318,7 @@ public class PdfPageInteractionMapTests {
 
     [Fact]
     public void InteractionMap_CountsOnlyImageRegionsThatIntersectThePage() {
-        byte[] source = PdfDocument.Create(compose => compose.Page(page => page.Size(200D, 200D))).ToBytes();
+        byte[] source = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200D), global::OfficeIMO.OfficeLength.Points(200D)))).ToBytes();
         PdfDocument offPage = PdfDocument.Load(source).Images.Add(
             new PdfPageRegion(1, 10000D, 10000D, 20D, 20D),
             PdfPngTestImages.CreateRgbPng(255, 0, 0)).Document;

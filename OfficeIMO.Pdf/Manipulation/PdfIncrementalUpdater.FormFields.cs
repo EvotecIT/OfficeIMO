@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal;
+using System.Linq;
 using System.Globalization;
 using System.Threading;
 
@@ -681,7 +682,7 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         if (TryReadWidgetBorderWidth(objects, widget, out double borderWidth)) {
-            style.BorderWidth = borderWidth;
+            style.BorderWidth = global::OfficeIMO.OfficeLength.Points(borderWidth);
         }
 
         if (TryReadWidgetBorderStyle(objects, widget, out PdfFormFieldBorderStyle borderStyle)) {
@@ -689,7 +690,7 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         if (TryReadWidgetBorderDashPattern(objects, widget, out IReadOnlyList<double>? borderDashPattern)) {
-            style.BorderDashPattern = borderDashPattern;
+            style.BorderDashPattern = borderDashPattern?.Select(global::OfficeIMO.OfficeLength.Points).ToArray();
         }
 
         if (TryReadDefaultAppearanceTextColor(objects, widget, inheritedDefaultAppearance, out global::OfficeIMO.OfficeColor textColor)) {

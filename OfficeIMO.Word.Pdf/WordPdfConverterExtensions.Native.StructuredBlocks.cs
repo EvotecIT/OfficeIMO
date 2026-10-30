@@ -400,7 +400,7 @@ namespace OfficeIMO.Word.Pdf {
 
             double? fontSize = ResolveNativeWatermarkFontSize(watermark);
             if (fontSize.HasValue) {
-                pdfWatermark.FontSize = fontSize.Value;
+                pdfWatermark.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize.Value);
             }
 
             if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(watermark.FontFamily, out PdfCore.PdfStandardFont mappedFont)) {
@@ -441,7 +441,7 @@ namespace OfficeIMO.Word.Pdf {
 
             double width = watermark.Width?.ToPoints() is double widthPoints && widthPoints > 0D ? widthPoints : 144D;
             double height = watermark.Height?.ToPoints() is double heightPoints && heightPoints > 0D ? heightPoints : 144D;
-            var pdfWatermark = new PdfCore.PdfImageWatermark(preparedBytes, width, height);
+            var pdfWatermark = new PdfCore.PdfImageWatermark(preparedBytes, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height));
             if (watermark.Rotation.HasValue) {
                 pdfWatermark.RotationAngle = watermark.Rotation.Value;
             }

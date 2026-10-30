@@ -59,13 +59,13 @@ internal static partial class PdfImageEditor {
         ValidatePage(target.PageNumber, document.Pages.Count, nameof(target));
         (double originX, double originY) = document.Pages[target.PageNumber - 1].GetPageBoundaryOrigin();
         PdfImageEditOptions snapshot = (options ?? new PdfImageEditOptions()).Snapshot();
-        byte[] output = PdfStamper.StampImage(pdf, imageBytes, CreateStampOptions(target.PageNumber, target.X + originX, target.Y + originY, target.Width, target.Height, 0D, snapshot), readOptions);
+        byte[] output = PdfStamper.StampImage(pdf, imageBytes, CreateStampOptions(target.PageNumber, target.X + originX, target.Y + originY, target.Width, target.Height, 0D, snapshot, document.Pages[target.PageNumber - 1].GetGeometry().UserUnit ?? 1D), readOptions);
         return new ImageMutationResult(output, 1);
     }
 
     internal static ImageMutationResult Remove(byte[] pdf, PdfImagePlacement placement, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
-        PdfImagePlacement current = ResolveUniquePlacement(pdf, placement, readOptions);
+        PdfImagePlacement current = ResolveUniquePlacement(pdf, placement, readOptions, out _);
         EnsureRemovablePlacement(current);
         EnsureSafeDestructiveContext(pdf, current, requirePortableSourceSemantics: false, readOptions);
         byte[] output = PdfRedactionApplier.RemoveImagePlacements(pdf, new[] { current }, readOptions);
@@ -76,7 +76,7 @@ internal static partial class PdfImageEditor {
     internal static ImageMutationResult Replace(byte[] pdf, PdfImagePlacement placement, byte[] imageBytes, PdfImageEditOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(imageBytes, nameof(imageBytes));
-        PdfImagePlacement current = ResolveUniquePlacement(pdf, placement, readOptions);
+        PdfImagePlacement current = ResolveUniquePlacement(pdf, placement, readOptions, out var document);
         EnsureRemovablePlacement(current);
         EnsureSafeDestructiveContext(pdf, current, requirePortableSourceSemantics: true, readOptions);
         EnsureReplaceableSourceImage(pdf, current, readOptions);
@@ -88,7 +88,7 @@ internal static partial class PdfImageEditor {
         byte[] output = PdfStamper.StampImage(
             removed,
             imageBytes,
-            CreateStampOptions(current.PageNumber, current.E, current.F, transform.Width, transform.Height, transform.RotationDegrees, snapshot),
+            CreateStampOptions(current.PageNumber, current.E, current.F, transform.Width, transform.Height, transform.RotationDegrees, snapshot, document.Pages[current.PageNumber - 1].GetGeometry().UserUnit ?? 1D),
             afterRemovalOptions);
         return new ImageMutationResult(output, 1);
     }
@@ -102,7 +102,7 @@ internal static partial class PdfImageEditor {
         ValidateFinite(scale, nameof(scale));
         if (scale <= 0D) throw new ArgumentOutOfRangeException(nameof(scale), "Image scale must be greater than zero.");
         Guard.NotNull(pdf, nameof(pdf));
-        PdfImagePlacement current = ResolveUniquePlacement(pdf, placement, readOptions);
+        PdfImagePlacement current = ResolveUniquePlacement(pdf, placement, readOptions, out var document);
         EnsureRemovablePlacement(current);
         EnsureSafeDestructiveContext(pdf, current, requirePortableSourceSemantics: true, readOptions);
         ImageTransform transform = ResolvePortableTransform(current);
@@ -117,20 +117,21 @@ internal static partial class PdfImageEditor {
             CreateStampOptions(current.PageNumber,
                 current.E + deltaX + (current.A + current.C) * (1D - scale) / 2D,
                 current.F + deltaY + (current.B + current.D) * (1D - scale) / 2D,
-                transform.Width * scale, transform.Height * scale, transform.RotationDegrees, snapshot),
+                transform.Width * scale, transform.Height * scale, transform.RotationDegrees, snapshot, document.Pages[current.PageNumber - 1].GetGeometry().UserUnit ?? 1D),
             afterRemovalOptions);
         return new ImageMutationResult(output, 1);
     }
 
-    private static PdfImagePlacement ResolveUniquePlacement(byte[] pdf, PdfImagePlacement placement, PdfLoadOptions? readOptions) {
+    private static PdfImagePlacement ResolveUniquePlacement(byte[] pdf, PdfImagePlacement placement, PdfLoadOptions? readOptions, out PdfReadDocument document) {
         Guard.NotNull(placement, nameof(placement));
         string sourceIdentity = ComputeSourceIdentity(pdf);
         if (!string.Equals(placement.SourceDocumentIdentity, sourceIdentity, StringComparison.Ordinal)) {
             throw new InvalidOperationException("The selected image placement does not originate from the current PDF document.");
         }
-        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
-        PdfImagePlacement[] matches = PdfImageExtractor.ExtractImagePlacements(document)
-            .Where(candidate => SamePlacementIdentity(NormalizePlacement(document, candidate), placement))
+        PdfReadDocument parsed = PdfReadDocument.Open(pdf, readOptions);
+        document = parsed;
+        PdfImagePlacement[] matches = PdfImageExtractor.ExtractImagePlacements(parsed)
+            .Where(candidate => SamePlacementIdentity(NormalizePlacement(parsed, candidate), placement))
             .ToArray();
         if (matches.Length == 0) {
             throw new InvalidOperationException("The selected image placement does not exist in the current PDF document.");
@@ -251,13 +252,13 @@ internal static partial class PdfImageEditor {
         }
     }
 
-    private static PdfImageStampOptions CreateStampOptions(int pageNumber, double x, double y, double width, double height, double rotationDegrees, PdfImageEditOptions options) =>
+    private static PdfImageStampOptions CreateStampOptions(int pageNumber, double x, double y, double width, double height, double rotationDegrees, PdfImageEditOptions options, double userUnit) =>
         new PdfImageStampOptions {
             PageNumbers = new[] { pageNumber },
-            X = x,
-            Y = y,
-            Width = width,
-            Height = height,
+            X = global::OfficeIMO.OfficeLength.Points(x * userUnit),
+            Y = global::OfficeIMO.OfficeLength.Points(y * userUnit),
+            Width = global::OfficeIMO.OfficeLength.Points(width * userUnit),
+            Height = global::OfficeIMO.OfficeLength.Points(height * userUnit),
             RotationDegrees = rotationDegrees,
             MaximumEncodedImageBytes = options.MaximumEncodedImageBytes,
             BehindContent = options.Layer == PdfImageEditLayer.BehindExistingContent

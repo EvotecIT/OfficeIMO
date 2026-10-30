@@ -141,11 +141,11 @@ internal static partial class PdfWriter {
                 _ => 1D
             };
         }
-        return Math.Max(estimatedWidth, style?.MarkerWidth ?? estimatedWidth);
+        return Math.Max(estimatedWidth, ((style?.MarkerWidth)?.ToPoints()) ?? estimatedWidth);
     }
 
     private static double GetListMarkerFontSize(PdfListStyle? style, double listFontSize) {
-        return style?.MarkerFontSize ?? listFontSize;
+        return ((style?.MarkerFontSize)?.ToPoints()) ?? listFontSize;
     }
 
     private static PdfStandardFont GetListMarkerFont(PdfListStyle? style, PdfStandardFont defaultFont) {

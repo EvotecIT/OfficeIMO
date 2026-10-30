@@ -13,8 +13,8 @@ namespace OfficeIMO.Word.Pdf {
             if (nextPanel == null || !Equals(nextPanel.Background, panelStyle.Background) || HasNativePanelBorders(nextPanel) ||
                 nextStyle.LeftIndent.ToPoints() != paragraphStyle.LeftIndent.ToPoints() || nextStyle.RightIndent.ToPoints() != paragraphStyle.RightIndent.ToPoints()) return paragraphStyle;
             PdfCore.PdfParagraphStyle result = paragraphStyle.Clone();
-            result.SpacingAfter = global::OfficeIMO.OfficeLength.Points(Math.Max(panelStyle.SpacingAfter, nextStyle.SpacingBefore.ToPoints()));
-            panelStyle.SpacingAfter = 0D;
+            result.SpacingAfter = global::OfficeIMO.OfficeLength.Points(Math.Max(panelStyle.SpacingAfter.ToPoints(), nextStyle.SpacingBefore.ToPoints()));
+            panelStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
             return result;
         }
 

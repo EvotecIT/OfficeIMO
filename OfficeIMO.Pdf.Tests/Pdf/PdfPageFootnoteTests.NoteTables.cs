@@ -74,7 +74,7 @@ public partial class PdfPageFootnoteTests {
         for (int line = 0; line < 24; line++) {
             if (line == 11) {
                 runs.Add(PdfTextRun.Link("LinkedCell", "https://example.com/note"));
-                runs.Add(PdfTextRun.Inline(new PdfInlineImage(PdfPngTestImages.CreateRgbPng(0, 180, 80), 8, 8)));
+                runs.Add(PdfTextRun.Inline(new PdfInlineImage(PdfPngTestImages.CreateRgbPng(0, 180, 80), global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8))));
             } else runs.Add(PdfTextRun.Normal("CellLine" + line.ToString("00")));
             if (line < 23) runs.Add(PdfTextRun.Normal("\n"));
         }
@@ -175,8 +175,8 @@ public partial class PdfPageFootnoteTests {
             } }, style: NoteGridStyle());
             panel.Text("PanelAfterTable", style: Style());
         }, new PdfPanelStyle {
-            PaddingX = horizontalPadding, PaddingY = verticalPadding, SpacingBefore = 0, SpacingAfter = 0,
-            BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2D, .2D, .2D), BorderWidth = .5D
+            PaddingX = global::OfficeIMO.OfficeLength.Points(horizontalPadding), PaddingY = global::OfficeIMO.OfficeLength.Points(verticalPadding), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
+            BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2D, .2D, .2D), BorderWidth = global::OfficeIMO.OfficeLength.Points(.5D)
         }));
         document.Content.Text("PreviousBody", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(60));
         document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
@@ -203,7 +203,7 @@ public partial class PdfPageFootnoteTests {
     [InlineData(true)]
     public void MergedNoteTableCellsRejectInlineImagesInRunsAndResolvedParagraphs(bool inResolvedParagraph) {
         var document = PdfDocument.Create(Options());
-        PdfTextRun[] imageRuns = { PdfTextRun.Inline(new PdfInlineImage(PdfPngTestImages.CreateRgbPng(0, 180, 80), 8, 8)) };
+        PdfTextRun[] imageRuns = { PdfTextRun.Inline(new PdfInlineImage(PdfPngTestImages.CreateRgbPng(0, 180, 80), global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8))) };
         PdfTextRun[] cellRuns = inResolvedParagraph ? new[] { PdfTextRun.Normal("CellLabel") } : imageRuns;
         PdfTableCellParagraph[]? paragraphs = inResolvedParagraph ? new[] { new PdfTableCellParagraph(imageRuns) } : null;
         var merged = new PdfTableCell(cellRuns, paragraphs, rowSpan: 2);

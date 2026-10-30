@@ -11,7 +11,7 @@ public sealed class PdfProtectionWorkflowTests {
     [InlineData("reencrypt-verification")]
     public void CancellationDuringCryptographicInspectionStopsFurtherParsing(string operation) {
         byte[] plain = PdfDocument.Create(document => {
-            for (int index = 0; index < 20; index++) document.Page(page => page.Size(200, 300));
+            for (int index = 0; index < 20; index++) document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)));
         }).ToBytes();
         byte[] encrypted = PdfDocument.Load(plain).Security.Encrypt(new("reader") {
             OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes128
@@ -161,7 +161,7 @@ public sealed class PdfProtectionWorkflowTests {
     }
 
     private static byte[] CreatePdf() => PdfDocument.Create(document => {
-        document.Page(page => page.Size(200, 300)); document.Page(page => page.Size(210, 310));
+        document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300))); document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(210), global::OfficeIMO.OfficeLength.Points(310)));
     }).ToBytes();
     private sealed class CommitStream(Action<byte[]> commit) : MemoryStream {
         private bool _closed;

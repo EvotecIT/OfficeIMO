@@ -21,7 +21,7 @@ public sealed class StudioInlineFormWidgetTests {
             var services = ((App)Application.Current!).Services;
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "choices.pdf"), output = Path.Combine(services.Paths.Root, "choices-filled.pdf");
-            PdfDocument.Create(compose => compose.Page(page => page.Size(420, 520).Margin(30).Content(content => content
+            PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(520)).Margin(global::OfficeIMO.OfficeLength.Points(30)).Content(content => content
                 .Paragraph(p => p.Text("Project preferences"))
                 .Paragraph(p => p.Text("Delivery method"))
                 .RadioButtonGroup("Delivery", ["Email", "Post", "Collect"], value: "Email", size: global::OfficeIMO.OfficeLength.Points(24), gap: global::OfficeIMO.OfficeLength.Points(12))
@@ -120,7 +120,7 @@ public sealed class StudioInlineFormWidgetTests {
             var services = ((App)Application.Current!).Services;
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "single-list.pdf"), output = Path.Combine(services.Paths.Root, "cleared.pdf");
-            PdfDocument.Create(compose => compose.Page(page => page.Size(420, 520).Margin(30).Content(content => content
+            PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(520)).Margin(global::OfficeIMO.OfficeLength.Points(30)).Content(content => content
                 .ChoiceField("Region", ["Europe", "Americas", "Asia Pacific"], "Europe", height: global::OfficeIMO.OfficeLength.Points(112), isComboBox: false)))).Save(source);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), pickSavePdf: _ => Task.FromResult<string?>(output), services: services);
             await model.OpenDocumentAsync(source);
@@ -154,7 +154,7 @@ public sealed class StudioInlineFormWidgetTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "long-list.pdf"), output = Path.Combine(services.Paths.Root, "all-selected.pdf");
             string[] choices = Enumerable.Range(1, 40).Select(index => $"Choice {index:00}").ToArray();
-            PdfDocument.Create(compose => compose.Page(page => page.Size(420, 520).Margin(30).Content(content => content
+            PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(520)).Margin(global::OfficeIMO.OfficeLength.Points(30)).Content(content => content
                 .MultiSelectChoiceField("Topics", choices, [choices[^1]], height: global::OfficeIMO.OfficeLength.Points(96))))).Save(source);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), pickSavePdf: _ => Task.FromResult<string?>(output), services: services);
             await model.OpenDocumentAsync(source);

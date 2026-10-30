@@ -106,7 +106,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void HeadingRequiredTopSpacingCannotBeSilentlyDroppedToFitALine() {
         var options = new PdfCreateOptions { PageHeight = global::OfficeIMO.OfficeLength.Points(150), MarginTop = global::OfficeIMO.OfficeLength.Points(25), MarginBottom = global::OfficeIMO.OfficeLength.Points(25) };
-        var style = new PdfHeadingStyle { FontSize = 24, LineHeight = 1.25, SpacingBefore = 90, SpacingAfter = 0, ApplySpacingBeforeAtTop = true };
+        var style = new PdfHeadingStyle { FontSize = global::OfficeIMO.OfficeLength.Points(24), LineHeight = 1.25, SpacingBefore = global::OfficeIMO.OfficeLength.Points(90), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), ApplySpacingBeforeAtTop = true };
         Assert.Throws<ArgumentException>(() => PdfDocument.Create(options).H1("Too tall", style: style).ToBytes());
     }
 

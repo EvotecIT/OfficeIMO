@@ -91,7 +91,7 @@ public sealed class PdfCanvasImageLifecycleTests {
         new[] {
             PdfTableCell.WithImages(
                 string.Empty,
-                new[] { new PdfTableCellImage(Png, 20D, 20D) })
+                new[] { new PdfTableCellImage(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D)) })
         }
     };
 

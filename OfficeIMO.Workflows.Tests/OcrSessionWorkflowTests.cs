@@ -74,7 +74,7 @@ public sealed class OcrSessionWorkflowTests {
             string image = Path.Combine(root, "scan.png");
             File.WriteAllBytes(image, Png());
             string pdf = Path.Combine(root, "scan.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).Save(pdf);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).Save(pdf);
             string output = Path.Combine(root, "searchable.pdf");
             var future = new PdfSearchableWorkflowRequest { InputPath = pdf, OutputPath = output };
             var first = new ImageOcrWorkflowRequest {
@@ -102,7 +102,7 @@ public sealed class OcrSessionWorkflowTests {
         try {
             string first = Path.Combine(root, "first.pdf");
             string second = Path.Combine(root, "second.pdf");
-            byte[] source = PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).ToBytes();
+            byte[] source = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).ToBytes();
             File.WriteAllBytes(first, source); File.WriteAllBytes(second, source);
             var results = await new OfficeWorkflowRunner().RunOcrSessionAsync([
                 new("first", new PdfSearchableWorkflowRequest { InputPath = first, OutputPath = second, ConflictPolicy = OfficePublicationPolicy.Replace }),

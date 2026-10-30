@@ -710,8 +710,8 @@ public class PdfDocumentWorkflowTests {
 
         byte[] imagePdf = PdfStamper.StampImage(source, PdfPngTestImages.CreateRgbPng(255, 0, 0), new PdfImageStampOptions {
             PageNumbers = new[] { 1, 3 },
-            Width = 24,
-            Height = 24
+            Width = global::OfficeIMO.OfficeLength.Points(24),
+            Height = global::OfficeIMO.OfficeLength.Points(24)
         });
         PdfDocument imageDocument = PdfDocument.Load(new System.IO.MemoryStream(imagePdf));
         IReadOnlyList<PdfExtractedImage> selectedImages = imageDocument.Reader.Images("3,1-2");
@@ -752,7 +752,7 @@ public class PdfDocumentWorkflowTests {
         Assert.NotNull(malformedRange.Exception);
         Assert.Contains("Page number cannot be empty", string.Join(" ", malformedRange.Diagnostics), StringComparison.Ordinal);
 
-        PdfOperationResult<PdfDocument> stamped = opened.Stamp.TextResult("Reviewed", new PdfTextStampOptions { X = 72, Y = 72 });
+        PdfOperationResult<PdfDocument> stamped = opened.Stamp.TextResult("Reviewed", new PdfTextStampOptions { X = global::OfficeIMO.OfficeLength.Points(72), Y = global::OfficeIMO.OfficeLength.Points(72) });
         Assert.True(stamped.Succeeded);
         Assert.Equal(3, stamped.RequireValue().Inspect().PageCount);
 
@@ -1201,9 +1201,9 @@ public class PdfDocumentWorkflowTests {
         Assert.Equal("OfficeIMO Tests", metadata.Inspect().Metadata.Author);
 
         var stampOptions = new PdfTextStampOptions {
-            X = 72,
-            Y = 72,
-            FontSize = 12
+            X = global::OfficeIMO.OfficeLength.Points(72),
+            Y = global::OfficeIMO.OfficeLength.Points(72),
+            FontSize = global::OfficeIMO.OfficeLength.Points(12)
         };
 
         Assert.Equal(

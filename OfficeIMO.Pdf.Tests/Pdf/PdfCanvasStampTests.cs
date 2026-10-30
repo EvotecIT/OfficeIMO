@@ -17,7 +17,7 @@ public class PdfCanvasStampTests {
                 .Table(new[] {
                     new[] { PdfTableCell.TextCell("Name"), PdfTableCell.TextCell("Value") },
                     new[] { PdfTableCell.TextCell("Mode"), PdfTableCell.RichTextCell(new[] { PdfTextRun.Bolded("General visual canvas") }) }
-                }, global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(90D), global::OfficeIMO.OfficeLength.Points(Math.Min(420D, context.Width - 72D)), global::OfficeIMO.OfficeLength.Points(100D))
+                }, global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(90D), global::OfficeIMO.OfficeLength.Points(Math.Min(420D, context.Width.ToPoints() - 72D)), global::OfficeIMO.OfficeLength.Points(100D))
                 .Image(PdfPngTestImages.CreateRgbPng(20, 80, 180), global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(210D), global::OfficeIMO.OfficeLength.Points(24D), global::OfficeIMO.OfficeLength.Points(24D), alternativeText: "Blue marker");
         });
 

@@ -61,7 +61,7 @@ public sealed class PdfTableHorizontalOffsetTests {
         });
         string[][] rows = Enumerable.Range(1, 7).Select(index => new[] { "Left" + index, "Right" + index }).ToArray();
         if (frame == "columns") document.Columns(content => content.Table(rows, alignment, style),
-            new PdfMultiColumnOptions { Gap = 20, BalanceLastPage = false });
+            new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false });
         else if (frame == "row") document.Compose(builder => builder.Page(page => page.Content(content =>
             content.Row(row => row.PercentColumn(100, column => column.Table(rows, alignment, style))))));
         else document.Table(rows, alignment, style);

@@ -12,7 +12,7 @@ public sealed class PdfRunningContentImageOwnershipTests {
         byte[] bytes = PdfPngTestImages.CreateRgbPng(2, 2);
         byte[] original = (byte[])bytes.Clone();
         var style = new PdfImageStyle { RotationAngle = 90 };
-        var image = new PdfTableCellImage(bytes, 12, 12, style);
+        var image = new PdfTableCellImage(bytes, global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(12), style);
         var first = new PdfTableCell("First", images: new[] { image });
         var second = new PdfTableCell("Second", images: new[] { image });
         bytes[0] = 0;
@@ -38,12 +38,12 @@ public sealed class PdfRunningContentImageOwnershipTests {
         Action<PdfContentBuilder> Compose(PdfRunningContentContext context) => content => {
             // New input arrays deliberately miss the source-array prepared-image cache.
             var cell = new PdfTableCell($"{context.PageNumber}/{context.DocumentPages}",
-                images: new[] { new PdfTableCellImage((byte[])bytes.Clone(), 12, 12) });
+                images: new[] { new PdfTableCellImage((byte[])bytes.Clone(), global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(12)) });
             var style = PdfTableStyles.Minimal(); style.HeaderRowCount = 0;
             content.Table(new[] { new[] { cell } }, style: style);
         };
-        if (footer) document.Footer(builder => builder.Content(Compose, 18).FirstPageContent(Compose, 18).EvenPagesContent(Compose, 18));
-        else document.Header(builder => builder.Content(Compose, 18).FirstPageContent(Compose, 18).EvenPagesContent(Compose, 18));
+        if (footer) document.Footer(builder => builder.Content(Compose, global::OfficeIMO.OfficeLength.Points(18)).FirstPageContent(Compose, global::OfficeIMO.OfficeLength.Points(18)).EvenPagesContent(Compose, global::OfficeIMO.OfficeLength.Points(18)));
+        else document.Header(builder => builder.Content(Compose, global::OfficeIMO.OfficeLength.Points(18)).FirstPageContent(Compose, global::OfficeIMO.OfficeLength.Points(18)).EvenPagesContent(Compose, global::OfficeIMO.OfficeLength.Points(18)));
         for (int index = 0; index < 6; index++) {
             if (index > 0) document.PageBreak();
             document.Paragraph(paragraph => paragraph.Text("BODY"));

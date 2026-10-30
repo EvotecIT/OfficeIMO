@@ -96,15 +96,15 @@ public partial class PdfPageFootnoteTests {
         if (owner == "heading") {
             document.Content.Heading(2, "OwnerBody", paragraph => paragraph.Runs(new[] { run }),
                 PdfAlign.Left, null, new PdfHeadingStyle {
-                    FontSize = 8, Font = PdfStandardFont.Helvetica, Bold = false,
-                    LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10)), SpacingBefore = 0, SpacingAfter = 8,
+                    FontSize = global::OfficeIMO.OfficeLength.Points(8), Font = PdfStandardFont.Helvetica, Bold = false,
+                    LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(8),
                     KeepWithNext = false
                 });
         } else if (owner == "list") {
             document.Content.RichNumbered(new[] { PdfListItem.Rich(new[] { run }) }, style: new PdfListStyle {
-                FontSize = 8, MarkerFontSize = 8, MarkerFont = PdfStandardFont.Helvetica,
-                LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10)), SpacingBefore = 0, SpacingAfter = 8,
-                ItemSpacing = 0, KeepTogether = false, KeepWithNext = false
+                FontSize = global::OfficeIMO.OfficeLength.Points(8), MarkerFontSize = global::OfficeIMO.OfficeLength.Points(8), MarkerFont = PdfStandardFont.Helvetica,
+                LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(8),
+                ItemSpacing = global::OfficeIMO.OfficeLength.Points(0), KeepTogether = false, KeepWithNext = false
             });
         } else {
             throw new ArgumentOutOfRangeException(nameof(owner));
@@ -148,13 +148,13 @@ public partial class PdfPageFootnoteTests {
             });
         } else if (owner == "heading") {
             document.Content.Heading(2, "OwnerBody", style: new PdfHeadingStyle {
-                FontSize = 10, Font = PdfStandardFont.Helvetica, Bold = false,
-                LineSpacing = spacing, SpacingBefore = 0, SpacingAfter = 8, KeepWithNext = false
+                FontSize = global::OfficeIMO.OfficeLength.Points(10), Font = PdfStandardFont.Helvetica, Bold = false,
+                LineSpacing = spacing, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(8), KeepWithNext = false
             });
         } else if (owner == "list") {
             document.Content.Numbered(new[] { "OwnerBody" }, style: new PdfListStyle {
-                FontSize = 10, MarkerFontSize = 10, MarkerFont = PdfStandardFont.Helvetica,
-                LineSpacing = spacing, SpacingBefore = 0, SpacingAfter = 8, ItemSpacing = 0,
+                FontSize = global::OfficeIMO.OfficeLength.Points(10), MarkerFontSize = global::OfficeIMO.OfficeLength.Points(10), MarkerFont = PdfStandardFont.Helvetica,
+                LineSpacing = spacing, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(8), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0),
                 KeepTogether = false, KeepWithNext = false
             });
         } else {

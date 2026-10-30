@@ -10,8 +10,8 @@ public sealed partial class PdfTableCellViewportTests {
     [InlineData("column")]
     [InlineData("canvas")]
     public void Data_bar_uses_the_unsplit_width_and_is_clipped_at_the_fragment_edge(string mode) {
-        var left = new PdfTableCell(string.Empty).WithViewport(new PdfTableCellViewport(200, 24, 100, 24));
-        var right = new PdfTableCell(string.Empty).WithViewport(new PdfTableCellViewport(200, 24, 100, 24, offsetX: 100));
+        var left = new PdfTableCell(string.Empty).WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24)));
+        var right = new PdfTableCell(string.Empty).WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24), offsetX: global::OfficeIMO.OfficeLength.Points(100)));
         void Configure(PdfTableStyle style) => style.CellDataBars = new Dictionary<(int, int), PdfCellDataBar> {
             [(0, 0)] = new PdfCellDataBar { Color = global::OfficeIMO.OfficeColor.FromRgb(0, 255, 0), Ratio = 0.5 }
         };
@@ -26,8 +26,8 @@ public sealed partial class PdfTableCellViewportTests {
     [InlineData("column")]
     [InlineData("canvas")]
     public void Icon_alignment_can_differ_from_text_and_stays_in_the_original_fragment(string mode) {
-        var left = new PdfTableCell("99").WithViewport(new PdfTableCellViewport(200, 24, 100, 24));
-        var right = new PdfTableCell("99").WithViewport(new PdfTableCellViewport(200, 24, 100, 24, offsetX: 100));
+        var left = new PdfTableCell("99").WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24)));
+        var right = new PdfTableCell("99").WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24), offsetX: global::OfficeIMO.OfficeLength.Points(100)));
         var icon = new PdfCellIcon { Color = global::OfficeIMO.OfficeColor.FromRgb(0, 255, 0), HorizontalAlignment = PdfColumnAlign.Left };
         void Configure(PdfTableStyle style) {
             style.CellAlignments = new Dictionary<(int, int), PdfColumnAlign> { [(0, 0)] = PdfColumnAlign.Right };
@@ -49,7 +49,7 @@ public sealed partial class PdfTableCellViewportTests {
     [InlineData("flow")]
     [InlineData("column")]
     public void Oversized_viewport_row_rejects_implicit_splitting_that_would_repeat_its_geometry(string mode) {
-        var cell = new PdfTableCell("Fragment").WithViewport(new PdfTableCellViewport(100, 48, 100, 24));
+        var cell = new PdfTableCell("Fragment").WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(48), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24)));
         var adjacent = new PdfTableCell(string.Join("\n", Enumerable.Repeat("Long neighbour", 40)));
         ArgumentException error = Assert.Throws<ArgumentException>(() => Render(mode, cell, PdfCellVerticalAlign.Top, style => {
             style.FixedRowHeights = null;
@@ -64,8 +64,8 @@ public sealed partial class PdfTableCellViewportTests {
     [InlineData("canvas")]
     public void Wrapped_middle_aligned_text_keeps_its_line_assignment_across_fragments(string mode) {
         const string text = "First\nSecond\nThird\nFourth";
-        var upper = new PdfTableCell(text).WithViewport(new PdfTableCellViewport(100, 100, 100, 50));
-        var lower = new PdfTableCell(text).WithViewport(new PdfTableCellViewport(100, 100, 100, 50, offsetY: 50));
+        var upper = new PdfTableCell(text).WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(50)));
+        var lower = new PdfTableCell(text).WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(50), offsetY: global::OfficeIMO.OfficeLength.Points(50)));
         using PdfPigDocument first = PdfPigDocument.Open(Render(mode, upper, PdfCellVerticalAlign.Middle,
             style => style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(50) }));
         using PdfPigDocument second = PdfPigDocument.Open(Render(mode, lower, PdfCellVerticalAlign.Middle,
@@ -87,7 +87,7 @@ public sealed partial class PdfTableCellViewportTests {
     [InlineData("column", true)]
     [InlineData("canvas", true)]
     public void Diagonal_border_keeps_the_full_cell_slope_inside_a_fragment(string mode, bool rounded) {
-        var cell = new PdfTableCell(string.Empty).WithViewport(new PdfTableCellViewport(100, 48, 100, 24));
+        var cell = new PdfTableCell(string.Empty).WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(48), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24)));
         byte[] bytes = Render(mode, cell, PdfCellVerticalAlign.Top, style => {
             style.CornerRadius = global::OfficeIMO.OfficeLength.Points(rounded ? 4 : 0);
             style.CellBorders = new Dictionary<(int, int), PdfCellBorder> { [(0, 0)] = new PdfCellBorder {
@@ -103,7 +103,7 @@ public sealed partial class PdfTableCellViewportTests {
 
     [Fact]
     public void Viewport_rejects_interactive_cell_fields_that_require_separate_placement() {
-        var viewport = new PdfTableCellViewport(100, 48, 100, 24);
+        var viewport = new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(48), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24));
         var checkBox = new PdfTableCell("Check", checkBoxes: new[] { new PdfTableCellCheckBox("check") });
         var field = new PdfTableCell("Field", formFields: new[] { PdfTableCellFormField.TextField("field") });
         Assert.Throws<ArgumentException>(() => checkBox.WithViewport(viewport));
@@ -116,8 +116,8 @@ public sealed partial class PdfTableCellViewportTests {
     [InlineData("column")]
     [InlineData("canvas")]
     public void Vertical_fragments_keep_bottom_alignment_in_the_unsplit_cell(string mode) {
-        var top = new PdfTableCell("Bottom").WithViewport(new PdfTableCellViewport(100, 48, 100, 24));
-        var bottom = new PdfTableCell("Bottom").WithViewport(new PdfTableCellViewport(100, 48, 100, 24, offsetY: 24));
+        var top = new PdfTableCell("Bottom").WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(48), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24)));
+        var bottom = new PdfTableCell("Bottom").WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(48), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24), offsetY: global::OfficeIMO.OfficeLength.Points(24)));
         using PdfPigDocument first = PdfPigDocument.Open(Render(mode, top, PdfCellVerticalAlign.Bottom));
         using PdfPigDocument second = PdfPigDocument.Open(Render(mode, bottom, PdfCellVerticalAlign.Bottom));
         Assert.DoesNotContain("Bottom", first.GetPage(1).Text);
@@ -131,8 +131,8 @@ public sealed partial class PdfTableCellViewportTests {
     [InlineData("column")]
     [InlineData("canvas")]
     public void Horizontal_fragments_keep_left_aligned_text_at_its_original_origin(string mode) {
-        var left = new PdfTableCell("Left").WithViewport(new PdfTableCellViewport(200, 24, 100, 24));
-        var right = new PdfTableCell("Left").WithViewport(new PdfTableCellViewport(200, 24, 100, 24, offsetX: 100));
+        var left = new PdfTableCell("Left").WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24)));
+        var right = new PdfTableCell("Left").WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24), offsetX: global::OfficeIMO.OfficeLength.Points(100)));
         using PdfPigDocument first = PdfPigDocument.Open(Render(mode, left, PdfCellVerticalAlign.Top));
         using PdfPigDocument second = PdfPigDocument.Open(Render(mode, right, PdfCellVerticalAlign.Top));
         Assert.Contains("Left", first.GetPage(1).Text);
@@ -142,7 +142,7 @@ public sealed partial class PdfTableCellViewportTests {
 
     [Fact]
     public void Viewport_survives_cell_copy_operations_and_rejects_unusable_geometry() {
-        var viewport = new PdfTableCellViewport(200, 48, 100, 24, 100, 24);
+        var viewport = new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(48), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24));
         var original = new PdfTableCell("Linked", linkUri: "https://example.com/", namedDestinationName: "Source").WithViewport(viewport);
         PdfTableCell copied = original.WithNoWrap().WithNamedDestination("Fragment");
         Assert.Same(viewport, copied.Viewport);
@@ -151,10 +151,10 @@ public sealed partial class PdfTableCellViewportTests {
         Assert.Equal("Linked", original.Text);
         Assert.Equal("Source", original.NamedDestinationName);
         Assert.Null(copied.WithViewport(null).Viewport);
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTableCellViewport(100, 24, 100, 24, 1));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTableCellViewport(100, 24, 100, 24, offsetY: 1));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTableCellViewport(double.PositiveInfinity, 24, 100, 24));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTableCellViewport(1E300, 24, 1E-300, 24));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(1)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24), offsetY: global::OfficeIMO.OfficeLength.Points(1)));
+
+
     }
 
     private static byte[] Render(string mode, PdfTableCell cell, PdfCellVerticalAlign alignment, Action<PdfTableStyle>? configure = null, PdfTableCell? adjacentCell = null) {

@@ -234,7 +234,7 @@ public sealed partial class PdfDocument {
 
         var ruleStyle = style?.Clone() ?? new PdfHorizontalRuleStyle();
         if (thickness.HasValue) {
-            ruleStyle.Thickness = thickness.Value;
+            ruleStyle.Thickness = global::OfficeIMO.OfficeLength.Points(thickness.Value);
         }
 
         if (color.HasValue) {
@@ -242,11 +242,11 @@ public sealed partial class PdfDocument {
         }
 
         if (spacingBefore.HasValue) {
-            ruleStyle.SpacingBefore = spacingBefore.Value;
+            ruleStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore.Value);
         }
 
         if (spacingAfter.HasValue) {
-            ruleStyle.SpacingAfter = spacingAfter.Value;
+            ruleStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter.Value);
         }
 
         return ruleStyle;
@@ -272,11 +272,11 @@ public sealed partial class PdfDocument {
         }
 
         if (spacingBefore.HasValue) {
-            imageStyle.SpacingBefore = spacingBefore.Value;
+            imageStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore.Value);
         }
 
         if (spacingAfter.HasValue) {
-            imageStyle.SpacingAfter = spacingAfter.Value;
+            imageStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter.Value);
         }
 
         if (alternativeText != null) {
@@ -302,7 +302,7 @@ public sealed partial class PdfDocument {
                 throw new System.ArgumentException(objectName + " spacing before must be a non-negative finite value.", nameof(spacingBefore));
             }
 
-            drawingStyle.SpacingBefore = spacingBefore.Value;
+            drawingStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore.Value);
         }
 
         if (spacingAfter.HasValue) {
@@ -310,7 +310,7 @@ public sealed partial class PdfDocument {
                 throw new System.ArgumentException(objectName + " spacing after must be a non-negative finite value.", nameof(spacingAfter));
             }
 
-            drawingStyle.SpacingAfter = spacingAfter.Value;
+            drawingStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter.Value);
         }
 
         return drawingStyle;

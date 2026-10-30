@@ -519,10 +519,10 @@ internal static partial class PdfWriter {
                         PdfLayoutDiagnosticKind.ClippedContent,
                         "PdfCanvasTextBox",
                         "The PDF text box render pass clipped text because wrapped content exceeded the available text area.",
-                        item.X,
-                        item.Y,
-                        item.Width,
-                        item.Height));
+                        global::OfficeIMO.OfficeLength.Points(item.X),
+                        global::OfficeIMO.OfficeLength.Points(item.Y),
+                        global::OfficeIMO.OfficeLength.Points(item.Width),
+                        global::OfficeIMO.OfficeLength.Points(item.Height)));
                 }
 
                 ReportRichPaintDiagnostics(PaintDiagnosticCodes.CanvasTextBox, "PdfCanvasTextBox", blockText, prepared.Lines, prepared.LineHeights,

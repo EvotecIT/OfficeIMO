@@ -83,8 +83,8 @@ internal static partial class RtfPdfConverter {
         RtfImageLayout layout = image.ResolveLayout(options.DefaultImageWidth * 20d, options.DefaultImageHeight * 20d);
         // Native RTF pictures retain their complete authored frame on exact
         // lines. The DrawingML paragraph-fragment crop is a different carrier.
-        var inline = new PdfCore.PdfInlineImage(imageBytes, layout.VisibleWidthTwips!.Value / 20d,
-            layout.VisibleHeightTwips!.Value / 20d, GetImageStyle(image, layout), baselineOffset: 0D) {
+        var inline = new PdfCore.PdfInlineImage(imageBytes, global::OfficeIMO.OfficeLength.Points(layout.VisibleWidthTwips!.Value / 20d),
+            global::OfficeIMO.OfficeLength.Points(layout.VisibleHeightTwips!.Value / 20d), GetImageStyle(image, layout), baselineOffset: global::OfficeIMO.OfficeLength.Points(0D)) {
             ClipToParagraphFragment = false
         };
         runs.Add(PdfCore.PdfTextRun.Inline(inline));
@@ -135,16 +135,16 @@ internal static partial class RtfPdfConverter {
         PdfCore.PdfParagraphStyle style = RtfPdfMapping.ToPdfParagraphStyle(document, paragraph, runs, options);
         return new PdfCore.PdfTableCellParagraph(
             runs,
-            spacingAfter: style?.SpacingAfter?.ToPoints() ?? 0D,
+            spacingAfter: global::OfficeIMO.OfficeLength.Points(style?.SpacingAfter?.ToPoints() ?? 0D),
             align: RtfPdfMapping.ToPdfAlign(formatting.Alignment),
-            spacingBefore: style?.SpacingBefore.ToPoints() ?? 0D,
-            leftIndent: style?.LeftIndent.ToPoints() ?? 0D,
-            rightIndent: style?.RightIndent.ToPoints() ?? 0D,
-            firstLineIndent: style?.FirstLineIndent.ToPoints() ?? 0D,
+            spacingBefore: global::OfficeIMO.OfficeLength.Points(style?.SpacingBefore.ToPoints() ?? 0D),
+            leftIndent: global::OfficeIMO.OfficeLength.Points(style?.LeftIndent.ToPoints() ?? 0D),
+            rightIndent: global::OfficeIMO.OfficeLength.Points(style?.RightIndent.ToPoints() ?? 0D),
+            firstLineIndent: global::OfficeIMO.OfficeLength.Points(style?.FirstLineIndent.ToPoints() ?? 0D),
             lineHeight: style?.LineHeight,
-            defaultTabStopWidth: style?.DefaultTabStopWidth?.ToPoints(),
+            defaultTabStopWidth: style?.DefaultTabStopWidth,
             tabStops: style?.TabStops,
-            fontSize: style?.FontSize?.ToPoints(),
+            fontSize: style?.FontSize,
             lineSpacing: style?.LineSpacing,
             widowControl: style?.WidowControl,
             keepTogether: style?.KeepTogether ?? false,
@@ -171,7 +171,7 @@ internal static partial class RtfPdfConverter {
             foreach (IRtfInline inline in paragraph.Inlines) {
                 if (inline is RtfImage image && TryGetRenderableImage(image, options, "TableCell/Image", out byte[] imageBytes)) {
                     RtfImageLayout layout = image.ResolveLayout(options.DefaultImageWidth * 20d, options.DefaultImageHeight * 20d);
-                    images.Add(new PdfCore.PdfTableCellImage(imageBytes, layout.VisibleWidthTwips!.Value / 20d, layout.VisibleHeightTwips!.Value / 20d, GetImageStyle(image, layout)));
+                    images.Add(new PdfCore.PdfTableCellImage(imageBytes, global::OfficeIMO.OfficeLength.Points(layout.VisibleWidthTwips!.Value / 20d), global::OfficeIMO.OfficeLength.Points(layout.VisibleHeightTwips!.Value / 20d), GetImageStyle(image, layout)));
                 }
             }
         }

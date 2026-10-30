@@ -23,7 +23,7 @@ public sealed class StudioSearchTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "Wrapped search.pdf");
             string[] words = Enumerable.Range(0, 80).Select(index => "word" + index.ToString("D3")).ToArray();
-            byte[] pdf = PdfDocument.Create(compose => compose.Page(page => page.Size(400D, 600D)
+            byte[] pdf = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400D), global::OfficeIMO.OfficeLength.Points(600D))
                 .Content(content => content.Text(string.Join(" ", words))))).ToBytes();
             PdfDocument sourceDocument = PdfDocument.Load(new System.IO.MemoryStream(pdf));
             string query = Enumerable.Range(0, words.Length - 1)
@@ -66,8 +66,8 @@ public sealed class StudioSearchTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "Find occurrences.pdf");
             var document = PdfDocument.Create(compose => {
-                compose.Page(page => page.Size(400, 500).Content(content => content.Text("Needle and needle")));
-                compose.Page(page => page.Size(400, 500).Content(content => content.Text("Another needle")));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.Text("Needle and needle")));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.Text("Another needle")));
             });
             if (rotate) document = document.Pages.Rotate(90);
             document.Save(source);
@@ -210,7 +210,7 @@ public sealed class StudioSearchTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "Search layouts.pdf");
             PdfDocument.Create(compose => {
-                for (int page = 0; page < 12; page++) compose.Page(item => item.Size(400, 500).Content(content => content.Text("Needle on this page")));
+                for (int page = 0; page < 12; page++) compose.Page(item => item.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.Text("Needle on this page")));
             }).Save(source);
             var window = new MainWindow(services) { Width = 1280, Height = 800 };
             try {

@@ -107,10 +107,10 @@ public class PdfImageEditorTests {
             PdfPngTestImages.CreateRgbPng(255, 0, 0),
             new PdfImageStampOptions {
                 PageNumbers = new[] { 1 },
-                X = 80D,
-                Y = 140D,
-                Width = 60D,
-                Height = 30D,
+                X = global::OfficeIMO.OfficeLength.Points(80D),
+                Y = global::OfficeIMO.OfficeLength.Points(140D),
+                Width = global::OfficeIMO.OfficeLength.Points(60D),
+                Height = global::OfficeIMO.OfficeLength.Points(30D),
                 RotationDegrees = 30D
             });
         PdfDocument document = PdfDocument.Load(source);

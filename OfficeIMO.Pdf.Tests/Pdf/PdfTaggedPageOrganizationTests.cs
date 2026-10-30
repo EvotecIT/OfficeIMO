@@ -136,7 +136,7 @@ public sealed partial class PdfTaggedPageOrganizationTests {
     [InlineData(true)] [InlineData(false)]
     public void MixedTaggedAndPlainInsertionRetainsTheTaggedStructure(bool taggedTarget) {
         var tagged = PdfDocument.Load(CreateTaggedSource());
-        var plain = PdfDocument.Create(compose => compose.Page(page => page.Size(300, 500).Content(content => content.Text("Plain inserted page"))));
+        var plain = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.Text("Plain inserted page"))));
         PdfDocument output = taggedTarget ? tagged.Pages.Insert(2, plain) : plain.Pages.Insert(1, tagged);
         Assert.Equal(3, output.Inspect().PageCount); Assert.True(output.Inspect().HasTaggedContent);
         AssertStructure(PdfReadDocument.Open(output.ToBytes()), 2);
@@ -266,8 +266,8 @@ public sealed partial class PdfTaggedPageOrganizationTests {
 
     internal static byte[] CreateTaggedSource() {
         byte[] source = PdfDocument.Create(compose => {
-            compose.Page(page => page.Size(300, 500).Content(content => content.Text("First tagged page")));
-            compose.Page(page => page.Size(300, 500).Content(content => content.Text("Second tagged page")));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.Text("First tagged page")));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.Text("Second tagged page")));
         }).ToBytes();
         return PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
             var parsed = PdfReadDocument.Open(source); var catalog = (PdfDictionary)objects[security.RootObjectNumber!.Value].Value;

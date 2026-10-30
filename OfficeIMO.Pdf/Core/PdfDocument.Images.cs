@@ -183,7 +183,7 @@ public sealed partial class PdfDocument {
 
             document.AddComposedPage(page => page
                 .Size(pageSize)
-                .Margin(0D)
+                .Margin(global::OfficeIMO.OfficeLength.Points(0D))
                 .Canvas(canvas => canvas.ImageShared(
                     imageResource,
                     effective.Margin.ToPoints(),

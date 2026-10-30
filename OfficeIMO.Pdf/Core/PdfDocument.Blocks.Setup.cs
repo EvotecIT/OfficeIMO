@@ -105,7 +105,7 @@ public sealed partial class PdfDocument {
             Bold = bold,
             Italic = italic
         };
-        if (fontSize.HasValue) watermark.FontSize = fontSize.Value;
+        if (fontSize.HasValue) watermark.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize.Value);
         if (color.HasValue) watermark.Color = color.Value;
         if (opacity.HasValue) watermark.Opacity = opacity.Value;
         if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
@@ -122,7 +122,7 @@ public sealed partial class PdfDocument {
 
     /// <summary>Sets a document-wide default image watermark rendered behind page content.</summary>
     internal PdfDocument ImageWatermark(byte[] imageBytes, double width, double height, double? opacity = null, double? rotationAngle = null) {
-        var watermark = new PdfImageWatermark(imageBytes, width, height);
+        var watermark = new PdfImageWatermark(imageBytes, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height));
         if (opacity.HasValue) watermark.Opacity = opacity.Value;
         if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
         _options.ImageWatermark = watermark;
@@ -141,8 +141,8 @@ public sealed partial class PdfDocument {
             DashStyle = dashStyle
         };
         if (color.HasValue) border.Color = color.Value;
-        if (width.HasValue) border.Width = width.Value;
-        if (inset.HasValue) border.Inset = inset.Value;
+        if (width.HasValue) border.Width = global::OfficeIMO.OfficeLength.Points(width.Value);
+        if (inset.HasValue) border.Inset = global::OfficeIMO.OfficeLength.Points(inset.Value);
         if (opacity.HasValue) border.Opacity = opacity.Value;
         _options.PageBorder = border;
         return this;
@@ -184,31 +184,31 @@ public sealed partial class PdfDocument {
 
     /// <summary>Adds a document-wide default rectangle page background shape.</summary>
     internal PdfDocument BackgroundRectangle(double x, double y, double width, double height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
-        BackgroundShape(PdfPageBackgroundShape.Rectangle(x, y, width, height, fill, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+        BackgroundShape(PdfPageBackgroundShape.Rectangle(global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), fill, stroke, global::OfficeIMO.OfficeLength.Points(strokeWidth), fillOpacity, strokeOpacity, fillGradient));
 
     /// <summary>Adds a document-wide default rounded rectangle page background shape.</summary>
     internal PdfDocument BackgroundRoundedRectangle(double x, double y, double width, double height, double cornerRadius, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
-        BackgroundShape(PdfPageBackgroundShape.RoundedRectangle(x, y, width, height, cornerRadius, fill, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+        BackgroundShape(PdfPageBackgroundShape.RoundedRectangle(global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), global::OfficeIMO.OfficeLength.Points(cornerRadius), fill, stroke, global::OfficeIMO.OfficeLength.Points(strokeWidth), fillOpacity, strokeOpacity, fillGradient));
 
     /// <summary>Adds a document-wide default ellipse page background shape.</summary>
     internal PdfDocument BackgroundEllipse(double x, double y, double width, double height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
-        BackgroundShape(PdfPageBackgroundShape.Ellipse(x, y, width, height, fill, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+        BackgroundShape(PdfPageBackgroundShape.Ellipse(global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), fill, stroke, global::OfficeIMO.OfficeLength.Points(strokeWidth), fillOpacity, strokeOpacity, fillGradient));
 
     /// <summary>Adds a document-wide default top page background band using the current page size.</summary>
     internal PdfDocument BackgroundTopBand(double height, global::OfficeIMO.OfficeColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
-        BackgroundShape(PdfPageBackgroundShape.TopBand(_options.PageWidth.ToPoints(), _options.PageHeight.ToPoints(), height, fill, insetX, offsetY, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+        BackgroundShape(PdfPageBackgroundShape.TopBand(_options.PageWidth, _options.PageHeight, global::OfficeIMO.OfficeLength.Points(height), fill, global::OfficeIMO.OfficeLength.Points(insetX), global::OfficeIMO.OfficeLength.Points(offsetY), global::OfficeIMO.OfficeLength.Points(cornerRadius), stroke, global::OfficeIMO.OfficeLength.Points(strokeWidth), fillOpacity, strokeOpacity, fillGradient));
 
     /// <summary>Adds a document-wide default bottom page background band using the current page size.</summary>
     internal PdfDocument BackgroundBottomBand(double height, global::OfficeIMO.OfficeColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
-        BackgroundShape(PdfPageBackgroundShape.BottomBand(_options.PageWidth.ToPoints(), _options.PageHeight.ToPoints(), height, fill, insetX, offsetY, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+        BackgroundShape(PdfPageBackgroundShape.BottomBand(_options.PageWidth, _options.PageHeight, global::OfficeIMO.OfficeLength.Points(height), fill, global::OfficeIMO.OfficeLength.Points(insetX), global::OfficeIMO.OfficeLength.Points(offsetY), global::OfficeIMO.OfficeLength.Points(cornerRadius), stroke, global::OfficeIMO.OfficeLength.Points(strokeWidth), fillOpacity, strokeOpacity, fillGradient));
 
     /// <summary>Adds a document-wide default left page background band using the current page size.</summary>
     internal PdfDocument BackgroundLeftBand(double width, global::OfficeIMO.OfficeColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
-        BackgroundShape(PdfPageBackgroundShape.LeftBand(_options.PageWidth.ToPoints(), _options.PageHeight.ToPoints(), width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+        BackgroundShape(PdfPageBackgroundShape.LeftBand(_options.PageWidth, _options.PageHeight, global::OfficeIMO.OfficeLength.Points(width), fill, global::OfficeIMO.OfficeLength.Points(insetY), global::OfficeIMO.OfficeLength.Points(offsetX), global::OfficeIMO.OfficeLength.Points(cornerRadius), stroke, global::OfficeIMO.OfficeLength.Points(strokeWidth), fillOpacity, strokeOpacity, fillGradient));
 
     /// <summary>Adds a document-wide default right page background band using the current page size.</summary>
     internal PdfDocument BackgroundRightBand(double width, global::OfficeIMO.OfficeColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
-        BackgroundShape(PdfPageBackgroundShape.RightBand(_options.PageWidth.ToPoints(), _options.PageHeight.ToPoints(), width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+        BackgroundShape(PdfPageBackgroundShape.RightBand(_options.PageWidth, _options.PageHeight, global::OfficeIMO.OfficeLength.Points(width), fill, global::OfficeIMO.OfficeLength.Points(insetY), global::OfficeIMO.OfficeLength.Points(offsetX), global::OfficeIMO.OfficeLength.Points(cornerRadius), stroke, global::OfficeIMO.OfficeLength.Points(strokeWidth), fillOpacity, strokeOpacity, fillGradient));
 
     /// <summary>Sets the document-wide default page orientation to portrait.</summary>
     internal PdfDocument Portrait() => Orientation(OfficePageOrientation.Portrait);

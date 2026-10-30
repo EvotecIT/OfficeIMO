@@ -156,7 +156,7 @@ namespace OfficeIMO.Word.Pdf {
             public PdfCore.PdfAlign Align { get; }
             public PdfCore.PdfImageStyle Style { get; }
 
-            public PdfCore.PdfHeaderFooterImage ToPdfImage() => new(Data, Width, Height, Align, Style);
+            public PdfCore.PdfHeaderFooterImage ToPdfImage() => new(Data, global::OfficeIMO.OfficeLength.Points(Width), global::OfficeIMO.OfficeLength.Points(Height), Align, Style);
         }
 
         private sealed class NativeHeaderFooterShape {

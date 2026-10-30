@@ -58,25 +58,25 @@ public partial class PdfDocumentVisualQualityTests {
         var options = new PdfCreateOptions {
             PageBorder = new PdfPageBorder {
                 Color = global::OfficeIMO.OfficeColor.FromRgb(1, 2, 3),
-                Width = 2,
-                Inset = 24,
+                Width = global::OfficeIMO.OfficeLength.Points(2),
+                Inset = global::OfficeIMO.OfficeLength.Points(24),
                 Opacity = 0.75,
                 DashStyle = OfficeStrokeDashStyle.Dot
             }
         };
 
         PdfPageBorder snapshot = options.PageBorder!;
-        snapshot.Width = 6;
+        snapshot.Width = global::OfficeIMO.OfficeLength.Points(6);
 
-        Assert.Equal(2, options.PageBorder!.Width);
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageBorder { Width = 0 });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageBorder { Inset = -1 });
+        Assert.Equal(2, options.PageBorder!.Width.ToPoints());
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageBorder { Width = global::OfficeIMO.OfficeLength.Points(0) });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageBorder { Inset = global::OfficeIMO.OfficeLength.Points(-1) });
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageBorder { Opacity = double.NaN });
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
                     PageBorder = new PdfPageBorder {
-                        Inset = 400
+                        Inset = global::OfficeIMO.OfficeLength.Points(400)
                     }
                 })
                 .Paragraph(p => p.Text("Invalid border frame"))
@@ -178,7 +178,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeOpacity = 0.6;
 
         byte[] bytes = PdfDocument.Create()
-            .BackgroundShape(new PdfPageBackgroundShape(shape, 36, 640))
+            .BackgroundShape(new PdfPageBackgroundShape(shape, global::OfficeIMO.OfficeLength.Points(36), global::OfficeIMO.OfficeLength.Points(640)))
             .H1("Background shape proof")
             .Paragraph(p => p.Text("Body content stays above reusable vector page decoration."))
             .ToBytes();
@@ -204,7 +204,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.ClipPath = OfficeClipPath.Empty();
 
         byte[] bytes = PdfDocument.Create()
-            .BackgroundShape(new PdfPageBackgroundShape(shape, 36, 640))
+            .BackgroundShape(new PdfPageBackgroundShape(shape, global::OfficeIMO.OfficeLength.Points(36), global::OfficeIMO.OfficeLength.Points(640)))
             .Paragraph(p => p.Text("Empty clip background proof"))
             .ToBytes();
 
@@ -276,9 +276,9 @@ public partial class PdfDocumentVisualQualityTests {
     public void BackgroundBands_CanBePageScopedWithCurrentPageSize() {
         byte[] bytes = PdfDocument.Create()
             .Page(page => {
-                page.Size(300, 400);
-                page.Margin(30, 40, 30, 40);
-                page.BackgroundTopBand(50, global::OfficeIMO.OfficeColor.FromRgb(238, 242, 255), insetX: 12, offsetY: 8);
+                page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400));
+                page.Margin(global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40));
+                page.BackgroundTopBand(global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeColor.FromRgb(238, 242, 255), insetX: global::OfficeIMO.OfficeLength.Points(12), offsetY: global::OfficeIMO.OfficeLength.Points(8));
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Scoped band"))));
             })
             .ToBytes();
@@ -290,29 +290,29 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void BackgroundShape_ValidatesAndClonesOptions() {
-        var shape = PdfPageBackgroundShape.Rectangle(12, 24, 120, 48, global::OfficeIMO.OfficeColor.FromRgb(224, 242, 254), fillGradient: OfficeLinearGradient.Horizontal(OfficeColor.LightBlue, OfficeColor.WhiteSmoke));
+        var shape = PdfPageBackgroundShape.Rectangle(global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(48), global::OfficeIMO.OfficeColor.FromRgb(224, 242, 254), fillGradient: OfficeLinearGradient.Horizontal(OfficeColor.LightBlue, OfficeColor.WhiteSmoke));
         var options = new PdfCreateOptions {
             PageBackgroundShapes = new[] { shape }
         };
 
-        shape.X = 300;
+        shape.X = global::OfficeIMO.OfficeLength.Points(300);
         PdfPageBackgroundShape snapshot = Assert.Single(options.PageBackgroundShapes!);
-        snapshot.X = 500;
+        snapshot.X = global::OfficeIMO.OfficeLength.Points(500);
         OfficeShape snapshotShape = snapshot.Shape;
         snapshotShape.FillColor = OfficeColor.Red;
         snapshot.Shape = snapshotShape;
 
         PdfPageBackgroundShape stored = Assert.Single(options.PageBackgroundShapes!);
-        Assert.Equal(12, stored.X);
+        Assert.Equal(12, stored.X.ToPoints());
         Assert.NotEqual(OfficeColor.Red, stored.Shape.FillColor);
         Assert.NotNull(stored.Shape.FillGradient);
-        Assert.Throws<ArgumentNullException>(() => new PdfPageBackgroundShape(null!, 0, 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageBackgroundShape(OfficeShape.Rectangle(10, 10), double.NaN, 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfPageBackgroundShape.Rectangle(0, 0, 10, 10, stroke: global::OfficeIMO.OfficeColor.Black, strokeWidth: 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfPageBackgroundShape.Rectangle(0, 0, 10, 10, fill: global::OfficeIMO.OfficeColor.Black, fillOpacity: 1.1));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfPageBackgroundShape.Rectangle(0, 0, 10, 10, stroke: global::OfficeIMO.OfficeColor.Black, strokeWidth: 1, strokeOpacity: double.NaN));
-        Assert.Throws<ArgumentException>(() => PdfPageBackgroundShape.TopBand(300, 400, 50, insetX: 160));
-        Assert.Throws<ArgumentException>(() => PdfPageBackgroundShape.RightBand(300, 400, 80, offsetX: 240));
+        Assert.Throws<ArgumentNullException>(() => new PdfPageBackgroundShape(null!, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0)));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfPageBackgroundShape.Rectangle(global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10), stroke: global::OfficeIMO.OfficeColor.Black, strokeWidth: global::OfficeIMO.OfficeLength.Points(0)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfPageBackgroundShape.Rectangle(global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10), fill: global::OfficeIMO.OfficeColor.Black, fillOpacity: 1.1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfPageBackgroundShape.Rectangle(global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10), stroke: global::OfficeIMO.OfficeColor.Black, strokeWidth: global::OfficeIMO.OfficeLength.Points(1), strokeOpacity: double.NaN));
+        Assert.Throws<ArgumentException>(() => PdfPageBackgroundShape.TopBand(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(50), insetX: global::OfficeIMO.OfficeLength.Points(160)));
+        Assert.Throws<ArgumentException>(() => PdfPageBackgroundShape.RightBand(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(80), offsetX: global::OfficeIMO.OfficeLength.Points(240)));
     }
 
 

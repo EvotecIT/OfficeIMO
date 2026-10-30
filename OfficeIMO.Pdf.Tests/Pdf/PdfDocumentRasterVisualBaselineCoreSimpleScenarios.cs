@@ -67,8 +67,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
-                    PaddingX = 9,
-                    PaddingY = 7
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(9),
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                 },
                 defaultColor: global::OfficeIMO.OfficeColor.FromRgb(35, 88, 65))
             .HR(thickness: 1, color: global::OfficeIMO.OfficeColor.FromRgb(32, 76, 120), spacingBefore: 8, spacingAfter: 8)
@@ -156,8 +156,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
-                    PaddingX = 9,
-                    PaddingY = 7
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(9),
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                 })
             .Table(rows)
             .ToBytes();
@@ -189,8 +189,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
-                    PaddingX = 9,
-                    PaddingY = 7
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(9),
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                 })
             .Paragraph(p => p
                 .Text("You can mix ")
@@ -246,9 +246,9 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             .Paragraph(p => p.Text("A compact visual gate for Word-like paragraph tabs, leader styles, and structured readback rhythm."))
             .HR(style: new PdfHorizontalRuleStyle {
                 Color = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
-                Thickness = 0.8,
-                SpacingBefore = 6,
-                SpacingAfter = 8
+                Thickness = global::OfficeIMO.OfficeLength.Points(0.8),
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(6),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
             })
             .Paragraph(p => p.Bold("Revenue").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right).Text("128 450"))
             .Paragraph(p => p.Text("Operating cost").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right).Text("84 210"))
@@ -269,10 +269,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
-                    PaddingX = 9,
-                    PaddingY = 7,
-                    SpacingBefore = 10,
-                    SpacingAfter = 8
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(9),
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(7),
+                    SpacingBefore = global::OfficeIMO.OfficeLength.Points(10),
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
                 })
             .Paragraph(p => p.Text("End of tabs and leaders sample."), PdfAlign.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80))
             .ToBytes();

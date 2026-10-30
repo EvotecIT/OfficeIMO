@@ -375,33 +375,33 @@ public partial class PdfDocumentVisualQualityTests {
 
         switch (blockKind) {
             case "bullet-list":
-                doc.Bullets(new[] { "ListTopMarker" }, style: new PdfListStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, ItemSpacing = 0 });
+                doc.Bullets(new[] { "ListTopMarker" }, style: new PdfListStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0) });
                 break;
             case "numbered-list":
-                doc.Numbered(new[] { "ListTopMarker" }, style: new PdfListStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, ItemSpacing = 0 });
+                doc.Numbered(new[] { "ListTopMarker" }, style: new PdfListStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0) });
                 break;
             case "panel":
-                doc.PanelParagraph(p => p.Text("PanelTopMarker"), new PdfPanelStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, PaddingX = 4, PaddingY = 4 });
+                doc.PanelParagraph(p => p.Text("PanelTopMarker"), new PdfPanelStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), PaddingX = global::OfficeIMO.OfficeLength.Points(4), PaddingY = global::OfficeIMO.OfficeLength.Points(4) });
                 break;
             case "horizontal-rule":
-                doc.HR(style: new PdfHorizontalRuleStyle { Thickness = 2, SpacingBefore = spacingBefore, SpacingAfter = 0 })
+                doc.HR(style: new PdfHorizontalRuleStyle { Thickness = global::OfficeIMO.OfficeLength.Points(2), SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
                     .Paragraph(p => p.Text("AfterFixedMarker"), style: paragraphStyle);
                 break;
             case "image":
-                doc.Image(CreateMinimalRgbPng(), 24, 12, style: new PdfImageStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
+                doc.Image(CreateMinimalRgbPng(), 24, 12, style: new PdfImageStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
                     .Paragraph(p => p.Text("AfterFixedMarker"), style: paragraphStyle);
                 break;
             case "shape":
-                doc.Shape(OfficeShape.Rectangle(24, 12), style: new PdfDrawingStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
+                doc.Shape(OfficeShape.Rectangle(24, 12), style: new PdfDrawingStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
                     .Paragraph(p => p.Text("AfterFixedMarker"), style: paragraphStyle);
                 break;
             case "drawing":
-                doc.Drawing(new OfficeDrawing(24, 12).AddShape(OfficeShape.Rectangle(24, 12), 0, 0), style: new PdfDrawingStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
+                doc.Drawing(new OfficeDrawing(24, 12).AddShape(OfficeShape.Rectangle(24, 12), 0, 0), style: new PdfDrawingStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
                     .Paragraph(p => p.Text("AfterFixedMarker"), style: paragraphStyle);
                 break;
             case "row":
                 doc.Compose(document => document.Page(page => page.Content(content => content.Row(row => row
-                    .Style(new PdfRowStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
+                    .Style(new PdfRowStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
                     .PercentColumn(100, column => column.Paragraph(p => p.Text("RowTopMarker"), style: paragraphStyle))))));
                 break;
             default:
@@ -424,28 +424,28 @@ public partial class PdfDocumentVisualQualityTests {
 
         switch (blockKind) {
             case "bullet-list":
-                column.Bullets(new[] { "ColumnListMarker" }, style: new PdfListStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, ItemSpacing = 0 });
+                column.Bullets(new[] { "ColumnListMarker" }, style: new PdfListStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0) });
                 break;
             case "numbered-list":
-                column.Numbered(new[] { "ColumnListMarker" }, style: new PdfListStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, ItemSpacing = 0 });
+                column.Numbered(new[] { "ColumnListMarker" }, style: new PdfListStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0) });
                 break;
             case "panel":
-                column.PanelParagraph(p => p.Text("ColumnPanelMarker"), new PdfPanelStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, PaddingX = 4, PaddingY = 4 });
+                column.PanelParagraph(p => p.Text("ColumnPanelMarker"), new PdfPanelStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), PaddingX = global::OfficeIMO.OfficeLength.Points(4), PaddingY = global::OfficeIMO.OfficeLength.Points(4) });
                 break;
             case "horizontal-rule":
-                column.HR(style: new PdfHorizontalRuleStyle { Thickness = 2, SpacingBefore = spacingBefore, SpacingAfter = 0 })
+                column.HR(style: new PdfHorizontalRuleStyle { Thickness = global::OfficeIMO.OfficeLength.Points(2), SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
                     .Paragraph(p => p.Text("ColumnAfterFixedMarker"), style: paragraphStyle);
                 break;
             case "image":
-                column.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), style: new PdfImageStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
+                column.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), style: new PdfImageStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
                     .Paragraph(p => p.Text("ColumnAfterFixedMarker"), style: paragraphStyle);
                 break;
             case "shape":
-                column.Shape(OfficeShape.Rectangle(24, 12), style: new PdfDrawingStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
+                column.Shape(OfficeShape.Rectangle(24, 12), style: new PdfDrawingStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
                     .Paragraph(p => p.Text("ColumnAfterFixedMarker"), style: paragraphStyle);
                 break;
             case "drawing":
-                column.Drawing(new OfficeDrawing(24, 12).AddShape(OfficeShape.Rectangle(24, 12), 0, 0), style: new PdfDrawingStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
+                column.Drawing(new OfficeDrawing(24, 12).AddShape(OfficeShape.Rectangle(24, 12), 0, 0), style: new PdfDrawingStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
                     .Paragraph(p => p.Text("ColumnAfterFixedMarker"), style: paragraphStyle);
                 break;
             default:

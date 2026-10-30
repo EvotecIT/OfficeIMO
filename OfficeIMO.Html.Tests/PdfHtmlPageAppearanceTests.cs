@@ -32,7 +32,7 @@ public sealed class PdfHtmlPageAppearanceTests {
     [Fact]
     public void OpenedPdfHonorsImageEmbeddingChoicesAndLimits() {
         var pdf = PdfDocument.Load(PdfDocument.Create()
-            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(2, 2), 40, 50, 60, 30)).ToBytes());
+            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(2, 2), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30))).ToBytes());
         var options = PdfToHtmlOptions.CreatePositionedReviewProfile();
         string embedded = pdf.ToHtml(options);
         Assert.Contains("pdf-page-appearance", embedded);

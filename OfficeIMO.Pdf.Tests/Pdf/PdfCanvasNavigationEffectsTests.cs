@@ -9,7 +9,7 @@ public sealed class PdfCanvasNavigationEffectsTests {
     [InlineData(1D)]
     [InlineData(0.5D)]
     public void NamedDestinationsAndOutlinesFollowNestedCanvasEffects(double opacity) {
-        byte[] bytes = PdfDocument.Create().Page(page => page.Size(200D, 200D).Margin(0D)
+        byte[] bytes = PdfDocument.Create().Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200D), global::OfficeIMO.OfficeLength.Points(200D)).Margin(global::OfficeIMO.OfficeLength.Points(0D))
             .Canvas(canvas => canvas.Effect(OfficeTransform.Translate(5D, 7D), opacity,
                 outer => outer.Effect(OfficeTransform.Scale(2D, 2D), 1D,
                     inner => inner.NamedDestination("target", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D))
@@ -36,7 +36,7 @@ public sealed class PdfCanvasNavigationEffectsTests {
     [InlineData(0.5D, 0D, 1D)]
     [InlineData(0.5D, 1D, 0D)]
     public void SingularEffectsOmitInvisibleLinksAndPreserveNavigationTargets(double opacity, double xScale, double yScale) {
-        byte[] bytes = PdfDocument.Create().Page(page => page.Size(200D, 200D).Margin(0D)
+        byte[] bytes = PdfDocument.Create().Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200D), global::OfficeIMO.OfficeLength.Points(200D)).Margin(global::OfficeIMO.OfficeLength.Points(0D))
             .Canvas(canvas => canvas.LinkToNamedDestination("target", global::OfficeIMO.OfficeLength.Points(5D), global::OfficeIMO.OfficeLength.Points(5D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D))
                 .TextAnnotation("Visible", global::OfficeIMO.OfficeLength.Points(5D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D))
                 .Effect(OfficeTransform.Scale(xScale, yScale), opacity, content => content

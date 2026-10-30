@@ -26,7 +26,7 @@ public sealed class PdfCanvasScaledFieldTests {
     [InlineData(0.5)]
     [InlineData(2.0)]
     public void NestedUniformScalePreservesAuthoredAppearanceAndScaledEditingStyle(double scale) {
-        var style = new PdfFormFieldStyle { BorderWidth = 2D, CornerRadius = 3D };
+        var style = new PdfFormFieldStyle { BorderWidth = global::OfficeIMO.OfficeLength.Points(2D), CornerRadius = global::OfficeIMO.OfficeLength.Points(3D) };
         byte[] pdf = PdfDocument.Create().Canvas(canvas => canvas.Effect(
             OfficeTransform.Scale(scale, scale), 1D, outer => outer.Effect(
                 OfficeTransform.Scale(scale, scale), 1D,
@@ -36,8 +36,8 @@ public sealed class PdfCanvasScaledFieldTests {
         Assert.Contains(" " + totalFontSize + " Tf", field.DefaultAppearance);
         string source = Encoding.ASCII.GetString(pdf);
         Assert.Contains("/BBox [0 0 80 20]", source);
-        Assert.Equal(2D, style.BorderWidth);
-        Assert.Equal(3D, style.CornerRadius);
+        Assert.Equal(2D, style.BorderWidth.ToPoints());
+        Assert.Equal(3D, style.CornerRadius.ToPoints());
         var widget = Assert.Single(field.Widgets);
         Assert.Equal(80D * scale * scale, widget.X2 - widget.X1, 4);
     }

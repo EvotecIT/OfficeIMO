@@ -99,11 +99,11 @@ public sealed class MarkdownPdfFigureStyle {
             PdfPanelStyle = new PdfCore.PdfPanelStyle {
                 Background = background,
                 BorderColor = border,
-                BorderWidth = borderWidth,
-                PaddingX = 10,
-                PaddingY = 8,
-                SpacingBefore = 5,
-                SpacingAfter = 10,
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(borderWidth),
+                PaddingX = global::OfficeIMO.OfficeLength.Points(10),
+                PaddingY = global::OfficeIMO.OfficeLength.Points(8),
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(5),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(10),
                 KeepTogether = true
             },
             ImageStyle = CreateDefaultImageStyle(),
@@ -116,16 +116,16 @@ public sealed class MarkdownPdfFigureStyle {
 
     private static PdfCore.PdfImageStyle CreateDefaultImageStyle() => new PdfCore.PdfImageStyle {
         Align = PdfCore.PdfAlign.Center,
-        SpacingBefore = 2,
-        SpacingAfter = 4,
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(2),
+        SpacingAfter = global::OfficeIMO.OfficeLength.Points(4),
         ScaleDownToFit = true,
         KeepWithNext = true
     };
 
     private static PdfCore.PdfDrawingStyle CreateDefaultDrawingStyle() => new PdfCore.PdfDrawingStyle {
         Align = PdfCore.PdfAlign.Center,
-        SpacingBefore = 2,
-        SpacingAfter = 4,
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(2),
+        SpacingAfter = global::OfficeIMO.OfficeLength.Points(4),
         KeepWithNext = true
     };
 

@@ -109,13 +109,13 @@ public class PowerPointPdfTableImportTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 PageBackgroundShapes = new[] {
                     PdfCore.PdfPageBackgroundShape.Rectangle(
-                        40,
-                        210,
-                        120,
-                        36,
+                        global::OfficeIMO.OfficeLength.Points(40),
+                        global::OfficeIMO.OfficeLength.Points(210),
+                        global::OfficeIMO.OfficeLength.Points(120),
+                        global::OfficeIMO.OfficeLength.Points(36),
                         fill: global::OfficeIMO.OfficeColor.FromRgb(219, 234, 254),
                         stroke: global::OfficeIMO.OfficeColor.FromRgb(37, 99, 235),
-                        strokeWidth: 1)
+                        strokeWidth: global::OfficeIMO.OfficeLength.Points(1))
                 }
             })
             .Paragraph(p => p.Text("Editable rectangle"))
@@ -144,13 +144,13 @@ public class PowerPointPdfTableImportTests {
                 PageHeight = global::OfficeIMO.OfficeLength.Points(300),
                 PageBackgroundShapes = new[] {
                     PdfCore.PdfPageBackgroundShape.Rectangle(
-                        40,
-                        210,
-                        120,
-                        36,
+                        global::OfficeIMO.OfficeLength.Points(40),
+                        global::OfficeIMO.OfficeLength.Points(210),
+                        global::OfficeIMO.OfficeLength.Points(120),
+                        global::OfficeIMO.OfficeLength.Points(36),
                         fill: global::OfficeIMO.OfficeColor.FromRgb(219, 234, 254),
                         stroke: global::OfficeIMO.OfficeColor.FromRgb(37, 99, 235),
-                        strokeWidth: 1)
+                        strokeWidth: global::OfficeIMO.OfficeLength.Points(1))
                 }
             })
             .Paragraph(paragraph => paragraph.Text("Logical-only vector"))

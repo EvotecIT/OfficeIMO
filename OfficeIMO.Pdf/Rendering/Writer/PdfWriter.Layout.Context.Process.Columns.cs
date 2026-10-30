@@ -12,7 +12,7 @@ internal static partial class PdfWriter {
             if (y - currentOpts.MarginBottom.ToPoints() <= 0.5D) NewPage();
             PdfMultiColumnOptions options = columns.Options;
             double[] gaps = Enumerable.Range(0, options.ColumnCount - 1)
-                .Select(index => options.ColumnDefinitions.Count > 0 ? options.ColumnDefinitions[index].GapAfter ?? options.Gap : options.Gap).ToArray();
+                .Select(index => options.ColumnDefinitions.Count > 0 ? (options.ColumnDefinitions[index].GapAfter?.ToPoints()) ?? options.Gap.ToPoints() : options.Gap.ToPoints()).ToArray();
             double columnArea = width - gaps.Sum();
             if (columnArea <= 0D) throw new ArgumentException("Multi-column gaps must leave positive column widths.");
             var sizing = new RowBlock();
@@ -27,7 +27,7 @@ internal static partial class PdfWriter {
                 ProcessBlocks(columns.Blocks, columns);
                 // Terminal spacing follows the last fragment without changing the content's balanced breakpoints.
                 if (y >= scope.Top - 0.001D) y = scope.LastOccupiedColumnBottom;
-                y -= Math.Min(options.FinalColumnSpacingAfter, Math.Max(0D, y - scope.ParentOptions.MarginBottom.ToPoints()));
+                y -= Math.Min(options.FinalColumnSpacingAfter.ToPoints(), Math.Max(0D, y - scope.ParentOptions.MarginBottom.ToPoints()));
                 FinishColumnFrame(scope);
                 DrawColumnFlowSeparators(scope);
             } finally {
@@ -106,11 +106,11 @@ internal static partial class PdfWriter {
         }
 
         private void DrawColumnFlowSeparators(ColumnFlowScope scope) {
-            if (scope.Options.SeparatorColor is not { } color || scope.Options.SeparatorWidth <= 0D || scope.Top - scope.LowestY <= 0.001D) return;
+            if (scope.Options.SeparatorColor is not { } color || scope.Options.SeparatorWidth.ToPoints() <= 0D || scope.Top - scope.LowestY <= 0.001D) return;
             double x = scope.ParentOptions.MarginLeft.ToPoints();
             for (int index = 0; index < scope.Widths.Length - 1; index++) {
                 x += scope.Widths[index];
-                DrawVLine(sb, color, scope.Options.SeparatorWidth, x + scope.Gaps[index] / 2D, scope.Top, scope.LowestY, emitGeneratedStructure);
+                DrawVLine(sb, color, scope.Options.SeparatorWidth.ToPoints(), x + scope.Gaps[index] / 2D, scope.Top, scope.LowestY, emitGeneratedStructure);
                 x += scope.Gaps[index];
             }
             pageDirty = true;

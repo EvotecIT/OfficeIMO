@@ -1227,20 +1227,20 @@ Markdown should stay semantic while the visual theme controls the page treatment
             BackgroundColor = global::OfficeIMO.OfficeColor.White,
             PageBorder = new PdfCore.PdfPageBorder {
                 Color = global::OfficeIMO.OfficeColor.FromRgb(15, 118, 110),
-                Width = 0.8,
-                Inset = 28,
+                Width = global::OfficeIMO.OfficeLength.Points(0.8),
+                Inset = global::OfficeIMO.OfficeLength.Points(28),
                 Opacity = 0.5
             }
         }.AddBackgroundShape(PdfCore.PdfPageBackgroundShape.Rectangle(
-            42,
-            700,
-            128,
-            32,
+            global::OfficeIMO.OfficeLength.Points(42),
+            global::OfficeIMO.OfficeLength.Points(700),
+            global::OfficeIMO.OfficeLength.Points(128),
+            global::OfficeIMO.OfficeLength.Points(32),
             fill: global::OfficeIMO.OfficeColor.FromRgb(204, 251, 241),
             fillOpacity: 0.44));
 
         theme.PageDecoration = decoration;
-        decoration.PageBorder = new PdfCore.PdfPageBorder { Inset = 80 };
+        decoration.PageBorder = new PdfCore.PdfPageBorder { Inset = global::OfficeIMO.OfficeLength.Points(80) };
 
         byte[] pdf = (OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToPdf(new MarkdownPdfExportOptions {
             Style = theme,
@@ -1295,16 +1295,16 @@ Explicit low-level PDF options should win over theme page decoration.
                 BackgroundColor = global::OfficeIMO.OfficeColor.White,
                 PageBorder = new PdfCore.PdfPageBorder {
                     Color = global::OfficeIMO.OfficeColor.Black,
-                    Width = 1,
-                    Inset = 50,
+                    Width = global::OfficeIMO.OfficeLength.Points(1),
+                    Inset = global::OfficeIMO.OfficeLength.Points(50),
                     Opacity = 1
                 },
                 PageBackgroundShapes = new[] {
                     PdfCore.PdfPageBackgroundShape.Rectangle(
-                        12,
-                        12,
-                        30,
-                        30,
+                        global::OfficeIMO.OfficeLength.Points(12),
+                        global::OfficeIMO.OfficeLength.Points(12),
+                        global::OfficeIMO.OfficeLength.Points(30),
+                        global::OfficeIMO.OfficeLength.Points(30),
                         fill: global::OfficeIMO.OfficeColor.FromRgb(220, 252, 231))
                 }
             }

@@ -77,45 +77,45 @@ namespace OfficeIMO.Word.Pdf {
                 PdfCore.PdfPanelStyle? collapsedStyle = style;
                 if (style != null) {
                     collapsedStyle = style.Clone();
-                    collapsedStyle.SpacingBefore = CollapseSpacingBefore(style.SpacingBefore);
+                    collapsedStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(CollapseSpacingBefore(style.SpacingBefore.ToPoints()));
                 }
 
                 _inner.Panel(build, collapsedStyle);
-                _pendingSpacingAfter = style?.SpacingAfter;
+                _pendingSpacingAfter = (style?.SpacingAfter.ToPoints());
             }
 
             public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) {
                 PdfCore.PdfPanelStyle? collapsedStyle = style;
                 if (style != null) {
                     collapsedStyle = style.Clone();
-                    collapsedStyle.SpacingBefore = CollapseSpacingBefore(style.SpacingBefore);
+                    collapsedStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(CollapseSpacingBefore(style.SpacingBefore.ToPoints()));
                 }
 
                 _inner.PanelParagraph(build, collapsedStyle, align, defaultColor, paragraphStyle);
-                _pendingSpacingAfter = paragraphStyle?.SpacingAfter?.ToPoints() ?? style?.SpacingAfter;
+                _pendingSpacingAfter = paragraphStyle?.SpacingAfter?.ToPoints() ?? (style?.SpacingAfter.ToPoints());
             }
 
             public void Heading(int level, string text, Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfHeadingStyle? style) {
                 PdfCore.PdfHeadingStyle? collapsedStyle = style;
                 if (style != null) {
                     collapsedStyle = style.Clone();
-                    collapsedStyle.SpacingBefore = CollapseSpacingBefore(style.SpacingBefore);
+                    collapsedStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(CollapseSpacingBefore(style.SpacingBefore.ToPoints()));
                 }
 
                 _inner.Heading(level, text, build, align, color, collapsedStyle);
-                _pendingSpacingAfter = style?.SpacingAfter;
+                _pendingSpacingAfter = (style?.SpacingAfter?.ToPoints());
             }
 
             public void RichNumbered(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, global::OfficeIMO.OfficeColor? color, int startNumber, PdfCore.PdfListStyle? style) {
                 PdfCore.PdfListStyle? collapsedStyle = CollapseListStyle(style);
                 _inner.RichNumbered(items, align, color, startNumber, collapsedStyle);
-                _pendingSpacingAfter = style?.SpacingAfter;
+                _pendingSpacingAfter = ((style?.SpacingAfter)?.ToPoints());
             }
 
             public void RichBullets(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfListStyle? style) {
                 PdfCore.PdfListStyle? collapsedStyle = CollapseListStyle(style);
                 _inner.RichBullets(items, align, color, collapsedStyle);
-                _pendingSpacingAfter = style?.SpacingAfter;
+                _pendingSpacingAfter = ((style?.SpacingAfter)?.ToPoints());
             }
 
             public void TextField(string name, double width, double height, string value, PdfCore.PdfAlign align, double fontSize, double spacingBefore, double spacingAfter, PdfCore.PdfFormFieldStyle? style = null) {
@@ -164,7 +164,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 PdfCore.PdfListStyle collapsedStyle = style.Clone();
-                collapsedStyle.SpacingBefore = CollapseSpacingBefore(style.SpacingBefore);
+                collapsedStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(CollapseSpacingBefore(style.SpacingBefore.ToPoints()));
                 return collapsedStyle;
             }
 

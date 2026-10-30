@@ -10,7 +10,7 @@ public sealed class PdfTableCellTextSizingTests {
     [InlineData(true)]
     public void ShrinkingReservesFixedInlineWidthInFlowAndCanvasTables(bool canvas) {
         PdfTableCell cell = new PdfTableCell(new[] {
-            PdfTextRun.Inline(new PdfInlineBox(30, 10, background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2D, .5D, .8D))),
+            PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(10), background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2D, .5D, .8D))),
             PdfTextRun.Normal("ABCDE")
         }).WithNoWrap().WithShrinkTextToFit();
         PdfTableStyle style = new PdfTableStyle {

@@ -27,10 +27,10 @@ namespace OfficeIMO.Examples.Pdf {
                 .PanelParagraph(p => p.Text(longText), new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.96, 0.96, 0.98),
                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 210, 210),
-                    BorderWidth = 0.5,
-                    PaddingX = 8,
-                    PaddingY = 6,
-                    MaxWidth = 380,
+                    BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(8),
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(6),
+                    MaxWidth = global::OfficeIMO.OfficeLength.Points(380),
                     Align = PdfAlign.Center
                 })))
                 .Save(path2);
@@ -39,8 +39,8 @@ namespace OfficeIMO.Examples.Pdf {
             PdfDocument.Create(d => {
                 d.Page(p => {
                     p.Size(PdfPageSizes.Letter);
-                    p.Margin(36);
-                    p.DefaultTextStyle(s => s.FontSize(11));
+                    p.Margin(global::OfficeIMO.OfficeLength.Points(36));
+                    p.DefaultTextStyle(s => s.FontSize(global::OfficeIMO.OfficeLength.Points(11)));
                     p.Content(c => c
                         .Column(col => col.Item().H1("Lorem Ipsum — Two Columns"))
                         .Row(row => {

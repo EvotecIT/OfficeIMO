@@ -68,8 +68,8 @@ public sealed class PdfMutationObjectMappingTests {
 
     private static byte[] CreateSource() {
         byte[] bytes = PdfDocument.Create(compose => {
-            compose.Page(page => page.Size(300, 400).Canvas(canvas => canvas.TextAnnotation("First comment", global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(50))));
-            compose.Page(page => page.Size(300, 400).Canvas(canvas => canvas.TextAnnotation("Second comment", global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(50))));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)).Canvas(canvas => canvas.TextAnnotation("First comment", global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(50))));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)).Canvas(canvas => canvas.TextAnnotation("Second comment", global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(50))));
         }).ToBytes();
         for (int page = 1; page <= 2; page++) {
             var document = PdfDocument.Load(bytes);

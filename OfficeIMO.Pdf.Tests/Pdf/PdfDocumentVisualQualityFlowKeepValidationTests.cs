@@ -93,7 +93,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create(options)
             .PanelParagraph(p => p.Text(longText), new PdfPanelStyle {
                 KeepTogether = false,
-                PaddingY = 8
+                PaddingY = global::OfficeIMO.OfficeLength.Points(8)
             })
             .ToBytes();
 

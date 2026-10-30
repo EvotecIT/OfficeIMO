@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfTextWatermark {
     private string _text = string.Empty;
-    private double _fontSize = 54D;
+    private global::OfficeIMO.OfficeLength _fontSize = global::OfficeIMO.OfficeLength.Points(54D);
     private PdfStandardFont _font = PdfStandardFont.Helvetica;
     private double _opacity = 0.12D;
     private double _rotationAngle = -35D;
@@ -34,10 +34,10 @@ public sealed class PdfTextWatermark {
     }
 
     /// <summary>Watermark font size in points.</summary>
-    public double FontSize {
+    public global::OfficeIMO.OfficeLength FontSize {
         get => _fontSize;
         set {
-            Guard.Positive(value, nameof(FontSize));
+            Guard.Positive(value.ToPoints(), nameof(FontSize));
             _fontSize = value;
         }
     }

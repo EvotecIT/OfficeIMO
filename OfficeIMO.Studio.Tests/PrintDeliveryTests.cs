@@ -242,7 +242,7 @@ public sealed class PrintDeliveryTests {
             return Task.FromResult(PdfDocument.Create(document => {
                 for (int index = 1; index <= 3; index++) {
                     int number = index;
-                    document.Page(page => page.Size(200, 300).Content(content =>
+                    document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)).Content(content =>
                         content.Item(item => item.Paragraph(paragraph => paragraph.Text("Reviewed page " + number)))));
                 }
             }));

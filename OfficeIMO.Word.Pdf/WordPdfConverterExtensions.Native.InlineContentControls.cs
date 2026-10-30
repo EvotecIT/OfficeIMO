@@ -144,12 +144,12 @@ public static partial class WordPdfConverterExtensions {
         private PdfCore.PdfInlineFormField CreateField(W.SdtRun control, double fontSize, global::OfficeIMO.OfficeColor? color,
             PdfCore.PdfTextRun? checkedAppearanceRun = null, PdfCore.PdfTextRun? uncheckedAppearanceRun = null) {
             var style = new PdfCore.PdfFormFieldStyle {
-                BorderWidth = 0D, BorderColor = null, BackgroundColor = null,
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(0D), BorderColor = null, BackgroundColor = null,
                 TextColor = color ?? global::OfficeIMO.OfficeColor.Black
             };
             string prefix = _tableCell ? "WordTable" : "Word";
             if (IsNativeCheckBoxControl(control)) {
-                style.BorderWidth = .5D;
+                style.BorderWidth = global::OfficeIMO.OfficeLength.Points(.5D);
                 style.BorderColor = global::OfficeIMO.OfficeColor.Black;
                 return new PdfCore.PdfInlineFormField(PdfCore.PdfCanvasFormFieldItem.CheckBox(
                     GetNativeCheckBoxFieldName(control, _fields.Count, prefix + "CheckBox"),

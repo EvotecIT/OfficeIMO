@@ -16,7 +16,7 @@ namespace OfficeIMO.Workflows.Tests {
                 string expected = Path.Combine(root, "expected.pdf");
                 string actual = Path.Combine(root, "actual.pdf");
                 string output = Path.Combine(root, "report.html");
-                byte[] readable = PdfDocument.Create(document => document.Page(page => page.Size(150, 180))).ToBytes();
+                byte[] readable = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(180)))).ToBytes();
                 byte[] unreadable = encrypted
                     ? PdfDocument.Load(readable).Security.Encrypt(new("reader") { OwnerPassword = "owner" }).Pdf
                     : Encoding.ASCII.GetBytes("%PDF-1.7\nbroken");

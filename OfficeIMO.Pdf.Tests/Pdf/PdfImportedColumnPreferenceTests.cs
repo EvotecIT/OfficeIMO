@@ -153,7 +153,7 @@ public class PdfImportedColumnPreferenceTests {
             minimumContentWidth = 60D;
             leftCell = new PdfTableCell(new[] {
                 PdfTextRun.Normal("A"),
-                PdfTextRun.Inline(new PdfInlineBox(minimumContentWidth, 8D, background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2D, .5D, .8D))),
+                PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(minimumContentWidth), global::OfficeIMO.OfficeLength.Points(8D), background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2D, .5D, .8D))),
                 PdfTextRun.Normal("B")
             });
         } else {

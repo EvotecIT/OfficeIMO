@@ -80,7 +80,7 @@ public sealed class PdfInlineRuleFontResourceTests {
     }
 
     private static PdfTextRun Rule(PdfTextRun style, double? maximumWidth = 30D) =>
-        PdfTextRun.Inline(new PdfInlineRule(.5D, global::OfficeIMO.OfficeColor.Black, maximumWidth: maximumWidth), style);
+        PdfTextRun.Inline(new PdfInlineRule(global::OfficeIMO.OfficeLength.Points(.5D), global::OfficeIMO.OfficeColor.Black, maximumWidth: ((maximumWidth).HasValue ? global::OfficeIMO.OfficeLength.Points((maximumWidth).Value) : (global::OfficeIMO.OfficeLength?)null)), style);
 
     private static PdfCreateOptions Options() {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, ' ', '.', 'A', 'B');

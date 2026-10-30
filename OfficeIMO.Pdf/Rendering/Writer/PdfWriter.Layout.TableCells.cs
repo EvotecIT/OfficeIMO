@@ -559,15 +559,15 @@ internal static partial class PdfWriter {
 
     private static (double Width, double Height) ResolveTableCellImageBox(PdfTableCellImage image, double innerWidth) {
         if (image.Style?.ScaleDownToFit != true || innerWidth <= 0D) {
-            return (image.Width, image.Height);
+            return (image.Width.ToPoints(), image.Height.ToPoints());
         }
 
-        double scale = Math.Min(1D, innerWidth / image.Width);
+        double scale = Math.Min(1D, innerWidth / image.Width.ToPoints());
         if (scale <= 0D || double.IsNaN(scale) || double.IsInfinity(scale)) {
-            return (image.Width, image.Height);
+            return (image.Width.ToPoints(), image.Height.ToPoints());
         }
 
-        return (image.Width * scale, image.Height * scale);
+        return (image.Width.ToPoints() * scale, image.Height.ToPoints() * scale);
     }
 
     private static double MeasureTableCellObjectStackHeight(TableCellLayout cell, double innerWidth) {
@@ -591,7 +591,7 @@ internal static partial class PdfWriter {
                 height += TableCellCheckBoxGap;
             }
 
-            height += cell.CheckBoxes[index].Size;
+            height += cell.CheckBoxes[index].Size.ToPoints();
             objectCount++;
         }
 
@@ -624,7 +624,7 @@ internal static partial class PdfWriter {
         }
 
         if (CanRenderTableCellCheckBoxInline(cell, layout, startLine, lineCount)) {
-            return System.Math.Max(textHeight, cell.CheckBoxes[0].Size);
+            return System.Math.Max(textHeight, cell.CheckBoxes[0].Size.ToPoints());
         }
 
         if (string.IsNullOrEmpty(cell.Text)) {
@@ -638,11 +638,11 @@ internal static partial class PdfWriter {
         double width = 0D;
         for (int index = 0; index < cell.Images.Count; index++) {
             PdfTableCellImage image = cell.Images[index];
-            width = System.Math.Max(width, image.Style?.ScaleDownToFit == true ? 1D : image.Width);
+            width = System.Math.Max(width, image.Style?.ScaleDownToFit == true ? 1D : image.Width.ToPoints());
         }
 
         for (int index = 0; index < cell.CheckBoxes.Count; index++) {
-            width = System.Math.Max(width, cell.CheckBoxes[index].Size);
+            width = System.Math.Max(width, cell.CheckBoxes[index].Size.ToPoints());
         }
 
         for (int index = 0; index < cell.FormFields.Count; index++) {

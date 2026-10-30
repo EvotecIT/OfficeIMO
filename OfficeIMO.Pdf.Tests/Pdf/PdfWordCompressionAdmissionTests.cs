@@ -143,7 +143,7 @@ public sealed class PdfWordCompressionAdmissionTests {
                 PdfAlign.Justify, style: new PdfParagraphStyle { UseWordJustificationSpacing = true,
                     TextWhitespaceMode = PdfTextWhitespaceMode.Preserve, LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18D)) }),
             new PdfMultiColumnOptions { BalanceLastPage = false, ColumnDefinitions = new[] {
-                new PdfFlowColumn(PdfColumnWidth.Fixed(narrow), 20D), new PdfFlowColumn(PdfColumnWidth.Fixed(wide)) } });
+                new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(narrow)), global::OfficeIMO.OfficeLength.Points(20D)), new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(wide))) } });
         byte[] bytes = document.ToBytes();
         RetainEvidence(bytes, "different-width-columns");
         using var pdf = PdfPigDocument.Open(bytes);

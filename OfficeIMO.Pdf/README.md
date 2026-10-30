@@ -162,10 +162,10 @@ Headers and footers can contain the same bounded paragraph, table, image and dra
 var document = PdfDocument.Create(document => document.Page(page => {
     page.Header(header => header.Content(content => content
         .Table(new[] { new[] { "Project", "Status" }, new[] { "Migration", "Active" } }),
-        distanceFromEdge: 18, bodyGap: 6));
+        distanceFromEdge: global::OfficeIMO.OfficeLength.Points(18), bodyGap: global::OfficeIMO.OfficeLength.Points(6)));
     page.Footer(footer => footer.Content(context => content => content
         .Paragraph(paragraph => paragraph.Text($"Page {context.PageNumber} of {context.DocumentPages}")),
-        distanceFromEdge: 18));
+        distanceFromEdge: global::OfficeIMO.OfficeLength.Points(18)));
     page.Content(content => content.Paragraph(paragraph => paragraph.Text("Report content")));
 }));
 document.Save("report.pdf");
@@ -218,13 +218,13 @@ Use `PdfInlineRule` for a horizontal band that fills the space remaining on a ri
 ```csharp
 document.Content.Paragraph(paragraph => paragraph
     .Text("Signature: ")
-    .Inline(new PdfInlineRule(height: 0.5, color: OfficeColor.Black,
-        baselineOffset: -2)));
+    .Inline(new PdfInlineRule(height: global::OfficeIMO.OfficeLength.Points(0.5), color: OfficeColor.Black,
+        baselineOffset: global::OfficeIMO.OfficeLength.Points(-2))));
 ```
 
 Height, `MaximumWidth` and `BaselineOffset` are in points. The baseline offset positions the bottom of the band relative to the text baseline; a negative value places it below that baseline. A null `MaximumWidth` fills the remaining line, while a positive value caps the width. Each layout resolves the width against its actual paragraph, table-cell or nested frame. The rule adds no intrinsic width during automatic table sizing, and text following a rule wraps normally if the rule consumes the rest of the line. A frame with no remaining width paints no band.
 
-Rules can also be composed inside footnote separator callbacks. For example, `new PdfInlineRule(0.5, OfficeColor.Black, maximumWidth: 144)` draws a band up to two inches wide without extending beyond its line frame.
+Rules can also be composed inside footnote separator callbacks. For example, `new PdfInlineRule(OfficeLength.Points(0.5), OfficeColor.Black, maximumWidth: OfficeLength.Points(144))` draws a band up to two inches wide without extending beyond its line frame.
 
 ## Literal text to PDF
 
@@ -431,8 +431,8 @@ PdfDocument.Create(document => document
     .Content(content => content
         .H1("Work items")
         .Row(row => row
-            .FixedColumn(48, cell => cell.Text("ID"))
-            .AutoColumn(cell => cell.Text("Owner"), maximum: 100)
+            .FixedColumn(global::OfficeIMO.OfficeLength.Points(48), cell => cell.Text("ID"))
+            .AutoColumn(cell => cell.Text("Owner"), maximum: global::OfficeIMO.OfficeLength.Points(100))
             .RelativeColumn(cell => cell.Text("Description")))));
 ```
 
@@ -448,15 +448,15 @@ PdfDocument.Create(document => document
         .Semantic(PdfSemanticRole.Article)
         .Background(OfficeColor.FromRgb(248, 250, 252))
         .Border(OfficeColor.FromRgb(148, 163, 184))
-        .Padding(vertical: 10, horizontal: 12)
-        .MaxWidth(420)
+        .Padding(vertical: global::OfficeIMO.OfficeLength.Points(10), horizontal: global::OfficeIMO.OfficeLength.Points(12))
+        .MaxWidth(global::OfficeIMO.OfficeLength.Points(420))
         .Align(PdfAlign.Center)
         .KeepTogether()
         .Content(article => article
             .H1("Accessible report")
             .Text("One composition path from API to tagged output.")
             .Row(row => row
-                .FixedColumn(64, cell => cell.Text("ID"))
+                .FixedColumn(global::OfficeIMO.OfficeLength.Points(64), cell => cell.Text("ID"))
                 .RelativeColumn(cell => cell.Text("Description")))))));
 ```
 
@@ -597,9 +597,9 @@ using var document = PdfDocument.Create();
 document.Content.Panel(panel => panel.Paragraph(p => p.Text("Content in a continuous panel.")),
         new PdfPanelStyle {
             RepeatFragmentDecoration = false,
-            PaddingY = 4,
-            LeftBorder = new PdfPanelBorder { Color = OfficeColor.Black, Offset = 2 },
-            RightBorder = new PdfPanelBorder { Color = OfficeColor.Black, Offset = 2 }
+            PaddingY = global::OfficeIMO.OfficeLength.Points(4),
+            LeftBorder = new PdfPanelBorder { Color = OfficeColor.Black, Offset = global::OfficeIMO.OfficeLength.Points(2) },
+            RightBorder = new PdfPanelBorder { Color = OfficeColor.Black, Offset = global::OfficeIMO.OfficeLength.Points(2) }
         });
 ```
 When columns start partway down a page, kept paragraphs, lists, panels and static
@@ -1156,8 +1156,8 @@ Use `PdfTableCell.WithViewport` when a cell is represented by a fragment of a la
 ```csharp
 var lowerHalf = PdfTableCell.TextCell("Bottom aligned")
     .WithViewport(new PdfTableCellViewport(
-        contentWidth: 100, contentHeight: 48,
-        width: 100, height: 24, offsetY: 24));
+        contentWidth: global::OfficeIMO.OfficeLength.Points(100), contentHeight: global::OfficeIMO.OfficeLength.Points(48),
+        width: global::OfficeIMO.OfficeLength.Points(100), height: global::OfficeIMO.OfficeLength.Points(24), offsetY: global::OfficeIMO.OfficeLength.Points(24)));
 
 var fragmentStyle = PdfTableStyles.Minimal();
 fragmentStyle.HeaderRowCount = 0;
@@ -1307,7 +1307,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
             .Element(element => element
                 .Background(OfficeColor.FromRgb(248, 250, 252))
                 .Border(OfficeColor.FromRgb(148, 163, 184))
-                .Padding(10)
+                .Padding(global::OfficeIMO.OfficeLength.Points(10))
                 .KeepTogether()
                 .Content(summary => summary
                     .Paragraph(p => p.Text("A styled, keep-together summary.")))))
@@ -1316,7 +1316,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
                 columns.Paragraph(p => p.Text("First column"));
                 columns.ColumnBreak();
                 columns.Paragraph(p => p.Text("Second column"));
-            }, new PdfMultiColumnOptions { ColumnCount = 2, Gap = 18 }))), options)
+            }, new PdfMultiColumnOptions { ColumnCount = 2, Gap = global::OfficeIMO.OfficeLength.Points(18) }))), options)
     .Save("navigable-report.pdf");
 
 ```
@@ -1336,9 +1336,9 @@ document.Content.Columns(content =>
     content.Paragraph(paragraph => paragraph.Text("Text flows through each column in order.")),
     new PdfMultiColumnOptions {
         BalanceLastPage = false,
-        Gap = 18,
+        Gap = global::OfficeIMO.OfficeLength.Points(18),
         ColumnDefinitions = new[] {
-            new PdfFlowColumn(PdfColumnWidth.Fixed(96), gapAfter: 24),
+            new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(96)), gapAfter: global::OfficeIMO.OfficeLength.Points(24)),
             new PdfFlowColumn(PdfColumnWidth.Percent(25)),
             new PdfFlowColumn(PdfColumnWidth.Relative(1))
         }
@@ -2387,22 +2387,30 @@ Permanent redaction invalidates existing signatures. `document.Security.CreateUn
 ### Stamp and watermark an existing PDF
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Pdf;
 
 PdfDocument.Load("contract.pdf")
     .Stamp.Text("Reviewed", new PdfTextStampOptions {
-        X = 72,
-        Y = 720,
-        FontSize = 18,
+        X = OfficeLength.Points(72),
+        Y = OfficeLength.Points(720),
+        FontSize = OfficeLength.Points(18),
         Color = OfficeColor.FromRgb(180, 30, 30)
     })
     .Stamp.TextWatermark("CONFIDENTIAL", new PdfTextStampOptions {
-        FontSize = 54,
+        FontSize = OfficeLength.Points(54),
         Color = OfficeColor.Gray,
         RotationDegrees = -35
     })
     .Save("contract-reviewed.pdf");
 ```
+
+Stamp coordinates and sizes use `OfficeLength`. Explicit `X` and `Y` are physical
+positions from the unrotated PDF origin, independent of the page's `UserUnit`.
+Omitted stamp coordinates default to 36 points; watermark defaults center in the
+effective CropBox/MediaBox intersection. Text defaults to 24 points (64 points for
+a text watermark with no options). An omitted image dimension uses one physical
+point per intrinsic pixel, without applying image DPI metadata.
 
 An image-backed Stamp annotation keeps the picture in the annotation layer,
 which can be useful for a handwritten approval mark on an existing page:
@@ -2432,6 +2440,9 @@ using OfficeIMO.Pdf;
 
 var watermark = new PdfWatermarkOptions {
     Text = "DRAFT",
+    Width = OfficeLength.Inches(5),
+    Height = OfficeLength.Points(100),
+    FontSize = OfficeLength.Points(42),
     RotationDegrees = -30,
     Opacity = 0.3,
     Color = OfficeColor.FromRgb(180, 30, 30),
@@ -2482,7 +2493,7 @@ PdfDocument.Load("contract.pdf")
             .Table(new[] {
                 new[] { PdfTableCell.TextCell("Status"), PdfTableCell.TextCell("Reviewed") },
                 new[] { PdfTableCell.TextCell("Owner"), PdfTableCell.RichTextCell(new[] { PdfTextRun.Bolded("Legal") }) }
-            }, OfficeLength.Points(36), OfficeLength.Points(620), OfficeLength.Points(page.Width - 72), OfficeLength.Points(90));
+            }, OfficeLength.Points(36), OfficeLength.Points(620), page.Width - OfficeLength.Points(72), OfficeLength.Points(90));
     }, new PdfCanvasStampOptions {
         TargetPages = PdfPageSelector.Parse("1,last"),
         Opacity = 0.95

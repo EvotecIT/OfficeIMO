@@ -57,9 +57,9 @@ namespace OfficeIMO.Examples.Pdf {
                     new PdfPanelStyle {
                         Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                         BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
-                        BorderWidth = 0.5,
-                        PaddingX = 9,
-                        PaddingY = 7
+                        BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+                        PaddingX = global::OfficeIMO.OfficeLength.Points(9),
+                        PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                     })), new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),

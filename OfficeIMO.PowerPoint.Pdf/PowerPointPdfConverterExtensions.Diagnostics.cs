@@ -45,7 +45,7 @@ public static partial class PowerPointPdfConverterExtensions {
             slideNumber,
             code,
             message,
-            new PdfCore.PdfLayoutDiagnostic(kind, source, diagnosticMessage, x, y, width, height));
+            new PdfCore.PdfLayoutDiagnostic(kind, source, diagnosticMessage, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)));
     }
 
     private static void AddPowerPointPictureAspectRatioDiagnostic(

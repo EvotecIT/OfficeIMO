@@ -60,7 +60,7 @@ public sealed class PdfTextFieldPhysicalGeometryTests {
     [Fact]
     public void SharedCellModelKeepsExistingChoiceFactoryGeometryAndSnapshot() {
         var style = new PdfFormFieldStyle { IsRequired = true };
-        var field = PdfTableCellFormField.ChoiceField("Choice", new[] { "EU", "US" }, "EU", 72, 18, 9, style: style);
+        var field = PdfTableCellFormField.ChoiceField("Choice", new[] { "EU", "US" }, "EU", global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(9), style: style);
         var cell = new PdfTableCell("", formFields: new[] { field });
         style.IsRequired = false;
         using var document = PdfDocument.Create(builder => builder.Content(content => content.Table(

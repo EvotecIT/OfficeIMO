@@ -113,7 +113,7 @@ internal static partial class PdfWriter {
                 RowFragment = fragment; Container = null; Paragraph = null;
             }
             public ColumnBalanceUnit(ColumnBalanceContainer container) {
-                Height = container.Units.Sum(unit => unit.Height) + container.Style.GetFragmentTopPadding(container.IsContinuation) + container.Style.BottomPadding + container.Style.SpacingAfter;
+                Height = container.Units.Sum(unit => unit.Height) + container.Style.GetFragmentTopPadding(container.IsContinuation) + container.Style.BottomPadding + container.Style.SpacingAfter.ToPoints();
                 ContinuationHeight = 0D; SpacingBefore = 0D; RowFragment = null; Container = container; Paragraph = null;
             }
             public ColumnBalanceUnit(ColumnBalanceParagraph paragraph) {

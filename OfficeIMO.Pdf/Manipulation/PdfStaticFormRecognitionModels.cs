@@ -132,7 +132,7 @@ public sealed class PdfStaticFormFieldProposal {
             AlternateName = Label,
             BackgroundColor = null,
             BorderColor = null,
-            BorderWidth = 0D
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0D)
         }
     };
 }

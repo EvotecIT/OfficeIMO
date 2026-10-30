@@ -15,9 +15,9 @@ public partial class PdfStamperTests {
 
         byte[] stamped = PdfStamper.StampText(source, "APPROVED", new PdfTextStampOptions {
             PageNumbers = new[] { 2 },
-            X = 72,
-            Y = 700,
-            FontSize = 16,
+            X = global::OfficeIMO.OfficeLength.Points(72),
+            Y = global::OfficeIMO.OfficeLength.Points(700),
+            FontSize = global::OfficeIMO.OfficeLength.Points(16),
             Color = global::OfficeIMO.OfficeColor.Black
         });
 
@@ -66,9 +66,9 @@ public partial class PdfStamperTests {
     [Fact]
     public void StampText_FlattensReferencedContentArraysBeforeAddingStampStream() {
         byte[] stamped = PdfStamper.StampText(BuildIndirectContentsArrayPdf(), "STAMP", new PdfTextStampOptions {
-            X = 20,
-            Y = 20,
-            FontSize = 10
+            X = global::OfficeIMO.OfficeLength.Points(20),
+            Y = global::OfficeIMO.OfficeLength.Points(20),
+            FontSize = global::OfficeIMO.OfficeLength.Points(10)
         });
 
         var document = PdfReadDocument.Open(stamped);
@@ -106,7 +106,7 @@ public partial class PdfStamperTests {
     public void WatermarkText_CentersUsingStandardFontGlyphWidths() {
         byte[] stamped = PdfStamper.WatermarkText(BuildTwoPagePdf(), "WWWW", new PdfTextStampOptions {
             Font = PdfStandardFont.TimesRoman,
-            FontSize = 10,
+            FontSize = global::OfficeIMO.OfficeLength.Points(10),
             RotationDegrees = 0
         });
 

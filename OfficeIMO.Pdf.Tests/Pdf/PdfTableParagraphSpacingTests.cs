@@ -15,7 +15,7 @@ public sealed class PdfTableParagraphSpacingTests {
     public void Fixed_rows_keep_a_fitting_text_line_when_trailing_paragraph_spacing_does_not_fit(string mode) {
         var first = new[] { PdfTextRun.Normal("Visible") };
         var cells = new[] {
-            new[] { new PdfTableCell(first, new[] { new PdfTableCellParagraph(first, spacingAfter: 10) }) },
+            new[] { new PdfTableCell(first, new[] { new PdfTableCellParagraph(first, spacingAfter: global::OfficeIMO.OfficeLength.Points(10)) }) },
             new[] { new PdfTableCell("Following") }
         };
         using var pdf = PdfPigDocument.Open(Render(mode, cells));
@@ -34,8 +34,8 @@ public sealed class PdfTableParagraphSpacingTests {
         var first = new[] { PdfTextRun.Normal("Visible") };
         var second = new[] { PdfTextRun.Normal("Outside") };
         var paragraphs = new[] {
-            new PdfTableCellParagraph(first, spacingAfter: 8),
-            new PdfTableCellParagraph(second, spacingBefore: 6)
+            new PdfTableCellParagraph(first, spacingAfter: global::OfficeIMO.OfficeLength.Points(8)),
+            new PdfTableCellParagraph(second, spacingBefore: global::OfficeIMO.OfficeLength.Points(6))
         };
         var cells = new[] {
             new[] { new PdfTableCell(first.Concat(second), paragraphs) },

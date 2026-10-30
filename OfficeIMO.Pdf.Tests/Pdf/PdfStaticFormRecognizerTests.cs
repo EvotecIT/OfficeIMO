@@ -311,7 +311,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
             PdfFormFieldStyle style = proposal.ToCreateOptions().Style!;
             Assert.Null(style.BackgroundColor);
             Assert.Null(style.BorderColor);
-            Assert.Equal(0D, style.BorderWidth);
+            Assert.Equal(0D, style.BorderWidth.ToPoints());
         });
     }
 

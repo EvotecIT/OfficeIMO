@@ -30,7 +30,7 @@ namespace OfficeIMO.IWork.Tests {
             using WordDocument reopened = WordDocument.Load(bytes);
             WordParagraph run = tableCell ? reopened.Tables[0].Rows[0].Cells[0].Paragraphs.First(paragraph => paragraph.Text == "Value")
                 : reopened.Paragraphs.First(paragraph => paragraph.Text == "Body");
-            Assert.Equal(twips, run.Spacing);
+            Assert.Equal(OfficeLength.Emus((long)twips * 635), run.Spacing);
         }
     }
 }

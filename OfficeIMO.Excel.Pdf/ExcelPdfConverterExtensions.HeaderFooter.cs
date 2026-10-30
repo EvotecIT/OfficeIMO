@@ -88,15 +88,15 @@ namespace OfficeIMO.Excel.Pdf {
                 bool evenHasImage = HasPicturePlaceholder(evenZone);
                 bool hasSpecificPlaceholder = defaultHasImage || firstHasImage || evenHasImage;
                 if (!hasSpecificPlaceholder || defaultHasImage) {
-                    header.Image(image.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    header.Image(image.Bytes, global::OfficeIMO.OfficeLength.Points(image.WidthPoints), global::OfficeIMO.OfficeLength.Points(image.HeightPoints), align);
                 }
 
                 if (firstHasImage) {
-                    header.FirstPageImage(image.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    header.FirstPageImage(image.Bytes, global::OfficeIMO.OfficeLength.Points(image.WidthPoints), global::OfficeIMO.OfficeLength.Points(image.HeightPoints), align);
                 }
 
                 if (evenHasImage) {
-                    header.EvenPagesImage(image.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    header.EvenPagesImage(image.Bytes, global::OfficeIMO.OfficeLength.Points(image.WidthPoints), global::OfficeIMO.OfficeLength.Points(image.HeightPoints), align);
                 }
             }
         }
@@ -108,15 +108,15 @@ namespace OfficeIMO.Excel.Pdf {
                 bool evenHasImage = HasPicturePlaceholder(evenZone);
                 bool hasSpecificPlaceholder = defaultHasImage || firstHasImage || evenHasImage;
                 if (!hasSpecificPlaceholder || defaultHasImage) {
-                    footer.Image(image.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    footer.Image(image.Bytes, global::OfficeIMO.OfficeLength.Points(image.WidthPoints), global::OfficeIMO.OfficeLength.Points(image.HeightPoints), align);
                 }
 
                 if (firstHasImage) {
-                    footer.FirstPageImage(image.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    footer.FirstPageImage(image.Bytes, global::OfficeIMO.OfficeLength.Points(image.WidthPoints), global::OfficeIMO.OfficeLength.Points(image.HeightPoints), align);
                 }
 
                 if (evenHasImage) {
-                    footer.EvenPagesImage(image.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    footer.EvenPagesImage(image.Bytes, global::OfficeIMO.OfficeLength.Points(image.WidthPoints), global::OfficeIMO.OfficeLength.Points(image.HeightPoints), align);
                 }
             }
         }
@@ -410,7 +410,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             if (style.FontSize.HasValue) {
-                header.FontSize(style.FontSize.Value);
+                header.FontSize(global::OfficeIMO.OfficeLength.Points(style.FontSize.Value));
             }
 
             if (style.Color.HasValue) {
@@ -432,7 +432,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             if (style.FontSize.HasValue) {
-                footer.FontSize(style.FontSize.Value);
+                footer.FontSize(global::OfficeIMO.OfficeLength.Points(style.FontSize.Value));
             }
 
             if (style.Color.HasValue) {

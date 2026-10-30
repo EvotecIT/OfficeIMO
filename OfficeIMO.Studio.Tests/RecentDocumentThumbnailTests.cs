@@ -15,7 +15,7 @@ public sealed class RecentDocumentThumbnailTests {
             Directory.CreateDirectory(root);
             try {
                 string path = Path.Combine(root, "preview.pdf");
-                byte[] valid = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).ToBytes();
+                byte[] valid = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)))).ToBytes();
                 DateTime stamp = DateTime.UtcNow.AddMinutes(-5);
                 File.WriteAllBytes(path, new byte[valid.Length]);
                 File.SetLastWriteTimeUtc(path, stamp);
@@ -39,7 +39,7 @@ public sealed class RecentDocumentThumbnailTests {
             Directory.CreateDirectory(root);
             try {
                 string path = Path.Combine(root, "preview.pdf");
-                PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).Save(path);
+                PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)))).Save(path);
                 var recent = new RecentDocumentViewModel(path, DateTimeOffset.UtcNow);
                 recent.EnsureThumbnail();
                 using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -47,8 +47,8 @@ public sealed class RecentDocumentThumbnailTests {
                 var first = recent.Thumbnail;
 
                 PdfDocument.Create(compose => {
-                    compose.Page(page => page.Size(600D, 800D));
-                    compose.Page(page => page.Size(600D, 800D));
+                    compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)));
+                    compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)));
                 }).Save(path);
                 File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddMinutes(1));
                 recent.EnsureThumbnail();
@@ -83,7 +83,7 @@ public sealed class RecentDocumentThumbnailTests {
             Directory.CreateDirectory(root);
             try {
                 string path = Path.Combine(root, "preview.pdf");
-                PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D)
+                PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D))
                     .Canvas(canvas => canvas.Text("Preview", global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(30D), fontSize: global::OfficeIMO.OfficeLength.Points(12D))))).Save(path);
                 using var cancelled = new CancellationTokenSource();
                 cancelled.Cancel();

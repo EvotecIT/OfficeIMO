@@ -107,7 +107,7 @@ public sealed class PdfPrintRendererTests {
 
     [Fact]
     public void HighResolutionSheetsDecodeAtTheirPreparedDimensions() {
-        PdfDocument document = PdfDocument.Create(c => c.Page(p => p.Size(200, 300)));
+        PdfDocument document = PdfDocument.Create(c => c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300))));
         PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document,
             new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = PdfPageSizes.A3 },
             new PdfPrintRenderOptions { Dpi = 300, MaximumPixelsPerImage = 18_000_000 });
@@ -144,7 +144,7 @@ public sealed class PdfPrintRendererTests {
     [InlineData(2)]
     public void PreparationRejectsExceededResourceBudgets(int budget) {
         PdfDocument document = PdfDocument.Create(c => {
-            c.Page(p => p.Size(200, 300)); c.Page(p => p.Size(200, 300));
+            c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300))); c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)));
         });
         var limits = new PdfPrintRenderOptions();
         if (budget == 0) limits.MaximumPages = 1;
@@ -157,7 +157,7 @@ public sealed class PdfPrintRendererTests {
 
     [Fact]
     public void CancelledPreparationDoesNotRenderSheets() {
-        PdfDocument document = PdfDocument.Create(c => c.Page(p => p.Size(200, 300)));
+        PdfDocument document = PdfDocument.Create(c => c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300))));
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         Assert.ThrowsAny<OperationCanceledException>(() => PdfPrintRenderer.Prepare(document,

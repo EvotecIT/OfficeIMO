@@ -21,7 +21,7 @@ public sealed partial class PdfTheme {
         return new PdfTheme {
             TextStyle = new PdfTextStyle {
                 Font = ResolveStandardFont(theme.Fonts.Body.Family),
-                FontSize = theme.TypeScale.Body.ToPoints(),
+                FontSize = theme.TypeScale.Body,
                 Color = Resolve(theme.Palette.Text, theme)
             },
             ParagraphStyle = new PdfParagraphStyle {
@@ -36,28 +36,28 @@ public sealed partial class PdfTheme {
                 Level3 = CreateHeading(theme, 3, theme.TypeScale.Heading3.ToPoints(), heading)
             },
             ListStyle = new PdfListStyle {
-                LeftIndent = theme.Spacing.ListIndent.ToPoints(),
-                MarkerGap = theme.TypeScale.Body.ToPoints() * 0.5D,
+                LeftIndent = theme.Spacing.ListIndent,
+                MarkerGap = global::OfficeIMO.OfficeLength.Points(theme.TypeScale.Body.ToPoints() * 0.5D),
                 MarkerColor = accent,
-                ItemSpacing = paragraphAfter * ListItemSpacingRatio,
-                SpacingAfter = paragraphAfter
+                ItemSpacing = global::OfficeIMO.OfficeLength.Points(paragraphAfter * ListItemSpacingRatio),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(paragraphAfter)
             },
             TableStyle = CreateTableStyle(theme, paragraphAfter),
             PdfPanelStyle = new PdfPanelStyle {
                 Background = Resolve(theme.Surfaces.Surface, theme),
                 BorderColor = Resolve(theme.Surfaces.Rule, theme),
-                BorderWidth = theme.TableStyle.BorderWidth.ToPoints(),
-                PaddingX = theme.TableStyle.CellPadding.ToPoints() * 2D,
-                PaddingY = theme.TableStyle.CellPadding.ToPoints() * 1.4D,
-                SpacingBefore = theme.Spacing.ParagraphBefore.ToPoints(),
-                SpacingAfter = paragraphAfter,
+                BorderWidth = theme.TableStyle.BorderWidth,
+                PaddingX = global::OfficeIMO.OfficeLength.Points(theme.TableStyle.CellPadding.ToPoints() * 2D),
+                PaddingY = global::OfficeIMO.OfficeLength.Points(theme.TableStyle.CellPadding.ToPoints() * 1.4D),
+                SpacingBefore = theme.Spacing.ParagraphBefore,
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(paragraphAfter),
                 KeepTogether = true
             },
             HorizontalRuleStyle = new PdfHorizontalRuleStyle {
                 Color = Resolve(theme.Surfaces.Rule, theme),
-                Thickness = theme.TableStyle.BorderWidth.ToPoints(),
-                SpacingBefore = paragraphAfter * 0.5D,
-                SpacingAfter = paragraphAfter
+                Thickness = theme.TableStyle.BorderWidth,
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(paragraphAfter * 0.5D),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(paragraphAfter)
             }
         };
     }
@@ -99,10 +99,10 @@ public sealed partial class PdfTheme {
     private static PdfHeadingStyle CreateHeading(OfficeTheme theme, int level, double size, OfficeColor color) {
         OfficeThemeParagraphSpacing spacing = theme.TextStyle.GetHeadingSpacing(level);
         var style = new PdfHeadingStyle {
-            FontSize = size,
+            FontSize = global::OfficeIMO.OfficeLength.Points(size),
             LineHeight = HeadingLineHeight,
-            SpacingBefore = spacing.Before.ToPoints(),
-            SpacingAfter = spacing.After.ToPoints(),
+            SpacingBefore = spacing.Before,
+            SpacingAfter = spacing.After,
             Bold = theme.TextStyle.HeadingBold,
             Color = color,
             KeepWithNext = true

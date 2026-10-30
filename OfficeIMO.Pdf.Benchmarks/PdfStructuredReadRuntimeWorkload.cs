@@ -24,7 +24,7 @@ public sealed class PdfStructuredReadRuntimeWorkload {
         _source = PdfDocument.Create(compose => {
             for (int page = 1; page <= pages; page++) {
                 int number = page;
-                compose.Page(layout => layout.Size(600D, 800D).Canvas(canvas => canvas
+                compose.Page(layout => layout.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)).Canvas(canvas => canvas
                     .Text(Header, global::OfficeIMO.OfficeLength.Points(36D + .02D * number), global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(300D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(10D + .001D * number))
                     .Text(Body(number), global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(240D), global::OfficeIMO.OfficeLength.Points(420D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(12D))));
             }

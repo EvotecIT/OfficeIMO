@@ -3,9 +3,9 @@ namespace OfficeIMO.Pdf;
 /// <summary>Controls sequential block flow across page columns.</summary>
 public sealed class PdfMultiColumnOptions {
     private int _columnCount = 2;
-    private double _gap = PdfRowStyle.DefaultGap;
-    private double _separatorWidth;
-    private double _finalColumnSpacingAfter;
+    private global::OfficeIMO.OfficeLength _gap = PdfRowStyle.DefaultGap;
+    private global::OfficeIMO.OfficeLength _separatorWidth;
+    private global::OfficeIMO.OfficeLength _finalColumnSpacingAfter;
     private IReadOnlyList<PdfFlowColumn> _columnDefinitions = Array.Empty<PdfFlowColumn>();
 
     /// <summary>Number of columns. Explicit definitions set this count and must be cleared before changing it.</summary>
@@ -35,10 +35,10 @@ public sealed class PdfMultiColumnOptions {
     }
 
     /// <summary>Horizontal gutter between columns in points.</summary>
-    public double Gap {
+    public global::OfficeIMO.OfficeLength Gap {
         get => _gap;
         set {
-            if (value < 0 || double.IsNaN(value) || double.IsInfinity(value)) throw new ArgumentOutOfRangeException(nameof(Gap), value, "PDF multi-column gap must be non-negative and finite.");
+            if (value.ToPoints() < 0 || double.IsNaN(value.ToPoints()) || double.IsInfinity(value.ToPoints())) throw new ArgumentOutOfRangeException(nameof(Gap), value.ToPoints(), "PDF multi-column gap must be non-negative and finite.");
             _gap = value;
         }
     }
@@ -56,21 +56,21 @@ public sealed class PdfMultiColumnOptions {
     /// <summary>Whether splittable table rows may be balanced at legal cell paragraph boundaries. Defaults to whole-row balancing.</summary>
     public bool BalanceTableRowLines { get; set; }
     /// <summary>Space below the final occupied column after balancing, in points. Limited to the remaining physical page space.</summary>
-    public double FinalColumnSpacingAfter {
+    public global::OfficeIMO.OfficeLength FinalColumnSpacingAfter {
         get => _finalColumnSpacingAfter;
         set {
-            if (value < 0 || double.IsNaN(value) || double.IsInfinity(value))
-                throw new ArgumentOutOfRangeException(nameof(FinalColumnSpacingAfter), value, "Final column spacing must be non-negative and finite.");
+            if (value.ToPoints() < 0 || double.IsNaN(value.ToPoints()) || double.IsInfinity(value.ToPoints()))
+                throw new ArgumentOutOfRangeException(nameof(FinalColumnSpacingAfter), value.ToPoints(), "Final column spacing must be non-negative and finite.");
             _finalColumnSpacingAfter = value;
         }
     }
     /// <summary>Optional separator color between columns.</summary>
     public global::OfficeIMO.OfficeColor? SeparatorColor { get; set; }
     /// <summary>Separator width in points.</summary>
-    public double SeparatorWidth {
+    public global::OfficeIMO.OfficeLength SeparatorWidth {
         get => _separatorWidth;
         set {
-            if (value < 0 || double.IsNaN(value) || double.IsInfinity(value)) throw new ArgumentOutOfRangeException(nameof(SeparatorWidth), value, "PDF multi-column separator width must be non-negative and finite.");
+            if (value.ToPoints() < 0 || double.IsNaN(value.ToPoints()) || double.IsInfinity(value.ToPoints())) throw new ArgumentOutOfRangeException(nameof(SeparatorWidth), value.ToPoints(), "PDF multi-column separator width must be non-negative and finite.");
             _separatorWidth = value;
         }
     }

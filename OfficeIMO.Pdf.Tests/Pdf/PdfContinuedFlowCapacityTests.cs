@@ -60,9 +60,9 @@ public class PdfContinuedFlowCapacityTests {
     public void SelectedSourceFooterProtectsOnlyItsActualVariantIncludingTextFallback(bool useTextFallback) {
         PdfDocument document = PdfDocument.Create(Options());
         document.Footer(footer => {
-            footer.Text("").EvenPagesText("FooterFallback").FontSize(6).Offset(10);
-            if (useTextFallback) footer.EvenPagesContent(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(200)), 10);
-            else footer.EvenPagesContent(content => content.Text("FooterFlow", style: Style()), 10);
+            footer.Text("").EvenPagesText("FooterFallback").FontSize(global::OfficeIMO.OfficeLength.Points(6)).Offset(global::OfficeIMO.OfficeLength.Points(10));
+            if (useTextFallback) footer.EvenPagesContent(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(200)), global::OfficeIMO.OfficeLength.Points(10));
+            else footer.EvenPagesContent(content => content.Text("FooterFlow", style: Style()), global::OfficeIMO.OfficeLength.Points(10));
         });
         if (useTextFallback) document.Options.AllowRunningContentTextFallback(isHeader: false);
         AddStory(document, 30, allowBottomMargin: true);

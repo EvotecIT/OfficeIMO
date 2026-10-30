@@ -63,8 +63,8 @@ internal static partial class PdfWriter {
                 bool emptySeparator = segment.Text.Length == 0 && (segment.LeadingSpace || segment.LeadingIsTab) && segment.InlineElement == null;
                 if (emptySeparator && segment.LeadingIsTab && !HasPaintedRichTabLeader(segment, options)) continue;
                 if (segment.InlineElement is { } inline && !UsesInlineRunTextMetrics(inline)) {
-                    double ascent = Math.Max(0D, inline.BaselineOffset + inline.Height);
-                    double descent = Math.Max(0D, -inline.BaselineOffset);
+                    double ascent = Math.Max(0D, inline.BaselineOffset.ToPoints() + inline.Height.ToPoints());
+                    double descent = Math.Max(0D, -inline.BaselineOffset.ToPoints());
                     inlineAscent = Math.Max(inlineAscent, ascent);
                     inlineDescent = Math.Max(inlineDescent, descent);
                     hasInline = true;
@@ -137,9 +137,9 @@ internal static partial class PdfWriter {
                     descent = Math.Max(descent, runDescent);
                 }
             } else if (segment.InlineElement is { } inline && !UsesInlineRunTextMetrics(inline)) {
-                ascent = Math.Max(ascent, inline.BaselineOffset + inline.Height);
-                inlineAscent = Math.Max(inlineAscent, inline.BaselineOffset + inline.Height);
-                descent = Math.Max(descent, -inline.BaselineOffset);
+                ascent = Math.Max(ascent, inline.BaselineOffset.ToPoints() + inline.Height.ToPoints());
+                inlineAscent = Math.Max(inlineAscent, inline.BaselineOffset.ToPoints() + inline.Height.ToPoints());
+                descent = Math.Max(descent, -inline.BaselineOffset.ToPoints());
             } else {
                 GetRichRunLineMetrics(segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline,
                     options, spacing, out double runAscent, out double runDescent);
@@ -222,7 +222,7 @@ internal static partial class PdfWriter {
         double requiredAscent = baseAscent;
         foreach (RichSeg segment in segments) {
             if (segment.InlineElement is { } inline)
-                requiredAscent = Math.Max(requiredAscent, inline.BaselineOffset + inline.Height);
+                requiredAscent = Math.Max(requiredAscent, inline.BaselineOffset.ToPoints() + inline.Height.ToPoints());
         }
         return baseline - Math.Max(0D, requiredAscent - baseAscent);
     }
@@ -236,7 +236,7 @@ internal static partial class PdfWriter {
                 !HasPaintedRichTabLeader(segment, options)) continue;
             if (segment.InlineElement is { } inline) {
                 if (inline is PdfInlineBox { SourceRule: { } rule } box) {
-                    if (box.Width > 0D) {
+                    if (box.Width.ToPoints() > 0D) {
                         foreach (PdfInlineRule.InkBand band in rule.Bands) {
                             ascender = Math.Max(ascender, segment.LineAlignmentRise + band.BaselineOffset + band.Height);
                             descender = Math.Max(descender, -band.BaselineOffset - segment.LineAlignmentRise);
@@ -244,8 +244,8 @@ internal static partial class PdfWriter {
                     }
                     continue;
                 }
-                ascender = Math.Max(ascender, inline.BaselineOffset + inline.Height);
-                descender = Math.Max(descender, -inline.BaselineOffset);
+                ascender = Math.Max(ascender, inline.BaselineOffset.ToPoints() + inline.Height.ToPoints());
+                descender = Math.Max(descender, -inline.BaselineOffset.ToPoints());
             } else {
                 double rise = TextRiseForBaseline(segment.FontSize, segment.Baseline) + segment.LineAlignmentRise;
                 double size = EffectiveRichFontSize(segment.FontSize, segment.Baseline);

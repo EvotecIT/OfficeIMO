@@ -113,7 +113,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), null };
         var cells = new[] {
             new[] { new PdfTableCell("Heading"), new PdfTableCell("Description") },
-            new[] { PdfTableCell.WithImages("", new[] { new PdfTableCellImage(CreateMinimalRgbPng(), 30, 130) }),
+            new[] { PdfTableCell.WithImages("", new[] { new PdfTableCellImage(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(130)) }),
                 new PdfTableCell(string.Join("\n", Enumerable.Range(1, 45).Select(line => "Line" + line.ToString("D2")))) }
         };
         var document = PdfDocument.Create(options);

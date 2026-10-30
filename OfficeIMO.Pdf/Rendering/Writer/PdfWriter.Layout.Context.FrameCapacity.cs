@@ -11,7 +11,7 @@ internal static partial class PdfWriter {
             int activeDepth = columnBalanceMeasurementScope == null ? activeContainerScopes.Count : columnBalanceMeasurementScope.ContainerDepth;
             for (int index = 0; index < activeDepth; index++) {
                 height -= activeContainerScopes[index].Style.GetFragmentTopPadding(isContinuation: true);
-                if (scope != null && index >= scope.ContainerDepth) height -= activeContainerScopes[index].Style.FragmentBottomInset;
+                if (scope != null && index >= scope.ContainerDepth) height -= activeContainerScopes[index].Style.FragmentBottomInset.ToPoints();
             }
             return Math.Max(0D, height - containerMeasurementTopPadding - containerMeasurementBottomInset);
         }

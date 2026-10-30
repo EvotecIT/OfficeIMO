@@ -111,6 +111,6 @@ public sealed class PdfPrintLayoutTests {
     }
 
     private static PdfDocument Pages(int count) => PdfDocument.Create(c => {
-        for (int page = 0; page < count; page++) c.Page(p => p.Size(100, 120).Margin(0));
+        for (int page = 0; page < count; page++) c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(120)).Margin(global::OfficeIMO.OfficeLength.Points(0)));
     });
 }

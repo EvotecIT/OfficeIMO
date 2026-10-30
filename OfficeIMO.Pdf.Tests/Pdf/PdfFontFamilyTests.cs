@@ -1251,7 +1251,7 @@ public partial class PdfFontFamilyTests {
             })
             .Header(header => header.Font(PdfStandardFont.TimesRoman).Text("Times header"))
             .Footer(footer => footer.Font(PdfStandardFont.Courier).Text("Courier footer"))
-            .DefaultTextStyle(style => style.FontFamily(family).FontSize(12))
+            .DefaultTextStyle(style => style.FontFamily(family).FontSize(global::OfficeIMO.OfficeLength.Points(12)))
             .Paragraph(paragraph => paragraph.Text("Styled body"))
             .ToBytes();
 
@@ -2667,9 +2667,9 @@ public partial class PdfFontFamilyTests {
             .Canvas(canvas => canvas
                 .Text("Canvas Łódź", global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(28), fontSize: global::OfficeIMO.OfficeLength.Points(12))
                 .TextBox("Ramka Zażółć", global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(190), global::OfficeIMO.OfficeLength.Points(42), new PdfCanvasTextBoxStyle {
-                    FontSize = 11,
-                    PaddingX = 4,
-                    PaddingY = 4
+                    FontSize = global::OfficeIMO.OfficeLength.Points(11),
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(4),
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(4)
                 }))
             .ToBytes();
 

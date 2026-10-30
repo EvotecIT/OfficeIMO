@@ -27,9 +27,9 @@ namespace OfficeIMO.Examples.Pdf {
                     new PdfPanelStyle {
                         Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                         BorderColor = global::OfficeIMO.OfficeColor.FromRgb(148, 163, 184),
-                        BorderWidth = 0.7,
-                        PaddingX = 10,
-                        PaddingY = 8
+                        BorderWidth = global::OfficeIMO.OfficeLength.Points(0.7),
+                        PaddingX = global::OfficeIMO.OfficeLength.Points(10),
+                        PaddingY = global::OfficeIMO.OfficeLength.Points(8)
                     })), StandardOptions("OfficeIMO.Pdf manipulation source A"))
                 .Meta(title: "OfficeIMO.Pdf Manipulation Source A", author: "OfficeIMO")
                 .Save(sourceAPath);
@@ -60,10 +60,10 @@ namespace OfficeIMO.Examples.Pdf {
             PdfDocument stamped = merged.Stamp.Text(
                 "OfficeIMO.Pdf",
                 new PdfTextStampOptions {
-                    X = 386,
-                    Y = 30,
+                    X = global::OfficeIMO.OfficeLength.Points(386),
+                    Y = global::OfficeIMO.OfficeLength.Points(30),
                     Font = PdfStandardFont.HelveticaBold,
-                    FontSize = 11,
+                    FontSize = global::OfficeIMO.OfficeLength.Points(11),
                     Color = global::OfficeIMO.OfficeColor.FromRgb(14, 116, 144)
                 });
             stamped.Save(stampedPath);

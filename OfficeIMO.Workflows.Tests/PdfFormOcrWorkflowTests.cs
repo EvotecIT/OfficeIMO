@@ -7,7 +7,7 @@ namespace OfficeIMO.Workflows.Tests;
 public sealed class PdfFormOcrWorkflowTests {
     [Fact]
     public async Task PreparationEnforcesWorkflowInputAdmissionBeforeCallingProvider() {
-        var document = PdfDocument.Create(compose => compose.Page(page => page.Size(300, 300)));
+        var document = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300))));
         byte[] source = document.ToBytes();
         int calls = 0;
         var engine = new DelegateOcrEngine("admission-fixture", (_, _) => { calls++; return Task.FromResult(new OcrResult()); });

@@ -5008,6 +5008,746 @@
         "static OfficeIMO.Pdf.PdfTextRun.Underlined(string! text, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? fontSize = null, OfficeIMO.OfficeColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!"
       ],
       "note": "Canonical optional PdfTextRun construction and link factories replace twelve legacy forwarding overloads; the five reflection-only binary-signature facts are removed. Shared length factories own nonfinite character spacing and outline anchors; numeric horizontal-scaling guards remain. The nested horizontal-rule fixture uses a reachable zero-thickness value and retains the PDF guard message. Remaining public model/style geometry and native PDF user-space metadata are separate boundaries. One-argument tab calls bind the existing canonical optional alignment overload, preserving the Left default. Physical optional line heights in both rich canvas Text overloads and content/canvas FreeTextAnnotation use OfficeLength; numeric internal leading and relative line multipliers remain unchanged. Four optional text-box/table diagnostic overloads and one image alternative-text overload absorb their old null-forwarding signatures; distinct positional callback/alternative-text convenience methods remain. The PowerShell canvas text command converts its existing nullable point-valued LineHeight mechanically, without changing the command parameter or its behavior."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "Numeric PDF style/model dimensions, typography, running-story and composition geometry.",
+      "new": "OfficeLength physical models and authoring inputs; numeric calculations unwrap at layout, drawing and native writing boundaries.",
+      "reason": "All public physical authoring dimensions use the shared length contract while relative columns, line multipliers, opacity, rotation and drawing-local coordinates retain their numeric meaning.",
+      "applied": "phase-b-applied",
+      "signatureChanges": [
+        {
+          "file": "OfficeIMO.Pdf/Compose/PdfHeaderBuilder.Content.cs",
+          "before": [
+            "public PdfHeaderBuilder Content(Action<PdfContentBuilder> build, double distanceFromEdge, double bodyGap = 0D)",
+            "public PdfHeaderBuilder Content(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, double distanceFromEdge, double bodyGap = 0D)",
+            "public PdfHeaderBuilder EvenPagesContent(Action<PdfContentBuilder> build, double distanceFromEdge, double bodyGap = 0D)",
+            "public PdfHeaderBuilder EvenPagesContent(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, double distanceFromEdge, double bodyGap = 0D)",
+            "public PdfHeaderBuilder FirstPageContent(Action<PdfContentBuilder> build, double distanceFromEdge, double bodyGap = 0D)",
+            "public PdfHeaderBuilder FirstPageContent(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, double distanceFromEdge, double bodyGap = 0D)"
+          ],
+          "after": [
+            "public PdfHeaderBuilder Content(Action<PdfContentBuilder> build, global::OfficeIMO.OfficeLength distanceFromEdge, global::OfficeIMO.OfficeLength bodyGap = default)",
+            "public PdfHeaderBuilder Content(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, global::OfficeIMO.OfficeLength distanceFromEdge, global::OfficeIMO.OfficeLength bodyGap = default)",
+            "public PdfHeaderBuilder EvenPagesContent(Action<PdfContentBuilder> build, global::OfficeIMO.OfficeLength distanceFromEdge, global::OfficeIMO.OfficeLength bodyGap = default)",
+            "public PdfHeaderBuilder EvenPagesContent(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, global::OfficeIMO.OfficeLength distanceFromEdge, global::OfficeIMO.OfficeLength bodyGap = default)",
+            "public PdfHeaderBuilder FirstPageContent(Action<PdfContentBuilder> build, global::OfficeIMO.OfficeLength distanceFromEdge, global::OfficeIMO.OfficeLength bodyGap = default)",
+            "public PdfHeaderBuilder FirstPageContent(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, global::OfficeIMO.OfficeLength distanceFromEdge, global::OfficeIMO.OfficeLength bodyGap = default)"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Compose/PdfElementBuilder.cs",
+          "before": [
+            "public PdfElementBuilder Border(global::OfficeIMO.OfficeColor color, double width = 1D)",
+            "public PdfElementBuilder MaxWidth(double value)",
+            "public PdfElementBuilder Padding(double value)",
+            "public PdfElementBuilder Padding(double vertical, double horizontal)",
+            "public PdfElementBuilder Spacing(double before = 0D, double after = 0D)"
+          ],
+          "after": [
+            "public PdfElementBuilder Border(global::OfficeIMO.OfficeColor color, global::OfficeIMO.OfficeLength? width = null)",
+            "public PdfElementBuilder MaxWidth(global::OfficeIMO.OfficeLength value)",
+            "public PdfElementBuilder Padding(global::OfficeIMO.OfficeLength value)",
+            "public PdfElementBuilder Padding(global::OfficeIMO.OfficeLength vertical, global::OfficeIMO.OfficeLength horizontal)",
+            "public PdfElementBuilder Spacing(global::OfficeIMO.OfficeLength before = default, global::OfficeIMO.OfficeLength after = default)"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Compose/PdfFooterBuilder.Content.cs",
+          "before": [
+            "public PdfFooterBuilder Content(Action<PdfContentBuilder> build, double distanceFromEdge, double bodyGap = 0D)",
+            "public PdfFooterBuilder Content(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, double distanceFromEdge, double bodyGap = 0D)",
+            "public PdfFooterBuilder EvenPagesContent(Action<PdfContentBuilder> build, double distanceFromEdge, double bodyGap = 0D)",
+            "public PdfFooterBuilder EvenPagesContent(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, double distanceFromEdge, double bodyGap = 0D)",
+            "public PdfFooterBuilder FirstPageContent(Action<PdfContentBuilder> build, double distanceFromEdge, double bodyGap = 0D)",
+            "public PdfFooterBuilder FirstPageContent(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, double distanceFromEdge, double bodyGap = 0D)"
+          ],
+          "after": [
+            "public PdfFooterBuilder Content(Action<PdfContentBuilder> build, global::OfficeIMO.OfficeLength distanceFromEdge, global::OfficeIMO.OfficeLength bodyGap = default)",
+            "public PdfFooterBuilder Content(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, global::OfficeIMO.OfficeLength distanceFromEdge, global::OfficeIMO.OfficeLength bodyGap = default)",
+            "public PdfFooterBuilder EvenPagesContent(Action<PdfContentBuilder> build, global::OfficeIMO.OfficeLength distanceFromEdge, global::OfficeIMO.OfficeLength bodyGap = default)",
+            "public PdfFooterBuilder EvenPagesContent(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, global::OfficeIMO.OfficeLength distanceFromEdge, global::OfficeIMO.OfficeLength bodyGap = default)",
+            "public PdfFooterBuilder FirstPageContent(Action<PdfContentBuilder> build, global::OfficeIMO.OfficeLength distanceFromEdge, global::OfficeIMO.OfficeLength bodyGap = default)",
+            "public PdfFooterBuilder FirstPageContent(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, global::OfficeIMO.OfficeLength distanceFromEdge, global::OfficeIMO.OfficeLength bodyGap = default)"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Compose/PdfTextStyleBuilder.cs",
+          "before": [
+            "public PdfTextStyleBuilder FontSize(double size)"
+          ],
+          "after": [
+            "public PdfTextStyleBuilder FontSize(global::OfficeIMO.OfficeLength size)"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Compose/PdfFooterBuilder.cs",
+          "before": [
+            "public PdfFooterBuilder EvenPagesImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch)",
+            "public PdfFooterBuilder EvenPagesImage(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText)",
+            "public PdfFooterBuilder EvenPagesImage(byte[] data, double width, double height, string? alternativeText)",
+            "public PdfFooterBuilder FirstPageImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch)",
+            "public PdfFooterBuilder FirstPageImage(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText)",
+            "public PdfFooterBuilder FirstPageImage(byte[] data, double width, double height, string? alternativeText)",
+            "public PdfFooterBuilder FontSize(double size)",
+            "public PdfFooterBuilder Image(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch)",
+            "public PdfFooterBuilder Image(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText)",
+            "public PdfFooterBuilder Image(byte[] data, double width, double height, string? alternativeText)",
+            "public PdfFooterBuilder Offset(double points)"
+          ],
+          "after": [
+            "public PdfFooterBuilder EvenPagesImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch)",
+            "public PdfFooterBuilder EvenPagesImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align, OfficeImageFit fit, string? alternativeText)",
+            "public PdfFooterBuilder EvenPagesImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText)",
+            "public PdfFooterBuilder FirstPageImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch)",
+            "public PdfFooterBuilder FirstPageImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align, OfficeImageFit fit, string? alternativeText)",
+            "public PdfFooterBuilder FirstPageImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText)",
+            "public PdfFooterBuilder FontSize(global::OfficeIMO.OfficeLength size)",
+            "public PdfFooterBuilder Image(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch)",
+            "public PdfFooterBuilder Image(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align, OfficeImageFit fit, string? alternativeText)",
+            "public PdfFooterBuilder Image(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText)",
+            "public PdfFooterBuilder Offset(global::OfficeIMO.OfficeLength points)"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Compose/PdfRowBuilder.cs",
+          "before": [
+            "public PdfRowBuilder AutoColumn(System.Action<PdfContentBuilder> build, double minimum = 0D, double? maximum = null)",
+            "public PdfRowBuilder ColumnSeparator(global::OfficeIMO.OfficeColor color, double width = 0.5D)",
+            "public PdfRowBuilder FixedColumn(double points, System.Action<PdfContentBuilder> build)",
+            "public PdfRowBuilder Gap(double points)"
+          ],
+          "after": [
+            "public PdfRowBuilder AutoColumn(System.Action<PdfContentBuilder> build, global::OfficeIMO.OfficeLength minimum = default, global::OfficeIMO.OfficeLength? maximum = null)",
+            "public PdfRowBuilder ColumnSeparator(global::OfficeIMO.OfficeColor color, global::OfficeIMO.OfficeLength? width = null)",
+            "public PdfRowBuilder FixedColumn(global::OfficeIMO.OfficeLength points, System.Action<PdfContentBuilder> build)",
+            "public PdfRowBuilder Gap(global::OfficeIMO.OfficeLength points)"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Compose/PdfHeaderBuilder.cs",
+          "before": [
+            "public PdfHeaderBuilder EvenPagesImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch)",
+            "public PdfHeaderBuilder EvenPagesImage(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText)",
+            "public PdfHeaderBuilder EvenPagesImage(byte[] data, double width, double height, string? alternativeText)",
+            "public PdfHeaderBuilder FirstPageImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch)",
+            "public PdfHeaderBuilder FirstPageImage(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText)",
+            "public PdfHeaderBuilder FirstPageImage(byte[] data, double width, double height, string? alternativeText)",
+            "public PdfHeaderBuilder FontSize(double size)",
+            "public PdfHeaderBuilder Image(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch)",
+            "public PdfHeaderBuilder Image(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText)",
+            "public PdfHeaderBuilder Image(byte[] data, double width, double height, string? alternativeText)",
+            "public PdfHeaderBuilder Offset(double points)"
+          ],
+          "after": [
+            "public PdfHeaderBuilder EvenPagesImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch)",
+            "public PdfHeaderBuilder EvenPagesImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align, OfficeImageFit fit, string? alternativeText)",
+            "public PdfHeaderBuilder EvenPagesImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText)",
+            "public PdfHeaderBuilder FirstPageImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch)",
+            "public PdfHeaderBuilder FirstPageImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align, OfficeImageFit fit, string? alternativeText)",
+            "public PdfHeaderBuilder FirstPageImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText)",
+            "public PdfHeaderBuilder FontSize(global::OfficeIMO.OfficeLength size)",
+            "public PdfHeaderBuilder Image(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch)",
+            "public PdfHeaderBuilder Image(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align, OfficeImageFit fit, string? alternativeText)",
+            "public PdfHeaderBuilder Image(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText)",
+            "public PdfHeaderBuilder Offset(global::OfficeIMO.OfficeLength points)"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Compose/PdfPageBuilder.cs",
+          "before": [
+            "public PdfPageBuilder BackgroundBottomBand(double height, global::OfficeIMO.OfficeColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null)",
+            "public PdfPageBuilder BackgroundEllipse(double x, double y, double width, double height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null)",
+            "public PdfPageBuilder BackgroundLeftBand(double width, global::OfficeIMO.OfficeColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null)",
+            "public PdfPageBuilder BackgroundRectangle(double x, double y, double width, double height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null)",
+            "public PdfPageBuilder BackgroundRightBand(double width, global::OfficeIMO.OfficeColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null)",
+            "public PdfPageBuilder BackgroundRoundedRectangle(double x, double y, double width, double height, double cornerRadius, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null)",
+            "public PdfPageBuilder BackgroundTopBand(double height, global::OfficeIMO.OfficeColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null)",
+            "public PdfPageBuilder EvenPagesImageWatermark(byte[] imageBytes, double width, double height, double? opacity = null, double? rotationAngle = null)",
+            "public PdfPageBuilder EvenPagesWatermark(string text, double? fontSize = null, global::OfficeIMO.OfficeColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false)",
+            "public PdfPageBuilder FirstPageImageWatermark(byte[] imageBytes, double width, double height, double? opacity = null, double? rotationAngle = null)",
+            "public PdfPageBuilder FirstPageWatermark(string text, double? fontSize = null, global::OfficeIMO.OfficeColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false)",
+            "public PdfPageBuilder ImageWatermark(byte[] imageBytes, double width, double height, double? opacity = null, double? rotationAngle = null)",
+            "public PdfPageBuilder Margin(double all)",
+            "public PdfPageBuilder Margin(double left, double top, double right, double bottom)",
+            "public PdfPageBuilder PageBorder(global::OfficeIMO.OfficeColor? color = null, double? width = null, double? inset = null, double? opacity = null, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid)",
+            "public PdfPageBuilder Size(double width, double height)",
+            "public PdfPageBuilder Watermark(string text, double? fontSize = null, global::OfficeIMO.OfficeColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false)"
+          ],
+          "after": [
+            "public PdfPageBuilder BackgroundBottomBand(global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeLength insetX = default, global::OfficeIMO.OfficeLength offsetY = default, global::OfficeIMO.OfficeLength cornerRadius = default, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null)",
+            "public PdfPageBuilder BackgroundEllipse(global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null)",
+            "public PdfPageBuilder BackgroundLeftBand(global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeLength insetY = default, global::OfficeIMO.OfficeLength offsetX = default, global::OfficeIMO.OfficeLength cornerRadius = default, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null)",
+            "public PdfPageBuilder BackgroundRectangle(global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null)",
+            "public PdfPageBuilder BackgroundRightBand(global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeLength insetY = default, global::OfficeIMO.OfficeLength offsetX = default, global::OfficeIMO.OfficeLength cornerRadius = default, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null)",
+            "public PdfPageBuilder BackgroundRoundedRectangle(global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeLength cornerRadius, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null)",
+            "public PdfPageBuilder BackgroundTopBand(global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeLength insetX = default, global::OfficeIMO.OfficeLength offsetY = default, global::OfficeIMO.OfficeLength cornerRadius = default, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null)",
+            "public PdfPageBuilder EvenPagesImageWatermark(byte[] imageBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, double? opacity = null, double? rotationAngle = null)",
+            "public PdfPageBuilder EvenPagesWatermark(string text, global::OfficeIMO.OfficeLength? fontSize = null, global::OfficeIMO.OfficeColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false)",
+            "public PdfPageBuilder FirstPageImageWatermark(byte[] imageBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, double? opacity = null, double? rotationAngle = null)",
+            "public PdfPageBuilder FirstPageWatermark(string text, global::OfficeIMO.OfficeLength? fontSize = null, global::OfficeIMO.OfficeColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false)",
+            "public PdfPageBuilder ImageWatermark(byte[] imageBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, double? opacity = null, double? rotationAngle = null)",
+            "public PdfPageBuilder Margin(global::OfficeIMO.OfficeLength all)",
+            "public PdfPageBuilder Margin(global::OfficeIMO.OfficeLength left, global::OfficeIMO.OfficeLength top, global::OfficeIMO.OfficeLength right, global::OfficeIMO.OfficeLength bottom)",
+            "public PdfPageBuilder PageBorder(global::OfficeIMO.OfficeColor? color = null, global::OfficeIMO.OfficeLength? width = null, global::OfficeIMO.OfficeLength? inset = null, double? opacity = null, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid)",
+            "public PdfPageBuilder Size(global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height)",
+            "public PdfPageBuilder Watermark(string text, global::OfficeIMO.OfficeLength? fontSize = null, global::OfficeIMO.OfficeColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false)"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Compose/PdfColumnWidth.cs",
+          "before": [
+            "public double Minimum { get; }",
+            "public double? Maximum { get; }",
+            "public static PdfColumnWidth Auto(double minimum = 0D, double? maximum = null)",
+            "public static PdfColumnWidth Fixed(double points)"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength Minimum { get; }",
+            "public global::OfficeIMO.OfficeLength? Maximum { get; }",
+            "public static PdfColumnWidth Auto(global::OfficeIMO.OfficeLength minimum = default, global::OfficeIMO.OfficeLength? maximum = null)",
+            "public static PdfColumnWidth Fixed(global::OfficeIMO.OfficeLength points)"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfDrawingStyle.cs",
+          "before": [
+            "public double SpacingAfter { get; set; }",
+            "public double SpacingBefore { get; set; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength SpacingAfter { get; set; }",
+            "public global::OfficeIMO.OfficeLength SpacingBefore { get; set; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfInlineElement.cs",
+          "before": [
+            "public PdfInlineBox(\n        double width,\n        double height,\n        global::OfficeIMO.OfficeColor? background = null,\n        global::OfficeIMO.OfficeColor? borderColor = null,\n        double borderWidth = 0.5D,\n        string? alternativeText = null,\n        double baselineOffset = 0D)",
+            "public PdfInlineImage(\n        byte[] imageBytes,\n        double width,\n        double height,\n        string? alternativeText = null,\n        OfficeImageFit fit = OfficeImageFit.Contain,\n        double baselineOffset = 0D)",
+            "public PdfInlineImage(byte[] imageBytes, double width, double height, PdfImageStyle style, double baselineOffset)",
+            "public double BaselineOffset { get; }",
+            "public double BorderWidth { get; }",
+            "public double Height { get; }",
+            "public double Width { get; }"
+          ],
+          "after": [
+            "public PdfInlineBox(\n        global::OfficeIMO.OfficeLength width,\n        global::OfficeIMO.OfficeLength height,\n        global::OfficeIMO.OfficeColor? background = null,\n        global::OfficeIMO.OfficeColor? borderColor = null,\n        global::OfficeIMO.OfficeLength? borderWidth = null,\n        string? alternativeText = null,\n        global::OfficeIMO.OfficeLength baselineOffset = default)",
+            "public PdfInlineImage(\n        byte[] imageBytes,\n        global::OfficeIMO.OfficeLength width,\n        global::OfficeIMO.OfficeLength height,\n        string? alternativeText = null,\n        OfficeImageFit fit = OfficeImageFit.Contain,\n        global::OfficeIMO.OfficeLength baselineOffset = default)",
+            "public PdfInlineImage(byte[] imageBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfImageStyle style, global::OfficeIMO.OfficeLength baselineOffset)",
+            "public global::OfficeIMO.OfficeLength BaselineOffset { get; }",
+            "public global::OfficeIMO.OfficeLength BorderWidth { get; }",
+            "public global::OfficeIMO.OfficeLength Height { get; }",
+            "public global::OfficeIMO.OfficeLength Width { get; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfHeadingStyle.cs",
+          "before": [
+            "public double SpacingBefore { get; set; }",
+            "public double? FontSize { get; set; }",
+            "public double? SpacingAfter { get; set; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength SpacingBefore { get; set; }",
+            "public global::OfficeIMO.OfficeLength? FontSize { get; set; }",
+            "public global::OfficeIMO.OfficeLength? SpacingAfter { get; set; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfHeaderFooterShape.cs",
+          "before": [
+            "public double Height { get; }",
+            "public double Width { get; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength Height { get; }",
+            "public global::OfficeIMO.OfficeLength Width { get; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfPanelStyle.cs",
+          "before": [
+            "public double BorderWidth { get; set; }",
+            "public double CornerRadius { get; set; }",
+            "public double FragmentBottomInset { get; set; }",
+            "public double PaddingX { get; set; }",
+            "public double PaddingY { get; set; }",
+            "public double SpacingAfter { get; set; }",
+            "public double SpacingBefore { get; set; }",
+            "public double? MaxWidth { get; set; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength BorderWidth { get; set; }",
+            "public global::OfficeIMO.OfficeLength CornerRadius { get; set; }",
+            "public global::OfficeIMO.OfficeLength FragmentBottomInset { get; set; }",
+            "public global::OfficeIMO.OfficeLength PaddingX { get; set; }",
+            "public global::OfficeIMO.OfficeLength PaddingY { get; set; }",
+            "public global::OfficeIMO.OfficeLength SpacingAfter { get; set; }",
+            "public global::OfficeIMO.OfficeLength SpacingBefore { get; set; }",
+            "public global::OfficeIMO.OfficeLength? MaxWidth { get; set; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfCanvasTextBoxStyle.cs",
+          "before": [
+            "public double BorderWidth { get; set; }",
+            "public double CornerRadius { get; set; }",
+            "public double PaddingX { get; set; }",
+            "public double PaddingY { get; set; }",
+            "public double? FontSize { get; set; }",
+            "public double? LineHeight { get; set; }",
+            "public double? PaddingBottom { get; set; }",
+            "public double? PaddingLeft { get; set; }",
+            "public double? PaddingRight { get; set; }",
+            "public double? PaddingTop { get; set; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength BorderWidth { get; set; }",
+            "public global::OfficeIMO.OfficeLength CornerRadius { get; set; }",
+            "public global::OfficeIMO.OfficeLength PaddingX { get; set; }",
+            "public global::OfficeIMO.OfficeLength PaddingY { get; set; }",
+            "public global::OfficeIMO.OfficeLength? FontSize { get; set; }",
+            "public global::OfficeIMO.OfficeLength? LineHeight { get; set; }",
+            "public global::OfficeIMO.OfficeLength? PaddingBottom { get; set; }",
+            "public global::OfficeIMO.OfficeLength? PaddingLeft { get; set; }",
+            "public global::OfficeIMO.OfficeLength? PaddingRight { get; set; }",
+            "public global::OfficeIMO.OfficeLength? PaddingTop { get; set; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfHeaderFooterImage.cs",
+          "before": [
+            "public PdfHeaderFooterImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch)",
+            "public PdfHeaderFooterImage(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText)",
+            "public PdfHeaderFooterImage(byte[] data, double width, double height, PdfAlign align, PdfImageStyle style)",
+            "public PdfHeaderFooterImage(byte[] data, double width, double height, string? alternativeText)",
+            "public double Height { get; }",
+            "public double Width { get; }"
+          ],
+          "after": [
+            "public PdfHeaderFooterImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch)",
+            "public PdfHeaderFooterImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align, OfficeImageFit fit, string? alternativeText)",
+            "public PdfHeaderFooterImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align, PdfImageStyle style)",
+            "public PdfHeaderFooterImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText)",
+            "public global::OfficeIMO.OfficeLength Height { get; }",
+            "public global::OfficeIMO.OfficeLength Width { get; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfTextStyle.cs",
+          "before": [
+            "public double FontSize { get; set; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength FontSize { get; set; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfPageBackgroundShape.cs",
+          "before": [
+            "public PdfPageBackgroundShape(OfficeShape shape, double x, double y)",
+            "public double X { get; set; }",
+            "public double Y { get; set; }",
+            "public static PdfPageBackgroundShape BottomBand(double pageWidth, double pageHeight, double height, global::OfficeIMO.OfficeColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null)",
+            "public static PdfPageBackgroundShape Ellipse(double x, double y, double width, double height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null)",
+            "public static PdfPageBackgroundShape LeftBand(double pageWidth, double pageHeight, double width, global::OfficeIMO.OfficeColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null)",
+            "public static PdfPageBackgroundShape Rectangle(double x, double y, double width, double height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null)",
+            "public static PdfPageBackgroundShape RightBand(double pageWidth, double pageHeight, double width, global::OfficeIMO.OfficeColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null)",
+            "public static PdfPageBackgroundShape RoundedRectangle(double x, double y, double width, double height, double cornerRadius, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null)",
+            "public static PdfPageBackgroundShape TopBand(double pageWidth, double pageHeight, double height, global::OfficeIMO.OfficeColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null)"
+          ],
+          "after": [
+            "public PdfPageBackgroundShape(OfficeShape shape, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y)",
+            "public global::OfficeIMO.OfficeLength X { get; set; }",
+            "public global::OfficeIMO.OfficeLength Y { get; set; }",
+            "public static PdfPageBackgroundShape BottomBand(global::OfficeIMO.OfficeLength pageWidth, global::OfficeIMO.OfficeLength pageHeight, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeLength insetX = default, global::OfficeIMO.OfficeLength offsetY = default, global::OfficeIMO.OfficeLength cornerRadius = default, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null)",
+            "public static PdfPageBackgroundShape Ellipse(global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null)",
+            "public static PdfPageBackgroundShape LeftBand(global::OfficeIMO.OfficeLength pageWidth, global::OfficeIMO.OfficeLength pageHeight, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeLength insetY = default, global::OfficeIMO.OfficeLength offsetX = default, global::OfficeIMO.OfficeLength cornerRadius = default, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null)",
+            "public static PdfPageBackgroundShape Rectangle(global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null)",
+            "public static PdfPageBackgroundShape RightBand(global::OfficeIMO.OfficeLength pageWidth, global::OfficeIMO.OfficeLength pageHeight, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeLength insetY = default, global::OfficeIMO.OfficeLength offsetX = default, global::OfficeIMO.OfficeLength cornerRadius = default, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null)",
+            "public static PdfPageBackgroundShape RoundedRectangle(global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeLength cornerRadius, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null)",
+            "public static PdfPageBackgroundShape TopBand(global::OfficeIMO.OfficeLength pageWidth, global::OfficeIMO.OfficeLength pageHeight, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeLength insetX = default, global::OfficeIMO.OfficeLength offsetY = default, global::OfficeIMO.OfficeLength cornerRadius = default, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null)"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfInlineRule.cs",
+          "before": [
+            "public PdfInlineRule(double height, global::OfficeIMO.OfficeColor color, double? maximumWidth = null, double baselineOffset = 0D)",
+            "public double? MaximumWidth { get; }"
+          ],
+          "after": [
+            "public PdfInlineRule(global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeColor color, global::OfficeIMO.OfficeLength? maximumWidth = null, global::OfficeIMO.OfficeLength baselineOffset = default)",
+            "public global::OfficeIMO.OfficeLength? MaximumWidth { get; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfTableCellImage.cs",
+          "before": [
+            "public PdfTableCellImage(byte[] data, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null)",
+            "public double Height { get; }",
+            "public double Width { get; }"
+          ],
+          "after": [
+            "public PdfTableCellImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null)",
+            "public global::OfficeIMO.OfficeLength Height { get; }",
+            "public global::OfficeIMO.OfficeLength Width { get; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfPanelBorder.cs",
+          "before": [
+            "public double Offset { get; set; }",
+            "public double Width { get; set; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength Offset { get; set; }",
+            "public global::OfficeIMO.OfficeLength Width { get; set; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfHorizontalRuleStyle.cs",
+          "before": [
+            "public double SpacingAfter { get; set; }",
+            "public double SpacingBefore { get; set; }",
+            "public double Thickness { get; set; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength SpacingAfter { get; set; }",
+            "public global::OfficeIMO.OfficeLength SpacingBefore { get; set; }",
+            "public global::OfficeIMO.OfficeLength Thickness { get; set; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfImageStyle.cs",
+          "before": [
+            "public double SpacingAfter { get; set; }",
+            "public double SpacingBefore { get; set; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength SpacingAfter { get; set; }",
+            "public global::OfficeIMO.OfficeLength SpacingBefore { get; set; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf.Tests/Pdf/PdfRowComposeTests.cs",
+          "before": [
+            "[Theory]\n        [InlineData(-1)]\n        [InlineData(double.NaN)]\n        [InlineData(double.PositiveInfinity)]\n        [InlineData(double.NegativeInfinity)]\n        public void RowGap_RejectsInvalidValues(double gap)",
+            "[Theory]\n        [InlineData(0)]\n        [InlineData(-1)]\n        [InlineData(double.NaN)]\n        [InlineData(double.PositiveInfinity)]\n        public void FixedWidth_RejectsInvalidPoints(double points)"
+          ],
+          "after": [
+            "[Theory]\n        [InlineData(-1)]\n        \n        \n        \n        public void RowGap_RejectsInvalidValues(double gap)",
+            "[Theory]\n        [InlineData(0)]\n        [InlineData(-1)]\n        \n        \n        public void FixedWidth_RejectsInvalidPoints(double points)"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfFlowOptions.cs",
+          "before": [
+            "public double MinimumRemainingHeight { get; set; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength MinimumRemainingHeight { get; set; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfTableCellViewport.cs",
+          "before": [
+            "public PdfTableCellViewport(double contentWidth, double contentHeight, double width, double height, double offsetX = 0D, double offsetY = 0D)",
+            "public double ContentHeight { get; }",
+            "public double ContentWidth { get; }",
+            "public double Height { get; }",
+            "public double OffsetX { get; }",
+            "public double OffsetY { get; }",
+            "public double Width { get; }"
+          ],
+          "after": [
+            "public PdfTableCellViewport(global::OfficeIMO.OfficeLength contentWidth, global::OfficeIMO.OfficeLength contentHeight, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeLength offsetX = default, global::OfficeIMO.OfficeLength offsetY = default)",
+            "public global::OfficeIMO.OfficeLength ContentHeight { get; }",
+            "public global::OfficeIMO.OfficeLength ContentWidth { get; }",
+            "public global::OfficeIMO.OfficeLength Height { get; }",
+            "public global::OfficeIMO.OfficeLength OffsetX { get; }",
+            "public global::OfficeIMO.OfficeLength OffsetY { get; }",
+            "public global::OfficeIMO.OfficeLength Width { get; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfTableCell.cs",
+          "before": [
+            "public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double spacingAfter = 0D, PdfAlign? align = null, double spacingBefore = 0D, double leftIndent = 0D, double rightIndent = 0D, double firstLineIndent = 0D, double? lineHeight = null, double? defaultTabStopWidth = null, System.Collections.Generic.IEnumerable<PdfTabStop>? tabStops = null, double? fontSize = null, PdfLineSpacing? lineSpacing = null, bool? widowControl = null, bool keepTogether = false, bool keepWithNext = false, PdfJustificationMode justificationMode = PdfJustificationMode.Words, bool justifyExplicitLineBreaks = false, bool justifyLastLine = false, bool useWordJustificationSpacing = false)",
+            "public double FirstLineIndent { get; }",
+            "public double LeftIndent { get; }",
+            "public double RightIndent { get; }",
+            "public double SpacingAfter { get; }",
+            "public double SpacingBefore { get; }",
+            "public double? DefaultTabStopWidth { get; }",
+            "public double? FontSize { get; }"
+          ],
+          "after": [
+            "public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<PdfTextRun> runs, global::OfficeIMO.OfficeLength spacingAfter = default, PdfAlign? align = null, global::OfficeIMO.OfficeLength spacingBefore = default, global::OfficeIMO.OfficeLength leftIndent = default, global::OfficeIMO.OfficeLength rightIndent = default, global::OfficeIMO.OfficeLength firstLineIndent = default, double? lineHeight = null, global::OfficeIMO.OfficeLength? defaultTabStopWidth = null, System.Collections.Generic.IEnumerable<PdfTabStop>? tabStops = null, global::OfficeIMO.OfficeLength? fontSize = null, PdfLineSpacing? lineSpacing = null, bool? widowControl = null, bool keepTogether = false, bool keepWithNext = false, PdfJustificationMode justificationMode = PdfJustificationMode.Words, bool justifyExplicitLineBreaks = false, bool justifyLastLine = false, bool useWordJustificationSpacing = false)",
+            "public global::OfficeIMO.OfficeLength FirstLineIndent { get; }",
+            "public global::OfficeIMO.OfficeLength LeftIndent { get; }",
+            "public global::OfficeIMO.OfficeLength RightIndent { get; }",
+            "public global::OfficeIMO.OfficeLength SpacingAfter { get; }",
+            "public global::OfficeIMO.OfficeLength SpacingBefore { get; }",
+            "public global::OfficeIMO.OfficeLength? DefaultTabStopWidth { get; }",
+            "public global::OfficeIMO.OfficeLength? FontSize { get; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfRunningContentContext.cs",
+          "before": [
+            "public double ContentWidth { get; }",
+            "public double PageHeight { get; }",
+            "public double PageWidth { get; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength ContentWidth { get; }",
+            "public global::OfficeIMO.OfficeLength PageHeight { get; }",
+            "public global::OfficeIMO.OfficeLength PageWidth { get; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfMultiColumnOptions.cs",
+          "before": [
+            "public double FinalColumnSpacingAfter { get; set; }",
+            "public double Gap { get; set; }",
+            "public double SeparatorWidth { get; set; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength FinalColumnSpacingAfter { get; set; }",
+            "public global::OfficeIMO.OfficeLength Gap { get; set; }",
+            "public global::OfficeIMO.OfficeLength SeparatorWidth { get; set; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfTableCellCheckBox.cs",
+          "before": [
+            "public PdfTableCellCheckBox(string name, bool isChecked = false, double size = 12, string checkedValueName = \"Yes\", PdfFormFieldStyle? style = null)",
+            "public double Size { get; }"
+          ],
+          "after": [
+            "public PdfTableCellCheckBox(string name, bool isChecked = false, global::OfficeIMO.OfficeLength? size = null, string checkedValueName = \"Yes\", PdfFormFieldStyle? style = null)",
+            "public global::OfficeIMO.OfficeLength Size { get; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfPageBorder.cs",
+          "before": [
+            "public double Inset { get; set; }",
+            "public double Width { get; set; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength Inset { get; set; }",
+            "public global::OfficeIMO.OfficeLength Width { get; set; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfRowStyle.cs",
+          "before": [
+            "public const double DefaultGap = 18D;",
+            "public double ColumnSeparatorWidth { get; set; }",
+            "public double SpacingAfter { get; set; }",
+            "public double SpacingBefore { get; set; }",
+            "public double? Gap { get; set; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength ColumnSeparatorWidth { get; set; }",
+            "public global::OfficeIMO.OfficeLength SpacingAfter { get; set; }",
+            "public global::OfficeIMO.OfficeLength SpacingBefore { get; set; }",
+            "public global::OfficeIMO.OfficeLength? Gap { get; set; }",
+            "public static readonly global::OfficeIMO.OfficeLength DefaultGap = global::OfficeIMO.OfficeLength.Points(18D);"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfFlowContext.cs",
+          "before": [
+            "public double AvailableHeight { get; }",
+            "public double ContentWidth { get; }",
+            "public double FullContentHeight { get; }",
+            "public double PageHeight { get; }",
+            "public double PageWidth { get; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength AvailableHeight { get; }",
+            "public global::OfficeIMO.OfficeLength ContentWidth { get; }",
+            "public global::OfficeIMO.OfficeLength FullContentHeight { get; }",
+            "public global::OfficeIMO.OfficeLength PageHeight { get; }",
+            "public global::OfficeIMO.OfficeLength PageWidth { get; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfSectionReference.cs",
+          "before": [
+            "public double? Y { get; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength? Y { get; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfImageWatermark.cs",
+          "before": [
+            "public PdfImageWatermark(byte[] data, double width, double height)",
+            "public double Height { get; set; }",
+            "public double Width { get; set; }"
+          ],
+          "after": [
+            "public PdfImageWatermark(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height)",
+            "public global::OfficeIMO.OfficeLength Height { get; set; }",
+            "public global::OfficeIMO.OfficeLength Width { get; set; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfLayoutRegion.cs",
+          "before": [
+            "public double Height { get; }",
+            "public double Width { get; }",
+            "public double X { get; }",
+            "public double Y { get; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength Height { get; }",
+            "public global::OfficeIMO.OfficeLength Width { get; }",
+            "public global::OfficeIMO.OfficeLength X { get; }",
+            "public global::OfficeIMO.OfficeLength Y { get; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfTableCellFormField.cs",
+          "before": [
+            "public static PdfTableCellFormField ChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double width = 120, double height = 18, double fontSize = 10, bool isComboBox = true, PdfFormFieldStyle? style = null)"
+          ],
+          "after": [
+            "public static PdfTableCellFormField ChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, global::OfficeIMO.OfficeLength? width = null, global::OfficeIMO.OfficeLength? height = null, global::OfficeIMO.OfficeLength? fontSize = null, bool isComboBox = true, PdfFormFieldStyle? style = null)"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfFlowColumn.cs",
+          "before": [
+            "public PdfFlowColumn(PdfColumnWidth width, double? gapAfter = null)",
+            "public double? GapAfter { get; }"
+          ],
+          "after": [
+            "public PdfFlowColumn(PdfColumnWidth width, global::OfficeIMO.OfficeLength? gapAfter = null)",
+            "public global::OfficeIMO.OfficeLength? GapAfter { get; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfTableOfContentsOptions.cs",
+          "before": [
+            "public double IndentPerLevel { get; set; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength IndentPerLevel { get; set; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfTextWatermark.cs",
+          "before": [
+            "public double FontSize { get; set; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength FontSize { get; set; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfFormFieldStyle.cs",
+          "before": [
+            "public IReadOnlyList<double>? BorderDashPattern { get; set; }",
+            "public double BorderWidth { get; set; }",
+            "public double CornerRadius { get; set; }"
+          ],
+          "after": [
+            "public System.Collections.Generic.IReadOnlyList<global::OfficeIMO.OfficeLength>? BorderDashPattern { get; set; }",
+            "public global::OfficeIMO.OfficeLength BorderWidth { get; set; }",
+            "public global::OfficeIMO.OfficeLength CornerRadius { get; set; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfLayoutDiagnostic.cs",
+          "before": [
+            "public PdfLayoutDiagnostic(PdfLayoutDiagnosticKind kind, string source, string message, double? x, double? y, double? width, double? height)",
+            "public double? Height { get; }",
+            "public double? Width { get; }",
+            "public double? X { get; }",
+            "public double? Y { get; }"
+          ],
+          "after": [
+            "public PdfLayoutDiagnostic(PdfLayoutDiagnosticKind kind, string source, string message, global::OfficeIMO.OfficeLength? x, global::OfficeIMO.OfficeLength? y, global::OfficeIMO.OfficeLength? width, global::OfficeIMO.OfficeLength? height)",
+            "public global::OfficeIMO.OfficeLength? Height { get; }",
+            "public global::OfficeIMO.OfficeLength? Width { get; }",
+            "public global::OfficeIMO.OfficeLength? X { get; }",
+            "public global::OfficeIMO.OfficeLength? Y { get; }"
+          ]
+        },
+        {
+          "file": "OfficeIMO.Pdf/Model/PdfListStyle.cs",
+          "before": [
+            "public double LeftIndent { get; set; }",
+            "public double SpacingBefore { get; set; }",
+            "public double? FontSize { get; set; }",
+            "public double? ItemSpacing { get; set; }",
+            "public double? MarkerFontSize { get; set; }",
+            "public double? MarkerGap { get; set; }",
+            "public double? MarkerWidth { get; set; }",
+            "public double? SpacingAfter { get; set; }"
+          ],
+          "after": [
+            "public global::OfficeIMO.OfficeLength LeftIndent { get; set; }",
+            "public global::OfficeIMO.OfficeLength SpacingBefore { get; set; }",
+            "public global::OfficeIMO.OfficeLength? FontSize { get; set; }",
+            "public global::OfficeIMO.OfficeLength? ItemSpacing { get; set; }",
+            "public global::OfficeIMO.OfficeLength? MarkerFontSize { get; set; }",
+            "public global::OfficeIMO.OfficeLength? MarkerGap { get; set; }",
+            "public global::OfficeIMO.OfficeLength? MarkerWidth { get; set; }",
+            "public global::OfficeIMO.OfficeLength? SpacingAfter { get; set; }"
+          ]
+        }
+      ],
+      "note": "Heading AddTabStop also takes OfficeLength. Running-story Content supports typed two-argument zero-body-gap and three-argument explicit-gap forms for both direct and page-context content. Seven redundant image overloads merge into optional canonical forms; positional alternate-text convenience remains. PdfColumnWidth.Value remains the strategy-discriminated scalar; Fixed/Auto physical inputs and bounds are typed. Defaults, clone behavior, signed positions and finite sign guards are retained. Whole-EMU storage follows OfficeLength; impossible nonfinite setter cases are removed while finite and relative numeric validation remains."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "PdfImageStampOptions.X/Y/Width/Height and PdfTextStampOptions.X/Y/FontSize use raw numbers.",
+      "new": "OfficeLength? positions/image dimensions and OfficeLength text font size.",
+      "reason": "Stamp geometry is physical regardless of the target page UserUnit, crop origin or rotation.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Pdf/Manipulation/PdfImageStampOptions.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfTextStampOptions.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfStamper.ContentStreams.cs"
+      ],
+      "note": "Each page converts physical points to native user-space units once. Intrinsic image default remains one physical point per pixel, default stamp origin36pt and font24pt; null-options text watermark keeps64pt. Existing Studio/native editing callers convert from their page units at construction, with no new parse. Actual operator and selection fixtures include UserUnit2, mixed units, crop and rotation. Seven impossible nonfinite stamp assignments removed; finite size, rotation, selection and cancellation guards remain."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "PdfWatermarkOptions.X/Y/Width/Height/FontSize and PdfStampPageContext.Width/Height are numeric physical values.",
+      "new": "OfficeLength and nullable OfficeLength for visual watermark positions, frames, font size and visual page context dimensions.",
+      "reason": "Visual watermark geometry uses physical dimensions after crop, rotation and page UserUnit projection; private Version1 metadata retains numeric point values.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Pdf/Manipulation/PdfWatermarkOptions.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfStampPageContext.cs",
+        "OfficeIMO.Pdf/Core/PdfDocumentStamper.Watermark.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfStamper.WatermarkSettings.cs"
+      ],
+      "note": "Preserve360/100/42pt defaults, nullable centering, cloning, opacity, cancellation and existing Studio/PowerShell parameter shapes. Visual watermark painting keeps the existing canvas nonnegative-position constraint; a signed value can be stored in the model but was not a supported paint position. Metadata writes ToPoints and reads Points, with literal Version1 values tested through save/reopen/revision. Text/image stamps retain their separate signed native-origin contract."
+    },
+    {
+      "phase": "B",
+      "action": "fix",
+      "old": "UserUnit-normalized native text/image stamp operators use fixed three/six-decimal numeric formatting.",
+      "new": "Preserve native stamp font size, origin and image matrix precision through final PDF serialization.",
+      "reason": "Large valid page UserUnit values otherwise change physical dimensions or erase text, despite typed inputs.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Pdf/Manipulation/PdfStamper.ContentStreams.cs",
+        "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.ContentStream.cs"
+      ],
+      "note": "Use the shared exponent-free precise PDF number formatter; text matrices retain existing rotation formatting and precise positions bypass lossy move folding. Saved text/image stamp and watermark controls at UserUnit10000/60000 failed before the fix; each verifies signed physical origins and dimensions within one EMU."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

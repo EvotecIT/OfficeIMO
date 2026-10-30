@@ -169,11 +169,11 @@ try {
         .Page(page => page.Content(content => content
             .Element(element => element
                 .Semantic(PdfSemanticRole.Article)
-                .Padding(6)
+                .Padding(global::OfficeIMO.OfficeLength.Points(6))
                 .Content(article => article
                     .Paragraph(paragraph => paragraph.Text("Native workflow source"))
                     .Row(row => row
-                        .FixedColumn(36, cell => cell.Text("AOT"))
+                        .FixedColumn(global::OfficeIMO.OfficeLength.Points(36), cell => cell.Text("AOT"))
                         .RelativeColumn(cell => cell.Text("layout"))))))))
         .Save(sourcePdf);
 

@@ -71,7 +71,7 @@ public static partial class WordPdfConverterExtensions {
                 textWidth += measured.Value;
             }
         }
-        double contentWidth = defaults.RunningContentContext?.ContentWidth ?? pageSize.Width.ToPoints() - margins.Left.ToPoints() - margins.Right.ToPoints();
+        double contentWidth = defaults.RunningContentContext?.ContentWidth.ToPoints() ?? pageSize.Width.ToPoints() - margins.Left.ToPoints() - margins.Right.ToPoints();
         if (textLeft + textWidth > margins.Left.ToPoints() + contentWidth - paragraphStyle.RightIndent.ToPoints()) return false;
         var canvas = new PdfCore.PdfPageCanvas();
         foreach (WordTextBox box in boxes.OrderBy(box => box.ZOrder)) {

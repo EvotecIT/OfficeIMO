@@ -51,9 +51,9 @@ public sealed class PdfTicketComponent : IPdfComponent {
             if (!string.IsNullOrWhiteSpace(Instructions)) panel.Paragraph(paragraph => paragraph.Text(Instructions!));
         }, new PdfPanelStyle {
             BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.15, 0.15, 0.15),
-            BorderWidth = 1.2,
-            PaddingX = 16,
-            PaddingY = 14,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(1.2),
+            PaddingX = global::OfficeIMO.OfficeLength.Points(16),
+            PaddingY = global::OfficeIMO.OfficeLength.Points(14),
             KeepTogether = true
         });
     }

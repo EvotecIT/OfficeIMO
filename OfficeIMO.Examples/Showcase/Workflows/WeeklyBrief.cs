@@ -20,7 +20,7 @@ internal static class WeeklyBrief {
                 "Approve the second pilot group after the recovery exercise is complete."),
                 new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromRgb(232, 246, 237),
-                    BorderColor = global::OfficeIMO.OfficeColor.FromRgb(117, 170, 135), PaddingX = 12, PaddingY = 12
+                    BorderColor = global::OfficeIMO.OfficeColor.FromRgb(117, 170, 135), PaddingX = global::OfficeIMO.OfficeLength.Points(12), PaddingY = global::OfficeIMO.OfficeLength.Points(12)
                 })
             .H2("Progress", PdfAlign.Left, navy)
             .Bullets(new[] {

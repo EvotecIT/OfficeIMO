@@ -140,7 +140,7 @@ public sealed class PdfInlineFormTests {
 
     private static PdfInlineFormField CreateDescriptor(string name, bool choice, string value, string cached) {
         var style = new PdfFormFieldStyle {
-            BackgroundColor = null, BorderColor = null, BorderWidth = 0, TextColor = global::OfficeIMO.OfficeColor.Black
+            BackgroundColor = null, BorderColor = null, BorderWidth = global::OfficeIMO.OfficeLength.Points(0), TextColor = global::OfficeIMO.OfficeColor.Black
         };
         PdfCanvasFormFieldItem item = choice
             ? PdfCanvasFormFieldItem.Choice(name, new[] {

@@ -20,7 +20,7 @@ public sealed class StudioViewPreferencesTests {
             var services = ((App)Application.Current!).Services;
             services.Preferences.Update(current => current with { Theme = dark ? StudioThemePreference.Dark : StudioThemePreference.Light });
             string source = Path.Combine(services.Paths.Root, "custom-zoom.pdf");
-            PdfDocument.Create(builder => builder.Page(page => page.Size(600, 800)
+            PdfDocument.Create(builder => builder.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800))
                 .Content(content => content.Text("Custom zoom survives editing and saving.")))).Save(source);
             var window = new MainWindow(services) { Width = width, Height = height };
             try {
@@ -92,8 +92,8 @@ public sealed class StudioViewPreferencesTests {
         try {
             string source = Path.Combine(root, "reading.pdf");
             PdfDocument.Create(compose => {
-                compose.Page(page => page.Size(600, 800));
-                compose.Page(page => page.Size(600, 800));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)));
             }).Save(source);
             var paths = new StudioDataPaths(Path.Combine(root, "profile"));
             using (var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: StudioApplicationServices.Create(paths))) {

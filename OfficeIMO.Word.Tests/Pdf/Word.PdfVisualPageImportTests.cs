@@ -172,7 +172,7 @@ public sealed class PdfVisualPageImportTests {
     }
 
     private static PdfCore.PdfDocument Create() => PdfCore.PdfDocument.Create(compose => {
-        compose.Page(page => page.Size(240, 320).Content(content => content.Item(item => item.Paragraph(text => text.Text("First page")))));
-        compose.Page(page => page.Size(320, 240).Content(content => content.Item(item => item.Paragraph(text => text.Text("Second page")))));
+        compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)).Content(content => content.Item(item => item.Paragraph(text => text.Text("First page")))));
+        compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(240)).Content(content => content.Item(item => item.Paragraph(text => text.Text("Second page")))));
     });
 }

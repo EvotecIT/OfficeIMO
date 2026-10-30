@@ -45,15 +45,15 @@ internal static partial class PdfWriter {
         }
 
         private static void ValidateHorizontalRule(PdfHorizontalRuleStyle rule) {
-            if (rule.Thickness <= 0 || double.IsNaN(rule.Thickness) || double.IsInfinity(rule.Thickness)) {
+            if (rule.Thickness.ToPoints() <= 0 || double.IsNaN(rule.Thickness.ToPoints()) || double.IsInfinity(rule.Thickness.ToPoints())) {
                 throw new ArgumentException("Horizontal rule thickness must be a positive finite value.");
             }
 
-            if (rule.SpacingBefore < 0 || double.IsNaN(rule.SpacingBefore) || double.IsInfinity(rule.SpacingBefore)) {
+            if (rule.SpacingBefore.ToPoints() < 0 || double.IsNaN(rule.SpacingBefore.ToPoints()) || double.IsInfinity(rule.SpacingBefore.ToPoints())) {
                 throw new ArgumentException("Horizontal rule spacing before must be a non-negative finite value.");
             }
 
-            if (rule.SpacingAfter < 0 || double.IsNaN(rule.SpacingAfter) || double.IsInfinity(rule.SpacingAfter)) {
+            if (rule.SpacingAfter.ToPoints() < 0 || double.IsNaN(rule.SpacingAfter.ToPoints()) || double.IsInfinity(rule.SpacingAfter.ToPoints())) {
                 throw new ArgumentException("Horizontal rule spacing after must be a non-negative finite value.");
             }
         }
@@ -61,31 +61,31 @@ internal static partial class PdfWriter {
         private static void ValidatePanelStyle(PdfPanelStyle style, double panelWidth) {
             Guard.LeftCenterRightAlign(style.Align, nameof(style.Align), "Panel box");
 
-            if (style.BorderWidth < 0 || double.IsNaN(style.BorderWidth) || double.IsInfinity(style.BorderWidth)) {
+            if (style.BorderWidth.ToPoints() < 0 || double.IsNaN(style.BorderWidth.ToPoints()) || double.IsInfinity(style.BorderWidth.ToPoints())) {
                 throw new ArgumentException("Panel border width must be a non-negative finite value.");
             }
 
-            if (style.PaddingX < 0 || double.IsNaN(style.PaddingX) || double.IsInfinity(style.PaddingX)) {
+            if (style.PaddingX.ToPoints() < 0 || double.IsNaN(style.PaddingX.ToPoints()) || double.IsInfinity(style.PaddingX.ToPoints())) {
                 throw new ArgumentException("Panel horizontal padding must be a non-negative finite value.");
             }
 
-            if (style.PaddingY < 0 || double.IsNaN(style.PaddingY) || double.IsInfinity(style.PaddingY)) {
+            if (style.PaddingY.ToPoints() < 0 || double.IsNaN(style.PaddingY.ToPoints()) || double.IsInfinity(style.PaddingY.ToPoints())) {
                 throw new ArgumentException("Panel vertical padding must be a non-negative finite value.");
             }
 
-            if (style.MaxWidth.HasValue && (style.MaxWidth.Value <= 0 || double.IsNaN(style.MaxWidth.Value) || double.IsInfinity(style.MaxWidth.Value))) {
+            if (style.MaxWidth.HasValue && (style.MaxWidth.Value.ToPoints() <= 0 || double.IsNaN(style.MaxWidth.Value.ToPoints()) || double.IsInfinity(style.MaxWidth.Value.ToPoints()))) {
                 throw new ArgumentException("Panel maximum width must be a positive finite value.");
             }
 
-            if (style.SpacingBefore < 0 || double.IsNaN(style.SpacingBefore) || double.IsInfinity(style.SpacingBefore)) {
+            if (style.SpacingBefore.ToPoints() < 0 || double.IsNaN(style.SpacingBefore.ToPoints()) || double.IsInfinity(style.SpacingBefore.ToPoints())) {
                 throw new ArgumentException("Panel spacing before must be a non-negative finite value.");
             }
 
-            if (style.SpacingAfter < 0 || double.IsNaN(style.SpacingAfter) || double.IsInfinity(style.SpacingAfter)) {
+            if (style.SpacingAfter.ToPoints() < 0 || double.IsNaN(style.SpacingAfter.ToPoints()) || double.IsInfinity(style.SpacingAfter.ToPoints())) {
                 throw new ArgumentException("Panel spacing after must be a non-negative finite value.");
             }
 
-            if (panelWidth - 2 * style.PaddingX <= 0) {
+            if (panelWidth - 2 * style.PaddingX.ToPoints() <= 0) {
                 throw new ArgumentException("Panel horizontal padding must leave a positive text width.");
             }
         }
@@ -185,7 +185,7 @@ internal static partial class PdfWriter {
             var blocks = ExpandTransparentMeasurementBlocks(container.Blocks).Where(block => !IsNonVisualFlowMarker(block)).Take(2).ToArray();
             if (blocks.Length == 0) return (0D, PdfKeepTogetherOverflowBehavior.Reject);
             double closingPadding = blocks.Length == 1 ? enclosingClosingPadding + GetUnreservedClosingPadding(style) +
-                (enclosingClosingPadding > 0D ? style.SpacingAfter : 0D) : 0D;
+                (enclosingClosingPadding > 0D ? style.SpacingAfter.ToPoints() : 0D) : 0D;
             return MeasureWithContainerPaddingReservation(style, () =>
                 blocks[0] is RichParagraphBlock paragraph
                     ? MeasureParagraphFirstVisual(paragraph, contentX, contentWidth, currentOpts.DefaultFontSize.ToPoints(), closingPadding: closingPadding)
@@ -289,7 +289,7 @@ internal static partial class PdfWriter {
 
             if (block is HorizontalRuleBlock rule) {
                 PdfHorizontalRuleStyle style = ResolveHorizontalRuleStyle(rule, currentOpts);
-                return ResolveTopLevelSpacingBefore(style.SpacingBefore) + style.Thickness + style.SpacingAfter;
+                return ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints()) + style.Thickness.ToPoints() + style.SpacingAfter.ToPoints();
             }
 
             if (block is ImageBlock image) {
@@ -317,7 +317,7 @@ internal static partial class PdfWriter {
             double headingSize = GetHeadingFontSize(heading, headingStyle);
             double headingLeading = GetHeadingLeading(headingStyle, headingSize);
             double spacingBefore = y < GetCurrentFramePageStartY() - 0.001D || headingStyle?.ApplySpacingBeforeAtTop == true
-                ? headingStyle?.SpacingBefore ?? 0D
+                ? (headingStyle?.SpacingBefore.ToPoints()) ?? 0D
                 : 0D;
             double spacingAfter = GetHeadingSpacingAfter(headingStyle, headingLeading);
             global::OfficeIMO.OfficeColor? headingColor = heading.Color ?? headingStyle?.Color;
@@ -425,11 +425,11 @@ internal static partial class PdfWriter {
                     throw new ArgumentException("Container padding must leave positive content width.");
                 }
 
-                return ResolveTopLevelSpacingBefore(style.SpacingBefore) + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset +
+                return ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints()) + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset.ToPoints() +
                        MeasureWithContainerPaddingReservation(style, () =>
-                           MeasureFirstNestedVisualHeight(container.Blocks, containerFrame.X + style.PaddingX, contentWidth, fontSize,
+                           MeasureFirstNestedVisualHeight(container.Blocks, containerFrame.X + style.PaddingX.ToPoints(), contentWidth, fontSize,
                                allowTableFragments, suppressParagraphSpacingBefore, closingPadding + GetUnreservedClosingPadding(style) +
-                               (closingPadding > 0D ? style.SpacingAfter : 0D)));
+                               (closingPadding > 0D ? style.SpacingAfter.ToPoints() : 0D)));
             }
 
             if (block is FlowBlock flow && !flow.IsReplayable && flow.Options.ShowIf == null && flow.StaticBlocks != null) {
@@ -437,7 +437,7 @@ internal static partial class PdfWriter {
             }
 
             if (block is MultiColumnBlock columns) {
-                double totalGap = columns.Options.Gap * (columns.Options.ColumnCount - 1);
+                double totalGap = columns.Options.Gap.ToPoints() * (columns.Options.ColumnCount - 1);
                 if (totalGap >= frameWidth) {
                     return 0D;
                 }
@@ -455,7 +455,7 @@ internal static partial class PdfWriter {
                 double headingSize = GetHeadingFontSize(heading, headingStyle);
                 double headingLeading = GetHeadingLeading(headingStyle, headingSize);
                 double spacingBefore = y < GetCurrentFramePageStartY() - 0.001D || headingStyle?.ApplySpacingBeforeAtTop == true
-                    ? headingStyle?.SpacingBefore ?? 0D
+                    ? (headingStyle?.SpacingBefore.ToPoints()) ?? 0D
                     : 0D;
                 if (HasAnchoredPictures(headingStyle?.AnchoredCanvas) || HasPictureExclusions ||
                     headingStyle?.LineSpacing?.FontLineBoxMultiplier != null && headingStyle.LineSpacing.Rule == PdfLineSpacingRule.Multiple) {
@@ -478,16 +478,16 @@ internal static partial class PdfWriter {
                 double leading = Math.Max(GetListLeading(listStyle, size), GetListLeading(listStyle, markerSize));
                 string? firstItem = list.Items.Count > 0 ? list.Items[0] : null;
                 if (firstItem == null) {
-                    return listStyle?.SpacingBefore ?? 0D;
+                    return listStyle?.SpacingBefore.ToPoints() ?? 0D;
                 }
 
                 if (listStyle?.LineSpacing?.FontLineBoxMultiplier != null && listStyle.LineSpacing.Rule == PdfLineSpacingRule.Multiple) {
                     PreparedListLayout prepared = PrepareListLayout(list, frameWidth, fontSize, topLevelSpacing: true);
                     TableCellTextLayout first = prepared.Items[0].TextLayout;
-                    return listStyle.SpacingBefore + (first.LineCount == 0 ? 0D
+                    return listStyle.SpacingBefore.ToPoints() + (first.LineCount == 0 ? 0D
                         : GetRichLineFrameFitHeight(first.Lines[0], GetRichLineHeight(first.LineHeights, 0, leading)));
                 }
-                return (listStyle?.SpacingBefore ?? 0D) + leading;
+                return (listStyle?.SpacingBefore.ToPoints() ?? 0D) + leading;
             }
 
 
@@ -501,7 +501,7 @@ internal static partial class PdfWriter {
 
             if (block is HorizontalRuleBlock rule) {
                 PdfHorizontalRuleStyle style = ResolveHorizontalRuleStyle(rule, currentOpts);
-                return ResolveTopLevelSpacingBefore(style.SpacingBefore) + style.Thickness + style.SpacingAfter;
+                return ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints()) + style.Thickness.ToPoints() + style.SpacingAfter.ToPoints();
             }
 
             if (block is TextFieldBlock textField) {
@@ -578,33 +578,33 @@ internal static partial class PdfWriter {
 
         private double MeasureImageBlockHeight(ImageBlock image, double frameWidth) {
             PdfImageStyle style = ResolveImageStyle(image, currentOpts);
-            double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
-            var box = ResolveImageFlowBox(image, style, frameWidth, spacingBefore, style.SpacingAfter);
-            return spacingBefore + box.Height + style.SpacingAfter;
+            double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints());
+            var box = ResolveImageFlowBox(image, style, frameWidth, spacingBefore, style.SpacingAfter.ToPoints());
+            return spacingBefore + box.Height + style.SpacingAfter.ToPoints();
         }
 
         private double MeasureShapeBlockHeight(ShapeBlock shape) {
             PdfDrawingStyle style = ResolveDrawingStyle(shape, currentOpts);
-            return ResolveTopLevelSpacingBefore(style.SpacingBefore) + shape.Shape.Height + style.SpacingAfter;
+            return ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints()) + shape.Shape.Height + style.SpacingAfter.ToPoints();
         }
 
         private double MeasureDrawingBlockHeight(DrawingBlock drawing, double frameWidth) {
             PdfDrawingStyle style = ResolveDrawingStyle(drawing, currentOpts);
             var box = ResolveDrawingFlowBox(drawing, style, frameWidth);
-            return ResolveTopLevelSpacingBefore(style.SpacingBefore) + box.Height + style.SpacingAfter;
+            return ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints()) + box.Height + style.SpacingAfter.ToPoints();
         }
 
 
         private double MeasureRowBlockHeight(RowBlock row, double frameX, double frameWidth, double fontSize, bool firstVisualOnly, bool includeOverlayPaint = false) {
             int columns = row.Columns.Count;
             PdfRowStyle? rowStyle = row.StyleSnapshot ?? currentOpts.DefaultRowStyleSnapshot;
-            double spacingBefore = ResolveTopLevelSpacingBefore(rowStyle?.SpacingBefore ?? 0D);
+            double spacingBefore = ResolveTopLevelSpacingBefore(rowStyle?.SpacingBefore.ToPoints() ?? 0D);
             if (columns == 0) {
-                double spacingAfter = firstVisualOnly ? 0D : rowStyle?.SpacingAfter ?? 0D;
+                double spacingAfter = firstVisualOnly ? 0D : rowStyle?.SpacingAfter.ToPoints() ?? 0D;
                 return spacingBefore + spacingAfter;
             }
 
-            double rowGap = row.GapOverride ?? rowStyle?.Gap ?? PdfRowStyle.DefaultGap;
+            double rowGap = row.GapOverride ?? ((rowStyle?.Gap)?.ToPoints()) ?? PdfRowStyle.DefaultGap.ToPoints();
             double totalGap = rowGap * Math.Max(0, columns - 1);
             if (totalGap >= frameWidth) {
                 return spacingBefore;
@@ -632,7 +632,7 @@ internal static partial class PdfWriter {
                 contentHeight = Math.Max(contentHeight, includeOverlayPaint ? measurement.PaintExtent : measurement.FlowAdvance);
             }
 
-            return spacingBefore + contentHeight + (rowStyle?.SpacingAfter ?? 0D);
+            return spacingBefore + contentHeight + (rowStyle?.SpacingAfter.ToPoints() ?? 0D);
         }
 
         private double MeasureTableBlockHeight(TableBlock table, double frameWidth, double fontSize, bool firstVisualOnly, bool allowTableFragments = false) {
@@ -734,15 +734,15 @@ internal static partial class PdfWriter {
             double frameMarginLeft = currentOpts.MarginLeft.ToPoints();
             PdfHorizontalRuleStyle ruleStyle = ResolveHorizontalRuleStyle(block, currentOpts);
             ValidateHorizontalRule(ruleStyle);
-            double spacingBefore = PlaceFixedFlowBlock("Horizontal rule", 0D, ruleStyle.Thickness,
-                ruleStyle.SpacingBefore, ruleStyle.SpacingAfter, ref containerWidth);
+            double spacingBefore = PlaceFixedFlowBlock("Horizontal rule", 0D, ruleStyle.Thickness.ToPoints(),
+                ruleStyle.SpacingBefore.ToPoints(), ruleStyle.SpacingAfter.ToPoints(), ref containerWidth);
             if (spacingBefore > 0) y -= spacingBefore;
             containerX += currentOpts.MarginLeft.ToPoints() - frameMarginLeft;
             RecordFlowPlacement(y);
-            double yLine = y - ruleStyle.Thickness * 0.5;
-            DrawHLine(sb, ruleStyle.Color, ruleStyle.Thickness, containerX, containerX + containerWidth, yLine, emitGeneratedStructure);
+            double yLine = y - ruleStyle.Thickness.ToPoints() * 0.5;
+            DrawHLine(sb, ruleStyle.Color, ruleStyle.Thickness.ToPoints(), containerX, containerX + containerWidth, yLine, emitGeneratedStructure);
             pageDirty = true;
-            y -= ruleStyle.Thickness + ruleStyle.SpacingAfter;
+            y -= ruleStyle.Thickness.ToPoints() + ruleStyle.SpacingAfter.ToPoints();
         }
 
     }

@@ -14,7 +14,7 @@ public static class PublisherPdfConversionExtensions {
         PdfDocument pdf = PdfDocument.CreateForImportedLayout(operation);
         foreach (PublisherPage page in document.Pages) {
             cancellationToken.ThrowIfCancellationRequested();
-            pdf.Compose(builder => builder.Page(surface => surface.Size(page.Width, page.Height).Margin(0)
+            pdf.Compose(builder => builder.Page(surface => surface.Size(global::OfficeIMO.OfficeLength.Points(page.Width), global::OfficeIMO.OfficeLength.Points(page.Height)).Margin(global::OfficeIMO.OfficeLength.Points(0))
                 .Canvas(canvas => canvas.Drawing(page.Drawing, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(page.Width), global::OfficeIMO.OfficeLength.Points(page.Height)))));
         }
         return new PdfDocumentConversionResult(pdf, report).WithSourceConversionReport(document.ReadReport);

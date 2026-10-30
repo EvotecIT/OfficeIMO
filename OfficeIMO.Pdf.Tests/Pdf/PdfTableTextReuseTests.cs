@@ -118,8 +118,8 @@ public sealed class PdfTableTextReuseTests {
                 new PdfMultiColumnOptions {
                     BalanceLastPage = false,
                     ColumnDefinitions = new[] {
-                        new PdfFlowColumn(PdfColumnWidth.Fixed(100), 20),
-                        new PdfFlowColumn(PdfColumnWidth.Fixed(260))
+                        new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(100)), global::OfficeIMO.OfficeLength.Points(20)),
+                        new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(260)))
                     }
                 }).ToBytes();
         }
@@ -192,7 +192,7 @@ public sealed class PdfTableTextReuseTests {
                 double offset = rowIndex < 2 ? 0 : Math.Min(70, contentWidth - 70);
                 cells[columnIndex] = new PdfTableCell(new[] {
                     PdfTextRun.Normal("Alpha beta gamma delta epsilon zeta", fontSize: ((double?)(explicitSize ? 10 : null) is double physicalLength6 ? global::OfficeIMO.OfficeLength.Points(physicalLength6) : (global::OfficeIMO.OfficeLength?)null))
-                }).WithViewport(new PdfTableCellViewport(contentWidth, 120, 70, 120, offsetX: offset));
+                }).WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(contentWidth), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(120), offsetX: global::OfficeIMO.OfficeLength.Points(offset)));
             }
             rows.Add(cells);
         }

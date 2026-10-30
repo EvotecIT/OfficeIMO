@@ -12,7 +12,7 @@ public sealed class PdfSearchableScopedAccessTests {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-ocr-scopes-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try {
-            byte[] pdf = PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).ToBytes();
+            byte[] pdf = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).ToBytes();
             var input = new ScopedWorkflowFile(root, "source.pdf", pdf);
             var output = new ScopedWorkflowFile(root, "output.pdf", pdf);
             var store = new OfficeWorkflowOutputRecoveryStore(Path.Combine(root, "recovery"));

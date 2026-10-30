@@ -34,8 +34,8 @@ public static partial class WordPdfConverterExtensions {
                 source.Descendants<W.SimpleField>().Any() || source.Descendants<W.FieldChar>().Any() ||
                 WordEquation.GetOccurrences(document, source).Count > 0) return null;
             var canvasStyle = new PdfCore.PdfCanvasTextBoxStyle {
-                Background = null, BorderColor = null, BorderWidth = 0D, PaddingX = 0D, PaddingY = 0D,
-                FontSize = (paragraphStyle.FontSize?.ToPoints()), LineHeight = paragraphStyle.LineHeight, LineSpacing = paragraphStyle.LineSpacing
+                Background = null, BorderColor = null, BorderWidth = global::OfficeIMO.OfficeLength.Points(0D), PaddingX = global::OfficeIMO.OfficeLength.Points(0D), PaddingY = global::OfficeIMO.OfficeLength.Points(0D),
+                FontSize = paragraphStyle.FontSize, LineHeight = paragraphStyle.LineHeight.HasValue ? global::OfficeIMO.OfficeLength.Points(paragraphStyle.LineHeight.Value) : (global::OfficeIMO.OfficeLength?)null, LineSpacing = paragraphStyle.LineSpacing
             };
             // A page fragment can start with any run. Measure each at the
             // canonical baseline for its effective spacing and font size.

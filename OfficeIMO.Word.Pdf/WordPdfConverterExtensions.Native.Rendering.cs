@@ -484,7 +484,7 @@ namespace OfficeIMO.Word.Pdf {
                         checkBoxes.Add(new PdfCore.PdfTableCellCheckBox(
                             GetNativeCheckBoxFieldName(control, checkBoxes.Count, "WordTableCheckBox"),
                             IsNativeCheckBoxChecked(control),
-                            size: 12D));
+                            size: global::OfficeIMO.OfficeLength.Points(12D)));
                         continue;
                     }
 
@@ -567,9 +567,9 @@ namespace OfficeIMO.Word.Pdf {
                 GetNativeContentControlFieldName(formField, formFields.Count, fallbackPrefix),
                 options,
                 value,
-                width: 150D,
-                height: 20D,
-                fontSize: 10D,
+                width: global::OfficeIMO.OfficeLength.Points(150D),
+                height: global::OfficeIMO.OfficeLength.Points(20D),
+                fontSize: global::OfficeIMO.OfficeLength.Points(10D),
                 isComboBox: true));
         }
 
@@ -608,7 +608,7 @@ namespace OfficeIMO.Word.Pdf {
                     "The picture was preserved in table-cell flow; its wrapping and anchor are outside the rectangular source profile.");
             double width = image.Width?.ToPoints() ?? 144D;
             double height = image.Height?.ToPoints() ?? 144D;
-            images.Add(new PdfCore.PdfTableCellImage(preparedBytes, width, height, CreateNativeImageStyle()));
+            images.Add(new PdfCore.PdfTableCellImage(preparedBytes, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), CreateNativeImageStyle()));
         }
 
         private static void AddNativeParagraphContent(
@@ -979,16 +979,16 @@ namespace OfficeIMO.Word.Pdf {
             var style = new PdfCore.PdfPanelStyle {
                 Background = ParseNativeColor(textBox.FillColorHex),
                 BorderColor = global::OfficeIMO.OfficeColor.Black,
-                BorderWidth = 0.75D,
-                PaddingX = 6D,
-                PaddingY = 4D,
-                SpacingAfter = 6D,
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(0.75D),
+                PaddingX = global::OfficeIMO.OfficeLength.Points(6D),
+                PaddingY = global::OfficeIMO.OfficeLength.Points(4D),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(6D),
                 Align = MapNativeTextBoxBoxAlign(textBox.HorizontalAlignment)
             };
 
             double maxWidth = textBox.Width.ToPoints();
             if (maxWidth > 0D) {
-                style.MaxWidth = maxWidth;
+                style.MaxWidth = global::OfficeIMO.OfficeLength.Points(maxWidth);
             }
 
             return style;
@@ -1092,30 +1092,30 @@ namespace OfficeIMO.Word.Pdf {
                 JustificationMode = paragraphStyle.JustificationMode,
                 JustifyExplicitLineBreaks = paragraphStyle.JustifyExplicitLineBreaks,
                 JustifyLastLine = paragraphStyle.JustifyLastLine,
-                FontSize = fontSize,
+                FontSize = global::OfficeIMO.OfficeLength.Points(fontSize),
                 LineHeight = 1.18D,
-                SpacingBefore = level == 1 ? 24D : 10D,
-                SpacingAfter = level == 1 ? 5D : 4D,
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(level == 1 ? 24D : 10D),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(level == 1 ? 5D : 4D),
                 Bold = false,
                 ApplySpacingBeforeAtTop = true,
                 KeepWithNext = true
             };
             if (ResolveNativeHeadingDeclaredFontSize(paragraph, styleDefaults) is { } declaredFontSize) {
-                style.FontSize = declaredFontSize;
+                style.FontSize = global::OfficeIMO.OfficeLength.Points(declaredFontSize);
             }
 
             if (ResolveNativeParagraphLineSpacing(paragraph, styleDefaults, nativeDefaults).Value.HasValue && paragraphStyle.LineHeight.HasValue) {
-                style.FontSize = ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults);
+                style.FontSize = global::OfficeIMO.OfficeLength.Points(ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults));
                 style.LineHeight = paragraphStyle.LineHeight.Value;
                 style.LineSpacing = paragraphStyle.LineSpacing;
             }
 
             if (HasNativeHeadingDeclaredSpacingBefore(paragraph, styleDefaults)) {
-                style.SpacingBefore = paragraphStyle.SpacingBefore.ToPoints();
+                style.SpacingBefore = paragraphStyle.SpacingBefore;
             }
 
             if (HasNativeHeadingDeclaredSpacingAfter(paragraph, styleDefaults)) {
-                style.SpacingAfter = (paragraphStyle.SpacingAfter?.ToPoints());
+                style.SpacingAfter = paragraphStyle.SpacingAfter;
             }
 
             // Headings currently use the containing margin as their text frame;

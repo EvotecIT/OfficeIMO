@@ -406,14 +406,14 @@ internal static partial class PdfWriter {
             PdfDrawingStyle style = ResolveDrawingStyle(block, currentOpts);
             PdfDocument.ValidateDrawingStyle(style, "Shape");
             double spacingBefore = PlaceFixedFlowBlock("Shape", block.Shape.Width, block.Shape.Height,
-                style.SpacingBefore, style.SpacingAfter, ref containerWidth);
+                style.SpacingBefore.ToPoints(), style.SpacingAfter.ToPoints(), ref containerWidth);
             if (spacingBefore > 0) y -= spacingBefore;
             RecordFlowPlacement(y);
             containerX += currentOpts.MarginLeft.ToPoints() - frameMarginLeft;
             int? structElementIndex = DrawShapeAt(block, style, containerX, containerWidth, y);
             AddShapeLinkAnnotation(block, style, containerX, containerWidth, y, structElementIndex);
             DrawDebugFlowObjectBox(GetAlignedObjectX(containerX, containerWidth, block.Shape.Width, style.Align), y - block.Shape.Height, block.Shape.Width, block.Shape.Height);
-            y -= block.Shape.Height + style.SpacingAfter;
+            y -= block.Shape.Height + style.SpacingAfter.ToPoints();
         }
 
         private void RenderDrawingBlock(DrawingBlock block, double containerX, double containerWidth) {
@@ -427,7 +427,7 @@ internal static partial class PdfWriter {
             int? structElementIndex = DrawDrawingAt(block, style, containerX, containerWidth, y);
             AddDrawingLinkAnnotation(block, style, containerX, containerWidth, y, structElementIndex);
             DrawDebugFlowObjectBox(GetAlignedObjectX(containerX, containerWidth, box.Width, style.Align), y - box.Height, box.Width, box.Height);
-            y -= box.Height + style.SpacingAfter;
+            y -= box.Height + style.SpacingAfter.ToPoints();
         }
 
         private void KeepFixedBlockWithNext(double objectWidth, double objectHeight, double spacingBefore, double spacingAfter,

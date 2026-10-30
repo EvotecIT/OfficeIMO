@@ -41,12 +41,12 @@ public static partial class PowerPointPdfConverterExtensions {
                 ? PdfCore.PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(Math.Max(1D, points)))
                 : PdfCore.PdfLineSpacing.Multiple(Math.Max(.01D, wrapped.LineSpacingMultiplier ?? fallbackLineHeight));
             paragraphs.Add(new PdfCore.PdfTableCellParagraph(runs,
-                spacingBefore: Math.Max(0D, wrapped.SpaceBefore?.ToPoints() ?? 0D),
-                spacingAfter: Math.Max(0D, wrapped.SpaceAfter?.ToPoints() ?? 0D),
+                spacingBefore: global::OfficeIMO.OfficeLength.Points(Math.Max(0D, wrapped.SpaceBefore?.ToPoints() ?? 0D)),
+                spacingAfter: global::OfficeIMO.OfficeLength.Points(Math.Max(0D, wrapped.SpaceAfter?.ToPoints() ?? 0D)),
                 align: MapAlign((wrapped.Alignment ?? cell.HorizontalAlignment).ToOpenXml()),
-                leftIndent: wrapped.LeftMargin?.ToPoints() ?? 0D,
-                firstLineIndent: wrapped.Indent?.ToPoints() ?? 0D,
-                fontSize: fontSize, lineSpacing: lineSpacing));
+                leftIndent: global::OfficeIMO.OfficeLength.Points(wrapped.LeftMargin?.ToPoints() ?? 0D),
+                firstLineIndent: global::OfficeIMO.OfficeLength.Points(wrapped.Indent?.ToPoints() ?? 0D),
+                fontSize: global::OfficeIMO.OfficeLength.Points(fontSize), lineSpacing: lineSpacing));
         }
         return paragraphs;
     }

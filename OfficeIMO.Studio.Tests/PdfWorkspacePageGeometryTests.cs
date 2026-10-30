@@ -10,7 +10,7 @@ public sealed partial class PdfWorkspaceTests {
         Directory.CreateDirectory(root);
         try {
             string source = Path.Combine(root, "source.pdf"), output = Path.Combine(root, "output.pdf");
-            PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400)
+            PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400))
                 .Content(content => content.Text("Rotation normalization")))).Pages.RotateBy(90).Save(source);
             using var workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None,
                 new PdfWorkspaceRecoveryStore(Path.Combine(root, "recovery")));
@@ -63,7 +63,7 @@ public sealed partial class PdfWorkspaceTests {
         try {
             string source = Path.Combine(root, "source.pdf");
             PdfDocument.Create(compose => {
-                for (int i = 0; i < 3; i++) compose.Page(page => page.Size(300, 400));
+                for (int i = 0; i < 3; i++) compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)));
             }).Save(source);
             using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None,
                 new PdfWorkspaceRecoveryStore(Path.Combine(root, "recovery")));

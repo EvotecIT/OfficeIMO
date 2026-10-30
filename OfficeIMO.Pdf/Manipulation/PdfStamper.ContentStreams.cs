@@ -7,13 +7,20 @@ internal static partial class PdfStamper {
     private static PdfStream BuildStampStream(
         string text,
         string fontResourceName,
-        double pageWidth,
-        double pageHeight,
+        PdfReadPage page,
         PdfTextStampOptions options,
         bool watermarkDefaults) {
-        double fontSize = options.FontSize;
-        double x = options.X ?? (watermarkDefaults ? (pageWidth - PdfWriter.EstimateSimpleTextWidth(text, options.Font, fontSize)) / 2.0 : 36);
-        double y = options.Y ?? (watermarkDefaults ? pageHeight / 2.0 : 36);
+        PdfPageGeometry geometry = page.GetGeometry();
+        var size = PdfReadPage.GetPageSize(geometry);
+        double userUnit = geometry.UserUnit ?? 1D;
+        double fontSize = options.FontSize.ToPoints() / userUnit;
+        // Content operators use raw user space; physical inputs are measured in points.
+        double x = options.X?.ToPoints() / userUnit ?? (watermarkDefaults
+            ? (geometry.EffectiveBox?.Left ?? 0D) + (size.Width - PdfWriter.EstimateSimpleTextWidth(text, options.Font, fontSize)) / 2D
+            : 36D / userUnit);
+        double y = options.Y?.ToPoints() / userUnit ?? (watermarkDefaults
+            ? (geometry.EffectiveBox?.Bottom ?? 0D) + size.Height / 2D
+            : 36D / userUnit);
         double radians = options.RotationDegrees * Math.PI / 180.0;
         double cos = Math.Cos(radians);
         double sin = Math.Sin(radians);
@@ -23,8 +30,8 @@ internal static partial class PdfStamper {
             .SaveState()
             .FillColor(options.Color)
             .BeginText()
-            .Font(fontResourceName, fontSize)
-            .TextMatrix(cos, sin, -sin, cos, x, y)
+            .Font(fontResourceName, fontSize, preserveLogicalPrecision: true)
+            .TextMatrix(cos, sin, -sin, cos, x, y, precisePosition: true)
             .ShowHexText(EncodeWinAnsiHex(text))
             .EndText()
             .RestoreState();
@@ -34,17 +41,24 @@ internal static partial class PdfStamper {
 
     private static PdfStream BuildImageStampStream(
         string imageResourceName,
-        double pageWidth,
-        double pageHeight,
+        PdfReadPage page,
         int pixelWidth,
         int pixelHeight,
         OfficeImageOrientation orientation,
         PdfImageStampOptions options,
         bool watermarkDefaults) {
-        double imageWidth = options.Width ?? pixelWidth;
-        double imageHeight = options.Height ?? pixelHeight;
-        double x = options.X ?? (watermarkDefaults ? (pageWidth - imageWidth) / 2.0 : 36);
-        double y = options.Y ?? (watermarkDefaults ? (pageHeight - imageHeight) / 2.0 : 36);
+        PdfPageGeometry geometry = page.GetGeometry();
+        var size = PdfReadPage.GetPageSize(geometry);
+        double userUnit = geometry.UserUnit ?? 1D;
+        // Preserve the intrinsic one-pixel-to-one-physical-point default.
+        double imageWidth = (options.Width?.ToPoints() ?? pixelWidth) / userUnit;
+        double imageHeight = (options.Height?.ToPoints() ?? pixelHeight) / userUnit;
+        double x = options.X?.ToPoints() / userUnit ?? (watermarkDefaults
+            ? (geometry.EffectiveBox?.Left ?? 0D) + (size.Width - imageWidth) / 2D
+            : 36D / userUnit);
+        double y = options.Y?.ToPoints() / userUnit ?? (watermarkDefaults
+            ? (geometry.EffectiveBox?.Bottom ?? 0D) + (size.Height - imageHeight) / 2D
+            : 36D / userUnit);
         OfficeTransform imageTransform = new OfficeImageProjection(
             new OfficeImagePlacement(x, y, imageWidth, imageHeight),
             rotationDegrees: options.RotationDegrees,
@@ -58,7 +72,7 @@ internal static partial class PdfStamper {
         var sb = new StringBuilder();
         new ContentStreamBuilder(sb)
             .SaveState()
-            .TransformMatrix(imageTransform)
+            .TransformMatrix(imageTransform.M11, imageTransform.M12, imageTransform.M21, imageTransform.M22, imageTransform.OffsetX, imageTransform.OffsetY, preciseCoordinates: true)
             .XObject(imageResourceName)
             .RestoreState();
 

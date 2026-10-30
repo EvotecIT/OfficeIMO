@@ -14,11 +14,11 @@ internal static partial class PdfWriter {
         public FlowMaterializationKey(FlowBlock flow, PdfFlowContext context) {
             _flow = flow;
             _pageNumber = context.PageNumber;
-            _availableHeight = context.AvailableHeight;
-            _fullContentHeight = context.FullContentHeight;
-            _contentWidth = context.ContentWidth;
-            _pageWidth = context.PageWidth;
-            _pageHeight = context.PageHeight;
+            _availableHeight = context.AvailableHeight.ToPoints();
+            _fullContentHeight = context.FullContentHeight.ToPoints();
+            _contentWidth = context.ContentWidth.ToPoints();
+            _pageWidth = context.PageWidth.ToPoints();
+            _pageHeight = context.PageHeight.ToPoints();
             _isAtPageTop = context.IsAtPageTop;
         }
 

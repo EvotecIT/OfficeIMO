@@ -101,7 +101,7 @@ public sealed class PdfCupsSubmissionTests {
     }
 
     private static PdfPreparedPrintDocument Prepare() => PdfPrintRenderer.Prepare(
-        PdfDocument.Create(document => document.Page(page => page.Size(100, 100).Margin(0))),
+        PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100)).Margin(global::OfficeIMO.OfficeLength.Points(0)))),
         new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(100),OfficeIMO.OfficeLength.Points(100)) },
         new PdfPrintRenderOptions { Dpi = 72 });
 }

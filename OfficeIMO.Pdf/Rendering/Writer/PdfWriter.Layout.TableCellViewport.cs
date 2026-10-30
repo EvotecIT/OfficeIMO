@@ -51,17 +51,17 @@ internal static partial class PdfWriter {
     }
 
     private static double GetTableCellContentWidth(TableCellLayout cell, double cellWidth) {
-        double width = cell.Viewport is { } viewport ? cellWidth * (viewport.ContentWidth / viewport.Width) : cellWidth;
+        double width = cell.Viewport is { } viewport ? cellWidth * (viewport.ContentWidth.ToPoints() / viewport.Width.ToPoints()) : cellWidth;
         if (double.IsInfinity(width)) throw new ArgumentOutOfRangeException(nameof(cell), "The scaled cell text viewport width must remain finite.");
         return width;
     }
 
     private static TableCellContentFrame GetTableCellContentFrame(TableCellLayout cell, double left, double top, double width, double height) {
         if (cell.Viewport is not { } viewport) return new TableCellContentFrame(left, top, width, height);
-        double fullWidth = width * (viewport.ContentWidth / viewport.Width);
-        double fullHeight = height * (viewport.ContentHeight / viewport.Height);
-        double fullLeft = left - width * (viewport.OffsetX / viewport.Width);
-        double fullTop = top + height * (viewport.OffsetY / viewport.Height);
+        double fullWidth = width * (viewport.ContentWidth.ToPoints() / viewport.Width.ToPoints());
+        double fullHeight = height * (viewport.ContentHeight.ToPoints() / viewport.Height.ToPoints());
+        double fullLeft = left - width * (viewport.OffsetX.ToPoints() / viewport.Width.ToPoints());
+        double fullTop = top + height * (viewport.OffsetY.ToPoints() / viewport.Height.ToPoints());
         if (double.IsInfinity(fullWidth) || double.IsInfinity(fullHeight) || double.IsInfinity(fullLeft) || double.IsInfinity(fullTop))
             throw new ArgumentOutOfRangeException(nameof(cell), "The scaled cell content viewport exceeds supported finite coordinates.");
         return new TableCellContentFrame(fullLeft, fullTop, fullWidth, fullHeight);

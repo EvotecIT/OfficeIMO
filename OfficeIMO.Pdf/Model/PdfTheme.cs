@@ -96,7 +96,7 @@ public sealed partial class PdfTheme {
         return new PdfTheme {
             TextStyle = new PdfTextStyle {
                 Font = PdfStandardFont.Helvetica,
-                FontSize = 11,
+                FontSize = global::OfficeIMO.OfficeLength.Points(11),
                 Color = bodyText
             },
             ParagraphStyle = new PdfParagraphStyle {
@@ -106,65 +106,65 @@ public sealed partial class PdfTheme {
             },
             HeadingStyles = new PdfHeadingStyles {
                 Level1 = new PdfHeadingStyle {
-                    FontSize = 20,
+                    FontSize = global::OfficeIMO.OfficeLength.Points(20),
                     LineHeight = 1.15,
-                    SpacingBefore = 0,
-                    SpacingAfter = 8,
+                    SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(8),
                     Color = headingText,
                     KeepWithNext = true
                 },
                 Level2 = new PdfHeadingStyle {
-                    FontSize = 16,
+                    FontSize = global::OfficeIMO.OfficeLength.Points(16),
                     LineHeight = 1.15,
-                    SpacingBefore = 12,
-                    SpacingAfter = 6,
+                    SpacingBefore = global::OfficeIMO.OfficeLength.Points(12),
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(6),
                     Color = headingText,
                     KeepWithNext = true
                 },
                 Level3 = new PdfHeadingStyle {
-                    FontSize = 13.5,
+                    FontSize = global::OfficeIMO.OfficeLength.Points(13.5),
                     LineHeight = 1.15,
-                    SpacingBefore = 8,
-                    SpacingAfter = 4,
+                    SpacingBefore = global::OfficeIMO.OfficeLength.Points(8),
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(4),
                     Color = headingText,
                     KeepWithNext = true
                 }
             },
             ListStyle = new PdfListStyle {
-                FontSize = 11,
+                FontSize = global::OfficeIMO.OfficeLength.Points(11),
                 LineHeight = 1.15,
-                LeftIndent = 18,
-                MarkerGap = 6,
-                ItemSpacing = 2,
-                SpacingAfter = 8,
+                LeftIndent = global::OfficeIMO.OfficeLength.Points(18),
+                MarkerGap = global::OfficeIMO.OfficeLength.Points(6),
+                ItemSpacing = global::OfficeIMO.OfficeLength.Points(2),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(8),
                 Color = bodyText
             },
             TableStyle = tableStyle,
             PdfPanelStyle = new PdfPanelStyle {
                 Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                 BorderColor = ruleColor,
-                BorderWidth = 0.6,
-                PaddingX = 8,
-                PaddingY = 6,
-                SpacingBefore = 2,
-                SpacingAfter = 8,
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(0.6),
+                PaddingX = global::OfficeIMO.OfficeLength.Points(8),
+                PaddingY = global::OfficeIMO.OfficeLength.Points(6),
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(2),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(8),
                 KeepTogether = true
             },
             HorizontalRuleStyle = new PdfHorizontalRuleStyle {
-                Thickness = 0.7,
+                Thickness = global::OfficeIMO.OfficeLength.Points(0.7),
                 Color = ruleColor,
-                SpacingBefore = 6,
-                SpacingAfter = 8
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(6),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
             },
             ImageStyle = new PdfImageStyle {
-                SpacingAfter = 8
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
             },
             DrawingStyle = new PdfDrawingStyle {
-                SpacingAfter = 8
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
             },
             RowStyle = new PdfRowStyle {
-                Gap = 18,
-                SpacingAfter = 8
+                Gap = global::OfficeIMO.OfficeLength.Points(18),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
             }
         };
     }
@@ -178,18 +178,18 @@ public sealed partial class PdfTheme {
         theme.PdfPanelStyle = new PdfPanelStyle {
             Background = Color(248, 250, 252),
             BorderColor = Color(203, 213, 225),
-            BorderWidth = 0.5,
-            PaddingX = 9,
-            PaddingY = 7,
-            SpacingBefore = 2,
-            SpacingAfter = 9,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+            PaddingX = global::OfficeIMO.OfficeLength.Points(9),
+            PaddingY = global::OfficeIMO.OfficeLength.Points(7),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(2),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(9),
             KeepTogether = true
         };
         theme.HorizontalRuleStyle = new PdfHorizontalRuleStyle {
             Color = Color(203, 213, 225),
-            Thickness = 0.6,
-            SpacingBefore = 8,
-            SpacingAfter = 10
+            Thickness = global::OfficeIMO.OfficeLength.Points(0.6),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(8),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(10)
         };
         return theme;
     }
@@ -202,7 +202,7 @@ public sealed partial class PdfTheme {
         global::OfficeIMO.OfficeColor bodyText = Color(31, 41, 55);
         theme.TextStyle = new PdfTextStyle {
             Font = PdfStandardFont.Helvetica,
-            FontSize = 10,
+            FontSize = global::OfficeIMO.OfficeLength.Points(10),
             Color = bodyText
         };
         theme.ParagraphStyle = new PdfParagraphStyle {
@@ -211,34 +211,34 @@ public sealed partial class PdfTheme {
             WidowControl = true
         };
         theme.ListStyle = new PdfListStyle {
-            FontSize = 10,
+            FontSize = global::OfficeIMO.OfficeLength.Points(10),
             LineHeight = 1.08,
-            LeftIndent = 15,
-            MarkerGap = 5,
-            ItemSpacing = 1,
-            SpacingAfter = 4,
+            LeftIndent = global::OfficeIMO.OfficeLength.Points(15),
+            MarkerGap = global::OfficeIMO.OfficeLength.Points(5),
+            ItemSpacing = global::OfficeIMO.OfficeLength.Points(1),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(4),
             Color = bodyText
         };
         theme.TableStyle = PdfTableStyles.Compact();
         theme.PdfPanelStyle = new PdfPanelStyle {
             Background = Color(248, 250, 252),
             BorderColor = Color(203, 213, 225),
-            BorderWidth = 0.4,
-            PaddingX = 7,
-            PaddingY = 5,
-            SpacingBefore = 1,
-            SpacingAfter = 5,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.4),
+            PaddingX = global::OfficeIMO.OfficeLength.Points(7),
+            PaddingY = global::OfficeIMO.OfficeLength.Points(5),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(1),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(5),
             KeepTogether = true
         };
         theme.HorizontalRuleStyle = new PdfHorizontalRuleStyle {
             Color = Color(226, 232, 240),
-            Thickness = 0.5,
-            SpacingBefore = 5,
-            SpacingAfter = 6
+            Thickness = global::OfficeIMO.OfficeLength.Points(0.5),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(5),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(6)
         };
         theme.RowStyle = new PdfRowStyle {
-            Gap = 14,
-            SpacingAfter = 5
+            Gap = global::OfficeIMO.OfficeLength.Points(14),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(5)
         };
         return theme;
     }
@@ -252,31 +252,31 @@ public sealed partial class PdfTheme {
         global::OfficeIMO.OfficeColor accent = Color(30, 64, 175);
         theme.TextStyle = new PdfTextStyle {
             Font = PdfStandardFont.Helvetica,
-            FontSize = 10.5,
+            FontSize = global::OfficeIMO.OfficeLength.Points(10.5),
             Color = headingText
         };
         theme.HeadingStyles = new PdfHeadingStyles {
             Level1 = new PdfHeadingStyle {
-                FontSize = 21,
+                FontSize = global::OfficeIMO.OfficeLength.Points(21),
                 LineHeight = 1.12,
-                SpacingBefore = 0,
-                SpacingAfter = 9,
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(9),
                 Color = headingText,
                 KeepWithNext = true
             },
             Level2 = new PdfHeadingStyle {
-                FontSize = 15.5,
+                FontSize = global::OfficeIMO.OfficeLength.Points(15.5),
                 LineHeight = 1.14,
-                SpacingBefore = 12,
-                SpacingAfter = 6,
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(12),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(6),
                 Color = accent,
                 KeepWithNext = true
             },
             Level3 = new PdfHeadingStyle {
-                FontSize = 12.75,
+                FontSize = global::OfficeIMO.OfficeLength.Points(12.75),
                 LineHeight = 1.15,
-                SpacingBefore = 8,
-                SpacingAfter = 4,
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(8),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(4),
                 Color = headingText,
                 KeepWithNext = true
             }
@@ -285,18 +285,18 @@ public sealed partial class PdfTheme {
         theme.PdfPanelStyle = new PdfPanelStyle {
             Background = Color(239, 246, 255),
             BorderColor = Color(191, 219, 254),
-            BorderWidth = 0.6,
-            PaddingX = 10,
-            PaddingY = 8,
-            SpacingBefore = 3,
-            SpacingAfter = 10,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.6),
+            PaddingX = global::OfficeIMO.OfficeLength.Points(10),
+            PaddingY = global::OfficeIMO.OfficeLength.Points(8),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(3),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(10),
             KeepTogether = true
         };
         theme.HorizontalRuleStyle = new PdfHorizontalRuleStyle {
             Color = Color(191, 219, 254),
-            Thickness = 0.75,
-            SpacingBefore = 8,
-            SpacingAfter = 10
+            Thickness = global::OfficeIMO.OfficeLength.Points(0.75),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(8),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(10)
         };
         return theme;
     }

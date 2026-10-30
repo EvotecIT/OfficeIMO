@@ -40,7 +40,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void AddNativeCellListSpacer(List<PdfCore.PdfTextRun> runs, double width) {
             if (width > 0.01D) {
-                runs.Add(PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineBox(width, 0.01D, borderWidth: 0D) { IsTextSpacer = true }));
+                runs.Add(PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineBox(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(0.01D), borderWidth: global::OfficeIMO.OfficeLength.Points(0D)) { IsTextSpacer = true }));
             }
         }
     }

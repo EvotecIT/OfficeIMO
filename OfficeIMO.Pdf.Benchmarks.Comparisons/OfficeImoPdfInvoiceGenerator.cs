@@ -15,11 +15,11 @@ internal static class OfficeImoPdfInvoiceGenerator {
     internal static byte[] Generate(InvoiceComparisonScenario scenario) {
         Invoice invoice = scenario.Invoice;
         PdfDocument document = PdfDocument.Create(pdf => pdf.Page(page => {
-            page.Size(PdfPageSizes.A4).Margin(42D);
-            page.DefaultTextStyle(style => style.FontSize(9.5D).Color(Navy));
+            page.Size(PdfPageSizes.A4).Margin(global::OfficeIMO.OfficeLength.Points(42D));
+            page.DefaultTextStyle(style => style.FontSize(global::OfficeIMO.OfficeLength.Points(9.5D)).Color(Navy));
             page.Content(content => content.Column(column => {
                 column.Item().Row(row => row
-                    .Style(new PdfRowStyle { Gap = 20D, SpacingAfter = 14D })
+                    .Style(new PdfRowStyle { Gap = global::OfficeIMO.OfficeLength.Points(20D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(14D) })
                     .PercentColumn(44D, left => left.Image(
                         scenario.LogoBytes,
                         global::OfficeIMO.OfficeLength.Points(180D),
@@ -43,7 +43,7 @@ internal static class OfficeImoPdfInvoiceGenerator {
                     }));
 
                 column.Item().Row(row => row
-                    .Style(new PdfRowStyle { Gap = 12D, SpacingAfter = 14D })
+                    .Style(new PdfRowStyle { Gap = global::OfficeIMO.OfficeLength.Points(12D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(14D) })
                     .PercentColumn(50D, cell => PartyCard(cell, "SELLER", invoice.Seller))
                     .PercentColumn(50D, cell => PartyCard(cell, "BUYER", invoice.Buyer)));
 
@@ -77,7 +77,7 @@ internal static class OfficeImoPdfInvoiceGenerator {
 
                 column.Item().PageBreak();
                 column.Item().Row(row => row
-                    .Style(new PdfRowStyle { Gap = 18D, SpacingAfter = 16D, KeepTogether = true })
+                    .Style(new PdfRowStyle { Gap = global::OfficeIMO.OfficeLength.Points(18D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(16D), KeepTogether = true })
                     .PercentColumn(55D, left => left.PanelParagraph(p => p
                         .Bold("Payment reference\n", Navy)
                         .Color(Muted).Text(invoice.Number + "\n" + invoice.PaymentTerms), CardStyle()))
@@ -99,7 +99,7 @@ internal static class OfficeImoPdfInvoiceGenerator {
                 column.Item().Paragraph(p => p.Text(invoice.Notes[0].Text));
                 column.Item().H2("Approvals", PdfAlign.Left, Navy);
                 column.Item().Row(row => row
-                    .Style(new PdfRowStyle { Gap = 12D })
+                    .Style(new PdfRowStyle { Gap = global::OfficeIMO.OfficeLength.Points(12D) })
                     .PercentColumn(50D, cell => Approval(cell, "PREPARED BY", "Marta Nowak", "Finance · 17/09/2026"))
                     .PercentColumn(50D, cell => Approval(cell, "APPROVED BY", "Daniel Reed", "Delivery lead · 17/09/2026")));
             }));
@@ -131,8 +131,8 @@ internal static class OfficeImoPdfInvoiceGenerator {
     private static PdfParagraphStyle Tight(double after) => new() { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(after) };
 
     private static PdfPanelStyle CardStyle() => new() {
-        Background = Surface, BorderColor = Border, BorderWidth = 0.6D, CornerRadius = 7D,
-        PaddingX = 10D, PaddingY = 9D, SpacingAfter = 0D
+        Background = Surface, BorderColor = Border, BorderWidth = global::OfficeIMO.OfficeLength.Points(0.6D), CornerRadius = global::OfficeIMO.OfficeLength.Points(7D),
+        PaddingX = global::OfficeIMO.OfficeLength.Points(10D), PaddingY = global::OfficeIMO.OfficeLength.Points(9D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D)
     };
 
     private static PdfTableStyle IdentityStyle() => new() {

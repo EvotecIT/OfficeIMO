@@ -9,9 +9,9 @@ namespace OfficeIMO.Workflows.Tests {
         public async Task ProviderOutputAppliesPublicationPolicyWithoutLocalDestinationStagingChecks(bool allowPublication) {
             using var scope = new Scope();
             string source = Path.Combine(scope.Root, "source.pdf");
-            byte[] sourceBytes = PdfDocument.Create(document => document.Page(page => page.Size(240, 320))).ToBytes();
+            byte[] sourceBytes = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)))).ToBytes();
             File.WriteAllBytes(source, sourceBytes);
-            byte[] original = PdfDocument.Create(document => document.Page(page => page.Size(120, 160).Margin(0))).ToBytes();
+            byte[] original = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(160)).Margin(global::OfficeIMO.OfficeLength.Points(0)))).ToBytes();
             byte[] destination = original;
             int writes = 0;
             const string providerLocation = "content://provider/selected";
@@ -52,7 +52,7 @@ namespace OfficeIMO.Workflows.Tests {
         public async Task LocalDestinationStagingPolicyRejectsBeforeCreatingAnUnadmittedDirectory() {
             using var scope = new Scope();
             string source = Path.Combine(scope.Root, "source.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(240, 320))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)))).Save(source);
             string unadmitted = Path.Combine(scope.Root, "unadmitted", "output.pdf");
             var guard = new DestinationGuard(Path.Combine(scope.Root, "allowed"), "content://provider/selected", true);
 

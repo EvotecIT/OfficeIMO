@@ -33,7 +33,7 @@ internal static partial class PdfWriter {
                         Heights = wrap.LineHeights,
                         Leading = leading,
                         Size = size,
-                        SpacingBefore = headingStyle?.SpacingBefore ?? 0D,
+                        SpacingBefore = (headingStyle?.SpacingBefore.ToPoints()) ?? 0D,
                         SpacingAfter = GetHeadingSpacingAfter(headingStyle, leading),
                         Bold = GetHeadingBold(headingStyle),
                         ApplySpacingBeforeAtTop = headingStyle?.ApplySpacingBeforeAtTop ?? false,
@@ -188,8 +188,8 @@ internal static partial class PdfWriter {
                     items.Add(new ColRule { Block = hr2 });
                 } else if (cb is ImageBlock ib2) {
                     PdfImageStyle imageStyle = ResolveImageStyle(ib2, currentOpts);
-                    double spacingBefore = imageStyle.SpacingBefore;
-                    var imageBox = ResolveImageFlowBox(ib2, imageStyle, columnWidth, spacingBefore, imageStyle.SpacingAfter, reservedImageHeight);
+                    double spacingBefore = imageStyle.SpacingBefore.ToPoints();
+                    var imageBox = ResolveImageFlowBox(ib2, imageStyle, columnWidth, spacingBefore, imageStyle.SpacingAfter.ToPoints(), reservedImageHeight);
                     items.Add(new ColImg { Block = ib2, Style = imageStyle, Width = imageBox.Width, Height = imageBox.Height });
                 } else if (cb is ShapeBlock sb2) {
                     items.Add(new ColShape { Block = sb2 });
@@ -314,10 +314,10 @@ internal static partial class PdfWriter {
 
         private double MeasureColItemFullHeight(ColItem item, double consumedBefore) {
             if (item is ColGroupStart groupStart) {
-                return ResolveColumnSpacingBefore(groupStart.Group.Style?.SpacingBefore ?? 0D, consumedBefore) + (groupStart.Group.Style?.TopPadding ?? 0D);
+                return ResolveColumnSpacingBefore((groupStart.Group.Style?.SpacingBefore.ToPoints()) ?? 0D, consumedBefore) + (groupStart.Group.Style?.TopPadding ?? 0D);
             }
             if (item is ColGroupEnd groupEnd) {
-                return (groupEnd.Group.Style?.BottomPadding ?? 0D) + (groupEnd.Group.Style?.SpacingAfter ?? 0D);
+                return (groupEnd.Group.Style?.BottomPadding ?? 0D) + ((groupEnd.Group.Style?.SpacingAfter.ToPoints()) ?? 0D);
             }
             if (item is ColPar paragraph) {
                 PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph.Block);
@@ -342,23 +342,23 @@ internal static partial class PdfWriter {
             if (item is ColRule rule) {
                 PdfHorizontalRuleStyle ruleStyle = ResolveHorizontalRuleStyle(rule.Block, currentOpts);
                 ValidateHorizontalRule(ruleStyle);
-                return ResolveColumnSpacingBefore(ruleStyle.SpacingBefore, consumedBefore) + ruleStyle.Thickness + ruleStyle.SpacingAfter;
+                return ResolveColumnSpacingBefore(ruleStyle.SpacingBefore.ToPoints(), consumedBefore) + ruleStyle.Thickness.ToPoints() + ruleStyle.SpacingAfter.ToPoints();
             }
 
             if (item is ColImg image) {
                 PdfImageStyle imageStyle = image.Style;
-                return ResolveColumnSpacingBefore(imageStyle.SpacingBefore, consumedBefore) + image.Height + imageStyle.SpacingAfter;
+                return ResolveColumnSpacingBefore(imageStyle.SpacingBefore.ToPoints(), consumedBefore) + image.Height + imageStyle.SpacingAfter.ToPoints();
             }
 
             if (item is ColShape shape) {
                 PdfDrawingStyle shapeStyle = ResolveDrawingStyle(shape.Block, currentOpts);
-                return ResolveColumnSpacingBefore(shapeStyle.SpacingBefore, consumedBefore) + shape.Block.Shape.Height + shapeStyle.SpacingAfter;
+                return ResolveColumnSpacingBefore(shapeStyle.SpacingBefore.ToPoints(), consumedBefore) + shape.Block.Shape.Height + shapeStyle.SpacingAfter.ToPoints();
             }
 
             if (item is ColDrawing drawing) {
                 PdfDrawingStyle drawingStyle = ResolveDrawingStyle(drawing.Block, currentOpts);
                 var box = ResolveDrawingFlowBox(drawing.Block, drawingStyle, drawing.ColumnWidth);
-                return ResolveColumnSpacingBefore(drawingStyle.SpacingBefore, consumedBefore) + box.Height + drawingStyle.SpacingAfter;
+                return ResolveColumnSpacingBefore(drawingStyle.SpacingBefore.ToPoints(), consumedBefore) + box.Height + drawingStyle.SpacingAfter.ToPoints();
             }
 
             if (item is ColForm form) {
@@ -378,7 +378,7 @@ internal static partial class PdfWriter {
 
         private double MeasureColItemFirstVisualHeight(ColItem item) {
             if (item is ColGroupStart groupStart) {
-                return (groupStart.Group.Style?.SpacingBefore ?? 0D) + (groupStart.Group.Style?.TopPadding ?? 0D) + MeasureColumnGroupFirstVisualHeight(groupStart.Group);
+                return ((groupStart.Group.Style?.SpacingBefore.ToPoints()) ?? 0D) + (groupStart.Group.Style?.TopPadding ?? 0D) + MeasureColumnGroupFirstVisualHeight(groupStart.Group);
             }
             if (item is ColGroupEnd groupEnd) return groupEnd.Group.Style?.BottomPadding ?? 0D;
             if (item is ColPar paragraph) {
@@ -402,23 +402,23 @@ internal static partial class PdfWriter {
 
             if (item is ColRule rule) {
                 PdfHorizontalRuleStyle ruleStyle = ResolveHorizontalRuleStyle(rule.Block, currentOpts);
-                return ruleStyle.SpacingBefore + ruleStyle.Thickness + ruleStyle.SpacingAfter;
+                return ruleStyle.SpacingBefore.ToPoints() + ruleStyle.Thickness.ToPoints() + ruleStyle.SpacingAfter.ToPoints();
             }
 
             if (item is ColImg image) {
                 PdfImageStyle imageStyle = image.Style;
-                return imageStyle.SpacingBefore + image.Height + imageStyle.SpacingAfter;
+                return imageStyle.SpacingBefore.ToPoints() + image.Height + imageStyle.SpacingAfter.ToPoints();
             }
 
             if (item is ColShape shape) {
                 PdfDrawingStyle shapeStyle = ResolveDrawingStyle(shape.Block, currentOpts);
-                return shapeStyle.SpacingBefore + shape.Block.Shape.Height + shapeStyle.SpacingAfter;
+                return shapeStyle.SpacingBefore.ToPoints() + shape.Block.Shape.Height + shapeStyle.SpacingAfter.ToPoints();
             }
 
             if (item is ColDrawing drawing) {
                 PdfDrawingStyle drawingStyle = ResolveDrawingStyle(drawing.Block, currentOpts);
                 var box = ResolveDrawingFlowBox(drawing.Block, drawingStyle, drawing.ColumnWidth);
-                return drawingStyle.SpacingBefore + box.Height + drawingStyle.SpacingAfter;
+                return drawingStyle.SpacingBefore.ToPoints() + box.Height + drawingStyle.SpacingAfter.ToPoints();
             }
 
             if (item is ColForm form) {

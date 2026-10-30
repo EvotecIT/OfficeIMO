@@ -49,7 +49,7 @@ public static partial class WordPdfConverterExtensions {
         if (textLeft + textWidth > exclusionLeft && textLeft < exclusionRight) return false;
 
         if (!TryCreateNativeRunningTextBoxStyle(box, inner, defaults, fontMap, out PdfCore.PdfCanvasTextBoxStyle style)) return false;
-        if (style.PaddingLeft + style.PaddingRight >= width || style.PaddingTop + style.PaddingBottom >= height) return false;
+        if ((style.PaddingLeft?.ToPoints()) + (style.PaddingRight?.ToPoints()) >= width || (style.PaddingTop?.ToPoints()) + (style.PaddingBottom?.ToPoints()) >= height) return false;
         List<PdfCore.PdfTextRun> boxRuns = CreateNativeCellParagraphRuns(inner, notes,
             NativeTableStyleDefaults.Empty, defaults, fontMap);
         if (boxRuns.Count == 0) return false;
@@ -59,7 +59,7 @@ public static partial class WordPdfConverterExtensions {
             if (!measured.HasValue) return false;
             boxTextWidth += measured.Value;
         }
-        if (boxTextWidth > width - style.PaddingLeft - style.PaddingRight) return false;
+        if (boxTextWidth > width - (style.PaddingLeft?.ToPoints()) - (style.PaddingRight?.ToPoints())) return false;
         PdfCore.PdfWriter.CanvasTextBoxMeasurement? measuredBox = fontMap.MeasureCanvasTextBox(boxRuns, width, height, style);
         if (measuredBox == null || !measuredBox.TextFits) return false;
         if (!behindDocument && !defaults.BodyTextInkTopOffset.HasValue) return false;
@@ -80,7 +80,7 @@ public static partial class WordPdfConverterExtensions {
         NativeDocumentDefaults defaults, NativeFontMap fontMap, out PdfCore.PdfCanvasTextBoxStyle style) {
         var body = box.DrawingTextBodyProperties!;
         PdfCore.PdfParagraphStyle paragraph = CreateNativeParagraphStyle(inner, defaults, fontMap);
-        style = new PdfCore.PdfCanvasTextBoxStyle { Background = null, BorderColor = null, BorderWidth = 0D };
+        style = new PdfCore.PdfCanvasTextBoxStyle { Background = null, BorderColor = null, BorderWidth = global::OfficeIMO.OfficeLength.Points(0D) };
         if (paragraph.SpacingBefore.ToPoints() is > 0D || paragraph.LeftIndent.ToPoints() != 0D || paragraph.RightIndent.ToPoints() != 0D ||
             paragraph.FirstLineIndent.ToPoints() != 0D || HasNativeUnsupportedRunningTextBoxParagraphPaint(inner)) return false;
         double left = (body.LeftInset?.Value ?? 91440) / 12700D;
@@ -88,13 +88,13 @@ public static partial class WordPdfConverterExtensions {
         double top = (body.TopInset?.Value ?? 45720) / 12700D;
         double bottom = (body.BottomInset?.Value ?? 45720) / 12700D;
         style.Align = ResolveNativeParagraphAlign(inner, allowJustify: false);
-        style.FontSize = (paragraph.FontSize?.ToPoints());
-        style.LineHeight = paragraph.LineHeight;
+        style.FontSize = paragraph.FontSize;
+        style.LineHeight = paragraph.LineHeight.HasValue ? global::OfficeIMO.OfficeLength.Points(paragraph.LineHeight.Value) : (global::OfficeIMO.OfficeLength?)null;
         style.LineSpacing = paragraph.LineSpacing;
         style.VerticalAlign = PdfCore.PdfVerticalAlign.Top;
         if (left < 0D || right < 0D || top < 0D || bottom < 0D) return false;
-        style.PaddingLeft = left; style.PaddingRight = right;
-        style.PaddingTop = top; style.PaddingBottom = bottom;
+        style.PaddingLeft = global::OfficeIMO.OfficeLength.Points(left); style.PaddingRight = global::OfficeIMO.OfficeLength.Points(right);
+        style.PaddingTop = global::OfficeIMO.OfficeLength.Points(top); style.PaddingBottom = global::OfficeIMO.OfficeLength.Points(bottom);
         var properties = box.DrawingShapeProperties;
         if (properties?.GetFirstChild<A.GradientFill>() != null || properties?.GetFirstChild<A.BlipFill>() != null ||
             properties?.GetFirstChild<A.PatternFill>() != null || properties?.GetFirstChild<A.GroupFill>() != null) return false;
@@ -111,7 +111,7 @@ public static partial class WordPdfConverterExtensions {
             style.BackgroundOpacity = shape.FillOpacity ?? 1D;
         }
         style.BorderColor = shape.StrokeColor is { } stroke ? stroke : null;
-        style.BorderWidth = shape.StrokeWidth;
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(shape.StrokeWidth);
         style.BorderDashStyle = shape.StrokeDashStyle;
         style.BorderLineCap = shape.StrokeLineCap;
         style.BorderLineJoin = shape.StrokeLineJoin;

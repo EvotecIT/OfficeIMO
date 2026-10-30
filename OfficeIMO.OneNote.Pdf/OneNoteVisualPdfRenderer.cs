@@ -43,8 +43,8 @@ internal static class OneNoteVisualPdfRenderer {
             cancellationToken.ThrowIfCancellationRequested();
             string alternativeText = string.IsNullOrWhiteSpace(reference.Page.Title) ? "Untitled OneNote page" : reference.Page.Title;
             document.Compose(pdf => pdf.Page(page => page
-                .Size(snapshot.Drawing.Width, snapshot.Drawing.Height)
-                .Margin(0D)
+                .Size(global::OfficeIMO.OfficeLength.Points(snapshot.Drawing.Width), global::OfficeIMO.OfficeLength.Points(snapshot.Drawing.Height))
+                .Margin(global::OfficeIMO.OfficeLength.Points(0D))
                 .Canvas(canvas => canvas.Image(png, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(snapshot.Drawing.Width), global::OfficeIMO.OfficeLength.Points(snapshot.Drawing.Height), alternativeText: alternativeText))));
             AddDiagnostics(reference, diagnostics, report);
         }

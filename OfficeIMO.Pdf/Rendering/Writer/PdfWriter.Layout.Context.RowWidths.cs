@@ -37,7 +37,7 @@ internal static partial class PdfWriter {
                         break;
                     case PdfColumnWidthUnit.Auto:
                         double preferred = MeasureRowColumnPreferredWidth(row.Columns[index], availableWidth);
-                        result[index] = Math.Max(width.Minimum, Math.Min(width.Maximum ?? availableWidth, preferred));
+                        result[index] = Math.Max(width.Minimum.ToPoints(), Math.Min((width.Maximum?.ToPoints()) ?? availableWidth, preferred));
                         committed += result[index];
                         automaticIndexes.Add(index);
                         break;
@@ -53,7 +53,7 @@ internal static partial class PdfWriter {
             if (overflow > 0.001D && automaticIndexes.Count > 0) {
                 for (int autoIndex = automaticIndexes.Count - 1; autoIndex >= 0 && overflow > 0.001D; autoIndex--) {
                     int index = automaticIndexes[autoIndex];
-                    double minimum = row.Columns[index].Width.Minimum;
+                    double minimum = row.Columns[index].Width.Minimum.ToPoints();
                     double reduction = Math.Min(overflow, result[index] - minimum);
                     result[index] -= reduction;
                     committed -= reduction;
@@ -95,9 +95,9 @@ internal static partial class PdfWriter {
             switch (block) {
                 case ContainerBlock container:
                     if (container.FrameTable != null) return ResolveContainerFrame(container, container.Style, 0D, availableWidth).Width;
-                    double inset = ResolveContainerStyle(container).PaddingX * 2D;
+                    double inset = ResolveContainerStyle(container).PaddingX.ToPoints() * 2D;
                     double content = container.Blocks.Count == 0 ? 0D : container.Blocks.Max(child => MeasureBlockPreferredWidth(child, Math.Max(0D, availableWidth - inset)));
-                    return Math.Min(ResolveContainerStyle(container).MaxWidth ?? availableWidth, content + inset);
+                    return Math.Min((ResolveContainerStyle(container).MaxWidth?.ToPoints()) ?? availableWidth, content + inset);
                 case SemanticBlock semantic:
                     return semantic.Blocks.Count == 0 ? 0D : semantic.Blocks.Max(child => MeasureBlockPreferredWidth(child, availableWidth));
                 case FlowBlock flow when flow.StaticBlocks != null:

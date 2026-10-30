@@ -30,7 +30,7 @@ public sealed class PdfImageColorPreservationTests {
 
         // Stamps use typed dictionaries, unlike the direct writer's string dictionaries.
         byte[] stamped = PdfStamper.StampImage(PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Stamp target")).ToBytes(), png,
-            new PdfImageStampOptions { X = 20, Y = 20, Width = 20, Height = 10 });
+            new PdfImageStampOptions { X = global::OfficeIMO.OfficeLength.Points(20), Y = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(20), Height = global::OfficeIMO.OfficeLength.Points(10) });
         AssertTaggedPng(stamped, profile, indexed);
     }
 

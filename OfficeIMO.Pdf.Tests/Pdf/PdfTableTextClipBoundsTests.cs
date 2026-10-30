@@ -25,7 +25,7 @@ public sealed class PdfTableTextClipBoundsTests {
         style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         var runs = new[] { new PdfTextRun("A") };
         var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs,
-            leftIndent: -30, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(6))) });
+            leftIndent: global::OfficeIMO.OfficeLength.Points(-30), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(6))) });
         var cells = new[] { new[] { cell } };
         var document = PdfDocument.Create(options);
         style = style.Clone();

@@ -244,8 +244,8 @@ public static class PdfBatesNumberer {
         options.Prefix + number.ToString("D" + options.MinimumDigits.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture) + options.Suffix;
 
     private static void AddNumber(PdfPageCanvas canvas, PdfStampPageContext context, string text, PdfBatesNumberingOptions options) {
-        double availableWidth = context.Width - (2D * options.HorizontalMargin);
-        if (availableWidth <= 0D || options.VerticalMargin + options.Height > context.Height) {
+        double availableWidth = context.Width.ToPoints() - (2D * options.HorizontalMargin);
+        if (availableWidth <= 0D || options.VerticalMargin + options.Height > context.Height.ToPoints()) {
             throw new InvalidOperationException("Bates-number margins leave no drawable page area.");
         }
         if (text.Contains('\r') || text.Contains('\n')) {
@@ -260,7 +260,7 @@ public static class PdfBatesNumberer {
         PdfAlign alignment = options.Position is PdfBatesPosition.BottomCenter or PdfBatesPosition.TopCenter
             ? PdfAlign.Center
             : options.Position is PdfBatesPosition.BottomRight or PdfBatesPosition.TopRight ? PdfAlign.Right : PdfAlign.Left;
-        double y = top ? options.VerticalMargin : context.Height - options.VerticalMargin - options.Height;
+        double y = top ? options.VerticalMargin : context.Height.ToPoints() - options.VerticalMargin - options.Height;
         canvas.Text(text, global::OfficeIMO.OfficeLength.Points(options.HorizontalMargin), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(availableWidth), global::OfficeIMO.OfficeLength.Points(options.Height), global::OfficeIMO.OfficeLength.Points(options.FontSize), options.Color, alignment, options.Font);
     }
 

@@ -16,14 +16,14 @@ public class PdfPanelStyle {
     }
     internal bool AlignContentToBottom { get; set; }
     private PdfAlign _align = PdfAlign.Left;
-    private double _borderWidth = 0.5;
-    private double _cornerRadius;
-    private double _paddingY = 6;
-    private double _paddingX = 6;
-    private double _fragmentBottomInset;
-    private double? _maxWidth;
-    private double _spacingBefore;
-    private double _spacingAfter = 6;
+    private global::OfficeIMO.OfficeLength _borderWidth = global::OfficeIMO.OfficeLength.Points(0.5);
+    private global::OfficeIMO.OfficeLength _cornerRadius;
+    private global::OfficeIMO.OfficeLength _paddingY = global::OfficeIMO.OfficeLength.Points(6);
+    private global::OfficeIMO.OfficeLength _paddingX = global::OfficeIMO.OfficeLength.Points(6);
+    private global::OfficeIMO.OfficeLength _fragmentBottomInset;
+    private global::OfficeIMO.OfficeLength? _maxWidth;
+    private global::OfficeIMO.OfficeLength _spacingBefore;
+    private global::OfficeIMO.OfficeLength _spacingAfter = global::OfficeIMO.OfficeLength.Points(6);
     private PdfPanelBorder? _topBorder;
     private PdfPanelBorder? _rightBorder;
     private PdfPanelBorder? _bottomBorder;
@@ -43,18 +43,18 @@ public class PdfPanelStyle {
     // Imported paragraph decoration follows the final line advance even when
     // that advance extends below the frame after its visible text has fitted.
     internal bool AllowTrailingPaddingOverflow { get; set; }
-    internal double TopPadding => PaddingTopOverride ?? PaddingY;
-    internal double BottomPadding => PaddingBottomOverride ?? PaddingY;
+    internal double TopPadding => PaddingTopOverride ?? PaddingY.ToPoints();
+    internal double BottomPadding => PaddingBottomOverride ?? PaddingY.ToPoints();
 
     /// <summary>Background fill color. Set to null for no fill.</summary>
     public global::OfficeIMO.OfficeColor? Background { get; set; }
     /// <summary>Border color. Set to null for no border.</summary>
     public global::OfficeIMO.OfficeColor? BorderColor { get; set; }
     /// <summary>Border stroke width in points.</summary>
-    public double BorderWidth {
+    public global::OfficeIMO.OfficeLength BorderWidth {
         get => _borderWidth;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(BorderWidth), "Panel border width must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(BorderWidth), "Panel border width must be a non-negative finite value.");
             _borderWidth = value;
         }
     }
@@ -63,10 +63,10 @@ public class PdfPanelStyle {
     /// the background fill and the uniform border follow rounded corners; per-side border overrides are
     /// clipped to the rounded box so they do not overrun the curve.
     /// </summary>
-    public double CornerRadius {
+    public global::OfficeIMO.OfficeLength CornerRadius {
         get => _cornerRadius;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(CornerRadius), "Panel corner radius must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(CornerRadius), "Panel corner radius must be a non-negative finite value.");
             _cornerRadius = value;
         }
     }
@@ -96,10 +96,10 @@ public class PdfPanelStyle {
     internal PdfPanelBorder? LeftBorderSnapshot => _leftBorder;
     internal bool HasSideBorders => _topBorder != null || _rightBorder != null || _bottomBorder != null || _leftBorder != null;
     /// <summary>Vertical padding inside the panel (points).</summary>
-    public double PaddingY {
+    public global::OfficeIMO.OfficeLength PaddingY {
         get => _paddingY;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(PaddingY), "Panel vertical padding must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(PaddingY), "Panel vertical padding must be a non-negative finite value.");
             _paddingY = value;
         }
     }
@@ -115,10 +115,10 @@ public class PdfPanelStyle {
     /// continuation boundary without shifting the next fragment's first line downward. Closing
     /// vertical padding can occupy this reserved space. The default is zero.
     /// </summary>
-    public double FragmentBottomInset {
+    public global::OfficeIMO.OfficeLength FragmentBottomInset {
         get => _fragmentBottomInset;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(FragmentBottomInset), "Panel fragment inset must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(FragmentBottomInset), "Panel fragment inset must be a non-negative finite value.");
             _fragmentBottomInset = value;
         }
     }
@@ -129,28 +129,28 @@ public class PdfPanelStyle {
     internal double GetFragmentBottomPadding(bool continues) =>
         RepeatFragmentDecoration || !continues ? BottomPadding : 0D;
 
-    internal double FragmentPaddingReservation => RepeatFragmentDecoration ? Math.Max(0D, BottomPadding - FragmentBottomInset) : 0D;
+    internal double FragmentPaddingReservation => RepeatFragmentDecoration ? Math.Max(0D, BottomPadding - FragmentBottomInset.ToPoints()) : 0D;
 
     internal double FullFragmentPaddingReservation => FragmentPaddingReservation +
-        Math.Max(0D, GetFragmentTopPadding(isContinuation: true) - FragmentBottomInset);
+        Math.Max(0D, GetFragmentTopPadding(isContinuation: true) - FragmentBottomInset.ToPoints());
 
-    internal double InitialFragmentImageReservation => TopPadding + Math.Max(BottomPadding, FragmentBottomInset);
+    internal double InitialFragmentImageReservation => TopPadding + Math.Max(BottomPadding, FragmentBottomInset.ToPoints());
 
     internal double GetActiveFragmentImageReservation(bool isContinuation) =>
-        Math.Max(0D, BottomPadding - FragmentBottomInset) + (!RepeatFragmentDecoration && !isContinuation ? TopPadding : 0D);
+        Math.Max(0D, BottomPadding - FragmentBottomInset.ToPoints()) + (!RepeatFragmentDecoration && !isContinuation ? TopPadding : 0D);
     /// <summary>Horizontal padding inside the panel (points).</summary>
-    public double PaddingX {
+    public global::OfficeIMO.OfficeLength PaddingX {
         get => _paddingX;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(PaddingX), "Panel horizontal padding must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(PaddingX), "Panel horizontal padding must be a non-negative finite value.");
             _paddingX = value;
         }
     }
     /// <summary>Optional maximum width for the panel box (points). When set, the box can be centered or right-aligned.</summary>
-    public double? MaxWidth {
+    public global::OfficeIMO.OfficeLength? MaxWidth {
         get => _maxWidth;
         set {
-            ValidateOptionalPositiveFiniteValue(value, nameof(MaxWidth), "Panel maximum width must be a positive finite value.");
+            ValidateOptionalPositiveFiniteValue(value?.ToPoints(), nameof(MaxWidth), "Panel maximum width must be a positive finite value.");
             _maxWidth = value;
         }
     }
@@ -163,18 +163,18 @@ public class PdfPanelStyle {
         }
     }
     /// <summary>Vertical space before the panel in the surrounding document flow, in points.</summary>
-    public double SpacingBefore {
+    public global::OfficeIMO.OfficeLength SpacingBefore {
         get => _spacingBefore;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(SpacingBefore), "Panel spacing before must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(SpacingBefore), "Panel spacing before must be a non-negative finite value.");
             _spacingBefore = value;
         }
     }
     /// <summary>Vertical space after the panel in the surrounding document flow, in points.</summary>
-    public double SpacingAfter {
+    public global::OfficeIMO.OfficeLength SpacingAfter {
         get => _spacingAfter;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(SpacingAfter), "Panel spacing after must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(SpacingAfter), "Panel spacing after must be a non-negative finite value.");
             _spacingAfter = value;
         }
     }

@@ -57,7 +57,7 @@ public sealed class PdfMirroredMarginResourceTests {
             }
         }
         return PdfDocument.Create(builder => builder.Content(content => {
-            if (nested) content.Element(element => element.Padding(2, 5).Content(AddPages));
+            if (nested) content.Element(element => element.Padding(global::OfficeIMO.OfficeLength.Points(2), global::OfficeIMO.OfficeLength.Points(5)).Content(AddPages));
             else AddPages(content);
         }), options).ToBytes();
     }

@@ -18,7 +18,7 @@ public class PdfFloatingTablePaginationRegressionTests {
             .Flow(flow => {
                 if (dynamicContent) flow.Deferred(_ => nested => nested.Paragraph(p => p.Text("first")));
                 else flow.Paragraph(p => p.Text("first"));
-            }, new PdfFlowOptions { MinimumRemainingHeight = 100 }).ToBytes());
+            }, new PdfFlowOptions { MinimumRemainingHeight = global::OfficeIMO.OfficeLength.Points(100) }).ToBytes());
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), w => w.Text == "first");
         Assert.Contains(pdf.GetPage(2).GetWords(), w => w.Text == "first");
     }
@@ -29,7 +29,7 @@ public class PdfFloatingTablePaginationRegressionTests {
         using var pdf = Pig.Open(PdfDocument.Create(Options(240))
             .Table(new[] { new[] { "floating" } }, style: Floating(320, 100))
             .Flow(flow => flow.Paragraph(p => p.Text("first")),
-                new PdfFlowOptions { KeepTogether = keepTogether, MinimumRemainingHeight = 100 }).ToBytes());
+                new PdfFlowOptions { KeepTogether = keepTogether, MinimumRemainingHeight = global::OfficeIMO.OfficeLength.Points(100) }).ToBytes());
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), w => w.Text == "first");
         Assert.Contains(pdf.GetPage(2).GetWords(), w => w.Text == "first");
     }
@@ -176,7 +176,7 @@ public class PdfFloatingTablePaginationRegressionTests {
         using var pdf = Pig.Open(PdfDocument.Create(Options()).Table(new[] { new[] { "floating" } }, style: style)
             .Paragraph(p => {
                 p.Text("\t");
-                if (inline) p.Inline(new PdfInlineBox(50, 20, background: global::OfficeIMO.OfficeColor.Black));
+                if (inline) p.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(20), background: global::OfficeIMO.OfficeColor.Black));
                 p.Text("following");
             }, style: paragraphStyle).ToBytes());
         var following = pdf.GetPage(1).GetWords().Single(w => w.Text == "following");

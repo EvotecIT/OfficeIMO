@@ -16,7 +16,7 @@ public sealed class PdfLineSpacingContinuationTests {
             var style = new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(size) };
             if (defaultStyle) options.DefaultParagraphStyle = style;
             var document = PdfDocument.Create(options);
-            document.Content.Row(row => row.Gap(10)
+            document.Content.Row(row => row.Gap(global::OfficeIMO.OfficeLength.Points(10))
                 .AutoColumn(column => column.Paragraph(p => {
                     if (explicitRunSize) p.FontSize(global::OfficeIMO.OfficeLength.Points(size));
                     p.Text("WWWW");
@@ -45,9 +45,9 @@ public sealed class PdfLineSpacingContinuationTests {
             FontSize = global::OfficeIMO.OfficeLength.Points(8), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
             LineSpacing = multiple ? PdfLineSpacing.Multiple(1) : PdfLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(20), 1)
         }), new PdfMultiColumnOptions {
-            ColumnCount = 2, Gap = 12, BalanceParagraphLines = true, BalanceLastPage = !atBoundary,
+            ColumnCount = 2, Gap = global::OfficeIMO.OfficeLength.Points(12), BalanceParagraphLines = true, BalanceLastPage = !atBoundary,
             ColumnDefinitions = atBoundary ? new[] {
-                new PdfFlowColumn(PdfColumnWidth.Fixed(148)), new PdfFlowColumn(PdfColumnWidth.Fixed(180))
+                new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(148))), new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(180)))
             } : Array.Empty<PdfFlowColumn>()
         });
         using var pdf = PdfPigDocument.Open(document.ToBytes());

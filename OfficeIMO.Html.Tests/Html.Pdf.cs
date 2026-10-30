@@ -1705,7 +1705,7 @@ public sealed class HtmlPdfTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(1, 1), 40, 50, 60, 30))
+            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(1, 1), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30)))
             .ToBytes();
         var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview
@@ -2024,10 +2024,10 @@ public sealed class HtmlPdfTests {
             })
             .Canvas(canvas => canvas.Image(
                 PdfPngTestImages.CreateRgbPng(1, 1),
-                20D,
-                30D,
-                0.5D,
-                0.25D))
+                global::OfficeIMO.OfficeLength.Points(20D),
+                global::OfficeIMO.OfficeLength.Points(30D),
+                global::OfficeIMO.OfficeLength.Points(0.5D),
+                global::OfficeIMO.OfficeLength.Points(0.25D)))
             .ToBytes();
         source = WithUserUnit(source, 10D);
 
@@ -2162,7 +2162,7 @@ public sealed class HtmlPdfTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(1, 1), 40, 50, 60, 30))
+            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(1, 1), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30)))
             .ToBytes();
     }
 

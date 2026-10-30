@@ -326,16 +326,16 @@ namespace OfficeIMO.Word.Pdf {
                 ApplyNativeParagraphJustification(justification, paragraph, alignment);
                 var cellParagraph = new PdfCore.PdfTableCellParagraph(
                     paragraphRuns,
-                    spacingAfter,
+                    global::OfficeIMO.OfficeLength.Points(spacingAfter),
                     MapNativeParagraphAlign(alignment),
-                    spacingBefore,
-                    indentation.Left,
-                    indentation.Right,
-                    indentation.FirstLine,
+                    global::OfficeIMO.OfficeLength.Points(spacingBefore),
+                    global::OfficeIMO.OfficeLength.Points(indentation.Left),
+                    global::OfficeIMO.OfficeLength.Points(indentation.Right),
+                    global::OfficeIMO.OfficeLength.Points(indentation.FirstLine),
                     lineHeight,
-                    nativeDefaults.DefaultTabStopWidth,
+                    (nativeDefaults.DefaultTabStopWidth.HasValue ? global::OfficeIMO.OfficeLength.Points(nativeDefaults.DefaultTabStopWidth.Value) : (global::OfficeIMO.OfficeLength?)null),
                     tabStops,
-                    paragraphFontSize,
+                    (paragraphFontSize.HasValue ? global::OfficeIMO.OfficeLength.Points(paragraphFontSize.Value) : (global::OfficeIMO.OfficeLength?)null),
                     lineSpacing, pagination.WidowControl, pagination.KeepTogether ?? false, pagination.KeepWithNext ?? false,
                     justification.JustificationMode, justification.JustifyExplicitLineBreaks, justification.JustifyLastLine, justification.UseWordJustificationSpacing);
                 paragraphs.Add(cellParagraph);

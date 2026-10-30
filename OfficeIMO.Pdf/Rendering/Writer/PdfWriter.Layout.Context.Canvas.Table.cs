@@ -368,10 +368,10 @@ internal static partial class PdfWriter {
                     PdfLayoutDiagnosticKind.ClippedContent,
                     "PdfCanvasTableCell",
                     "The PDF table render pass clipped cell text because wrapped content exceeded the available cell area.",
-                    cellX,
-                    cellYFromTop,
-                    cellWidth,
-                    cellHeight));
+                    global::OfficeIMO.OfficeLength.Points(cellX),
+                    global::OfficeIMO.OfficeLength.Points(cellYFromTop),
+                    global::OfficeIMO.OfficeLength.Points(cellWidth),
+                    global::OfficeIMO.OfficeLength.Points(cellHeight)));
             }
 
             double verticalOffset = 0D;

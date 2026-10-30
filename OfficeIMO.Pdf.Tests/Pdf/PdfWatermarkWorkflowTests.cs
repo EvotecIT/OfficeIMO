@@ -153,9 +153,23 @@ public sealed class PdfWatermarkWorkflowTests {
         byte[] source = Source(new PdfCreateOptions { BackgroundColor = null });
         var original = Options(image);
         original.X = null;
-        original.Y = 120;
+        original.Y = global::OfficeIMO.OfficeLength.Points(120);
+        original.Width = global::OfficeIMO.OfficeLength.Inches(2.5);
+        original.Height = global::OfficeIMO.OfficeLength.Millimeters(25.4);
+        original.FontSize = global::OfficeIMO.OfficeLength.Inches(1D / 3D);
         original.BehindContent = true;
         var first = PdfDocument.Load(source).Stamp.Watermark(original);
+        var (objects, _) = PdfSyntax.ParseObjects(first.ToBytes(), null);
+        var watermarkStream = Assert.Single(objects.Values.Select(item => item.Value).OfType<PdfStream>(),
+            stream => stream.Dictionary.Get<PdfStringObj>("OfficeIMOWatermarkId")?.Value == original.Id);
+        var metadata = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects,
+            watermarkStream.Dictionary.Items["OfficeIMOWatermarkSettings"]));
+        Assert.Equal(1D, Assert.IsType<PdfNumber>(metadata.Items["Version"]).Value);
+        Assert.Equal(180D, Assert.IsType<PdfNumber>(metadata.Items["Width"]).Value);
+        Assert.Equal(72D, Assert.IsType<PdfNumber>(metadata.Items["Height"]).Value);
+        Assert.Equal(24D, Assert.IsType<PdfNumber>(metadata.Items["FontSize"]).Value);
+        Assert.Equal(120D, Assert.IsType<PdfNumber>(metadata.Items["Y"]).Value);
+        Assert.False(metadata.Items.ContainsKey("X"));
         Assert.False(Render(source, 2).SequenceEqual(Render(first.ToBytes(), 2)));
         var reopened = PdfDocument.Load(first.ToBytes());
         var saved = Assert.Single(reopened.Stamp.ReadWatermarks());
@@ -173,12 +187,14 @@ public sealed class PdfWatermarkWorkflowTests {
         Assert.Equal(original.Color, saved.Color);
         Assert.True(saved.BehindContent);
         Assert.Equal(new[] { 2 }, saved.TargetPages!.Resolve(2));
-        saved.Width = 100;
-        saved.Y = 145;
+        saved.Width = global::OfficeIMO.OfficeLength.Points(100);
+        saved.Y = global::OfficeIMO.OfficeLength.Points(145);
+        saved.X = global::OfficeIMO.OfficeLength.Millimeters(3.175);
         var changed = reopened.Stamp.Watermark(saved);
         Assert.Single(changed.Stamp.ReadWatermarks());
-        Assert.Equal(100, changed.Stamp.ReadWatermarks()[0].Width);
-        Assert.Equal(145, changed.Stamp.ReadWatermarks()[0].Y);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(100), changed.Stamp.ReadWatermarks()[0].Width);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(145), changed.Stamp.ReadWatermarks()[0].Y);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(9), changed.Stamp.ReadWatermarks()[0].X);
         Assert.False(Render(first.ToBytes(), 2).SequenceEqual(Render(changed.ToBytes(), 2)));
         string fixture = image ? "saved-image-watermark" : "saved-text-watermark";
         PdfDocumentRasterVisualBaselineTests.WriteReviewPdfArtifact(fixture + "-before", first.ToBytes());
@@ -195,15 +211,15 @@ public sealed class PdfWatermarkWorkflowTests {
         byte[] first = PdfDocument.Load(source).Stamp.Watermark(original).ToBytes();
         var reopened = PdfDocument.Load(first);
         var saved = Assert.Single(reopened.Stamp.ReadWatermarks());
-        saved.Width = 100;
-        saved.Y = 145;
+        saved.Width = global::OfficeIMO.OfficeLength.Points(100);
+        saved.Y = global::OfficeIMO.OfficeLength.Points(145);
         byte[] changed = reopened.Stamp.Watermark(saved).ToBytes();
         var revised = Assert.Single(PdfDocument.Load(changed).Stamp.ReadWatermarks());
 
         Assert.Equal(original.Id, revised.Id);
         Assert.True(revised.BehindContent);
-        Assert.Equal(100, revised.Width);
-        Assert.Equal(145, revised.Y);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(100), revised.Width);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(145), revised.Y);
         Assert.Equal(Render(source, 2), Render(first, 2));
         Assert.Equal(Render(source, 2), Render(changed, 2));
     }
@@ -231,11 +247,11 @@ public sealed class PdfWatermarkWorkflowTests {
         var saved = Assert.Single(PdfDocument.Load(optimization.Bytes).Stamp.ReadWatermarks());
         Assert.Equal(image, saved.ImageBytes);
 
-        saved.X = 135;
+        saved.X = global::OfficeIMO.OfficeLength.Points(135);
         var revised = PdfDocument.Load(optimization.Bytes).Stamp.Watermark(saved);
         var revisedSettings = Assert.Single(revised.Stamp.ReadWatermarks());
         Assert.Equal(image, revisedSettings.ImageBytes);
-        Assert.Equal(135, revisedSettings.X);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(135), revisedSettings.X);
     }
 
     [Fact]
@@ -434,13 +450,13 @@ public sealed class PdfWatermarkWorkflowTests {
 
     private static PdfWatermarkOptions Options(bool image) => new() {
         Text = "REVIEW", ImageBytes = image ? PdfPngTestImages.CreateRgbPng(240, 20, 20) : null,
-        X = 100, Y = 160, Width = 160, Height = 60, FontSize = 24, RotationDegrees = 35,
+        X = global::OfficeIMO.OfficeLength.Points(100), Y = global::OfficeIMO.OfficeLength.Points(160), Width = global::OfficeIMO.OfficeLength.Points(160), Height = global::OfficeIMO.OfficeLength.Points(60), FontSize = global::OfficeIMO.OfficeLength.Points(24), RotationDegrees = 35,
         Color = global::OfficeIMO.OfficeColor.FromRgb(240, 20, 20), Opacity = 0.5, TargetPages = PdfPageSelector.Parse("2")
     };
 
     private static byte[] Source(PdfCreateOptions? options = null) => PdfDocument.Create(document => {
-        document.Page(page => page.Size(400, 500).Content(content => content.Text("Original first page")));
-        document.Page(page => page.Size(400, 500).Content(content => content.Text("Original second page")));
+        document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.Text("Original first page")));
+        document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.Text("Original second page")));
     }, options).ToBytes();
 
     private static byte[] CreateSolidBmp(int width, int height) {

@@ -43,7 +43,7 @@ public partial class PdfDocumentVisualQualityTests {
                 style: FragmentJustificationStyle());
         } else if (owner == "BodyColumns") {
             document.Content.Columns(addParagraph,
-                new PdfMultiColumnOptions { ColumnCount = 2, Gap = 20, BalanceLastPage = false });
+                new PdfMultiColumnOptions { ColumnCount = 2, Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false });
         } else {
             addParagraph(document.Content);
         }

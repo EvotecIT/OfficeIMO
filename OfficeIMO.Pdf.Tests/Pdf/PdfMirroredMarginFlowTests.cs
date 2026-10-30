@@ -34,7 +34,7 @@ public sealed class PdfMirroredMarginFlowTests {
                         .PercentColumn(50, column => column.Text("RightColumn")));
                     break;
                 case "container":
-                    content.Element(outer => outer.Padding(2, 7).Content(nested => nested.Element(inner => inner.Padding(2, 5).Content(body => {
+                    content.Element(outer => outer.Padding(global::OfficeIMO.OfficeLength.Points(2), global::OfficeIMO.OfficeLength.Points(7)).Content(nested => nested.Element(inner => inner.Padding(global::OfficeIMO.OfficeLength.Points(2), global::OfficeIMO.OfficeLength.Points(5)).Content(body => {
                         foreach (string marker in markers) body.Text(marker);
                     }))));
                     content.Text("AfterContainer");

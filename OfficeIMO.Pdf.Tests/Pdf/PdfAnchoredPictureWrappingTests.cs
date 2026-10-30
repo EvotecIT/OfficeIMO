@@ -205,7 +205,7 @@ public sealed class PdfAnchoredPictureWrappingTests {
             var document = PdfDocument.Create(Options());
             var style = PictureStyle(wrap ? PdfImageTextWrapKind.Square : null);
             document.Footer(footer => footer.Content(content =>
-                content.Paragraph(p => p.Text(string.Join(" ", Tokens)), style: style), 24D));
+                content.Paragraph(p => p.Text(string.Join(" ", Tokens)), style: style), global::OfficeIMO.OfficeLength.Points(24D)));
             return document.Paragraph(p => p.Text("BODY"), style: TextStyle());
         }
         using var wrapped = ReadEvidence("footer-square", Footer(true));
@@ -248,7 +248,7 @@ public sealed class PdfAnchoredPictureWrappingTests {
         options.ReportDiagnosticsTo(report);
         var document = PdfDocument.Create(options);
         document.Header(header => header.Zones(new string('M', 100), null, null)
-            .Content(content => content.Paragraph(p => p.Text("HEADER"), style: TextStyle()), 24D));
+            .Content(content => content.Paragraph(p => p.Text("HEADER"), style: TextStyle()), global::OfficeIMO.OfficeLength.Points(24D)));
         document.Paragraph(p => p.Text("BODY"), style: TextStyle());
         using var pdf = ReadEvidence("active-story-diagnostics", document);
         Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "HEADER");
@@ -265,8 +265,8 @@ public sealed class PdfAnchoredPictureWrappingTests {
         var options = Options();
         options.CreateOutlineFromHeadings = true;
         var style = new PdfHeadingStyle {
-            FontSize = 12D, Bold = false, LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(15D)),
-            SpacingBefore = 0D, SpacingAfter = 0D, KeepWithNext = false,
+            FontSize = global::OfficeIMO.OfficeLength.Points(12D), Bold = false, LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(15D)),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D), KeepWithNext = false,
             AnchoredCanvas = PictureStyle(topAndBottom ? PdfImageTextWrapKind.TopAndBottom :
                 PdfImageTextWrapKind.Square).AnchoredCanvas
         };
@@ -311,7 +311,7 @@ public sealed class PdfAnchoredPictureWrappingTests {
                     ? PictureStyle(PdfImageTextWrapKind.Square, paragraphY: false) : TextStyle())));
             pdf.Section(page => {
                 page.Header(header => header.Content(context =>
-                    content => content.Spacer(global::OfficeIMO.OfficeLength.Points(headerHeight(context))), headerDistance));
+                    content => content.Spacer(global::OfficeIMO.OfficeLength.Points(headerHeight(context))), global::OfficeIMO.OfficeLength.Points(headerDistance)));
                 page.Content(content => {
                     for (int row = 1; row <= 7; row++)
                         content.Paragraph(p => p.Text("ROW" + row), style: withPicture && movingPicture && row == 1

@@ -23,12 +23,12 @@ internal static class PdfReportVisualFixtureStyles {
                 Level3 = Heading(14D, options)
             },
             ListStyle = new PdfListStyle {
-                FontSize = options.DefaultFontSize.ToPoints(),
+                FontSize = options.DefaultFontSize,
                 LineHeight = 1.4D,
-                LeftIndent = 0D,
-                SpacingBefore = 0D,
-                ItemSpacing = leading * 0.15D,
-                SpacingAfter = leading * 0.15D,
+                LeftIndent = global::OfficeIMO.OfficeLength.Points(0D),
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D),
+                ItemSpacing = global::OfficeIMO.OfficeLength.Points(leading * 0.15D),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(leading * 0.15D),
                 Color = options.DefaultTextColor,
                 MarkerColor = options.DefaultTextColor
             }
@@ -37,12 +37,12 @@ internal static class PdfReportVisualFixtureStyles {
 
     private static PdfHeadingStyle Heading(double size, PdfCreateOptions options) => new PdfHeadingStyle {
         Font = options.DefaultFont,
-        FontSize = size,
+        FontSize = global::OfficeIMO.OfficeLength.Points(size),
         Bold = true,
         Color = options.DefaultTextColor,
         LineHeight = 1.25D,
-        SpacingBefore = 0D,
-        SpacingAfter = size * 1.25D * 0.25D,
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D),
+        SpacingAfter = global::OfficeIMO.OfficeLength.Points(size * 1.25D * 0.25D),
         KeepWithNext = true
     };
 }

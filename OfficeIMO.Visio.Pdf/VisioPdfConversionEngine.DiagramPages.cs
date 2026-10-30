@@ -23,7 +23,7 @@ internal static partial class VisioPdfConversionEngine {
         foreach (OfficeDrawing drawing in projected.Value) {
             token.ThrowIfCancellationRequested();
             pdf.Compose(document => document.Page(page => {
-                page.Size(drawing.Width, drawing.Height).Margin(0);
+                page.Size(global::OfficeIMO.OfficeLength.Points(drawing.Width), global::OfficeIMO.OfficeLength.Points(drawing.Height)).Margin(global::OfficeIMO.OfficeLength.Points(0));
                 page.Canvas(canvas => {
                     if (drawing.Elements.Count > 0) canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(drawing.Width), global::OfficeIMO.OfficeLength.Points(drawing.Height));
                 });

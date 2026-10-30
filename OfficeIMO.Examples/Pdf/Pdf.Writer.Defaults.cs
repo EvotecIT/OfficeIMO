@@ -37,8 +37,8 @@ namespace OfficeIMO.Examples.Pdf {
                     new PdfPanelStyle {
                         Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                         BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
-                        PaddingX = 9,
-                        PaddingY = 7
+                        PaddingX = global::OfficeIMO.OfficeLength.Points(9),
+                        PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                     })
                 .Table(rows)), options)
                 .Meta(title: "OfficeIMO.Pdf Default Styles", author: "OfficeIMO")

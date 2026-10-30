@@ -42,8 +42,8 @@ public class PdfDocumentVisualBaselineTests {
                 new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromRgb(245, 248, 252),
                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(150, 170, 190),
-                    PaddingX = 8,
-                    PaddingY = 7
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(8),
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                 })
             .Bullets(new[] {
                 "Readable line spacing",
@@ -112,8 +112,8 @@ public class PdfDocumentVisualBaselineTests {
                 new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
-                    PaddingX = 9,
-                    PaddingY = 7
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(9),
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                 })
             .Table(new[] {
                 new[] { "Signal", "Evidence", "Action" },
@@ -349,10 +349,10 @@ public class PdfDocumentVisualBaselineTests {
         return new PdfPanelStyle {
             Background = global::OfficeIMO.OfficeColor.FromRgb(230, 247, 238),
             BorderColor = global::OfficeIMO.OfficeColor.FromRgb(42, 132, 82),
-            BorderWidth = 1.2,
-            PaddingX = 8,
-            PaddingY = 5,
-            MaxWidth = 245
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(1.2),
+            PaddingX = global::OfficeIMO.OfficeLength.Points(8),
+            PaddingY = global::OfficeIMO.OfficeLength.Points(5),
+            MaxWidth = global::OfficeIMO.OfficeLength.Points(245)
         };
     }
 

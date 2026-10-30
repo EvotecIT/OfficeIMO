@@ -15,7 +15,7 @@ public sealed partial class PdfTableCellViewportTests {
         style.CellSpacing = global::OfficeIMO.OfficeLength.Points(0); style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(80) };
         style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(40) };
-        var viewport = new PdfTableCellViewport(50, 160, 50, 80, offsetY: 80);
+        var viewport = new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(80), offsetY: global::OfficeIMO.OfficeLength.Points(80));
         var rows = new[] {
             new[] { new PdfTableCell("FirstSpan", rowSpan: 2).WithViewport(viewport), new PdfTableCell("Row1"), new PdfTableCell("Last1") },
             new[] { new PdfTableCell("SecondSpan", rowSpan: 2).WithViewport(viewport), new PdfTableCell("Row2") },
@@ -35,12 +35,12 @@ public sealed partial class PdfTableCellViewportTests {
 
     [Fact]
     public void Fractional_fragment_dimensions_remain_contained_without_subtraction_roundoff() {
-        var horizontal = new PdfTableCellViewport(15.1 + 15.2, 24, 15.2, 24, offsetX: 15.1);
-        var vertical = new PdfTableCellViewport(100, 15.1 + 15.2, 100, 15.2, offsetY: 15.1);
-        Assert.Equal(15.1, horizontal.OffsetX);
-        Assert.Equal(15.1, vertical.OffsetY);
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTableCellViewport(30.3, 24, 15.2, 24, offsetX: 15.101));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTableCellViewport(100, 30.3, 100, 15.2, offsetY: 15.101));
+        var horizontal = new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(15.1 + 15.2), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(15.2), global::OfficeIMO.OfficeLength.Points(24), offsetX: global::OfficeIMO.OfficeLength.Points(15.1));
+        var vertical = new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(15.1 + 15.2), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(15.2), offsetY: global::OfficeIMO.OfficeLength.Points(15.1));
+        Assert.Equal(15.1, horizontal.OffsetX.ToPoints());
+        Assert.Equal(15.1, vertical.OffsetY.ToPoints());
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(30.3), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(15.2), global::OfficeIMO.OfficeLength.Points(24), offsetX: global::OfficeIMO.OfficeLength.Points(15.101)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(30.3), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(15.2), offsetY: global::OfficeIMO.OfficeLength.Points(15.101)));
     }
 
     [Theory]
@@ -81,7 +81,7 @@ public sealed partial class PdfTableCellViewportTests {
         style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         style.VerticalAlignments = new List<PdfCellVerticalAlign> { PdfCellVerticalAlign.Bottom, PdfCellVerticalAlign.Top };
         var cell = new PdfTableCell("BottomFragment", rowSpan: 2)
-            .WithViewport(new PdfTableCellViewport(100, rowHeight * 4, 100, rowHeight * 2, offsetY: rowHeight * 2));
+            .WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(rowHeight * 4), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(rowHeight * 2), offsetY: global::OfficeIMO.OfficeLength.Points(rowHeight * 2)));
         var rows = new List<PdfTableCell[]>();
         if (repeatHeader) rows.Add(new[] { new PdfTableCell("Header"), new PdfTableCell("Other") });
         rows.Add(new[] { cell, new PdfTableCell("Row1") });

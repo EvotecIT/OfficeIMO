@@ -70,7 +70,7 @@ public sealed class StudioFormsJourneyTests {
         Directory.CreateDirectory(root);
         string source = Path.Combine(root, "form.pdf"), output = Path.Combine(root, "edited.pdf");
         try {
-            byte[] original = PdfDocument.Create(compose => compose.Page(page => page.Size(300, 300)))
+            byte[] original = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300))))
                 .Forms.Edit(edit => edit.Create(new() { Name = "First", Value = "Original", Style = new() { IsMultiline = true } })
                     .Create(new() { Name = "Second", Value = "Other" })).ToBytes();
             File.WriteAllBytes(source, original);
@@ -118,7 +118,7 @@ public sealed class StudioFormsJourneyTests {
         string source = Path.Combine(root, "form.pdf");
         string output = Path.Combine(root, "authored.pdf");
         try {
-            byte[] original = PdfDocument.Create(compose => compose.Page(page => page.Size(300, 300))).ToBytes();
+            byte[] original = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).ToBytes();
             File.WriteAllBytes(source, original);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null),
                 pickSavePdf: _ => Task.FromResult<string?>(output));
@@ -150,7 +150,7 @@ public sealed class StudioFormsJourneyTests {
         Directory.CreateDirectory(root);
         string source = Path.Combine(root, "form.pdf");
         try {
-            File.WriteAllBytes(source, PdfDocument.Create(compose => compose.Page(page => page.Size(300, 300)))
+            File.WriteAllBytes(source, PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300))))
                 .Forms.Edit(edit => edit.Create(new() { Name = "Code", Value = "OK", Style = new() { MaxLength = 2 } })).ToBytes());
             byte[] original = File.ReadAllBytes(source);
             int prompts = 0;
@@ -378,7 +378,7 @@ public sealed class StudioFormsJourneyTests {
             services.Preferences.Update(current => current with { Theme = dark ? StudioThemePreference.Dark : StudioThemePreference.Light });
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "constraints.pdf");
-            File.WriteAllBytes(source, PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400)))
+            File.WriteAllBytes(source, PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400))))
                 .Forms.Edit(edit => edit
                     .Create(new() { Name = "Account.Code", Value = "", X = 30, Y = 300,
                         Style = new() { AlternateName = "Account reference", IsRequired = true, MaxLength = 3 } })
@@ -540,7 +540,7 @@ public sealed class StudioFormsJourneyTests {
     [InlineData(PdfFormFieldCreationKind.Choice)]
     [InlineData(PdfFormFieldCreationKind.RadioButtonGroup)]
     public void UnselectedFieldDoesNotInventAValue(PdfFormFieldCreationKind kind) {
-        var document = PdfDocument.Create(compose => compose.Page(page => page.Size(300, 300)))
+        var document = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300))))
             .Forms.Edit(edit => edit.Create(new() {
                 Name = "Decision", Kind = kind, ChoiceOptions = ["Accept", "Decline"],
                 X = 20, Y = 30, Width = 180, Height = 50

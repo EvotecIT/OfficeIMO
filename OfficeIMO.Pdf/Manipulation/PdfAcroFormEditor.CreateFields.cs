@@ -276,11 +276,11 @@ internal static partial class PdfAcroFormEditor {
         if (characteristics.Items.Count > 0) widget.Items["MK"] = characteristics;
 
         var border = new PdfDictionary();
-        border.Items["W"] = new PdfNumber(style.BorderWidth);
+        border.Items["W"] = new PdfNumber(style.BorderWidth.ToPoints());
         border.Items["S"] = new PdfName(GetBorderStyleName(style.BorderStyle));
         if (style.BorderDashPattern is not null && style.BorderDashPattern.Count > 0) {
             var dash = new PdfArray();
-            for (int i = 0; i < style.BorderDashPattern.Count; i++) dash.Items.Add(new PdfNumber(style.BorderDashPattern[i]));
+            for (int i = 0; i < style.BorderDashPattern.Count; i++) dash.Items.Add(new PdfNumber(style.BorderDashPattern[i].ToPoints()));
             border.Items["D"] = dash;
         }
         widget.Items["BS"] = border;

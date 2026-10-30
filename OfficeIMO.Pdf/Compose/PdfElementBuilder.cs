@@ -6,11 +6,11 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfElementBuilder {
     private readonly PdfDocument _document;
     private PdfPanelStyle _style = new PdfPanelStyle {
-        BorderWidth = 0D,
-        PaddingX = 0D,
-        PaddingY = 0D,
-        SpacingBefore = 0D,
-        SpacingAfter = 0D
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(0D),
+        PaddingX = global::OfficeIMO.OfficeLength.Points(0D),
+        PaddingY = global::OfficeIMO.OfficeLength.Points(0D),
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D),
+        SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D)
     };
     private System.Action<PdfContentBuilder>? _content;
     private PdfSemanticRole? _semanticRole;
@@ -48,18 +48,18 @@ public sealed class PdfElementBuilder {
     }
 
     /// <summary>Sets a uniform border around the element.</summary>
-    public PdfElementBuilder Border(global::OfficeIMO.OfficeColor color, double width = 1D) {
+    public PdfElementBuilder Border(global::OfficeIMO.OfficeColor color, global::OfficeIMO.OfficeLength? width = null) {
         _style.BorderColor = color;
-        _style.BorderWidth = width;
+        _style.BorderWidth = (width ?? global::OfficeIMO.OfficeLength.Points(1D));
         _hasLayoutDecoration = true;
         return this;
     }
 
     /// <summary>Sets equal padding on every side, in points.</summary>
-    public PdfElementBuilder Padding(double value) => Padding(value, value);
+    public PdfElementBuilder Padding(global::OfficeIMO.OfficeLength value) => Padding(value, value);
 
     /// <summary>Sets vertical and horizontal padding, in points.</summary>
-    public PdfElementBuilder Padding(double vertical, double horizontal) {
+    public PdfElementBuilder Padding(global::OfficeIMO.OfficeLength vertical, global::OfficeIMO.OfficeLength horizontal) {
         _style.PaddingY = vertical;
         _style.PaddingX = horizontal;
         _hasLayoutDecoration = true;
@@ -67,7 +67,7 @@ public sealed class PdfElementBuilder {
     }
 
     /// <summary>Constrains the element to a maximum width, in points.</summary>
-    public PdfElementBuilder MaxWidth(double value) {
+    public PdfElementBuilder MaxWidth(global::OfficeIMO.OfficeLength value) {
         _style.MaxWidth = value;
         _hasLayoutDecoration = true;
         return this;
@@ -81,7 +81,7 @@ public sealed class PdfElementBuilder {
     }
 
     /// <summary>Sets the outer vertical spacing before and after the element, in points.</summary>
-    public PdfElementBuilder Spacing(double before = 0D, double after = 0D) {
+    public PdfElementBuilder Spacing(global::OfficeIMO.OfficeLength before = default, global::OfficeIMO.OfficeLength after = default) {
         _style.SpacingBefore = before;
         _style.SpacingAfter = after;
         _hasLayoutDecoration = true;

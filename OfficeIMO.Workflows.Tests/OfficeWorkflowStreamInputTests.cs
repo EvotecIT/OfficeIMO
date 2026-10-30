@@ -219,7 +219,7 @@ public sealed class OfficeWorkflowStreamInputTests {
     }
 
     private static byte[] CreatePdf(int count, int width = 300) => PdfDocument.Create(compose => {
-        for (int index = 0; index < count; index++) compose.Page(page => page.Size(width, 500));
+        for (int index = 0; index < count; index++) compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(500)));
     }).ToBytes();
 
     private sealed class Source(byte[] bytes) {

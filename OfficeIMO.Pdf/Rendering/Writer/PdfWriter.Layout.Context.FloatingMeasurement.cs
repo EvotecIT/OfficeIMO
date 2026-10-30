@@ -8,7 +8,7 @@ internal static partial class PdfWriter {
                     SemanticBlock semantic => semantic.Blocks,
                     LayerBlock layer => layer.Blocks,
                     FlowBlock flow when !flow.IsReplayable && !flow.Options.KeepTogether && flow.Options.ShowIf == null &&
-                        flow.Options.MinimumRemainingHeight == 0 && flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.Continue => flow.StaticBlocks,
+                        flow.Options.MinimumRemainingHeight.ToPoints() == 0 && flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.Continue => flow.StaticBlocks,
                     _ => null
                 };
                 if (nested != null) {

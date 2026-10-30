@@ -143,10 +143,10 @@ public class PdfFloatingTableLayoutTests {
         var finalPage = pdf.GetPage(pdf.NumberOfPages);
         var firstContinuedWord = finalPage.GetWords().First(word => word.Text.StartsWith("line"));
         var region = capture.Regions.Single(item => item.PageNumber == pdf.NumberOfPages);
-        Assert.Equal(320, region.Width, 3);
-        Assert.True(region.Y + region.Height >= firstContinuedWord.BoundingBox.Top);
+        Assert.Equal(320, region.Width.ToPoints(), 3);
+        Assert.True(region.Y.ToPoints() + region.Height.ToPoints() >= firstContinuedWord.BoundingBox.Top);
         var floating = finalPage.GetWords().Single(word => word.Text == "floating");
-        Assert.True(region.Y <= floating.BoundingBox.Bottom);
+        Assert.True(region.Y.ToPoints() <= floating.BoundingBox.Bottom);
     }
 
     [Theory]
@@ -184,9 +184,9 @@ public class PdfFloatingTableLayoutTests {
         document.ToBytes();
         Assert.Equal(2, capture.Regions.Count);
         Assert.All(capture.Regions, region => {
-            Assert.Equal(120, region.Width, 3);
-            Assert.Equal(90, region.Height, 3);
-            Assert.Equal(110, region.Y, 3);
+            Assert.Equal(120, region.Width.ToPoints(), 3);
+            Assert.Equal(90, region.Height.ToPoints(), 3);
+            Assert.Equal(110, region.Y.ToPoints(), 3);
         });
     }
 
@@ -255,9 +255,9 @@ public class PdfFloatingTableLayoutTests {
         else document.Flow(flow => flow.Table(new[] { new[] { "floating" } }, style: style), capture: capture);
         document.ToBytes();
         var region = Assert.Single(capture.Regions);
-        Assert.Equal(80, region.Height, 3);
-        Assert.Equal(120, region.Width, 3);
-        Assert.Equal(330, region.Y, 3);
+        Assert.Equal(80, region.Height.ToPoints(), 3);
+        Assert.Equal(120, region.Width.ToPoints(), 3);
+        Assert.Equal(330, region.Y.ToPoints(), 3);
     }
 
     [Theory]
@@ -294,7 +294,7 @@ public class PdfFloatingTableLayoutTests {
     public void WideInlineElementMovesBelowFloat() {
         byte[] bytes = PdfDocument.Create(Options())
             .Table(new[] { new[] { "floating" } }, style: Floating())
-            .Paragraph(paragraph => paragraph.Inline(new PdfInlineBox(250, 20, background: global::OfficeIMO.OfficeColor.Black)).Text("after"))
+            .Paragraph(paragraph => paragraph.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(250), global::OfficeIMO.OfficeLength.Points(20), background: global::OfficeIMO.OfficeColor.Black)).Text("after"))
             .ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "after");
@@ -361,7 +361,7 @@ public class PdfFloatingTableLayoutTests {
     public void LaterWideInlineContentDoesNotDisplaceEarlierTextLines() {
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options()).Table(new[] { new[] { "floating" } }, style: Floating())
             .Paragraph(paragraph => paragraph.Text("early\nordinary\n")
-                .Inline(new PdfInlineBox(250, 70, background: global::OfficeIMO.OfficeColor.Black)).Text("late")).ToBytes());
+                .Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(250), global::OfficeIMO.OfficeLength.Points(70), background: global::OfficeIMO.OfficeColor.Black)).Text("late")).ToBytes());
         var words = pdf.GetPage(1).GetWords().ToList();
         var early = words.Single(word => word.Text == "early");
         var ordinary = words.Single(word => word.Text == "ordinary");
@@ -501,7 +501,7 @@ public class PdfFloatingTableLayoutTests {
     public void NestedTablesDistinguishPageMarginAndFlowAnchors(PdfTableAnchor anchor, double expected) {
         var table = Floating(); table.Position = new PdfTablePosition(horizontalAnchor: anchor);
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options()).Panel(panel => panel.Table(new[] { new[] { "nested" } }, style: table),
-            new PdfPanelStyle { MaxWidth = 200, Align = PdfAlign.Right, PaddingX = 10, PaddingY = 0, KeepTogether = false }).ToBytes());
+            new PdfPanelStyle { MaxWidth = global::OfficeIMO.OfficeLength.Points(200), Align = PdfAlign.Right, PaddingX = global::OfficeIMO.OfficeLength.Points(10), PaddingY = global::OfficeIMO.OfficeLength.Points(0), KeepTogether = false }).ToBytes());
         Assert.Equal(expected, pdf.GetPage(1).GetWords().Single(word => word.Text == "nested").BoundingBox.Left, 1);
     }
 

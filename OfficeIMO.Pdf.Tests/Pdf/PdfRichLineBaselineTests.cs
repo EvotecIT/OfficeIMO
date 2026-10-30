@@ -67,15 +67,15 @@ public sealed class PdfRichLineBaselineTests {
         else if (frame == "canvas") {
             var runs = mixed ? new[] { Run("A\n", 8), Run("B\n", 24), Run("C", 8) } : new[] { Run("A", 24) };
             document.Canvas(canvas => canvas.TextBox(runs, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(240), new PdfCanvasTextBoxStyle {
-                Font = PdfStandardFont.TimesRoman, FontSize = 8, LineHeight = 8 * 1.4,
-                PaddingX = 0, PaddingY = 0, Background = null, BorderColor = null
+                Font = PdfStandardFont.TimesRoman, FontSize = global::OfficeIMO.OfficeLength.Points(8), LineHeight = global::OfficeIMO.OfficeLength.Points(8 * 1.4),
+                PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0), Background = null, BorderColor = null
             }));
         }
         else {
             var runs = mixed
                 ? new[] { Run("A\n", 8), Run("B\n", 24), Run("C", 8) }
                 : new[] { Run("A", 24) };
-            var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: 8, lineSpacing: style.LineSpacing) },
+            var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: global::OfficeIMO.OfficeLength.Points(8), lineSpacing: style.LineSpacing) },
                 linkUri: frame == "linked-table" ? "https://example.com/cell" : null);
             var tableStyle = PdfTableStyles.Minimal();
             tableStyle.HeaderRowCount = 0; tableStyle.FontSize = global::OfficeIMO.OfficeLength.Points(8);

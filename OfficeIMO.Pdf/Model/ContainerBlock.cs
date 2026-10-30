@@ -35,14 +35,14 @@ internal sealed class ContainerBlock : IPdfBlock {
         double topBorderThickness = frame.Border?.Top == true ? frame.Border.TopBorderSnapshot?.PaintThickness ?? 0D : 0D;
         Style = new PdfPanelStyle {
             Background = frame.Background,
-            PaddingX = frame.Spacing + frame.HorizontalInset, PaddingY = frame.Spacing,
+            PaddingX = global::OfficeIMO.OfficeLength.Points(frame.Spacing + frame.HorizontalInset), PaddingY = global::OfficeIMO.OfficeLength.Points(frame.Spacing),
             PaddingTopOverride = frame.Spacing + topBorderThickness,
             // A continued body row starts at half the gap; repeated headers
             // preserve the first fragment's complete leading spacing.
             ContinuationPaddingTopOverride = (repeatsHeader ? frame.Spacing : frame.Spacing / 2D) + topBorderThickness,
             PaddingBottomOverride = frame.Spacing + (frame.Border?.Bottom == true ? frame.Border.BottomBorderSnapshot?.PaintThickness ?? 0D : 0D),
-            FragmentBottomInset = frame.Spacing + (frame.Border?.Bottom == true ? frame.Border.BottomBorderSnapshot?.PaintThickness ?? 0D : 0D),
-            SpacingBefore = source.SpacingBefore.ToPoints(), SpacingAfter = source.SpacingAfter.ToPoints(),
+            FragmentBottomInset = global::OfficeIMO.OfficeLength.Points(frame.Spacing + (frame.Border?.Bottom == true ? frame.Border.BottomBorderSnapshot?.PaintThickness ?? 0D : 0D)),
+            SpacingBefore = source.SpacingBefore, SpacingAfter = source.SpacingAfter,
             KeepTogether = source.KeepTogether, KeepWithNext = source.KeepWithNext
         };
         if (frame.ReserveCellBorderOutsets) {
@@ -54,7 +54,7 @@ internal sealed class ContainerBlock : IPdfBlock {
             Style.PaddingTopOverride = first;
             Style.ContinuationPaddingTopOverride = first;
             Style.PaddingBottomOverride = last;
-            Style.FragmentBottomInset = bottomReservation;
+            Style.FragmentBottomInset = global::OfficeIMO.OfficeLength.Points(bottomReservation);
             FrameTableContinuationBottomPadding = bottomReservation;
         }
         PdfTableStyle innerStyle = source.Clone();

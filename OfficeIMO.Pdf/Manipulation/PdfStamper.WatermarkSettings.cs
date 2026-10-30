@@ -9,17 +9,17 @@ internal static partial class PdfStamper {
         var result = new PdfDictionary();
         result.Items["Version"] = new PdfNumber(1);
         result.Items["Text"] = new PdfStringObj(options.Text, useTextStringEncoding: true);
-        result.Items["Width"] = new PdfNumber(options.Width);
-        result.Items["Height"] = new PdfNumber(options.Height);
-        result.Items["FontSize"] = new PdfNumber(options.FontSize);
+        result.Items["Width"] = new PdfNumber(options.Width.ToPoints());
+        result.Items["Height"] = new PdfNumber(options.Height.ToPoints());
+        result.Items["FontSize"] = new PdfNumber(options.FontSize.ToPoints());
         result.Items["Font"] = new PdfNumber((int)options.Font);
         result.Items["Rotation"] = new PdfNumber(options.RotationDegrees);
         result.Items["Opacity"] = new PdfNumber(options.Opacity);
         result.Items["R"] = new PdfNumber(options.Color.ToNormalizedRgb().R);
         result.Items["G"] = new PdfNumber(options.Color.ToNormalizedRgb().G);
         result.Items["B"] = new PdfNumber(options.Color.ToNormalizedRgb().B);
-        if (options.X is { } x) result.Items["X"] = new PdfNumber(x);
-        if (options.Y is { } y) result.Items["Y"] = new PdfNumber(y);
+        if (options.X is { } x) result.Items["X"] = new PdfNumber(x.ToPoints());
+        if (options.Y is { } y) result.Items["Y"] = new PdfNumber(y.ToPoints());
         if (options.ImageBytes is { } image) {
             int imageNumber = checked(nextObjectNumber++);
             objects[imageNumber] = new PdfIndirectObject(imageNumber, 0, new PdfStream(new PdfDictionary(), image));
@@ -51,10 +51,13 @@ internal static partial class PdfStamper {
                         ?? throw new InvalidDataException("Watermark settings are incomplete.");
                     var options = new PdfWatermarkOptions {
                         Id = id, Text = settings.Get<PdfStringObj>("Text")?.Value ?? string.Empty,
-                        Width = Number("Width"), Height = Number("Height"), FontSize = Number("FontSize"),
+                        Width = global::OfficeIMO.OfficeLength.Points(Number("Width")),
+                        Height = global::OfficeIMO.OfficeLength.Points(Number("Height")),
+                        FontSize = global::OfficeIMO.OfficeLength.Points(Number("FontSize")),
                         Font = (PdfStandardFont)(int)Number("Font"), RotationDegrees = Number("Rotation"),
                         Opacity = Number("Opacity"), Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(Number("R"), Number("G"), Number("B")),
-                        X = settings.Get<PdfNumber>("X")?.Value, Y = settings.Get<PdfNumber>("Y")?.Value,
+                        X = settings.Get<PdfNumber>("X") is { } x ? global::OfficeIMO.OfficeLength.Points(x.Value) : (global::OfficeIMO.OfficeLength?)null,
+                        Y = settings.Get<PdfNumber>("Y") is { } y ? global::OfficeIMO.OfficeLength.Points(y.Value) : (global::OfficeIMO.OfficeLength?)null,
                         BehindContent = stream.Dictionary.Get<PdfBoolean>("OfficeIMOWatermarkBehind")?.Value ?? false
                     };
                     if (settings.Items.TryGetValue("Image", out var imageObject)) {

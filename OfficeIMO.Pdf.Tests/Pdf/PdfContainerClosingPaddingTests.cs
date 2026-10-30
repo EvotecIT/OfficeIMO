@@ -36,12 +36,12 @@ namespace OfficeIMO.Tests.Pdf {
                 LineSpacing = PdfLineSpacing.Multiple(lineAdvance / 10D).WithFontLineBoxBaseline(1.4D)
             };
             var firstStyle = new PdfPanelStyle {
-                PaddingX = 0D, PaddingY = 0D, PaddingBottomOverride = padding,
-                SpacingBefore = 0D, SpacingAfter = 0D, BorderContinuesWithNext = true,
+                PaddingX = global::OfficeIMO.OfficeLength.Points(0D), PaddingY = global::OfficeIMO.OfficeLength.Points(0D), PaddingBottomOverride = padding,
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D), BorderContinuesWithNext = true,
                 Background = global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0), BorderColor = global::OfficeIMO.OfficeColor.Black
             };
             var nextStyle = new PdfPanelStyle {
-                PaddingX = 0D, PaddingY = 0D, SpacingBefore = 0D, SpacingAfter = 0D,
+                PaddingX = global::OfficeIMO.OfficeLength.Points(0D), PaddingY = global::OfficeIMO.OfficeLength.Points(0D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D),
                 FrameStartPaddingTopOverride = 0D, KeepTogether = true
             };
             return PdfDocument.Create(options)

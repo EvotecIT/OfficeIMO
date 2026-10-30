@@ -110,7 +110,7 @@ public partial class PdfDocumentVisualQualityTests {
                 "KeepListLast"
             }, style: new PdfListStyle {
                 KeepTogether = true,
-                SpacingAfter = 0
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
             .ToBytes();
 
@@ -145,8 +145,8 @@ public partial class PdfDocumentVisualQualityTests {
                 "KeepListSecond"
             }, style: new PdfListStyle {
                 KeepWithNext = true,
-                ItemSpacing = 0,
-                SpacingAfter = 0
+                ItemSpacing = global::OfficeIMO.OfficeLength.Points(0),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
             .Paragraph(p => p.Text("FollowingListBody"))
             .ToBytes();
@@ -310,7 +310,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
             DefaultRowStyle = new PdfRowStyle {
-                Gap = 18
+                Gap = global::OfficeIMO.OfficeLength.Points(18)
             }
         };
 
@@ -418,15 +418,15 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         var heading2 = new PdfHeadingStyle {
-            FontSize = 12,
+            FontSize = global::OfficeIMO.OfficeLength.Points(12),
             LineHeight = 1.2,
-            SpacingAfter = 2,
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(2),
             KeepWithNext = true
         };
         var heading3 = new PdfHeadingStyle {
-            FontSize = 11,
+            FontSize = global::OfficeIMO.OfficeLength.Points(11),
             LineHeight = 1.2,
-            SpacingAfter = 2,
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(2),
             KeepWithNext = true
         };
 
@@ -471,9 +471,9 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .H2("RuleChainTopHeading")
             .HR(style: new PdfHorizontalRuleStyle {
-                Thickness = 0.5,
-                SpacingBefore = 0,
-                SpacingAfter = 4,
+                Thickness = global::OfficeIMO.OfficeLength.Points(0.5),
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(4),
                 KeepWithNext = true
             })
             .H3("RuleChainSubHeading")
@@ -546,8 +546,8 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .H3("PanelSignalHeading")
             .PanelParagraph(p => p.Text("PanelSignalBody"), new PdfPanelStyle {
-                PaddingY = 5,
-                SpacingAfter = 0
+                PaddingY = global::OfficeIMO.OfficeLength.Points(5),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
             .ToBytes();
 
@@ -579,8 +579,8 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .PanelParagraph(p => p.Text("PanelKeepWithNext"), new PdfPanelStyle {
                 KeepWithNext = true,
-                PaddingY = 5,
-                SpacingAfter = 0
+                PaddingY = global::OfficeIMO.OfficeLength.Points(5),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
             .Paragraph(p => p.Text("FollowingPanelBody"))
             .ToBytes();
@@ -613,8 +613,8 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .PanelParagraph(p => p.Text("PanelChainKeepWithNext"), new PdfPanelStyle {
                 KeepWithNext = true,
-                PaddingY = 5,
-                SpacingAfter = 0
+                PaddingY = global::OfficeIMO.OfficeLength.Points(5),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
             .H3("FollowingPanelHeading")
             .Paragraph(p => p.Text("FollowingPanelChainBody"))
@@ -676,7 +676,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
             DefaultRowStyle = new PdfRowStyle {
-                Gap = 18
+                Gap = global::OfficeIMO.OfficeLength.Points(18)
             }
         };
 

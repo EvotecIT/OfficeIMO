@@ -18,10 +18,10 @@ public sealed class PdfNonFlowTableMeasurementTests {
             }
             if (layout == "row") content.Row(row => row.PercentColumn(100D, AddStory));
             else if (layout == "panel") content.Panel(AddStory, new PdfPanelStyle {
-                PaddingX = 0, PaddingY = 0, SpacingBefore = 0, SpacingAfter = 0, KeepTogether = true
+                PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepTogether = true
             });
             else AddStory(content);
-        }, 36D));
+        }, global::OfficeIMO.OfficeLength.Points(36D)));
         document.Paragraph(paragraph => paragraph.Text("BODY"));
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -47,10 +47,10 @@ public sealed class PdfNonFlowTableMeasurementTests {
                 }
                 if (layout == "row") content.Row(row => row.PercentColumn(100D, AddStory));
                 else if (layout == "panel") content.Panel(AddStory, new PdfPanelStyle {
-                    PaddingX = 0, PaddingY = 0, SpacingBefore = 0, SpacingAfter = 0, KeepTogether = true
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepTogether = true
                 });
                 else AddStory(content);
-            }, 48D));
+            }, global::OfficeIMO.OfficeLength.Points(48D)));
             return document.Paragraph(paragraph => paragraph.Text("BODY")).ToBytes();
         }
 
@@ -71,9 +71,9 @@ public sealed class PdfNonFlowTableMeasurementTests {
     public void ZeroFlowTableOnlyRunningContentStillPaints(bool header) {
         var document = PdfDocument.Create(Options());
         if (header) document.Header(story => story.Content(content =>
-            content.Table(new[] { new[] { "OVERLAY" } }, style: OverlayStyle(18D)), 48D));
+            content.Table(new[] { new[] { "OVERLAY" } }, style: OverlayStyle(18D)), global::OfficeIMO.OfficeLength.Points(48D)));
         else document.Footer(story => story.Content(content =>
-            content.Table(new[] { new[] { "OVERLAY" } }, style: OverlayStyle(18D)), 48D));
+            content.Table(new[] { new[] { "OVERLAY" } }, style: OverlayStyle(18D)), global::OfficeIMO.OfficeLength.Points(48D)));
         document.Paragraph(paragraph => paragraph.Text("BODY"));
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -132,7 +132,7 @@ public sealed class PdfNonFlowTableMeasurementTests {
                     columns.Style(new PdfRowStyle { KeepTogether = true }).PercentColumn(100D, AddSequence);
                 } else {
                     columns.PercentColumn(100D, flow => flow.Panel(AddSequence, new PdfPanelStyle {
-                        PaddingX = 0, PaddingY = 0, SpacingBefore = 0, SpacingAfter = 0, KeepTogether = true
+                        PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepTogether = true
                     }));
                 }
             });
@@ -164,7 +164,7 @@ public sealed class PdfNonFlowTableMeasurementTests {
                     if (rowKeepsNext) flow.Table(new[] { new[] { "OVERLAY" } }, PdfAlign.Right, OverlayStyle(36D));
                     else flow.Panel(panel => panel.Table(new[] { new[] { "OVERLAY" } }, PdfAlign.Right, OverlayStyle(36D)),
                         new PdfPanelStyle {
-                            PaddingX = 0, PaddingY = 0, SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = true
+                            PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepWithNext = true
                         });
                     if (!rowKeepsNext) flow.Paragraph(paragraph => paragraph.Text("FOLLOWING"), style: ParagraphStyle());
                 });

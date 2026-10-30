@@ -97,7 +97,7 @@ internal static partial class PdfWriter {
                 paragraph.LineHeight,
                 paragraph.DefaultTabStopWidth,
                 paragraph.TabStops,
-                ScaleTableFontSizeForShrink(paragraph.FontSize, runFontSizeScale, minimumShrinkFontSize),
+                (ScaleTableFontSizeForShrink((paragraph.FontSize?.ToPoints()), runFontSizeScale, minimumShrinkFontSize) is { } points2810874636 ? global::OfficeIMO.OfficeLength.Points(points2810874636) : (global::OfficeIMO.OfficeLength?)null),
                 paragraph.LineSpacing, paragraph.WidowControl, paragraph.KeepTogether, paragraph.KeepWithNext,
                 paragraph.JustificationMode, paragraph.JustifyExplicitLineBreaks, paragraph.JustifyLastLine, paragraph.UseWordJustificationSpacing));
         }
@@ -149,18 +149,18 @@ internal static partial class PdfWriter {
             }
 
             int firstNewLineIndex = lines.Count;
-            if (paragraph.SpacingBefore > 0D) {
+            if (paragraph.SpacingBefore.ToPoints() > 0D) {
                 if (lineHeights.Count > 0) {
-                    lineHeights[lineHeights.Count - 1] += paragraph.SpacingBefore;
+                    lineHeights[lineHeights.Count - 1] += paragraph.SpacingBefore.ToPoints();
                 } else {
-                    topSpacing = paragraph.SpacingBefore;
+                    topSpacing = paragraph.SpacingBefore.ToPoints();
                 }
             }
 
             if (wrap.Lines.Count > 0 && wrap.Lines[0] is RichLine firstBarLine)
-                firstBarLine.BarSpacingBefore = paragraph.SpacingBefore;
+                firstBarLine.BarSpacingBefore = paragraph.SpacingBefore.ToPoints();
             if (wrap.Lines.Count > 0 && wrap.Lines[wrap.Lines.Count - 1] is RichLine lastBarLine)
-                lastBarLine.BarSpacingAfter = paragraph.SpacingAfter;
+                lastBarLine.BarSpacingAfter = paragraph.SpacingAfter.ToPoints();
             lines.AddRange(wrap.Lines);
             paragraphRanges.Add(new TableCellParagraphRange(paragraph, firstNewLineIndex, wrap.Lines.Count));
             lineHeights.AddRange(wrap.LineHeights);
@@ -181,9 +181,9 @@ internal static partial class PdfWriter {
                 MarkRichLineHardBreak(lines[lines.Count - 1]);
             }
 
-            if (paragraph.SpacingAfter > 0D && lineHeights.Count > firstNewLineIndex) {
+            if (paragraph.SpacingAfter.ToPoints() > 0D && lineHeights.Count > firstNewLineIndex) {
                 int lastParagraphLineIndex = lineHeights.Count - 1;
-                lineHeights[lastParagraphLineIndex] += paragraph.SpacingAfter;
+                lineHeights[lastParagraphLineIndex] += paragraph.SpacingAfter.ToPoints();
             }
         }
 
@@ -205,18 +205,18 @@ internal static partial class PdfWriter {
         double safeWidth = double.IsNaN(availableWidth) || double.IsInfinity(availableWidth)
             ? minimumTextWidth
             : System.Math.Min(maximumSafeIndentMagnitude, System.Math.Max(minimumTextWidth, availableWidth));
-        double leftIndent = System.Math.Max(-maximumSafeIndentMagnitude, System.Math.Min(paragraph.LeftIndent, safeWidth - minimumTextWidth));
-        double rightIndent = System.Math.Max(-maximumSafeIndentMagnitude, System.Math.Min(paragraph.RightIndent, safeWidth - leftIndent - minimumTextWidth));
+        double leftIndent = System.Math.Max(-maximumSafeIndentMagnitude, System.Math.Min(paragraph.LeftIndent.ToPoints(), safeWidth - minimumTextWidth));
+        double rightIndent = System.Math.Max(-maximumSafeIndentMagnitude, System.Math.Min(paragraph.RightIndent.ToPoints(), safeWidth - leftIndent - minimumTextWidth));
         double textWidth = System.Math.Max(minimumTextWidth, safeWidth - leftIndent - rightIndent);
-        double firstLineIndent = System.Math.Max(-maximumSafeIndentMagnitude, System.Math.Min(paragraph.FirstLineIndent, textWidth - minimumTextWidth));
+        double firstLineIndent = System.Math.Max(-maximumSafeIndentMagnitude, System.Math.Min(paragraph.FirstLineIndent.ToPoints(), textWidth - minimumTextWidth));
         var style = new PdfParagraphStyle {
-            FontSize = ((paragraph.FontSize) is { } pdfLength12128 ? global::OfficeIMO.OfficeLength.Points(pdfLength12128) : (global::OfficeIMO.OfficeLength?)null),
+            FontSize = paragraph.FontSize,
             LineSpacing = paragraph.LineSpacing,
             LineHeight = paragraph.LineHeight,
             LeftIndent = global::OfficeIMO.OfficeLength.Points(leftIndent),
             RightIndent = global::OfficeIMO.OfficeLength.Points(rightIndent),
             FirstLineIndent = global::OfficeIMO.OfficeLength.Points(firstLineIndent),
-            DefaultTabStopWidth = ((paragraph.DefaultTabStopWidth) is { } pdfLength12401 ? global::OfficeIMO.OfficeLength.Points(pdfLength12401) : (global::OfficeIMO.OfficeLength?)null),
+            DefaultTabStopWidth = paragraph.DefaultTabStopWidth,
             JustificationMode = paragraph.JustificationMode,
             JustifyExplicitLineBreaks = paragraph.JustifyExplicitLineBreaks,
             JustifyLastLine = paragraph.JustifyLastLine,

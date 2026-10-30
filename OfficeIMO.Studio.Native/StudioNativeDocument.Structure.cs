@@ -171,7 +171,7 @@ internal sealed partial class StudioNativeDocument {
         RequirePageContent();
         if (string.IsNullOrWhiteSpace(edit.Text)) throw new ArgumentException("Enter the watermark's text.", nameof(edit));
         var options = new PdfWatermarkOptions {
-            Text = edit.Text.Trim(), FontSize = Bounded(edit.FontSize ?? 42D, 6D, 288D, "font size"),
+            Text = edit.Text.Trim(), FontSize = global::OfficeIMO.OfficeLength.Points(Bounded(edit.FontSize ?? 42D, 6D, 288D, "font size")),
             Opacity = Bounded(edit.Opacity ?? 0.35D, 0.05D, 1D, "opacity"), RotationDegrees = Bounded(edit.Rotation ?? -35D, -180D, 180D, "angle"),
             BehindContent = edit.BehindContent
         };

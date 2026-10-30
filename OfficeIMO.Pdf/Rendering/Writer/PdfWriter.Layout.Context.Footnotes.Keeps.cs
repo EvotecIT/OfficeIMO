@@ -57,7 +57,7 @@ internal static partial class PdfWriter {
                 PdfHeadingStyle? style = ResolveHeadingStyle(heading, currentOpts);
                 double size = GetHeadingFontSize(heading, style);
                 double before = y < GetCurrentFramePageStartY() - .001D || style?.ApplySpacingBeforeAtTop == true
-                    ? style?.SpacingBefore ?? 0D : 0D;
+                    ? (style?.SpacingBefore.ToPoints()) ?? 0D : 0D;
                 var savedPictures = pictureAnchors.Working.ToArray();
                 try {
                     var wrap = WrapHeadingForFrame(heading, CreateHeadingTextRuns(heading, style, heading.Color ?? style?.Color),
@@ -75,7 +75,7 @@ internal static partial class PdfWriter {
             if (block is ContainerBlock container) {
                 PdfPanelStyle style = ResolveContainerStyle(container);
                 var frame = ResolveContainerFrame(container, style, frameX, frameWidth);
-                return FirstNestedFootnoteSegments(container.Blocks, frame.X + style.PaddingX, frame.ContentWidth);
+                return FirstNestedFootnoteSegments(container.Blocks, frame.X + style.PaddingX.ToPoints(), frame.ContentWidth);
             }
             if (block is TableBlock table) return GetFirstTableFootnoteSegments(table);
             if (block is FlowBlock { StaticBlocks: { } flow }) return FirstNestedFootnoteSegments(flow, frameX, frameWidth);

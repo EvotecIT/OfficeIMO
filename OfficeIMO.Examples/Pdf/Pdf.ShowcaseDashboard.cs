@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Pdf {
             PdfDocument.Create(document => {
                     #region Excerpt:executive-pdf-dashboard
                     document.Page(page => {
-                        page.Size(PdfPageSizes.A4).Landscape().Margin(42, 38, 42, 42);
+                        page.Size(PdfPageSizes.A4).Landscape().Margin(global::OfficeIMO.OfficeLength.Points(42), global::OfficeIMO.OfficeLength.Points(38), global::OfficeIMO.OfficeLength.Points(42), global::OfficeIMO.OfficeLength.Points(42));
                         page.DefaultParagraphStyle(new PdfParagraphStyle { LineHeight = 1.18, SpacingAfter = global::OfficeIMO.OfficeLength.Points(5) });
                         page.Content(content => {
                             content.Item(item => item.H1("Quarterly operations dashboard", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42)));
@@ -35,7 +35,7 @@ namespace OfficeIMO.Examples.Pdf {
 
                             // Four KPI panels share the row width.
                             content.Row(row => {
-                                row.Gap(14)
+                                row.Gap(global::OfficeIMO.OfficeLength.Points(14))
                                     .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(22)).Bold("94.2%").FontSize(global::OfficeIMO.OfficeLength.Points(9.5)).Text("\nSLA attainment (target 92%)"), MetricPanel(global::OfficeIMO.OfficeColor.FromRgb(236, 253, 245), global::OfficeIMO.OfficeColor.FromRgb(22, 163, 74)), PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52)))
                                     .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(22)).Bold("1.8 h").FontSize(global::OfficeIMO.OfficeLength.Points(9.5)).Text("\nMean first response"), MetricPanel(global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255), global::OfficeIMO.OfficeColor.FromRgb(37, 99, 235)), PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175)))
                                     .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(22)).Bold("37").FontSize(global::OfficeIMO.OfficeLength.Points(9.5)).Text("\nOpen escalations"), MetricPanel(global::OfficeIMO.OfficeColor.FromRgb(255, 251, 235), global::OfficeIMO.OfficeColor.FromRgb(217, 119, 6)), PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(146, 64, 14)))
@@ -46,7 +46,7 @@ namespace OfficeIMO.Examples.Pdf {
 
                             // Chart and table on the left, narrative and decisions on the right.
                             content.Row(row => {
-                                row.Gap(18)
+                                row.Gap(global::OfficeIMO.OfficeLength.Points(18))
                                     .PercentColumn(58, column => {
                                         column.Paragraph(p => p.Bold("Tickets resolved per month"), style: SectionLabel());
                                         column.Drawing(CreateTrendDrawing(), PdfAlign.Left, spacingBefore: global::OfficeIMO.OfficeLength.Points(2), spacingAfter: global::OfficeIMO.OfficeLength.Points(8));
@@ -59,16 +59,16 @@ namespace OfficeIMO.Examples.Pdf {
                                             new PdfPanelStyle {
                                                 Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                                                 BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
-                                                BorderWidth = 0.7,
-                                                PaddingX = 10,
-                                                PaddingY = 8
+                                                BorderWidth = global::OfficeIMO.OfficeLength.Points(0.7),
+                                                PaddingX = global::OfficeIMO.OfficeLength.Points(10),
+                                                PaddingY = global::OfficeIMO.OfficeLength.Points(8)
                                             });
                                         column.Bullets(new[] {
                                             "Resolved tickets: 2,617, up from 2,274 last quarter.",
                                             "Security and Billing answer in about an hour.",
                                             "Integrations answers in 3.1 h against a 2 h goal.",
                                             "No critical blockers are open at quarter end."
-                                        }, style: new PdfListStyle { SpacingAfter = 4, ItemSpacing = 2 });
+                                        }, style: new PdfListStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(4), ItemSpacing = global::OfficeIMO.OfficeLength.Points(2) });
                                         column.Table(CreateDecisionRows(), style: DecisionTableStyle());
                                     });
                             });
@@ -92,9 +92,9 @@ namespace OfficeIMO.Examples.Pdf {
             return new PdfPanelStyle {
                 Background = background,
                 BorderColor = border,
-                BorderWidth = 0.8,
-                PaddingX = 10,
-                PaddingY = 8
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(0.8),
+                PaddingX = global::OfficeIMO.OfficeLength.Points(10),
+                PaddingY = global::OfficeIMO.OfficeLength.Points(8)
             };
         }
 

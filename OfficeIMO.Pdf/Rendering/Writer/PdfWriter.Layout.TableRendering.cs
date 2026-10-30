@@ -16,7 +16,7 @@ internal static partial class PdfWriter {
 
     private static void RenderTableCellInlineCheckBox(LayoutResult.Page page, TableCellLayout cell, PdfColumnAlign align, System.Collections.Generic.IReadOnlyList<RichSeg> line, double textX, double innerWidth, double baselineY) {
         PdfTableCellCheckBox checkBox = cell.CheckBoxes[0];
-        double size = checkBox.Size;
+        double size = checkBox.Size.ToPoints();
         double lineWidth = MeasureRichLineWidth(line);
         double lineX = align switch {
             PdfColumnAlign.Center => textX + System.Math.Max(0D, (innerWidth - lineWidth) / 2D),
@@ -92,7 +92,7 @@ internal static partial class PdfWriter {
                 yCursor -= TableCellCheckBoxGap;
             }
 
-            double size = checkBox.Size;
+            double size = checkBox.Size.ToPoints();
             double x = align switch {
                 PdfColumnAlign.Center => textX + (innerWidth - size) / 2D,
                 PdfColumnAlign.Right => textX + innerWidth - size,

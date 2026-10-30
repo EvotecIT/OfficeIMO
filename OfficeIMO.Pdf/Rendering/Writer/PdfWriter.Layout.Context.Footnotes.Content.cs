@@ -85,21 +85,21 @@ internal static partial class PdfWriter {
                     case HorizontalRuleBlock rule:
                         PdfHorizontalRuleStyle ruleStyle = ResolveHorizontalRuleStyle(rule, currentOpts);
                         ValidateHorizontalRule(ruleStyle);
-                        units.Add(new FootnoteUnit { Block = rule, Before = ruleStyle.SpacingBefore, Advance = ruleStyle.Thickness,
-                            After = ruleStyle.SpacingAfter, X = frameX, Width = frameWidth, Panels = panels });
+                        units.Add(new FootnoteUnit { Block = rule, Before = ruleStyle.SpacingBefore.ToPoints(), Advance = ruleStyle.Thickness.ToPoints(),
+                            After = ruleStyle.SpacingAfter.ToPoints(), X = frameX, Width = frameWidth, Panels = panels });
                         keepWithNext = ruleStyle.KeepWithNext;
                         break;
                     case ImageBlock image:
                         PdfImageStyle imageStyle = ResolveImageStyle(image, currentOpts);
                         PdfDocument.ValidateImageStyleForBox(imageStyle, image.Width, image.Height, nameof(imageStyle.ClipPath));
                         double scale = imageStyle.ScaleDownToFit ? Math.Min(1D, Math.Min(frameWidth / image.Width,
-                            Math.Max(0D, currentOpts.PageHeight.ToPoints() - currentOpts.MarginTop.ToPoints() - currentOpts.MarginBottom.ToPoints() - imageStyle.SpacingBefore - imageStyle.SpacingAfter) / image.Height)) : 1D;
+                            Math.Max(0D, currentOpts.PageHeight.ToPoints() - currentOpts.MarginTop.ToPoints() - currentOpts.MarginBottom.ToPoints() - imageStyle.SpacingBefore.ToPoints() - imageStyle.SpacingAfter.ToPoints()) / image.Height)) : 1D;
                         if (scale <= 0D) throw new ArgumentException("Footnote image spacing leaves no available page body height.");
                         PdfDocument.ValidateImageFitDimensions(image.Info, imageStyle.Fit, nameof(imageStyle.Fit));
                         var box = (Width: image.Width * scale, Height: image.Height * scale);
                         if (box.Width > frameWidth + .001D) throw new ArgumentException("Footnote image exceeds the available page body width.");
-                        units.Add(new FootnoteUnit { Block = image, Before = imageStyle.SpacingBefore, Advance = box.Height,
-                            After = imageStyle.SpacingAfter, Width = box.Width, FrameX = frameX, FrameWidth = frameWidth, Panels = panels });
+                        units.Add(new FootnoteUnit { Block = image, Before = imageStyle.SpacingBefore.ToPoints(), Advance = box.Height,
+                            After = imageStyle.SpacingAfter.ToPoints(), Width = box.Width, FrameX = frameX, FrameWidth = frameWidth, Panels = panels });
                         keepWithNext = imageStyle.KeepWithNext;
                         break;
                     default:
@@ -128,8 +128,8 @@ internal static partial class PdfWriter {
                 }
             } else if (unit.Block is HorizontalRuleBlock rule) {
                 PdfHorizontalRuleStyle style = ResolveHorizontalRuleStyle(rule, currentOpts);
-                DrawHLine(sb, style.Color, style.Thickness, (originX ?? currentOpts.MarginLeft.ToPoints()) + unit.X,
-                    (originX ?? currentOpts.MarginLeft.ToPoints()) + unit.X + unit.Width, top - style.Thickness / 2D, emitGeneratedStructure);
+                DrawHLine(sb, style.Color, style.Thickness.ToPoints(), (originX ?? currentOpts.MarginLeft.ToPoints()) + unit.X,
+                    (originX ?? currentOpts.MarginLeft.ToPoints()) + unit.X + unit.Width, top - style.Thickness.ToPoints() / 2D, emitGeneratedStructure);
             }
             pageDirty = true;
             top -= unit.Advance + unit.After;

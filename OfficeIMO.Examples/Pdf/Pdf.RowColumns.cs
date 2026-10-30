@@ -30,8 +30,8 @@ namespace OfficeIMO.Examples.Pdf {
                                 column.Item().Paragraph(p => p.Text("A compact visual gate for explicit fixed, content-sized, and relative columns with first-class gutters."));
                             });
                             content.Row(row => {
-                                row.Gap(18);
-                                row.FixedColumn(112, column => column
+                                row.Gap(global::OfficeIMO.OfficeLength.Points(18));
+                                row.FixedColumn(global::OfficeIMO.OfficeLength.Points(112), column => column
                                     .H2("Status")
                                     .Paragraph(p => p
                                         .Text("The left column carries operational copy with comfortable wrapping, spacing, and no collision with the neighboring column."))
@@ -44,8 +44,8 @@ namespace OfficeIMO.Examples.Pdf {
                                         new PdfPanelStyle {
                                             Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                                             BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
-                                            PaddingX = 7,
-                                            PaddingY = 5,
+                                            PaddingX = global::OfficeIMO.OfficeLength.Points(7),
+                                            PaddingY = global::OfficeIMO.OfficeLength.Points(5),
                                             KeepTogether = true
                                         })
                                     .RoundedRectangle(global::OfficeIMO.OfficeLength.Points(96), global::OfficeIMO.OfficeLength.Points(5), global::OfficeIMO.OfficeLength.Points(2.5), strokeColor: global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52), strokeWidth: global::OfficeIMO.OfficeLength.Points(0), fillColor: global::OfficeIMO.OfficeColor.FromRgb(22, 163, 74), spacingBefore: global::OfficeIMO.OfficeLength.Points(8), spacingAfter: global::OfficeIMO.OfficeLength.Points(8))
@@ -54,7 +54,7 @@ namespace OfficeIMO.Examples.Pdf {
                                         .Text("row gutters are part of the composition model instead of caller-managed whitespace.")));
                                 row.AutoColumn(column => column
                                     .H2("Owner")
-                                    .Text("Operations"), maximum: 82);
+                                    .Text("Operations"), maximum: global::OfficeIMO.OfficeLength.Points(82));
                                 row.RelativeColumn(column => column
                                     .H2("Next")
                                     .Paragraph(p => p

@@ -98,8 +98,8 @@ public partial class PdfDocumentVisualQualityTests {
     public void TableBlock_SnapshotsMutableCellImageStyle() {
         var image = new PdfTableCellImage(
             PdfPngTestImages.CreateRgbaPng(24, 48, 72, 255),
-            12,
-            12,
+            global::OfficeIMO.OfficeLength.Points(12),
+            global::OfficeIMO.OfficeLength.Points(12),
             new PdfImageStyle { AlternativeText = "Original logo" });
         PdfTableCell cell = PdfTableCell.WithImages("Logo", new[] { image });
         var block = new TableBlock(new[] { new[] { cell } }, PdfAlign.Left, null);

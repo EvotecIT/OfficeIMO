@@ -141,7 +141,7 @@ public partial class RichParagraphWrappingTests {
         var owner = PdfDocument.Create(TrailingTabOptions());
         PdfFootnoteDefinition note = owner.Content.DefineFootnote(body => body.Text("NOTE"));
         var fieldStyle = new PdfFormFieldStyle {
-            BackgroundColor = null, BorderColor = null, BorderWidth = 0D
+            BackgroundColor = null, BorderColor = null, BorderWidth = global::OfficeIMO.OfficeLength.Points(0D)
         };
         var field = new PdfInlineFormField(PdfCanvasFormFieldItem.Text(
             "AfterTab", "Y", "Y", 0, 0, 1, 12, 12, fieldStyle, fieldStyle));
@@ -205,7 +205,7 @@ public partial class RichParagraphWrappingTests {
                     tabLeader: PdfTabLeaderStyle.Underscores)
         };
         runs.Add(inline
-            ? PdfTextRun.Inline(new PdfInlineBox(10D, 10D, background: global::OfficeIMO.OfficeColor.Black))
+            ? PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), background: global::OfficeIMO.OfficeColor.Black))
             : PdfTextRun.Normal("X", fontSize: global::OfficeIMO.OfficeLength.Points(12D), font: PdfStandardFont.Helvetica));
         return PdfDocument.Create(TrailingTabOptions())
             .Paragraph(paragraph => paragraph.Runs(runs), style: style)

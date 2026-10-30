@@ -242,7 +242,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
             // Isolate Helvetica glyph advances from theme indentation and marker spacing.
-            DefaultListStyle = new PdfListStyle { FontSize = 10, LeftIndent = 0, MarkerGap = 2.78 }
+            DefaultListStyle = new PdfListStyle { FontSize = global::OfficeIMO.OfficeLength.Points(10), LeftIndent = global::OfficeIMO.OfficeLength.Points(0), MarkerGap = global::OfficeIMO.OfficeLength.Points(2.78) }
         };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -308,7 +308,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
             // Isolate Helvetica glyph advances from theme indentation and marker spacing.
-            DefaultListStyle = new PdfListStyle { FontSize = 10, LeftIndent = 0, MarkerGap = 2.78 }
+            DefaultListStyle = new PdfListStyle { FontSize = global::OfficeIMO.OfficeLength.Points(10), LeftIndent = global::OfficeIMO.OfficeLength.Points(0), MarkerGap = global::OfficeIMO.OfficeLength.Points(2.78) }
         };
 
         byte[] bytes = PdfDocument.Create(options)

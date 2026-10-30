@@ -64,7 +64,7 @@ public sealed class PdfCreationOfficeThemeTests {
 
     [Fact]
     public void ExplicitOptionsAndBlockRunsWinAndCallerMutationDoesNotChangeSavedOutput() {
-        var headings = new PdfHeadingStyles { Level1 = new PdfHeadingStyle { FontSize = 17, Color = OfficeColor.Black } };
+        var headings = new PdfHeadingStyles { Level1 = new PdfHeadingStyle { FontSize = global::OfficeIMO.OfficeLength.Points(17), Color = OfficeColor.Black } };
         var tableStyle = new PdfTableStyle { FontSize = global::OfficeIMO.OfficeLength.Points(13), HeaderFontSize = global::OfficeIMO.OfficeLength.Points(13), HeaderFill = OfficeColor.White };
         var options = new PdfCreateOptions {
             Theme = OfficeTheme.Classic,
@@ -91,7 +91,7 @@ public sealed class PdfCreationOfficeThemeTests {
         };
         using var document = PdfDocument.Create(options);
         document.Content.H1("OptionHeading")
-            .H1("BlockHeading", new PdfHeadingStyle { FontSize = 19 })
+            .H1("BlockHeading", new PdfHeadingStyle { FontSize = global::OfficeIMO.OfficeLength.Points(19) })
             .Text("OptionBody")
             .Paragraph(paragraph => paragraph.FontSize(global::OfficeIMO.OfficeLength.Points(7)).Color(OfficeColor.Black).Text("RunBody"))
             .Table(new[] { new { Item = "TableBody" } });
@@ -101,10 +101,10 @@ public sealed class PdfCreationOfficeThemeTests {
         options.Margins = PdfPageMargins.Uniform(OfficeLength.Inches(1));
         options.HeaderOffsetY = OfficeLength.Inches(0.25);
         options.FooterFontSize = OfficeLength.Points(20);
-        headings.Level1 = new PdfHeadingStyle { FontSize = 60 };
+        headings.Level1 = new PdfHeadingStyle { FontSize = global::OfficeIMO.OfficeLength.Points(60) };
         tableStyle.FontSize = global::OfficeIMO.OfficeLength.Points(60);
         PdfHeadingStyles detached = document.Options.DefaultHeadingStyles!;
-        detached.Level1 = new PdfHeadingStyle { FontSize = 70 };
+        detached.Level1 = new PdfHeadingStyle { FontSize = global::OfficeIMO.OfficeLength.Points(70) };
         using var independent = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(17D, Word(independent, "OptionHeading")[0].PointSize, 2);
         Assert.Equal(19D, Word(independent, "BlockHeading")[0].PointSize, 2);
@@ -271,8 +271,8 @@ public sealed class PdfCreationOfficeThemeTests {
         PdfTheme style = PdfTheme.FromOfficeTheme(theme);
         PdfHeadingStyles first = style.HeadingStyles!;
         Assert.Equal(theme.Palette.Accent1, first.Level1!.Color);
-        first.Level1 = new PdfHeadingStyle { FontSize = 70 };
-        Assert.Equal(theme.TypeScale.Heading1.ToPoints(), style.HeadingStyles!.Level1!.FontSize);
+        first.Level1 = new PdfHeadingStyle { FontSize = global::OfficeIMO.OfficeLength.Points(70) };
+        Assert.Equal(theme.TypeScale.Heading1.ToPoints(), (style.HeadingStyles!.Level1!.FontSize?.ToPoints()));
         Assert.Throws<ArgumentNullException>(() => PdfTheme.FromOfficeTheme(null!));
     }
 

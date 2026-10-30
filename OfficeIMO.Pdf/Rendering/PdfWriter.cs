@@ -1679,14 +1679,14 @@ internal static partial class PdfWriter {
         var sb = new StringBuilder();
         foreach (PdfPageBackgroundShape backgroundShape in shapes) {
             OfficeIMO.Drawing.OfficeShape shape = backgroundShape.Shape;
-            DrawHeaderFooterShapeGeometryAt(sb, page, shape, backgroundShape.X, backgroundShape.Y);
+            DrawHeaderFooterShapeGeometryAt(sb, page, shape, backgroundShape.X.ToPoints(), backgroundShape.Y.ToPoints());
         }
 
         return sb.ToString();
     }
 
     private static void AppendPageBorder(StringBuilder sb, PdfCreateOptions options, PdfPageBorder border, string? graphicsStateName) {
-        double inset = border.Inset;
+        double inset = border.Inset.ToPoints();
         double pathX = inset;
         double pathY = inset;
         double pathWidth = options.PageWidth.ToPoints() - (inset * 2D);
@@ -1703,8 +1703,8 @@ internal static partial class PdfWriter {
 
         content
             .StrokeColor(border.Color)
-            .LineWidth(border.Width);
-        ApplyStrokeStyle(content, border.DashStyle, border.Width, strokeLineCap: null, strokeLineJoin: null);
+            .LineWidth(border.Width.ToPoints());
+        ApplyStrokeStyle(content, border.DashStyle, border.Width.ToPoints(), strokeLineCap: null, strokeLineJoin: null);
         content
             .Rectangle(pathX, pathY, pathWidth, pathHeight)
             .StrokePath()
@@ -1741,8 +1741,8 @@ internal static partial class PdfWriter {
     }
 
     private static void AddImageWatermark(LayoutResult.Page page, PdfCreateOptions options, PdfImageWatermark watermark) {
-        double x = (options.PageWidth.ToPoints() - watermark.Width) / 2D;
-        double y = (options.PageHeight.ToPoints() - watermark.Height) / 2D;
+        double x = (options.PageWidth.ToPoints() - watermark.Width.ToPoints()) / 2D;
+        double y = (options.PageHeight.ToPoints() - watermark.Height.ToPoints()) / 2D;
         string? stateName = watermark.Opacity < 1D
             ? EnsureHeaderFooterGraphicsState(page, watermark.Opacity, watermark.Opacity)
             : null;
@@ -1753,8 +1753,8 @@ internal static partial class PdfWriter {
             PreparedStream = watermark.PreparedStream,
             X = x,
             Y = y,
-            W = watermark.Width,
-            H = watermark.Height,
+            W = watermark.Width.ToPoints(),
+            H = watermark.Height.ToPoints(),
             IsBackgroundDecoration = true,
             Opacity = watermark.Opacity,
             RotationAngle = watermark.RotationAngle,
@@ -1775,14 +1775,14 @@ internal static partial class PdfWriter {
     private static void AppendTextWatermark(StringBuilder sb, PdfCreateOptions options, PdfTextWatermark watermark, string fontAlias, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, string? graphicsStateName) {
         PdfStandardFont baseFont = ChooseNormal(watermark.Font);
         System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildTextWatermarkRuns(watermark, options);
-        double textWidth = MeasureTextWatermarkRuns(runs, baseFont, watermark.FontSize, options);
+        double textWidth = MeasureTextWatermarkRuns(runs, baseFont, watermark.FontSize.ToPoints(), options);
         double angle = watermark.RotationAngle * System.Math.PI / 180D;
         double cos = System.Math.Cos(angle);
         double sin = System.Math.Sin(angle);
         double centerX = options.PageWidth.ToPoints() / 2D;
         double centerY = options.PageHeight.ToPoints() / 2D;
-        double originX = centerX - cos * textWidth / 2D + sin * watermark.FontSize / 2D;
-        double originY = centerY - sin * textWidth / 2D - cos * watermark.FontSize / 2D;
+        double originX = centerX - cos * textWidth / 2D + sin * watermark.FontSize.ToPoints() / 2D;
+        double originY = centerY - sin * textWidth / 2D - cos * watermark.FontSize.ToPoints() / 2D;
 
         var content = new ContentStreamBuilder(sb)
             .SaveState();
@@ -1792,7 +1792,7 @@ internal static partial class PdfWriter {
 
         content
             .BeginText()
-            .Font(fontAlias, watermark.FontSize, options.NeedsSyntheticOblique(baseFont))
+            .Font(fontAlias, watermark.FontSize.ToPoints(), options.NeedsSyntheticOblique(baseFont))
             .FillColor(watermark.Color)
             .TextMatrix(cos, sin, -sin, cos, originX, originY);
         // Keep logical replacement inside the text object so redaction of the
@@ -1806,7 +1806,7 @@ internal static partial class PdfWriter {
 
             PdfStandardFont runFont = ResolvePageTextRunFont(run, baseFont);
             string runFontResource = ResolvePageTextFontResource(fontResources, runFont);
-            double runFontSize = (run.FontSize?.ToPoints()) ?? watermark.FontSize;
+            double runFontSize = (run.FontSize?.ToPoints()) ?? watermark.FontSize.ToPoints();
             content
                 .Font(runFontResource, runFontSize, options.NeedsSyntheticOblique(runFont))
                 .ShowText(EncodeTextShowCommand(text, runFont, options), runFontSize, suppressActualText: true);
@@ -1826,7 +1826,7 @@ internal static partial class PdfWriter {
             color: watermark.Color,
             italic: watermark.Italic,
             strike: false,
-            fontSize: global::OfficeIMO.OfficeLength.Points(watermark.FontSize),
+            fontSize: watermark.FontSize,
             font: baseFont);
         return NormalizeFallbackRuns(new[] { run }, baseFont, options);
     }

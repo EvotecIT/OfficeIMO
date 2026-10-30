@@ -1,3 +1,6 @@
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 using PdfCore = OfficeIMO.Pdf;
@@ -7,6 +10,56 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Excel {
+    [Theory]
+    [InlineData(ExcelPdfWorksheetLayoutMode.WorksheetCanvas)]
+    [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable)]
+    public void SaveAsPdf_ImportedFractionalRowHeightsRetainMergedTextAcrossManualBreak(ExcelPdfWorksheetLayoutMode layout) {
+        using var workbook = new MemoryStream();
+        using (SpreadsheetDocument package = SpreadsheetDocument.Create(workbook, SpreadsheetDocumentType.Workbook, true)) {
+            WorkbookPart workbookPart = package.AddWorkbookPart();
+            WorksheetPart worksheetPart = workbookPart.AddNewPart<WorksheetPart>("sheet");
+            workbookPart.Workbook = new Workbook(
+                new Sheets(new Sheet { Id = "sheet", SheetId = 1U, Name = "Report" }),
+                new DefinedNames(new DefinedName {
+                    Name = "_xlnm.Print_Area", LocalSheetId = 0U, Text = "'Report'!$A$1:$D$4"
+                }));
+            // Import unquantized OOXML heights: each fragment rounds up in EMUs,
+            // while the full two-row height rounds down. SetRowHeight would hide it.
+            const string worksheetXml = """
+                <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+                  <dimension ref="A1:D4"/>
+                  <sheetFormatPr defaultRowHeight="36"/>
+                  <cols><col min="1" max="4" width="15" customWidth="1"/></cols>
+                  <sheetData>
+                    <row r="1"><c r="A1" t="inlineStr"><is><t>FirstPage</t></is></c></row>
+                    <row r="2" ht="15.1236" customHeight="1"><c r="A2" t="inlineStr"><is><t>Merged</t></is></c></row>
+                    <row r="3" ht="15.1236" customHeight="1"/>
+                    <row r="4"><c r="D4" t="inlineStr"><is><t>LastPage</t></is></c></row>
+                  </sheetData>
+                  <mergeCells count="1"><mergeCell ref="A2:A3"/></mergeCells>
+                  <rowBreaks count="1" manualBreakCount="1"><brk id="2" min="0" max="16383" man="1"/></rowBreaks>
+                </worksheet>
+                """;
+            using var worksheetXmlStream = new MemoryStream(Encoding.UTF8.GetBytes(worksheetXml));
+            worksheetPart.FeedData(worksheetXmlStream);
+        }
+
+        workbook.Position = 0;
+        using ExcelDocument document = ExcelDocument.Load(workbook);
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
+            IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(700), OfficeIMO.OfficeLength.Points(500)),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.False(string.IsNullOrWhiteSpace(pdf.GetPage(1).Text));
+        Assert.False(string.IsNullOrWhiteSpace(pdf.GetPage(2).Text));
+        Assert.Contains("FirstPage", pdf.GetPage(1).Text);
+        Assert.Contains("LastPage", pdf.GetPage(2).Text);
+        Assert.Contains("Merged", pdf.GetPage(2).Text);
+        Assert.DoesNotContain("Merged", pdf.GetPage(1).Text);
+    }
+
     [Theory]
     [InlineData(ExcelPdfWorksheetLayoutMode.WorksheetCanvas, false)]
     [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable, false)]

@@ -20,8 +20,8 @@ public sealed class PdfBookmarkTableOfContentsTests {
         }, new PdfMultiColumnOptions {
             BalanceLastPage = false,
             ColumnDefinitions = new[] {
-                new PdfFlowColumn(PdfColumnWidth.Fixed(100), 20),
-                new PdfFlowColumn(PdfColumnWidth.Fixed(300), 0)
+                new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(100)), global::OfficeIMO.OfficeLength.Points(20)),
+                new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(300)), global::OfficeIMO.OfficeLength.Points(0))
             }
         }).PageBreak().Bookmark("details").H1("Destination body").ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);

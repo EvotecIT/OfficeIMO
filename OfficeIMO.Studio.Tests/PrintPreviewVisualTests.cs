@@ -24,8 +24,8 @@ public sealed class PrintPreviewVisualTests {
             PdfDocument.Create(document => {
                 for (int number = 1; number <= 18; number++) {
                     int pageNumber = number;
-                    document.Page(page => page.Size(200, 300).Margin(12).Background(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.9D, 0.9D))
-                        .DefaultTextStyle(style => style.FontSize(36)).Content(content => content.Item(item =>
+                    document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)).Margin(global::OfficeIMO.OfficeLength.Points(12)).Background(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.9D, 0.9D))
+                        .DefaultTextStyle(style => style.FontSize(global::OfficeIMO.OfficeLength.Points(36))).Content(content => content.Item(item =>
                         item.Paragraph(text => text.Text("Page " + pageNumber)))));
                 }
             }).Save(source);
@@ -97,8 +97,8 @@ public sealed class PrintPreviewVisualTests {
             services.Preferences.Update(current => current with { Theme = dark ? StudioThemePreference.Dark : StudioThemePreference.Light });
             string source = Path.Combine(services.Paths.Root, "print-current.pdf");
             PdfDocument.Create(document => {
-                document.Page(page => page.Size(300, 400).Content(content => content.Item(item => item.Paragraph(text => text.Text("First reviewed page")))));
-                document.Page(page => page.Size(300, 400).Content(content => content.Item(item => item.Paragraph(text => text.Text("Second reviewed page")))));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Item(item => item.Paragraph(text => text.Text("First reviewed page")))));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Item(item => item.Paragraph(text => text.Text("Second reviewed page")))));
             }).Save(source);
             byte[] original = File.ReadAllBytes(source);
             var window = new MainWindow(services) { Width = width, Height = height };

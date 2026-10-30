@@ -48,8 +48,8 @@ public class PdfDocumentBuilderIncrementalAdapterTests {
     public void Settings_UpdateExistingExplicitPageSnapshots() {
         PdfDocument document = PdfDocument.Create(_ => { });
         document.Compose(compose => compose.Page(page => page
-            .Size(300, 400)
-            .Margin(24)
+            .Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400))
+            .Margin(global::OfficeIMO.OfficeLength.Points(24))
             .Content(content => content
                 .Item(item => item.Paragraph(paragraph => paragraph.Text("LateSettingsMarker"))))));
 
@@ -73,15 +73,15 @@ public class PdfDocumentBuilderIncrementalAdapterTests {
         PdfDocument document = PdfDocument.Create(_ => { });
         document.Compose(compose => compose
             .Page(page => page
-                .Size(200, 120)
-                .Margin(0)
+                .Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(120))
+                .Margin(global::OfficeIMO.OfficeLength.Points(0))
                 .PrintProductionPageBoxes(new PdfPrintProductionPageBoxes(
                     PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(12)),
                     PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(4))))
                 .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Production")))))
             .Page(page => page
-                .Size(200, 120)
-                .Margin(0)
+                .Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(120))
+                .Margin(global::OfficeIMO.OfficeLength.Points(0))
                 .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Screen"))))));
 
         PdfDocumentInfo info = PdfInspector.Inspect(document.ToBytes());

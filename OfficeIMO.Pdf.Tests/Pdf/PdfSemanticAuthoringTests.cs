@@ -74,7 +74,7 @@ public sealed class PdfSemanticAuthoringTests {
                 .Semantic(PdfSemanticRole.BlockQuote)
                 .Background(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.95D, 1D))
                 .Border(global::OfficeIMO.OfficeColor.FromRgb(90, 100, 115))
-                .Padding(8)
+                .Padding(global::OfficeIMO.OfficeLength.Points(8))
                 .Content(quote => quote.Text("Measured twice, rendered once.")))))
             .ToBytes();
 
@@ -92,7 +92,7 @@ public sealed class PdfSemanticAuthoringTests {
     public void DecoratedElementAcceptsReusableComponentsThroughTheSameContentReceiver() {
         byte[] bytes = PdfDocument.Create(document => document.Content(content => content
             .Element(element => element
-                .Padding(6)
+                .Padding(global::OfficeIMO.OfficeLength.Points(6))
                 .Content(nested => nested.Component(new TestComponent())))))
             .ToBytes();
 
@@ -103,8 +103,8 @@ public sealed class PdfSemanticAuthoringTests {
     public void DecoratedElementCopiesReusableStylesBeforeCompositionContinues() {
         var style = new PdfPanelStyle {
             Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1D, 0.2D, 0.3D),
-            PaddingX = 5D,
-            PaddingY = 5D
+            PaddingX = global::OfficeIMO.OfficeLength.Points(5D),
+            PaddingY = global::OfficeIMO.OfficeLength.Points(5D)
         };
 
         byte[] bytes = PdfDocument.Create(document => document
@@ -122,9 +122,9 @@ public sealed class PdfSemanticAuthoringTests {
     public void DecoratedElementAcceptsSizedRowsThroughTheNormalFlowEngine() {
         byte[] bytes = PdfDocument.Create(document => document
             .Content(content => content.Element(element => element
-                .Padding(6)
+                .Padding(global::OfficeIMO.OfficeLength.Points(6))
                 .Content(nested => nested.Row(row => row
-                    .FixedColumn(48, column => column.Text("Fixed"))
+                    .FixedColumn(global::OfficeIMO.OfficeLength.Points(48), column => column.Text("Fixed"))
                     .AutoColumn(column => column.Text("Automatic"))
                     .RelativeColumn(column => column.Text("Remaining")))))))
             .ToBytes();
@@ -147,7 +147,7 @@ public sealed class PdfSemanticAuthoringTests {
             .Content(content => content.Element(element => element
                 .Background(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.95D, 1D))
                 .Border(global::OfficeIMO.OfficeColor.FromRgb(90, 100, 115))
-                .Padding(6)
+                .Padding(global::OfficeIMO.OfficeLength.Points(6))
                 .Content(nested => nested.Row(row => row
                     .RelativeColumn(column => {
                         for (int index = 0; index < 24; index++) {
@@ -180,7 +180,7 @@ public sealed class PdfSemanticAuthoringTests {
                 options.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24));
             })
             .Content(content => content.Element(element => element
-                .Padding(6)
+                .Padding(global::OfficeIMO.OfficeLength.Points(6))
                 .KeepTogether()
                 .Content(nested => nested.Semantic(PdfSemanticRole.Article, article => {
                     for (int index = 0; index < 20; index++) {
@@ -221,8 +221,8 @@ public sealed class PdfSemanticAuthoringTests {
             .Content(content => content.Element(element => element
                 .KeepTogether()
                 .Content(nested => nested
-                    .PanelParagraph(paragraph => paragraph.Text("First"), new PdfPanelStyle { PaddingY = 2, SpacingAfter = 0 })
-                    .PanelParagraph(paragraph => paragraph.Text("Second"), new PdfPanelStyle { PaddingY = 2, SpacingBefore = 90, SpacingAfter = 0 })))))
+                    .PanelParagraph(paragraph => paragraph.Text("First"), new PdfPanelStyle { PaddingY = global::OfficeIMO.OfficeLength.Points(2), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
+                    .PanelParagraph(paragraph => paragraph.Text("Second"), new PdfPanelStyle { PaddingY = global::OfficeIMO.OfficeLength.Points(2), SpacingBefore = global::OfficeIMO.OfficeLength.Points(90), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })))))
             .ToBytes());
 
         Assert.Contains("exceeds the available page content height", exception.Message, StringComparison.Ordinal);
@@ -239,7 +239,7 @@ public sealed class PdfSemanticAuthoringTests {
             .Content(content => content.Element(outer => outer
                 .KeepTogether()
                 .Content(nested => nested.Element(inner => inner
-                    .Spacing(before: 110, after: 0)
+                    .Spacing(before: global::OfficeIMO.OfficeLength.Points(110), after: global::OfficeIMO.OfficeLength.Points(0))
                     .Content(body => body.Text("Top spacing is suppressed")))))))
             .ToBytes();
 
@@ -260,8 +260,8 @@ public sealed class PdfSemanticAuthoringTests {
                 .Paragraph(paragraph => paragraph.Text("IntroMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(48) })
                 .H3("ElementChainHeading")
                 .Element(element => element
-                    .Padding(4)
-                    .Spacing(after: 0)
+                    .Padding(global::OfficeIMO.OfficeLength.Points(4))
+                    .Spacing(after: global::OfficeIMO.OfficeLength.Points(0))
                     .KeepWithNext()
                     .Content(nested => nested.Text("ElementChainBody")))
                 .Text("ElementChainFollowing")))

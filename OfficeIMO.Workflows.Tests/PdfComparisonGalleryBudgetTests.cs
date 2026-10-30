@@ -120,7 +120,7 @@ namespace OfficeIMO.Workflows.Tests {
         }
 
         private static byte[] CreatePages(int count) => PdfDocument.Create(document => {
-            for (int index = 0; index < count; index++) document.Page(page => page.Size(24, 24).Margin(0, 0, 0, 0));
+            for (int index = 0; index < count; index++) document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24)).Margin(global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0)));
         }).ToBytes();
 
         private static long RetainedPngBytes(PdfVisualPageComparison pair) => checked(

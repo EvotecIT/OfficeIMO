@@ -118,7 +118,7 @@ public sealed class WatermarkPreviewTests {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
             await WithDocument(async workspace => {
-                var settings = new PdfWatermarkOptions { Text = "ORIGINAL MARK", X = 80, Y = 150, Opacity = .65, RotationDegrees = 20 };
+                var settings = new PdfWatermarkOptions { Text = "ORIGINAL MARK", X = global::OfficeIMO.OfficeLength.Points(80), Y = global::OfficeIMO.OfficeLength.Points(150), Opacity = .65, RotationDegrees = 20 };
                 var first = await workspace.PrepareWatermarkAsync(settings, 1, CancellationToken.None);
                 await workspace.ApplyWatermarkAsync(first, CancellationToken.None);
                 byte[] previous = workspace.CopyBytes();

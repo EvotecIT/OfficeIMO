@@ -287,7 +287,7 @@ public class RtfCharacterFormattingTests {
         Assert.Contains(@"\up6", rtf, StringComparison.Ordinal);
 
         WordParagraph roundTripRun = Assert.Single(roundTrip.Paragraphs, run => run.Text == "Styled");
-        Assert.Equal(40, roundTripRun.Spacing);
+        Assert.Equal(OfficeLength.Emus(40L * 635), roundTripRun.Spacing);
         Assert.Equal(80, roundTripRun._run?.RunProperties?.CharacterScale?.Val?.Value);
         Assert.Equal(24U, roundTripRun._run?.RunProperties?.Kern?.Val?.Value);
         Assert.Equal("6", roundTripRun._run?.RunProperties?.Position?.Val?.Value);
@@ -312,7 +312,7 @@ public class RtfCharacterFormattingTests {
         using WordDocument word = rtfDocument.ToWordDocument();
 
         WordParagraph styled = Assert.Single(word.Paragraphs, run => run.Text == "Styled");
-        Assert.Equal(-30, styled.Spacing);
+        Assert.Equal(OfficeLength.Emus(-30L * 635), styled.Spacing);
         Assert.Equal(120, styled._run?.RunProperties?.CharacterScale?.Val?.Value);
         Assert.Equal(18U, styled._run?.RunProperties?.Kern?.Val?.Value);
         Assert.Equal("-5", styled._run?.RunProperties?.Position?.Val?.Value);

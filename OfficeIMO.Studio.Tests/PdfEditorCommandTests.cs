@@ -128,8 +128,8 @@ public sealed class PdfEditorCommandTests {
     public void AreaRedaction_AllowsIdenticalTextOutsideTheReviewedArea() {
         const string repeated = "Confidential";
         byte[] source = PdfDocument.Create(compose => {
-            compose.Page(page => page.Size(600D, 800D).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(repeated)))));
-            compose.Page(page => page.Size(600D, 800D).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(repeated)))));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(repeated)))));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(repeated)))));
         }).ToBytes();
         PdfPageInteractionRegion[] regions = PdfDocument.Load(new System.IO.MemoryStream(source)).Render.Interactions(1).TextRegions
             .Where(region => !string.IsNullOrWhiteSpace(region.Text))
@@ -154,7 +154,7 @@ public sealed class PdfEditorCommandTests {
 
     [Fact]
     public void VerifiedRedaction_ProvesImageOnlyAndAnnotationOnlyAreas() {
-        byte[] blank = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).ToBytes();
+        byte[] blank = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)))).ToBytes();
         PdfEditorGesture gesture = CreateGesture();
         byte[] withImage = PdfEditorCommandExecutor.Apply(
             blank,
@@ -191,7 +191,7 @@ public sealed class PdfEditorCommandTests {
 
     private static byte[] CreateSource(string text = "Existing content") =>
         PdfDocument.Create(compose => compose.Page(page => page
-            .Size(600D, 800D)
+            .Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D))
             .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(text)))))).ToBytes();
 
     private static PdfEditorGesture CreateGesture() => new(

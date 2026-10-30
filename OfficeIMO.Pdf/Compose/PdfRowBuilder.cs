@@ -9,8 +9,8 @@ public sealed class PdfRowBuilder {
     internal PdfRowBuilder(PdfDocument doc) { _doc = doc; }
 
     /// <summary>Sets the horizontal gutter, in points, between columns in this row.</summary>
-    public PdfRowBuilder Gap(double points) {
-        _row.SetGap(points);
+    public PdfRowBuilder Gap(global::OfficeIMO.OfficeLength points) {
+        _row.SetGap(points.ToPoints());
         return this;
     }
 
@@ -21,10 +21,10 @@ public sealed class PdfRowBuilder {
     }
 
     /// <summary>Draws a vertical separator line between columns in this row.</summary>
-    public PdfRowBuilder ColumnSeparator(global::OfficeIMO.OfficeColor color, double width = 0.5D) {
+    public PdfRowBuilder ColumnSeparator(global::OfficeIMO.OfficeColor color, global::OfficeIMO.OfficeLength? width = null) {
         var style = _row.Style ?? new PdfRowStyle();
         style.ColumnSeparatorColor = color;
-        style.ColumnSeparatorWidth = width;
+        style.ColumnSeparatorWidth = global::OfficeIMO.OfficeLength.Points((width?.ToPoints() ?? 0.5D));
         _row.SetStyle(style);
         return this;
     }
@@ -49,11 +49,11 @@ public sealed class PdfRowBuilder {
         Column(PdfColumnWidth.Relative(weight), build);
 
     /// <summary>Adds a column with an exact width in points.</summary>
-    public PdfRowBuilder FixedColumn(double points, System.Action<PdfContentBuilder> build) =>
+    public PdfRowBuilder FixedColumn(global::OfficeIMO.OfficeLength points, System.Action<PdfContentBuilder> build) =>
         Column(PdfColumnWidth.Fixed(points), build);
 
     /// <summary>Adds a content-sized column, optionally constrained in points.</summary>
-    public PdfRowBuilder AutoColumn(System.Action<PdfContentBuilder> build, double minimum = 0D, double? maximum = null) =>
+    public PdfRowBuilder AutoColumn(System.Action<PdfContentBuilder> build, global::OfficeIMO.OfficeLength minimum = default, global::OfficeIMO.OfficeLength? maximum = null) =>
         Column(PdfColumnWidth.Auto(minimum, maximum), build);
 
     /// <summary>Adds a column that consumes a percentage of available row width.</summary>

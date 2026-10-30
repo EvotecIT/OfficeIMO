@@ -5,7 +5,7 @@ namespace OfficeIMO.Invoicing.Pdf;
 public sealed partial class PdfInvoiceDocument {
     private void ComposeModern(PdfContentBuilder content, InvoicePdfTheme theme) {
         content.Row(row => {
-            row.Style(new PdfRowStyle { Gap = 20D, SpacingAfter = 16D })
+            row.Style(new PdfRowStyle { Gap = global::OfficeIMO.OfficeLength.Points(20D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(16D) })
                 .PercentColumn(44D, column => {
                     if (_layout.LogoBytesSnapshot != null) {
                         column.Image(
@@ -42,7 +42,7 @@ public sealed partial class PdfInvoiceDocument {
         });
 
         content.Row(row => row
-            .Style(new PdfRowStyle { Gap = 12D, SpacingAfter = 12D })
+            .Style(new PdfRowStyle { Gap = global::OfficeIMO.OfficeLength.Points(12D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(12D) })
             .PercentColumn(50D, column => PartyCard(column, Label(InvoicePdfText.Seller), _invoice.Seller, theme))
             .PercentColumn(50D, column => PartyCard(column, Label(InvoicePdfText.Buyer), _invoice.Buyer, theme)));
 
@@ -130,8 +130,8 @@ public sealed partial class PdfInvoiceDocument {
             ContainsLineBreak(_invoice.PaymentTerms);
         content.Row(row => row
             .Style(new PdfRowStyle {
-                Gap = 18D,
-                SpacingAfter = 12D,
+                Gap = global::OfficeIMO.OfficeLength.Points(18D),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(12D),
                 KeepTogether = paymentSummaryLength <= 600 && !paymentSummaryIsMultiline
             })
             .PercentColumn(55D, column => {
@@ -218,7 +218,7 @@ public sealed partial class PdfInvoiceDocument {
         if (_layout.Approvals.Count == 0) return;
         content.H2(Label(InvoicePdfText.Approvals), PdfAlign.Left, theme.Text);
         content.Row(row => {
-            row.Style(new PdfRowStyle { Gap = 12D });
+            row.Style(new PdfRowStyle { Gap = global::OfficeIMO.OfficeLength.Points(12D) });
             foreach (InvoicePdfApproval approval in _layout.Approvals) {
                 row.RelativeColumn(column => column.Panel(card => {
                     card.Paragraph(p => p.Text(approval.Label.ToUpperInvariant()), defaultColor: theme.MutedText, style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(9D) });
@@ -237,10 +237,10 @@ public sealed partial class PdfInvoiceDocument {
     private static PdfPanelStyle CardStyle(InvoicePdfTheme theme) => new PdfPanelStyle {
         Background = theme.Surface,
         BorderColor = theme.Border,
-        BorderWidth = 0.6D,
-        CornerRadius = theme.CornerRadius,
-        PaddingX = 10D,
-        PaddingY = 9D,
-        SpacingAfter = 0D
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(0.6D),
+        CornerRadius = global::OfficeIMO.OfficeLength.Points(theme.CornerRadius),
+        PaddingX = global::OfficeIMO.OfficeLength.Points(10D),
+        PaddingY = global::OfficeIMO.OfficeLength.Points(9D),
+        SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D)
     };
 }

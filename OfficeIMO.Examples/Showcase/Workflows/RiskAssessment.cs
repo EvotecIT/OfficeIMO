@@ -19,11 +19,11 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 }, style: new PdfTableStyle { HeaderFill = navy, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderRowCount = 1, CellPaddingX = global::OfficeIMO.OfficeLength.Points(8), CellPaddingY = global::OfficeIMO.OfficeLength.Points(10), RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(241, 245, 249) })
                 .H2("Decision before expansion", PdfAlign.Left, navy)
                 .PanelParagraph(p => p.Bold("Hold the next group until access and recovery are verified.").Text("\nThe sponsor records the acceptance decision; a low score alone is not approval."),
-                    new PdfPanelStyle { Background = global::OfficeIMO.OfficeColor.FromRgb(255, 244, 214), PaddingX = 12, PaddingY = 12 })
+                    new PdfPanelStyle { Background = global::OfficeIMO.OfficeColor.FromRgb(255, 244, 214), PaddingX = global::OfficeIMO.OfficeLength.Points(12), PaddingY = global::OfficeIMO.OfficeLength.Points(12) })
                 .H2("Review discipline", PdfAlign.Left, navy)
                 .Bullets(new[] { "Revisit ratings when evidence changes.", "Keep the control, owner and verification date together.", "Close a risk only after the control is observed." })
                 .Paragraph(p => p.Text("Fictional project example. This is not a workplace safety assessment or compliance certification."))),
-                new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11), ShowPageNumbers = true }.SetDefaultHeadingStyle(2, new PdfHeadingStyle { SpacingBefore = 14, SpacingAfter = 8 }))
+                new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11), ShowPageNumbers = true }.SetDefaultHeadingStyle(2, new PdfHeadingStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(14), SpacingAfter = global::OfficeIMO.OfficeLength.Points(8) }))
                 .Meta(title: "Pilot delivery risk review", author: "OfficeIMO").Save(Path.Combine(folder, "example.pdf"));
         }
     }

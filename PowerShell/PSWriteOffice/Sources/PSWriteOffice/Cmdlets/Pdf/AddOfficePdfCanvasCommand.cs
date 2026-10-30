@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 ///   <prefix>PS&gt; </prefix>
 ///   <code>Add-OfficePdfCanvas -Path .\Report.pdf -OutputPath .\Stamped.pdf -PageRange '1,last' -Content {
 ///     param($canvas, $page)
-///     $null = $canvas.Text("Review copy $($page.PageNumber)/$($page.PageCount)", 36, 24, $page.Width - 72, 24, 10)
+///     $null = $canvas.Text("Review copy $($page.PageNumber)/$($page.PageCount)", 36, 24, $page.Width.ToPoints() - 72, 24, 10)
 /// }</code>
 ///   <para>The callback runs once for every selected page and may mix any supported visual canvas primitives.</para>
 /// </example>

@@ -8,10 +8,8 @@ public sealed class PdfTextStampOptions {
     public System.Threading.CancellationToken CancellationToken { get; set; }
 
     private int[]? _pageNumbers;
-    private double? _x;
-    private double? _y;
     private PdfStandardFont _font = PdfStandardFont.HelveticaBold;
-    private double _fontSize = 24;
+    private global::OfficeIMO.OfficeLength _fontSize = global::OfficeIMO.OfficeLength.Points(24);
     private double _rotationDegrees;
 
     /// <summary>
@@ -51,26 +49,16 @@ public sealed class PdfTextStampOptions {
     }
 
     /// <summary>
-    /// X coordinate of the text baseline origin in PDF points. When null, a sensible default is used.
+    /// Physical X coordinate of the text baseline origin from the unrotated PDF origin.
+    /// When null, stamps use 36 points and watermarks center in the effective page box.
     /// </summary>
-    public double? X {
-        get => _x;
-        set {
-            ValidateOptionalFinite(value, nameof(X), "Text stamp X coordinate must be finite.");
-            _x = value;
-        }
-    }
+    public global::OfficeIMO.OfficeLength? X { get; set; }
 
     /// <summary>
-    /// Y coordinate of the text baseline origin in PDF points. When null, a sensible default is used.
+    /// Physical Y coordinate of the text baseline origin from the unrotated PDF origin.
+    /// When null, stamps use 36 points and watermarks center in the effective page box.
     /// </summary>
-    public double? Y {
-        get => _y;
-        set {
-            ValidateOptionalFinite(value, nameof(Y), "Text stamp Y coordinate must be finite.");
-            _y = value;
-        }
-    }
+    public global::OfficeIMO.OfficeLength? Y { get; set; }
 
     /// <summary>
     /// Standard PDF font used for the stamp.
@@ -84,12 +72,12 @@ public sealed class PdfTextStampOptions {
     }
 
     /// <summary>
-    /// Text size in PDF points.
+    /// Physical text size. Defaults to 24 points.
     /// </summary>
-    public double FontSize {
+    public global::OfficeIMO.OfficeLength FontSize {
         get => _fontSize;
         set {
-            ValidatePositiveFinite(value, nameof(FontSize), "Font size must be a positive finite value.");
+            ValidatePositive(value, nameof(FontSize), "Font size must be a positive finite value.");
             _fontSize = value;
         }
     }
@@ -115,14 +103,8 @@ public sealed class PdfTextStampOptions {
     /// </summary>
     public bool BehindContent { get; set; }
 
-    private static void ValidateOptionalFinite(double? value, string paramName, string message) {
-        if (value.HasValue) {
-            ValidateFinite(value.Value, paramName, message);
-        }
-    }
-
-    private static void ValidatePositiveFinite(double value, string paramName, string message) {
-        if (value <= 0 || double.IsNaN(value) || double.IsInfinity(value)) {
+    private static void ValidatePositive(global::OfficeIMO.OfficeLength value, string paramName, string message) {
+        if (value.ToEmus() <= 0) {
             throw new System.ArgumentOutOfRangeException(paramName, message);
         }
     }

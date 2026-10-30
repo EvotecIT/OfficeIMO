@@ -26,20 +26,20 @@ public static partial class WordPdfConverterExtensions {
         bool suppressBalancing = !UsesModernNativeWordLayout(section._document) &&
             section._document.CompatibilitySettings.DoNotBalanceTextColumns;
         var columnOptions = new PdfCore.PdfMultiColumnOptions {
-            ColumnCount = count, Gap = gap,
+            ColumnCount = count, Gap = global::OfficeIMO.OfficeLength.Points(gap),
             BalanceLastPage = balanceColumns && !suppressBalancing,
             BalanceKeptParagraphLines = !UsesModernNativeWordLayout(section._document),
             HonorKeepWithNextWhenBalancing = UsesModernNativeWordLayout(section._document),
             BalanceTableRowLines = UsesModernNativeWordLayout(section._document),
-            FinalColumnSpacingAfter = GetNativeColumnSectionMarkHeight(section, elements, balanceColumns, nativeDefaults, nativeFontMap),
+            FinalColumnSpacingAfter = global::OfficeIMO.OfficeLength.Points(GetNativeColumnSectionMarkHeight(section, elements, balanceColumns, nativeDefaults, nativeFontMap)),
             SeparatorColor = section.HasColumnSeparator ? global::OfficeIMO.OfficeColor.Black : null,
-            SeparatorWidth = section.HasColumnSeparator ? 0.5D : 0D
+            SeparatorWidth = global::OfficeIMO.OfficeLength.Points(section.HasColumnSeparator ? 0.5D : 0D)
         };
         IReadOnlyList<WordSectionColumn> definitions = section.ColumnDefinitions;
         if (definitions.Count > 0) {
             columnOptions.ColumnDefinitions = definitions.Select(column => new PdfCore.PdfFlowColumn(
-                PdfCore.PdfColumnWidth.Fixed(column.Width.ToPoints()),
-                column.SpaceAfter?.ToPoints() ?? 0D)).ToArray();
+                PdfCore.PdfColumnWidth.Fixed(column.Width),
+                global::OfficeIMO.OfficeLength.Points(column.SpaceAfter?.ToPoints() ?? 0D))).ToArray();
         }
         PdfCore.PdfPageSize pageSize = GetNativePageSize(section, options);
         PdfCore.PdfPageMargins margins = GetNativeMargins(section, options);

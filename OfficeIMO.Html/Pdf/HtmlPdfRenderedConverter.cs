@@ -341,8 +341,8 @@ internal static partial class HtmlPdfRenderedConverter {
             double pageWidth = renderedPage.Width * PointsPerCssPixel * printLayoutScale;
             double pageHeight = renderedPage.Height * PointsPerCssPixel * printLayoutScale;
             pdf.Page(page => {
-                page.Size(pageWidth, pageHeight)
-                    .Margin(0D);
+                page.Size(global::OfficeIMO.OfficeLength.Points(pageWidth), global::OfficeIMO.OfficeLength.Points(pageHeight))
+                    .Margin(global::OfficeIMO.OfficeLength.Points(0D));
                 if (renderedPage.PrintProduction != null) {
                     double trimInset = renderedPage.PrintProduction.TrimInset * PointsPerCssPixel * printLayoutScale;
                     double bleedInset = renderedPage.PrintProduction.BleedInset * PointsPerCssPixel * printLayoutScale;
@@ -539,9 +539,9 @@ internal static partial class HtmlPdfRenderedConverter {
             LogicalOrder = field.SemanticSourceOrder,
             BackgroundColor = field.BackgroundColor.HasValue ? (field.BackgroundColor.Value.A == 0 ? (global::OfficeIMO.OfficeColor?)null : field.BackgroundColor.Value) : null,
             BorderColor = field.BorderColor.HasValue ? (field.BorderColor.Value.A == 0 ? (global::OfficeIMO.OfficeColor?)null : field.BorderColor.Value) : null,
-            BorderWidth = field.BorderWidth * PointsPerCssPixel,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(field.BorderWidth * PointsPerCssPixel),
             BorderStyle = field.BorderStyle == "dashed" ? PdfCore.PdfFormFieldBorderStyle.Dashed : PdfCore.PdfFormFieldBorderStyle.Solid,
-            CornerRadius = field.CornerRadius * PointsPerCssPixel,
+            CornerRadius = global::OfficeIMO.OfficeLength.Points(field.CornerRadius * PointsPerCssPixel),
             TextColor = (field.TextColor.A == 0 ? (global::OfficeIMO.OfficeColor?)null : field.TextColor) ?? global::OfficeIMO.OfficeColor.Black,
             MarkColor = (field.TextColor.A == 0 ? (global::OfficeIMO.OfficeColor?)null : field.TextColor) ?? global::OfficeIMO.OfficeColor.Black,
             IsReadOnly = field.IsReadOnly,

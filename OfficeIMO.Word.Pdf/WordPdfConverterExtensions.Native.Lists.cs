@@ -52,15 +52,15 @@ namespace OfficeIMO.Word.Pdf {
             bool suppressBefore = ShouldSuppressNativeContextualSpacingBefore(firstParagraph);
             bool suppressAfter = ShouldSuppressNativeContextualSpacingAfter(paragraphs[paragraphs.Count - 1],
                 nextIndex < elements.Count ? elements[nextIndex] as WordParagraph : null);
-            double? declaredSpacingAfter = style?.SpacingAfter;
+            double? declaredSpacingAfter = ((style?.SpacingAfter)?.ToPoints());
             if (style != null && (suppressBefore || suppressAfter)) {
                 style = style.Clone();
-                if (suppressBefore) style.SpacingBefore = 0D;
-                if (suppressAfter) style.SpacingAfter = 0D;
+                if (suppressBefore) style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
+                if (suppressAfter) style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
             }
-            if (style != null && RenderNativeDocumentStartSpacing(pdf, firstParagraph, style.SpacingBefore)) {
+            if (style != null && RenderNativeDocumentStartSpacing(pdf, firstParagraph, style.SpacingBefore.ToPoints())) {
                 style = style.Clone();
-                style.SpacingBefore = 0D;
+                style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
             }
             if (ordered) {
                 pdf.RichNumbered(items, align, color, startNumber, style);
@@ -179,7 +179,7 @@ namespace OfficeIMO.Word.Pdf {
                 ?? EstimateNativeListMarkerWidth(displayMarker, (measuredMarker.FontSize?.ToPoints()) ?? nativeDefaults.FontSize);
             // An overrun advances only the first line to the next Word tab stop.
             // The paragraph path keeps continuation lines at the authored indent.
-            if (markerWidth - GetNativeMarkerAnchorShift(info.Value, markerWidth) > style.MarkerWidth + 0.01D)
+            if (markerWidth - GetNativeMarkerAnchorShift(info.Value, markerWidth) > (style.MarkerWidth?.ToPoints()) + 0.01D)
                 return false;
             return true;
         }
@@ -224,14 +224,14 @@ namespace OfficeIMO.Word.Pdf {
             bool itemSpacingDeclared = false;
 
             var style = new PdfCore.PdfListStyle {
-                LeftIndent = markerIndent,
+                LeftIndent = global::OfficeIMO.OfficeLength.Points(markerIndent),
                 MarkerAlignsAtIndent = true,
                 MarkerFeatureSettings = default(NativeTextSpacing).ResolveFeatureSettings(markerFontSize),
-                MarkerGap = 0D,
-                MarkerWidth = Math.Max(0D, textIndent - markerIndent),
+                MarkerGap = global::OfficeIMO.OfficeLength.Points(0D),
+                MarkerWidth = global::OfficeIMO.OfficeLength.Points(Math.Max(0D, textIndent - markerIndent)),
                 MarkerFont = ResolveNativeListMarkerFont(info, marker, markerTextStyle, nativeFontMap),
                 MarkerFontFamily = ResolveNativeListMarkerFontFamily(info, marker, markerTextStyle, nativeFontMap),
-                MarkerFontSize = info.MarkerFontSize ?? ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults),
+                MarkerFontSize = global::OfficeIMO.OfficeLength.Points(info.MarkerFontSize ?? ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults)),
                 MarkerColor = ParseNativeColor(info.MarkerColorHex),
                 MarkerAlign = MapNativeListMarkerAlign(info.LevelJustification) ?? PdfCore.PdfAlign.Left,
                 MarkerBold = info.MarkerBold ?? markerTextStyle.Bold,
@@ -240,44 +240,44 @@ namespace OfficeIMO.Word.Pdf {
 
             style.LineHeight = lineHeight;
             style.LineSpacing = lineSpacing.ToPdfLineSpacing(naturalLineHeight);
-            style.FontSize = ResolveNativeParagraphLayoutFontSize(paragraph, nativeDefaults, styleDefaults);
+            style.FontSize = global::OfficeIMO.OfficeLength.Points(ResolveNativeParagraphLayoutFontSize(paragraph, nativeDefaults, styleDefaults));
 
             var spacingInLines = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults);
             if (spacingInLines.Before.HasValue) {
-                style.SpacingBefore = spacingInLines.Before.Value;
+                style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingInLines.Before.Value);
             } else if (paragraph.LineSpacingBefore.HasValue) {
-                style.SpacingBefore = paragraph.LineSpacingBefore.Value.ToPoints();
+                style.SpacingBefore = paragraph.LineSpacingBefore.Value;
             } else if (GetNativeSpacingBeforePoints(directSpacing, fontSize, lineHeight) is { } directSpacingBefore) {
-                style.SpacingBefore = directSpacingBefore;
+                style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(directSpacingBefore);
             } else if (styleDefaults.SpacingBefore.HasValue) {
-                style.SpacingBefore = styleDefaults.SpacingBefore.Value;
+                style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(styleDefaults.SpacingBefore.Value);
             } else if (nativeDefaults.ParagraphSpacingBeforeDeclared) {
-                style.SpacingBefore = nativeDefaults.ParagraphSpacingBefore;
+                style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(nativeDefaults.ParagraphSpacingBefore);
             }
 
             if (spacingInLines.After.HasValue) {
-                style.SpacingAfter = spacingInLines.After.Value;
+                style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingInLines.After.Value);
                 itemSpacingDeclared = true;
             } else if (paragraph.LineSpacingAfter.HasValue) {
-                style.SpacingAfter = paragraph.LineSpacingAfter.Value.ToPoints();
+                style.SpacingAfter = paragraph.LineSpacingAfter.Value;
                 itemSpacingDeclared = true;
             } else if (GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) is { } directSpacingAfter) {
-                style.SpacingAfter = directSpacingAfter;
+                style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(directSpacingAfter);
                 itemSpacingDeclared = true;
             } else if (styleDefaults.SpacingAfter.HasValue) {
-                style.SpacingAfter = styleDefaults.SpacingAfter.Value;
+                style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(styleDefaults.SpacingAfter.Value);
                 itemSpacingDeclared = true;
             } else if (nativeDefaults.ParagraphSpacingAfterDeclared) {
-                style.SpacingAfter = nativeDefaults.ParagraphSpacingAfter;
+                style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(nativeDefaults.ParagraphSpacingAfter);
                 itemSpacingDeclared = true;
             } else {
-                style.SpacingAfter = nativeDefaults.ParagraphSpacingAfter;
+                style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(nativeDefaults.ParagraphSpacingAfter);
             }
 
-            if (itemSpacingDeclared || style.SpacingBefore > 0D) {
+            if (itemSpacingDeclared || style.SpacingBefore.ToPoints() > 0D) {
                 // Each item is a Word paragraph. Its before/after spacing collapses
                 // to the larger gap even when several paragraphs share a PDF list.
-                style.ItemSpacing = Math.Max(style.SpacingBefore, style.SpacingAfter ?? 0D);
+                style.ItemSpacing = global::OfficeIMO.OfficeLength.Points(Math.Max(style.SpacingBefore.ToPoints(), (style.SpacingAfter?.ToPoints()) ?? 0D));
             }
 
             style.KeepTogether = ReadNativeDirectParagraphOnOff<W.KeepLines>(paragraph) ?? styleDefaults.KeepTogether ?? false;
@@ -299,7 +299,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             PdfCore.PdfListStyle contextualStyle = style.Clone();
-            contextualStyle.ItemSpacing = 0D;
+            contextualStyle.ItemSpacing = global::OfficeIMO.OfficeLength.Points(0D);
             return contextualStyle;
         }
 
@@ -427,22 +427,22 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            return NullableDoubleEquals(left.FontSize, right.FontSize) &&
+            return NullableDoubleEquals((left.FontSize?.ToPoints()), (right.FontSize?.ToPoints())) &&
                    NullableDoubleEquals(left.LineHeight, right.LineHeight) &&
                    NativeLineSpacingsEquivalent(left.LineSpacing, right.LineSpacing) &&
-                   DoubleEquals(left.LeftIndent, right.LeftIndent) &&
-                   NullableDoubleEquals(left.MarkerGap, right.MarkerGap) &&
-                   NullableDoubleEquals(left.MarkerWidth, right.MarkerWidth) &&
+                   DoubleEquals(left.LeftIndent.ToPoints(), right.LeftIndent.ToPoints()) &&
+                   NullableDoubleEquals((left.MarkerGap?.ToPoints()), (right.MarkerGap?.ToPoints())) &&
+                   NullableDoubleEquals((left.MarkerWidth?.ToPoints()), (right.MarkerWidth?.ToPoints())) &&
                    left.MarkerAlignsAtIndent == right.MarkerAlignsAtIndent &&
                    Equals(left.MarkerFeatureSettings, right.MarkerFeatureSettings) &&
-                   DoubleEquals(left.SpacingBefore, right.SpacingBefore) &&
-                   NullableDoubleEquals(left.SpacingAfter, right.SpacingAfter) &&
-                   NullableDoubleEquals(left.ItemSpacing, right.ItemSpacing) &&
+                   DoubleEquals(left.SpacingBefore.ToPoints(), right.SpacingBefore.ToPoints()) &&
+                   NullableDoubleEquals((left.SpacingAfter?.ToPoints()), (right.SpacingAfter?.ToPoints())) &&
+                   NullableDoubleEquals((left.ItemSpacing?.ToPoints()), (right.ItemSpacing?.ToPoints())) &&
                    left.MarkerColor.Equals(right.MarkerColor) &&
                    left.MarkerAlign == right.MarkerAlign &&
                    left.MarkerFont == right.MarkerFont &&
                    string.Equals(left.MarkerFontFamily, right.MarkerFontFamily, StringComparison.OrdinalIgnoreCase) &&
-                   NullableDoubleEquals(left.MarkerFontSize, right.MarkerFontSize) &&
+                   NullableDoubleEquals((left.MarkerFontSize?.ToPoints()), (right.MarkerFontSize?.ToPoints())) &&
                    left.MarkerBold == right.MarkerBold &&
                    left.MarkerItalic == right.MarkerItalic &&
                    left.Color.Equals(right.Color) &&

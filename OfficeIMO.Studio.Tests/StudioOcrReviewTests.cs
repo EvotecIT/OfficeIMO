@@ -24,7 +24,7 @@ public sealed class StudioOcrReviewTests {
             string output = Path.Combine(services.Paths.Root, "OCR reviewed output.pdf");
             PdfDocument.Create(compose => {
                 for (int page = 0; page < 2; page++)
-                    compose.Page(item => item.Size(600, 800).Canvas(canvas =>
+                    compose.Page(item => item.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Canvas(canvas =>
                         canvas.Text([new PdfTextRun("Native text")], global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(66), global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(25), fontSize: global::OfficeIMO.OfficeLength.Points(12))));
             }).Save(source);
             byte[] original = File.ReadAllBytes(source);

@@ -83,7 +83,7 @@ public partial class PdfDocumentVisualQualityTests {
                                     "ColumnKeepListLast"
                                 }, style: new PdfListStyle {
                                     KeepTogether = true,
-                                    SpacingAfter = 0
+                                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                                 }))))))
             .ToBytes();
 
@@ -123,8 +123,8 @@ public partial class PdfDocumentVisualQualityTests {
                                     "ColumnKeepNumberTwo"
                                 }, style: new PdfListStyle {
                                     KeepWithNext = true,
-                                    ItemSpacing = 0,
-                                    SpacingAfter = 0
+                                    ItemSpacing = global::OfficeIMO.OfficeLength.Points(0),
+                                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                                 })
                                 .Paragraph(p => p.Text("ColumnFollowingListBody")))))))
             .ToBytes();
@@ -387,8 +387,8 @@ public partial class PdfDocumentVisualQualityTests {
                             row.PercentColumn(100, column => column
                                 .PanelParagraph(p => p.Text("ColumnPanelKeepWithNext"), new PdfPanelStyle {
                                     KeepWithNext = true,
-                                    PaddingY = 5,
-                                    SpacingAfter = 0
+                                    PaddingY = global::OfficeIMO.OfficeLength.Points(5),
+                                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                                 })
                                 .Paragraph(p => p.Text("ColumnFollowingPanelBody")))))))
             .ToBytes();

@@ -35,9 +35,9 @@ public partial class PdfDocumentVisualQualityTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(fontSize),
                 DefaultRowStyle = new PdfRowStyle {
-                    Gap = gutter,
-                    SpacingBefore = 14,
-                    SpacingAfter = 16
+                    Gap = global::OfficeIMO.OfficeLength.Points(gutter),
+                    SpacingBefore = global::OfficeIMO.OfficeLength.Points(14),
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(16)
                 }
             })
             .Compose(document =>
@@ -84,7 +84,7 @@ public partial class PdfDocumentVisualQualityTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultRowStyle = new PdfRowStyle {
-                    Gap = 18,
+                    Gap = global::OfficeIMO.OfficeLength.Points(18),
                     KeepTogether = true
                 }
             })
@@ -155,7 +155,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         var spacingAfterException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
-                .HR(spacingAfter: double.PositiveInfinity));
+                .HR(spacingAfter: -1));
 
         Assert.Contains("Horizontal rule spacing after must be a non-negative finite value.", spacingAfterException.Message, StringComparison.Ordinal);
 

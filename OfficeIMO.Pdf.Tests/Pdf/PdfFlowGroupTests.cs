@@ -35,7 +35,7 @@ public class PdfFlowGroupTests {
         PdfLayoutRegion region = Assert.Single(capture.Regions);
         Assert.Equal(2, PdfInspector.Inspect(bytes).PageCount);
         Assert.Equal(2, region.PageNumber);
-        Assert.Equal(80D, region.Height, 3);
+        Assert.Equal(80D, region.Height.ToPoints(), 3);
         Assert.False(capture.WasSkipped);
     }
 
@@ -51,7 +51,7 @@ public class PdfFlowGroupTests {
                     invocations++;
                     return item => item.Paragraph(paragraph => paragraph.Text("Deferred page " + context.PageNumber));
                 },
-                new PdfFlowOptions { MinimumRemainingHeight = 100 },
+                new PdfFlowOptions { MinimumRemainingHeight = global::OfficeIMO.OfficeLength.Points(100) },
                 capture)
             .ToBytes();
 

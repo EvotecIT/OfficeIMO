@@ -21,8 +21,8 @@ public static partial class WordPdfConverterExtensions {
         // at its 600-dpi layout device). Both marks clamp at the real remaining
         // line frame; the continuation mark has no short-rule maximum.
         double? maximum = mark is W.SeparatorMark ? 2D * 72D : null;
-        var rule = new PdfCore.PdfInlineRule(band.Thickness, metricStyle.Color ?? global::OfficeIMO.OfficeColor.Black,
-            maximumWidth: maximum, baselineOffset: band.Position - band.Thickness);
+        var rule = new PdfCore.PdfInlineRule(global::OfficeIMO.OfficeLength.Points(band.Thickness), metricStyle.Color ?? global::OfficeIMO.OfficeColor.Black,
+            maximumWidth: ((maximum).HasValue ? global::OfficeIMO.OfficeLength.Points((maximum).Value) : (global::OfficeIMO.OfficeLength?)null), baselineOffset: global::OfficeIMO.OfficeLength.Points(band.Position - band.Thickness));
         if (metricStyle.Underline) {
             PdfCore.PdfWriter.TextDecorationMeasurement? underline = fonts?.MeasureUnderline(metricStyle,
                 NativeLayoutDevicePointsPerPixel);

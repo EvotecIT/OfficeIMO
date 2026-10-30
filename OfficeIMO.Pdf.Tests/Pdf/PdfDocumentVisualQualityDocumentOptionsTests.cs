@@ -42,8 +42,8 @@ public partial class PdfDocumentVisualQualityTests {
     public void GeneratedPageLimitAlsoAppliesToPagesComposedBeforeSettings() {
         PdfDocument document = PdfDocument.Create(_ => { });
         document.Compose(compose => compose.Page(page => page
-            .Size(300, 180)
-            .Margin(24)
+            .Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(180))
+            .Margin(global::OfficeIMO.OfficeLength.Points(24))
             .Content(content => content.Item(item => item.Paragraph(paragraph =>
                 paragraph.Text(string.Join(" ", Enumerable.Repeat("A long paragraph", 80))))))));
         document.Compose(compose => compose.Settings(settings => settings.MaxGeneratedPages = 1));
@@ -238,8 +238,8 @@ public partial class PdfDocumentVisualQualityTests {
             PdfDocument.Create()
                 .Compose(compose =>
                     compose.Page(page => {
-                        page.Size(200, 160);
-                        page.Margin(left: 100, top: 20, right: 100, bottom: 20);
+                        page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(160));
+                        page.Margin(left: global::OfficeIMO.OfficeLength.Points(100), top: global::OfficeIMO.OfficeLength.Points(20), right: global::OfficeIMO.OfficeLength.Points(100), bottom: global::OfficeIMO.OfficeLength.Points(20));
                         page.Content(content =>
                             content.Column(column =>
                                 column.Item().Paragraph(p => p.Text("No content width"))));

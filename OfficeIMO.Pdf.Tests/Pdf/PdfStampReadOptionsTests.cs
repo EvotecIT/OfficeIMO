@@ -24,8 +24,8 @@ public class PdfStampReadOptionsTests {
         PdfDocument stamped = operation switch {
             "Text" => source.Stamp.Text("Stamp", null, explicitOptions),
             "TextWatermark" => source.Stamp.TextWatermark("Watermark", null, explicitOptions),
-            "Image" => source.Stamp.Image(image, new PdfImageStampOptions { Width = 24D, Height = 24D }, explicitOptions),
-            "ImageWatermark" => source.Stamp.ImageWatermark(image, new PdfImageStampOptions { Width = 24D, Height = 24D }, explicitOptions),
+            "Image" => source.Stamp.Image(image, new PdfImageStampOptions { Width = global::OfficeIMO.OfficeLength.Points(24D), Height = global::OfficeIMO.OfficeLength.Points(24D) }, explicitOptions),
+            "ImageWatermark" => source.Stamp.ImageWatermark(image, new PdfImageStampOptions { Width = global::OfficeIMO.OfficeLength.Points(24D), Height = global::OfficeIMO.OfficeLength.Points(24D) }, explicitOptions),
             "OverlayPage" => source.Stamp.OverlayPage(overlay, null, explicitOptions),
             "UnderlayPage" => source.Stamp.UnderlayPage(overlay, null, explicitOptions),
             "Content" => source.Stamp.Content((canvas, _) => canvas.Text("Canvas", global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(200D), global::OfficeIMO.OfficeLength.Points(24D)), readOptions: explicitOptions),

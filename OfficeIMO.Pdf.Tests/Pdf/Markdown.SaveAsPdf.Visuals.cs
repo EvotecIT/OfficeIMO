@@ -180,8 +180,8 @@ public class MarkdownSaveAsPdfVisualTests {
         MarkdownPdfStyle visualTheme = MarkdownPdfStyle.Plain();
         visualTheme.QuotePanelStyle = new PdfCore.PdfPanelStyle {
             Background = global::OfficeIMO.OfficeColor.FromRgb(0xff, 0, 0),
-            PaddingX = 8,
-            PaddingY = 6
+            PaddingX = global::OfficeIMO.OfficeLength.Points(8),
+            PaddingY = global::OfficeIMO.OfficeLength.Points(6)
         };
         var options = CreateVisualOptions();
         options.Style = visualTheme;
@@ -2438,8 +2438,8 @@ _Figure 2. Revenue chart_
             Align = PdfCore.PdfAlign.Center,
             Decorative = true,
             KeepWithNext = true,
-            SpacingBefore = 2,
-            SpacingAfter = 4
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(2),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(4)
         };
         theme.FigureStyle = figureStyle;
         var options = CreateVisualOptions();

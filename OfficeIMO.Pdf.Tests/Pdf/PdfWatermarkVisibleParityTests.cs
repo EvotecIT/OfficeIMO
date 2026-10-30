@@ -26,8 +26,8 @@ public partial class PdfDocumentVisualQualityTests {
             page.PageNumberStart(start);
             page.Options.UsePageNumberParityForHeaderFooter = true;
             if (image) {
-                page.EvenPagesImageWatermark(new PdfImageWatermark(png, width: 22, height: 22));
-                if (first == 1) page.FirstPageImageWatermark(new PdfImageWatermark(png, width: 31, height: 31));
+                page.EvenPagesImageWatermark(new PdfImageWatermark(png, width: global::OfficeIMO.OfficeLength.Points(22), height: global::OfficeIMO.OfficeLength.Points(22)));
+                if (first == 1) page.FirstPageImageWatermark(new PdfImageWatermark(png, width: global::OfficeIMO.OfficeLength.Points(31), height: global::OfficeIMO.OfficeLength.Points(31)));
                 else if (first == 2) page.SuppressFirstPageImageWatermark();
             } else {
                 page.EvenPagesWatermark("EVENMARK", font: PdfStandardFont.Courier);

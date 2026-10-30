@@ -1,3 +1,4 @@
+using System.Linq;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfAcroFormDictionaryBuilder {
@@ -135,7 +136,7 @@ internal static partial class PdfAcroFormDictionaryBuilder {
             content += BuildFormFieldBackgroundAppearanceContent(width, height, effectiveStyle);
         }
 
-        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth > 0) {
+        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth.ToPoints() > 0) {
             content += BuildRectangularBorderAppearanceContent(width, height, effectiveStyle);
         }
 
@@ -430,7 +431,7 @@ internal static partial class PdfAcroFormDictionaryBuilder {
             content += BuildFormFieldBackgroundAppearanceContent(width, height, effectiveStyle);
         }
 
-        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth > 0) {
+        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth.ToPoints() > 0) {
             content += BuildRectangularBorderAppearanceContent(width, height, effectiveStyle);
         }
 
@@ -465,11 +466,11 @@ internal static partial class PdfAcroFormDictionaryBuilder {
             content += BuildFormFieldBackgroundAppearanceContent(width, height, effectiveStyle);
         }
 
-        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth > 0) {
+        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth.ToPoints() > 0) {
             if (effectiveStyle.BorderStyle == PdfFormFieldBorderStyle.Underline) {
                 content += BuildUnderlineBorderAppearanceContent(width, effectiveStyle);
             } else {
-                content += BuildBorderStrokeOperators(effectiveStyle.BorderColor.Value, effectiveStyle.BorderWidth, GetEffectiveBorderDashPattern(effectiveStyle)) +
+                content += BuildBorderStrokeOperators(effectiveStyle.BorderColor.Value, effectiveStyle.BorderWidth.ToPoints(), GetEffectiveBorderDashPattern(effectiveStyle)) +
                     Format(centerX + radius) + " " + Format(centerY) + " m " +
                     Format(centerX + radius) + " " + Format(centerY + control) + " " + Format(centerX + control) + " " + Format(centerY + radius) + " " + Format(centerX) + " " + Format(centerY + radius) + " c " +
                     Format(centerX - control) + " " + Format(centerY + radius) + " " + Format(centerX - radius) + " " + Format(centerY + control) + " " + Format(centerX - radius) + " " + Format(centerY) + " c " +
@@ -497,24 +498,24 @@ internal static partial class PdfAcroFormDictionaryBuilder {
         Format(color.ToNormalizedRgb().R) + " " + Format(color.ToNormalizedRgb().G) + " " + Format(color.ToNormalizedRgb().B);
 
     internal static string BuildRectangularBorderAppearanceContent(double width, double height, PdfFormFieldStyle style) {
-        if (style.BorderColor == null || style.BorderWidth <= 0D) {
+        if (style.BorderColor == null || style.BorderWidth.ToPoints() <= 0D) {
             return string.Empty;
         }
 
-        if (style.CornerRadius <= 0D || style.BorderStyle == PdfFormFieldBorderStyle.Underline || style.BorderStyle == PdfFormFieldBorderStyle.Beveled || style.BorderStyle == PdfFormFieldBorderStyle.Inset) {
-            return BuildRectangularBorderAppearanceContent(width, height, style.BorderColor.Value, style.BorderWidth, GetEffectiveBorderDashPattern(style), style.BorderStyle);
+        if (style.CornerRadius.ToPoints() <= 0D || style.BorderStyle == PdfFormFieldBorderStyle.Underline || style.BorderStyle == PdfFormFieldBorderStyle.Beveled || style.BorderStyle == PdfFormFieldBorderStyle.Inset) {
+            return BuildRectangularBorderAppearanceContent(width, height, style.BorderColor.Value, style.BorderWidth.ToPoints(), GetEffectiveBorderDashPattern(style), style.BorderStyle);
         }
 
-        double inset = Math.Max(0.5D, style.BorderWidth * 0.5D);
-        return BuildBorderStrokeOperators(style.BorderColor.Value, style.BorderWidth, GetEffectiveBorderDashPattern(style)) +
-            BuildRoundedRectanglePath(width, height, style.CornerRadius, inset) + "S\n";
+        double inset = Math.Max(0.5D, style.BorderWidth.ToPoints() * 0.5D);
+        return BuildBorderStrokeOperators(style.BorderColor.Value, style.BorderWidth.ToPoints(), GetEffectiveBorderDashPattern(style)) +
+            BuildRoundedRectanglePath(width, height, style.CornerRadius.ToPoints(), inset) + "S\n";
     }
 
     internal static string BuildFormFieldBackgroundAppearanceContent(double width, double height, PdfFormFieldStyle style) {
         if (!style.BackgroundColor.HasValue) return string.Empty;
-        string path = style.CornerRadius <= 0D
+        string path = style.CornerRadius.ToPoints() <= 0D
             ? "0 0 " + Format(width) + " " + Format(height) + " re "
-            : BuildRoundedRectanglePath(width, height, style.CornerRadius, 0D);
+            : BuildRoundedRectanglePath(width, height, style.CornerRadius.ToPoints(), 0D);
         return FormatColor(style.BackgroundColor.Value) + " rg " + path + "f\n";
     }
 
@@ -559,11 +560,11 @@ internal static partial class PdfAcroFormDictionaryBuilder {
     }
 
     private static string BuildUnderlineBorderAppearanceContent(double width, PdfFormFieldStyle style) {
-        if (style.BorderColor == null || style.BorderWidth <= 0D) {
+        if (style.BorderColor == null || style.BorderWidth.ToPoints() <= 0D) {
             return string.Empty;
         }
 
-        return BuildUnderlineBorderAppearanceContent(width, style.BorderColor.Value, style.BorderWidth);
+        return BuildUnderlineBorderAppearanceContent(width, style.BorderColor.Value, style.BorderWidth.ToPoints());
     }
 
     private static string BuildUnderlineBorderAppearanceContent(double width, global::OfficeIMO.OfficeColor borderColor, double borderWidth) {
@@ -597,9 +598,9 @@ internal static partial class PdfAcroFormDictionaryBuilder {
 
     private static global::OfficeIMO.OfficeColor Darken(global::OfficeIMO.OfficeColor color) => global::OfficeIMO.OfficeColor.FromNormalizedRgb(color.ToNormalizedRgb().R * 0.45D, color.ToNormalizedRgb().G * 0.45D, color.ToNormalizedRgb().B * 0.45D);
 
-    private static IReadOnlyList<double>? GetEffectiveBorderDashPattern(PdfFormFieldStyle style) {
+    private static double[]? GetEffectiveBorderDashPattern(PdfFormFieldStyle style) {
         if (style.BorderDashPattern != null && style.BorderDashPattern.Count > 0) {
-            return style.BorderDashPattern;
+            return style.BorderDashPattern?.Select(static length => length.ToPoints()).ToArray();
         }
 
         return style.BorderStyle == PdfFormFieldBorderStyle.Dashed

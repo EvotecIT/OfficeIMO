@@ -84,12 +84,12 @@ public static partial class PowerPointPdfConverterExtensions {
         bool rowBold, double width, bool fittedLabel, Func<string?, double, string?, OfficeFontStyle, double> measure,
         PowerPointPdfExportOptions options) {
         IReadOnlyList<PdfCore.PdfTableCellParagraph> paragraphs = cell.Paragraphs.Count > 0
-            ? cell.Paragraphs : new[] { new PdfCore.PdfTableCellParagraph(cell.Runs, fontSize: fontSize) };
+            ? cell.Paragraphs : new[] { new PdfCore.PdfTableCellParagraph(cell.Runs, fontSize: global::OfficeIMO.OfficeLength.Points(fontSize)) };
         double height = 0D;
         double paintedBottom = 0D;
         foreach (PdfCore.PdfTableCellParagraph paragraph in paragraphs) {
             options.CancellationToken.ThrowIfCancellationRequested();
-            double size = paragraph.FontSize ?? fontSize;
+            double size = (paragraph.FontSize?.ToPoints()) ?? fontSize;
             bool exact = paragraph.LineSpacing?.Rule == PdfCore.PdfLineSpacingRule.Exact;
             double factor = exact ? paragraph.LineSpacing!.Height!.Value.ToPoints() / size : (paragraph.LineSpacing?.Height?.ToPoints() ?? paragraph.LineSpacing?.MultipleValue) ?? paragraph.LineHeight ?? defaultFactor;
             double leading = size * factor;
@@ -97,19 +97,19 @@ public static partial class PowerPointPdfConverterExtensions {
             // PDF keeps a hanging indent relative to the paragraph's left
             // margin. Drawing layout instead takes nonnegative offsets from
             // the cell frame for both the first and continuation lines.
-            double firstOffset = Math.Max(0D, paragraph.LeftIndent + paragraph.FirstLineIndent);
-            double followingOffset = Math.Max(0D, paragraph.LeftIndent);
+            double firstOffset = Math.Max(0D, paragraph.LeftIndent.ToPoints() + paragraph.FirstLineIndent.ToPoints());
+            double followingOffset = Math.Max(0D, paragraph.LeftIndent.ToPoints());
             var layout = OfficeTextLayoutEngine.LayoutStyledRichTextBlock(runs,
-                Math.Max(1D, width - paragraph.RightIndent), double.MaxValue, factor, measure,
+                Math.Max(1D, width - paragraph.RightIndent.ToPoints()), double.MaxValue, factor, measure,
                 wrap: !fittedLabel, paragraphIndent: new OfficeTextParagraphIndent(firstOffset, followingOffset),
                 cancellationToken: options.CancellationToken);
-            height += paragraph.SpacingBefore;
+            height += paragraph.SpacingBefore.ToPoints();
             double advance = exact ? Math.Max(1, layout.Lines.Count) * leading
                 : Math.Max(leading, layout.Lines.Sum(line => Math.Max(leading, line.LineHeight)));
             // A condensed final line can paint below its advance; grow the row
             // for that ink without changing the paragraph's requested leading.
             paintedBottom = Math.Max(paintedBottom, height + Math.Max(advance, OfficeDrawingTextLayout.RequiredFrameHeight(layout)));
-            height += advance + paragraph.SpacingAfter;
+            height += advance + paragraph.SpacingAfter.ToPoints();
         }
         return Math.Max(height, paintedBottom);
     }

@@ -250,7 +250,7 @@ internal sealed partial class ContentStreamBuilder {
         if (SyncTextState() && _syntheticOblique == syntheticOblique && _fontSize == size &&
             _fontPrecise == preserveLogicalPrecision && string.Equals(_fontResource, resourceName, StringComparison.Ordinal)) return this;
         _sb.Append('/').Append(resourceName).Append(' ');
-        if (preserveLogicalPrecision) _sb.Append(MatrixNumber(size));
+        if (preserveLogicalPrecision) _sb.Append(PdfNumberFormatter.Precise(size));
         else _sb.Append(F(size));
         _sb.Append(" Tf\n");
         if (_inText) {
@@ -285,21 +285,25 @@ internal sealed partial class ContentStreamBuilder {
         return TextMatrix(1, 0, 0, 1, x, y);
     }
 
-    public ContentStreamBuilder TextMatrix(double a, double b, double c, double d, double e, double f) {
+    public ContentStreamBuilder TextMatrix(double a, double b, double c, double d, double e, double f, bool precisePosition = false) {
         double shear = _syntheticOblique ? SyntheticObliqueShear : 0D;
-        return TextMatrixApplied(a, b, c + shear * a, d + shear * b, e, f);
+        return TextMatrixApplied(a, b, c + shear * a, d + shear * b, e, f, precisePosition);
     }
 
-    private ContentStreamBuilder TextMatrixApplied(double a, double b, double c, double d, double e, double f) {
-        if (SyncTextState() && TryFoldTextMatrix(a, b, c, d, e, f)) return this;
+    private ContentStreamBuilder TextMatrixApplied(double a, double b, double c, double d, double e, double f, bool precisePosition = false) {
+        if (!precisePosition && SyncTextState() && TryFoldTextMatrix(a, b, c, d, e, f)) return this;
         // Track the serialized matrix: later TJ moves are relative to what viewers read.
-        TrackTextMatrix(Serialized(a), Serialized(b), Serialized(c), Serialized(d), Serialized(e), Serialized(f));
+        TrackTextMatrix(Serialized(a), Serialized(b), Serialized(c), Serialized(d), precisePosition ? e : Serialized(e), precisePosition ? f : Serialized(f));
         _sb.Append(F(a)).Append(' ')
             .Append(F(b)).Append(' ')
             .Append(F(c)).Append(' ')
-            .Append(F(d)).Append(' ')
-            .Append(F(e)).Append(' ')
-            .Append(F(f)).Append(" Tm\n");
+            .Append(F(d)).Append(' ');
+        if (precisePosition) {
+            _sb.Append(PdfNumberFormatter.Precise(e)).Append(' ').Append(PdfNumberFormatter.Precise(f));
+        } else {
+            _sb.Append(F(e)).Append(' ').Append(F(f));
+        }
+        _sb.Append(" Tm\n");
         OwnWrite();
         return this;
     }

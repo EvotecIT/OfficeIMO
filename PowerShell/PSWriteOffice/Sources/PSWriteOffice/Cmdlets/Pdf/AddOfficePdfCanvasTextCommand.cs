@@ -109,8 +109,8 @@ public sealed class AddOfficePdfCanvasTextCommand : PSWriteOffice.Cmdlets.Office
     /// <inheritdoc />
     protected override void ProcessRecord() {
         var context = PdfCanvasDslContext.Require(this);
-        var width = Width ?? context.Page.Width - X;
-        var height = Height ?? context.Page.Height - Y;
+        var width = Width ?? context.Page.Width.ToPoints() - X;
+        var height = Height ?? context.Page.Height.ToPoints() - Y;
         if (width <= 0 || height <= 0) {
             throw new PSArgumentException(
                 "The text area must remain inside the page. Adjust -X/-Y or provide positive -Width/-Height values.");

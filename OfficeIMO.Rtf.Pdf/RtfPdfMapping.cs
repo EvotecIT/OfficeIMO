@@ -130,8 +130,8 @@ internal static class RtfPdfMapping {
 
         PdfCore.PdfPageBorder border = new PdfCore.PdfPageBorder {
             DashStyle = ToPdfDashStyle(source.Style),
-            Width = source.Width.HasValue && source.Width.Value > 0 ? source.Width.Value / 8D : 1D,
-            Inset = source.Space.HasValue && source.Space.Value >= 0 ? source.Space.Value : 36D
+            Width = global::OfficeIMO.OfficeLength.Points(source.Width.HasValue && source.Width.Value > 0 ? source.Width.Value / 8D : 1D),
+            Inset = global::OfficeIMO.OfficeLength.Points(source.Space.HasValue && source.Space.Value >= 0 ? source.Space.Value : 36D)
         };
 
         global::OfficeIMO.OfficeColor? color = ToPdfColor(document, source.ColorIndex);

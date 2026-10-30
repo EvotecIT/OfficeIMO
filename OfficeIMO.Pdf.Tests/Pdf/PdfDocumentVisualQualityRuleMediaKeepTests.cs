@@ -126,9 +126,9 @@ public partial class PdfDocumentVisualQualityTests {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(81)
             })
             .HR(style: new PdfHorizontalRuleStyle {
-                Thickness = 3,
-                SpacingBefore = 0,
-                SpacingAfter = 0,
+                Thickness = global::OfficeIMO.OfficeLength.Points(3),
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
                 KeepWithNext = true
             })
             .Paragraph(p => p.Text("FollowingRuleBody"))
@@ -169,9 +169,9 @@ public partial class PdfDocumentVisualQualityTests {
                         content.Row(row =>
                             row.PercentColumn(100, column => column
                                 .HR(style: new PdfHorizontalRuleStyle {
-                                    Thickness = 3,
-                                    SpacingBefore = 0,
-                                    SpacingAfter = 0,
+                                    Thickness = global::OfficeIMO.OfficeLength.Points(3),
+                                    SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
+                                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
                                     KeepWithNext = true
                                 })
                                 .Paragraph(p => p.Text("ColumnFollowingRuleBody")))))))

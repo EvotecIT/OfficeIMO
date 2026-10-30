@@ -69,15 +69,19 @@ namespace OfficeIMO.Excel.Pdf {
         private static PdfCore.PdfTableCellViewport? CreateMergeViewport(
             WorksheetPdfExportPlan plan, MergeRegion region, int row, int column, int rowSpan, int columnSpan) {
             if (row == region.Row && column == region.Column && rowSpan == region.Span.RowSpan && columnSpan == region.Span.ColumnSpan) return null;
-            double width = Enumerable.Range(column, columnSpan).Sum(index => GetExportedColumnWidthPoints(plan, index));
-            double height = Enumerable.Range(row, rowSpan).Sum(index => GetExportedRowHeightPoints(plan, index));
-            double offsetX = Enumerable.Range(region.Column, column - region.Column).Sum(index => GetExportedColumnWidthPoints(plan, index));
-            double offsetY = Enumerable.Range(region.Row, row - region.Row).Sum(index => GetExportedRowHeightPoints(plan, index));
-            double fullWidth = Enumerable.Range(region.Column, region.Span.ColumnSpan).Sum(index => GetExportedColumnWidthPoints(plan, index));
-            double fullHeight = Enumerable.Range(region.Row, region.Span.RowSpan).Sum(index => GetExportedRowHeightPoints(plan, index));
-            // Accumulating a fragment separately can round a few ulps above the full
-            // sum. Keep the viewport contained without changing meaningful geometry.
-            return new PdfCore.PdfTableCellViewport(Math.Max(fullWidth, offsetX + width), Math.Max(fullHeight, offsetY + height), width, height, offsetX, offsetY);
+            var width = global::OfficeIMO.OfficeLength.Points(Enumerable.Range(column, columnSpan).Sum(index => GetExportedColumnWidthPoints(plan, index)));
+            var height = global::OfficeIMO.OfficeLength.Points(Enumerable.Range(row, rowSpan).Sum(index => GetExportedRowHeightPoints(plan, index)));
+            var offsetX = global::OfficeIMO.OfficeLength.Points(Enumerable.Range(region.Column, column - region.Column).Sum(index => GetExportedColumnWidthPoints(plan, index)));
+            var offsetY = global::OfficeIMO.OfficeLength.Points(Enumerable.Range(region.Row, row - region.Row).Sum(index => GetExportedRowHeightPoints(plan, index)));
+            var fullWidth = global::OfficeIMO.OfficeLength.Points(Enumerable.Range(region.Column, region.Span.ColumnSpan).Sum(index => GetExportedColumnWidthPoints(plan, index)));
+            var fullHeight = global::OfficeIMO.OfficeLength.Points(Enumerable.Range(region.Row, region.Span.RowSpan).Sum(index => GetExportedRowHeightPoints(plan, index)));
+            // Independently rounded fragments can exceed the rounded full size.
+            // Enforce containment after conversion, in the same exact EMU domain.
+            var requiredWidth = offsetX + width;
+            var requiredHeight = offsetY + height;
+            fullWidth = fullWidth >= requiredWidth ? fullWidth : requiredWidth;
+            fullHeight = fullHeight >= requiredHeight ? fullHeight : requiredHeight;
+            return new PdfCore.PdfTableCellViewport(fullWidth, fullHeight, width, height, offsetX, offsetY);
         }
 
         private static ExcelCellBorderInfo? CreateMergeFragmentBorder(

@@ -30,7 +30,7 @@ internal static class DispatchNote {
                 "Check all 13 cartons against this note. Record visible damage before accepting the shipment."),
                 new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromRgb(232, 241, 251),
-                    BorderColor = global::OfficeIMO.OfficeColor.FromRgb(165, 190, 225), PaddingX = 12, PaddingY = 12
+                    BorderColor = global::OfficeIMO.OfficeColor.FromRgb(165, 190, 225), PaddingX = global::OfficeIMO.OfficeLength.Points(12), PaddingY = global::OfficeIMO.OfficeLength.Points(12)
                 })
             .H2("Receipt", PdfAlign.Left, navy)
             .Paragraph(p => p.Text("Received by: ____________________     Date: ____________________"))

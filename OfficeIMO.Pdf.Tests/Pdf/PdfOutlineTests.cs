@@ -10,8 +10,8 @@ public class PdfOutlineTests {
     public void CanvasOutline_WritesNestedBookmarksAtAbsolutePageCoordinates() {
         byte[] bytes = PdfDocument.Create()
             .Page(page => page
-                .Size(400D, 600D)
-                .Margin(0D)
+                .Size(global::OfficeIMO.OfficeLength.Points(400D), global::OfficeIMO.OfficeLength.Points(600D))
+                .Margin(global::OfficeIMO.OfficeLength.Points(0D))
                 .Canvas(canvas => canvas
                     .Outline("Canvas chapter", 1, global::OfficeIMO.OfficeLength.Points(72D))
                     .Outline("Canvas detail", 2, global::OfficeIMO.OfficeLength.Points(144D))

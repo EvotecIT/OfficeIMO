@@ -66,10 +66,10 @@ public class PdfRoundedCornerTests {
             }, new PdfPanelStyle {
                 Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.95, 0.97, 0.99),
                 BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.3, 0.4),
-                BorderWidth = 1,
-                CornerRadius = 8,
-                PaddingX = 12,
-                PaddingY = 10,
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(1),
+                CornerRadius = global::OfficeIMO.OfficeLength.Points(8),
+                PaddingX = global::OfficeIMO.OfficeLength.Points(12),
+                PaddingY = global::OfficeIMO.OfficeLength.Points(10),
             })
             .ToBytes();
 
@@ -246,11 +246,11 @@ public class PdfRoundedCornerTests {
         Assert.Equal(6, table.Clone().CornerRadius.ToPoints());
         Assert.Throws<ArgumentException>(() => new PdfTableStyle { CornerRadius = global::OfficeIMO.OfficeLength.Points(-1) });
 
-        PdfPanelStyle panel = new() { CornerRadius = 8 };
-        Assert.Equal(8, panel.Clone().CornerRadius);
-        Assert.Throws<ArgumentException>(() => new PdfPanelStyle { CornerRadius = -1 });
-        Assert.Throws<ArgumentException>(() => new PdfPanelStyle { CornerRadius = double.NaN });
-        Assert.Throws<ArgumentException>(() => new PdfPanelStyle { CornerRadius = double.PositiveInfinity });
+        PdfPanelStyle panel = new() { CornerRadius = global::OfficeIMO.OfficeLength.Points(8) };
+        Assert.Equal(8, panel.Clone().CornerRadius.ToPoints());
+        Assert.Throws<ArgumentException>(() => new PdfPanelStyle { CornerRadius = global::OfficeIMO.OfficeLength.Points(-1) });
+
+
     }
 
     private static int CountOccurrences(string value, string needle) {

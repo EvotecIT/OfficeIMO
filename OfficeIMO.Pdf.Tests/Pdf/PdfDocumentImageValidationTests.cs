@@ -83,7 +83,7 @@ public class PdfDocumentImageValidationTests {
                 new[] {
                     PdfTableCell.WithImages(
                         "Logo",
-                        new[] { new PdfTableCellImage(png, 24, 24) })
+                        new[] { new PdfTableCellImage(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24)) })
                 }
             })
             .ToBytes();
@@ -147,7 +147,7 @@ public class PdfDocumentImageValidationTests {
                     PdfTableCell.WithImages(
                         (string?)null,
                         new[] {
-                            new PdfTableCellImage(jpeg, 144, 72, new PdfImageStyle { ScaleDownToFit = true })
+                            new PdfTableCellImage(jpeg, global::OfficeIMO.OfficeLength.Points(144), global::OfficeIMO.OfficeLength.Points(72), new PdfImageStyle { ScaleDownToFit = true })
                         })
                 }
             }, style: tableStyle)
@@ -185,7 +185,7 @@ public class PdfDocumentImageValidationTests {
                                         PdfTableCell.WithImages(
                                             (string?)null,
                                             new[] {
-                                                new PdfTableCellImage(jpeg, 144, 72, new PdfImageStyle { ScaleDownToFit = true })
+                                                new PdfTableCellImage(jpeg, global::OfficeIMO.OfficeLength.Points(144), global::OfficeIMO.OfficeLength.Points(72), new PdfImageStyle { ScaleDownToFit = true })
                                             })
                                     }
                                 }, style: tableStyle))))))
@@ -202,8 +202,8 @@ public class PdfDocumentImageValidationTests {
             Align = PdfAlign.Center,
             Fit = OfficeImageFit.Contain,
             ClipPath = OfficeClipPath.Rectangle(12, 10),
-            SpacingBefore = 4,
-            SpacingAfter = 9,
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(9),
             KeepWithNext = true,
             ScaleDownToFit = true,
             RotationAngle = 12
@@ -215,8 +215,8 @@ public class PdfDocumentImageValidationTests {
         style.Align = PdfAlign.Right;
         style.Fit = OfficeImageFit.Cover;
         style.ClipPath = OfficeClipPath.Rectangle(4, 4);
-        style.SpacingBefore = 1;
-        style.SpacingAfter = 2;
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(1);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(2);
         style.KeepWithNext = false;
         style.ScaleDownToFit = false;
         style.RotationAngle = 0;
@@ -232,8 +232,8 @@ public class PdfDocumentImageValidationTests {
         Assert.Equal(PdfAlign.Center, options.DefaultImageStyle!.Align);
         Assert.Equal(OfficeImageFit.Contain, options.DefaultImageStyle.Fit);
         Assert.Equal(12, options.DefaultImageStyle.ClipPath!.Width);
-        Assert.Equal(4, options.DefaultImageStyle.SpacingBefore);
-        Assert.Equal(9, options.DefaultImageStyle.SpacingAfter);
+        Assert.Equal(4, options.DefaultImageStyle.SpacingBefore.ToPoints());
+        Assert.Equal(9, options.DefaultImageStyle.SpacingAfter.ToPoints());
         Assert.True(options.DefaultImageStyle.KeepWithNext);
         Assert.True(options.DefaultImageStyle.ScaleDownToFit);
         Assert.Equal(12, options.DefaultImageStyle.RotationAngle);
@@ -249,8 +249,8 @@ public class PdfDocumentImageValidationTests {
         var imageStyle = new PdfImageStyle {
             Align = PdfAlign.Center,
             Fit = OfficeImageFit.Contain,
-            SpacingBefore = 3,
-            SpacingAfter = 8,
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(3),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(8),
             KeepWithNext = true,
             ScaleDownToFit = true
         };
@@ -261,7 +261,7 @@ public class PdfDocumentImageValidationTests {
 
         imageStyle.Align = PdfAlign.Right;
         imageStyle.Fit = OfficeImageFit.Cover;
-        imageStyle.SpacingAfter = 1;
+        imageStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(1);
         imageStyle.KeepWithNext = false;
         imageStyle.ScaleDownToFit = false;
 
@@ -269,7 +269,7 @@ public class PdfDocumentImageValidationTests {
 
         Assert.Equal(PdfAlign.Center, options.DefaultImageStyle!.Align);
         Assert.Equal(OfficeImageFit.Contain, options.DefaultImageStyle.Fit);
-        Assert.Equal(8, options.DefaultImageStyle.SpacingAfter);
+        Assert.Equal(8, options.DefaultImageStyle.SpacingAfter.ToPoints());
         Assert.True(options.DefaultImageStyle.KeepWithNext);
         Assert.True(options.DefaultImageStyle.ScaleDownToFit);
         Assert.Equal(PdfAlign.Center, clone.DefaultImageStyle!.Align);
@@ -930,8 +930,8 @@ public class PdfDocumentImageValidationTests {
         var style = new PdfImageStyle {
             Align = PdfAlign.Center,
             Fit = OfficeImageFit.Contain,
-            SpacingBefore = 4,
-            SpacingAfter = 12
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(12)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -951,7 +951,7 @@ public class PdfDocumentImageValidationTests {
 
         style.Align = PdfAlign.Right;
         style.Fit = OfficeImageFit.Cover;
-        style.SpacingAfter = 0;
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
 
         string pdfContent = PdfTestContentText.ReadDecoded(bytes);
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -968,8 +968,8 @@ public class PdfDocumentImageValidationTests {
         byte[] png = CreateMinimalRgbPng();
         var style = new PdfImageStyle {
             Align = PdfAlign.Center,
-            SpacingBefore = 4,
-            SpacingAfter = 8
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {

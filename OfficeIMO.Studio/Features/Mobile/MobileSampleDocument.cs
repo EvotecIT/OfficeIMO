@@ -14,8 +14,8 @@ internal static class MobileSampleDocument {
             MarginLeft = global::OfficeIMO.OfficeLength.Points(64), MarginRight = global::OfficeIMO.OfficeLength.Points(64), MarginTop = global::OfficeIMO.OfficeLength.Points(64), MarginBottom = global::OfficeIMO.OfficeLength.Points(64),
             DefaultParagraphStyle = new PdfParagraphStyle { LineHeight = 1.5, SpacingAfter = global::OfficeIMO.OfficeLength.Points(16) }
         };
-        options.SetDefaultHeadingStyle(1, new PdfHeadingStyle { FontSize = 40, LineHeight = 1.1, Color = ink, SpacingAfter = 24 });
-        options.SetDefaultHeadingStyle(2, new PdfHeadingStyle { FontSize = 20, Color = ink, SpacingBefore = 20, SpacingAfter = 12 });
+        options.SetDefaultHeadingStyle(1, new PdfHeadingStyle { FontSize = global::OfficeIMO.OfficeLength.Points(40), LineHeight = 1.1, Color = ink, SpacingAfter = global::OfficeIMO.OfficeLength.Points(24) });
+        options.SetDefaultHeadingStyle(2, new PdfHeadingStyle { FontSize = global::OfficeIMO.OfficeLength.Points(20), Color = ink, SpacingBefore = global::OfficeIMO.OfficeLength.Points(20), SpacingAfter = global::OfficeIMO.OfficeLength.Points(12) });
         var document = PdfDocument.Create(pdf => pdf.Content(content => content
             .Paragraph(p => p.Text("OFFICEIMO STUDIO  /  A QUICK TOUR"), defaultColor: blue)
             .Spacer(global::OfficeIMO.OfficeLength.Points(58))

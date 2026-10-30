@@ -189,7 +189,7 @@ namespace OfficeIMO.Word.Pdf {
             if (style == null) return null;
             PdfCore.PdfParagraphStyle result = style.Clone();
             result.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
-            result.SpacingAfter = global::OfficeIMO.OfficeLength.Points(panelStyle == null ? 0D : Math.Max(0D, ((style.SpacingAfter?.ToPoints()) ?? 0D) - panelStyle.SpacingAfter));
+            result.SpacingAfter = global::OfficeIMO.OfficeLength.Points(panelStyle == null ? 0D : Math.Max(0D, ((style.SpacingAfter?.ToPoints()) ?? 0D) - panelStyle.SpacingAfter.ToPoints()));
             return result;
         }
 

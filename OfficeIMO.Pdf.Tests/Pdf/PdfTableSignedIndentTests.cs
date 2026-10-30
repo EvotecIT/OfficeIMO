@@ -25,7 +25,7 @@ public class PdfTableSignedIndentTests {
         PdfDocument document = PdfDocument.Create(options);
         if (frame == "columns") {
             document.Columns(content => content.Table(rows, style: style),
-                new PdfMultiColumnOptions { Gap = 20, BalanceLastPage = false });
+                new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false });
         } else if (frame == "row") {
             document.Compose(builder => builder.Page(page => page.Content(content =>
                 content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))))));

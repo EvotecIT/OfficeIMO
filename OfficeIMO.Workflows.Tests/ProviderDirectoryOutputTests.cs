@@ -156,6 +156,6 @@ public sealed class ProviderDirectoryOutputTests {
     }
 
     private static byte[] CreatePdf(int count) => PdfDocument.Create(compose => {
-        for (int index = 0; index < count; index++) compose.Page(page => page.Size(300, 400));
+        for (int index = 0; index < count; index++) compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)));
     }).ToBytes();
 }

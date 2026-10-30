@@ -27,13 +27,13 @@ namespace OfficeIMO.Examples.Pdf {
 
             PdfDocument.Create(document => {
                     document.Page(page => {
-                        page.Margin(54, 54, 54, 58);
+                        page.Margin(global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(58));
                         page.Content(content => {
                             content.Item(item => item.H1("Statement #4048", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42)));
                             content.Item(item => item.Paragraph(p => p.Text("Issue date: 23/12/2025").Text("   Due date: 06/01/2026"), style: TightParagraph()));
                             content.Item(item => item.Shape(CreateBrandRule(), PdfAlign.Right, spacingBefore: global::OfficeIMO.OfficeLength.Points(6), spacingAfter: global::OfficeIMO.OfficeLength.Points(22)));
                             content.Row(row => {
-                                row.Gap(58)
+                                row.Gap(global::OfficeIMO.OfficeLength.Points(58))
                                     .PercentColumn(50, column => {
                                         column.Paragraph(p => p.Bold("From"), style: LabelParagraph());
                                         column.HR(global::OfficeIMO.OfficeLength.Points(1.2), global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42), spacingBefore: global::OfficeIMO.OfficeLength.Points(0), spacingAfter: global::OfficeIMO.OfficeLength.Points(8));
@@ -50,17 +50,17 @@ namespace OfficeIMO.Examples.Pdf {
                             content.Item(item => item.Table(CreateLineItemRows(), style: LineItemStyle()));
                             content.Spacer(global::OfficeIMO.OfficeLength.Points(10));
                             content.Row(row => {
-                                row.Style(new PdfRowStyle { KeepTogether = true, SpacingBefore = 2 })
-                                    .Gap(22)
+                                row.Style(new PdfRowStyle { KeepTogether = true, SpacingBefore = global::OfficeIMO.OfficeLength.Points(2) })
+                                    .Gap(global::OfficeIMO.OfficeLength.Points(22))
                                     .PercentColumn(58, column => {
                                         column.PanelParagraph(
                                             p => p.Bold("Payment note: ").Text("This is a generic document sample. The layout is built from headings, paragraphs, rows, tables, and cell styles rather than an invoice-specific API."),
                                             new PdfPanelStyle {
                                                 Background = global::OfficeIMO.OfficeColor.FromRgb(247, 250, 252),
                                                 BorderColor = global::OfficeIMO.OfficeColor.FromRgb(211, 219, 229),
-                                                BorderWidth = 0.6,
-                                                PaddingX = 9,
-                                                PaddingY = 8
+                                                BorderWidth = global::OfficeIMO.OfficeLength.Points(0.6),
+                                                PaddingX = global::OfficeIMO.OfficeLength.Points(9),
+                                                PaddingY = global::OfficeIMO.OfficeLength.Points(8)
                                             },
                                             defaultColor: global::OfficeIMO.OfficeColor.FromRgb(51, 65, 85));
                                     })

@@ -6,7 +6,7 @@ internal static partial class PdfTaggedPageOrganizer {
     /// <summary>Inserts an engine-created blank page without requiring permission to copy existing content.</summary>
     internal static byte[] InsertBlank(byte[] targetPdf, int insertBeforePage, double width, double height,
         PdfLoadOptions? targetOptions, CancellationToken token = default) {
-        byte[] blank = PdfDocument.CreateForImportedLayout().Compose(compose => compose.Page(page => page.Size(width, height))).ToBytes(cancellationToken: token);
+        byte[] blank = PdfDocument.CreateForImportedLayout().Compose(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)))).ToBytes(cancellationToken: token);
         return ImportCore(targetPdf, blank, insertBeforePage, [1], targetOptions, null,
             PdfMutationOperation.ModifyPageTree, token);
     }

@@ -42,7 +42,7 @@ internal static partial class PdfWriter {
             sb.Append(PdfAcroFormDictionaryBuilder.BuildFormFieldBackgroundAppearanceContent(width, height, effectiveStyle));
         }
 
-        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth > 0D) {
+        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth.ToPoints() > 0D) {
             AppendFormFieldBorderAppearance(sb, width, height, effectiveStyle);
         }
 
@@ -170,16 +170,16 @@ internal static partial class PdfWriter {
     }
 
     private static void AppendFormFieldBorderAppearance(StringBuilder sb, double width, double height, PdfFormFieldStyle style) {
-        if (style.BorderColor == null || style.BorderWidth <= 0D) {
+        if (style.BorderColor == null || style.BorderWidth.ToPoints() <= 0D) {
             return;
         }
 
         sb.Append(PdfAcroFormDictionaryBuilder.BuildRectangularBorderAppearanceContent(width, height, style));
     }
 
-    private static IReadOnlyList<double>? ResolveFormFieldBorderDashPattern(PdfFormFieldStyle style) {
+    private static double[]? ResolveFormFieldBorderDashPattern(PdfFormFieldStyle style) {
         if (style.BorderDashPattern != null && style.BorderDashPattern.Count > 0) {
-            return style.BorderDashPattern;
+            return style.BorderDashPattern?.Select(static length => length.ToPoints()).ToArray();
         }
 
         return style.BorderStyle == PdfFormFieldBorderStyle.Dashed ? FormFieldDefaultBorderDashPattern : null;

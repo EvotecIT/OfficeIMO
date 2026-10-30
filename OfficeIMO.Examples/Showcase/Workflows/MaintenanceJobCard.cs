@@ -9,7 +9,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 .H1("Maintenance job card", PdfAlign.Left, navy)
                 .Paragraph(p => p.Text("NORTHWIND / WORKPLACE OPERATIONS / DEMONSTRATION FORM"))
                 .PanelParagraph(p => p.Bold("Scope").Text("\nRecord authorised work and its result. This example does not define a safety procedure or authorise equipment operation."),
-                    new PdfPanelStyle { Background = global::OfficeIMO.OfficeColor.FromRgb(234, 241, 251), PaddingX = 12, PaddingY = 10 })
+                    new PdfPanelStyle { Background = global::OfficeIMO.OfficeColor.FromRgb(234, 241, 251), PaddingX = global::OfficeIMO.OfficeLength.Points(12), PaddingY = global::OfficeIMO.OfficeLength.Points(10) })
                 .H2("Work order", PdfAlign.Left, navy)
                 .Paragraph(p => p.Bold("Reference / asset")).TextField("job-reference", width: global::OfficeIMO.OfficeLength.Points(300), value: "WO-018 / ROOM-04")
                 .Paragraph(p => p.Bold("Assigned technician")).TextField("technician", width: global::OfficeIMO.OfficeLength.Points(300))
@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 .Paragraph(p => p.Bold("Outcome")).ChoiceField("outcome", new[] { "Awaiting work", "Completed", "Follow-up needed" }, value: "Awaiting work", width: global::OfficeIMO.OfficeLength.Points(260))
                 .Paragraph(p => p.Text("Handover acknowledged")).CheckBox("handover-acknowledged")
                 .Paragraph(p => p.Bold("Follow-up owner and date")).TextField("follow-up", width: global::OfficeIMO.OfficeLength.Points(450))),
-                new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11) }.SetDefaultHeadingStyle(2, new PdfHeadingStyle { SpacingBefore = 14, SpacingAfter = 8 }))
+                new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11) }.SetDefaultHeadingStyle(2, new PdfHeadingStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(14), SpacingAfter = global::OfficeIMO.OfficeLength.Points(8) }))
                 .Meta(title: "Maintenance job card", author: "OfficeIMO").Save(Path.Combine(folder, "example.pdf"));
         }
     }

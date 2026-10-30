@@ -33,7 +33,7 @@ internal static partial class PdfWriter {
         PdfCreateOptions options,
         LayoutResult.Page? page,
         int? parentElementIndex) {
-        double bottom = baseline + inlineElement.BaselineOffset;
+        double bottom = baseline + inlineElement.BaselineOffset.ToPoints();
         if (inlineElement is PdfInlineImage inlineImage) {
             if (page == null) {
                 throw new InvalidOperationException("Inline images require an active output page.");
@@ -43,14 +43,14 @@ internal static partial class PdfWriter {
             PageImage pageImage = CreatePageImage(
                 block,
                 block.Style ?? new PdfImageStyle(),
-                inlineImage.TableTextRotation == 0 ? x : x + (inlineElement.Width - inlineElement.Height) / 2D,
-                inlineImage.TableTextRotation == 0 ? bottom : bottom + (inlineElement.Height - inlineElement.Width) / 2D,
-                inlineImage.TableTextRotation == 0 ? inlineElement.Width : inlineElement.Height,
-                inlineImage.TableTextRotation == 0 ? inlineElement.Height : inlineElement.Width);
+                inlineImage.TableTextRotation == 0 ? x : x + (inlineElement.Width.ToPoints() - inlineElement.Height.ToPoints()) / 2D,
+                inlineImage.TableTextRotation == 0 ? bottom : bottom + (inlineElement.Height.ToPoints() - inlineElement.Width.ToPoints()) / 2D,
+                inlineImage.TableTextRotation == 0 ? inlineElement.Width.ToPoints() : inlineElement.Height.ToPoints(),
+                inlineImage.TableTextRotation == 0 ? inlineElement.Height.ToPoints() : inlineElement.Width.ToPoints());
             if (inlineImage.TableTextRotation != 0) {
                 pageImage.RotationAngle -= inlineImage.TableTextRotation;
-                pageImage.RotationCenterX = x + inlineElement.Width / 2D;
-                pageImage.RotationCenterY = bottom + inlineElement.Height / 2D;
+                pageImage.RotationCenterX = x + inlineElement.Width.ToPoints() / 2D;
+                pageImage.RotationCenterY = bottom + inlineElement.Height.ToPoints() / 2D;
             }
             pageImage.IsInlineDecoration = string.IsNullOrWhiteSpace(inlineElement.AlternativeText);
             page.Images.Add(pageImage);
@@ -67,7 +67,7 @@ internal static partial class PdfWriter {
         if (inlineElement is PdfInlineFormWidget inlineWidget) {
             if (page == null) throw new InvalidOperationException("Inline form fields require an active output page.");
             PrepareInlineCheckBoxGlyphUsage(inlineWidget.Field, options);
-            double left = x, right = x + inlineWidget.Width, top = bottom + inlineWidget.Height;
+            double left = x, right = x + inlineWidget.Width.ToPoints(), top = bottom + inlineWidget.Height.ToPoints();
             if (inlineWidget.SourceRun is { } source) {
                 double cursor = x;
                 foreach (PdfTextRun run in NormalizeFallbackRuns(new[] { source }, ChooseNormal(options.DefaultFont), options)) {
@@ -104,26 +104,26 @@ internal static partial class PdfWriter {
 
         ContentStreamBuilder boxContent = new ContentStreamBuilder(sb).SaveState();
         if (inlineBox.SourceRule is { } rule) {
-            if (inlineBox.Width > 0D) {
+            if (inlineBox.Width.ToPoints() > 0D) {
                 foreach (PdfInlineRule.InkBand band in rule.Bands) {
                     boxContent
                         .FillColor(band.Color)
-                        .Rectangle(x, baseline + band.BaselineOffset, inlineBox.Width, band.Height)
+                        .Rectangle(x, baseline + band.BaselineOffset, inlineBox.Width.ToPoints(), band.Height)
                         .FillPath();
                 }
             }
         } else if (inlineBox.Background.HasValue) {
             boxContent
                 .FillColor(inlineBox.Background.Value)
-                .Rectangle(x, bottom, inlineBox.Width, inlineBox.Height)
+                .Rectangle(x, bottom, inlineBox.Width.ToPoints(), inlineBox.Height.ToPoints())
                 .FillPath();
         }
 
-        if (inlineBox.BorderColor.HasValue && inlineBox.BorderWidth > 0D) {
+        if (inlineBox.BorderColor.HasValue && inlineBox.BorderWidth.ToPoints() > 0D) {
             boxContent
                 .StrokeColor(inlineBox.BorderColor.Value)
-                .LineWidth(inlineBox.BorderWidth)
-                .Rectangle(x, bottom, inlineBox.Width, inlineBox.Height)
+                .LineWidth(inlineBox.BorderWidth.ToPoints())
+                .Rectangle(x, bottom, inlineBox.Width.ToPoints(), inlineBox.Height.ToPoints())
                 .StrokePath();
         }
 
@@ -427,7 +427,7 @@ internal static partial class PdfWriter {
                     // Upright pictures keep the paragraph's top-to-bottom advance even
                     // when counterclockwise cell text advances from bottom to top.
                     double inlineX = s.InlineElement is PdfInlineImage { TableTextRotation: > 0 }
-                        ? lineXOrigin + lineWidthUsed - xCursor - s.InlineElement.Width
+                        ? lineXOrigin + lineWidthUsed - xCursor - s.InlineElement.Width.ToPoints()
                         : lineXOrigin + xCursor;
                     bool pictureClip = BeginImportedPictureClip(sb, s.InlineElement,
                         (block.Style ?? opts.DefaultParagraphStyleSnapshot)?.LineSpacing, inlineX, lineY,
@@ -444,7 +444,7 @@ internal static partial class PdfWriter {
                         structurePage,
                         textStructElementIndex);
                     if (pictureClip) new ContentStreamBuilder(sb).RestoreState();
-                    xCursor += s.InlineElement.Width + s.JustificationAdvance;
+                    xCursor += s.InlineElement.Width.ToPoints() + s.JustificationAdvance;
                     content = new ContentStreamBuilder(sb)
                         .BeginText()
                         .TextLeading(defaultLeading)

@@ -149,12 +149,12 @@ public sealed class StudioPaneOcrPromptTests {
     }
 
     private static void CreateMixedScan(string path) {
-        byte[] image = PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400)
+        byte[] image = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400))
             .Content(content => content.Text("SCANNED DOCUMENT"))))
             .Render.Pages(PdfPageSelection.From(1), new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Dpi = 72 }).Single().Bytes!;
         PdfDocument.Create(compose => {
-            compose.Page(page => page.Size(300, 400).Content(content => content.Text("This page has selectable text.")));
-            compose.Page(page => page.Size(300, 400).Content(content => content.Image(image, global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(200))));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Text("This page has selectable text.")));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Image(image, global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(200))));
         }).Save(path);
     }
     private static async Task Render(Window window, params PdfPageViewModel[] pages) {

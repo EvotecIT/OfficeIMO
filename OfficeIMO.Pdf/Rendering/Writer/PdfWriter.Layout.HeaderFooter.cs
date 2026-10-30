@@ -134,14 +134,14 @@ internal static partial class PdfWriter {
                 consumedWidth;
 
             AddHeaderFooterImage(page, options, image, imageX, isHeader);
-            consumedWidths[image.Align] = consumedWidth + image.Width + HeaderFooterInlineGap;
+            consumedWidths[image.Align] = consumedWidth + image.Width.ToPoints() + HeaderFooterInlineGap;
         }
     }
 
     private static void AddHeaderFooterImage(LayoutResult.Page page, PdfCreateOptions options, PdfHeaderFooterImage image, double x, bool isHeader) {
         string source = isHeader ? "Header" : "Footer";
         double y = isHeader
-            ? options.PageHeight.ToPoints() - options.MarginTop.ToPoints() + options.HeaderOffsetY.ToPoints() - image.Height
+            ? options.PageHeight.ToPoints() - options.MarginTop.ToPoints() + options.HeaderOffsetY.ToPoints() - image.Height.ToPoints()
             : options.MarginBottom.ToPoints() - options.FooterOffsetY.ToPoints();
         ImageBlock block = image.ToImageBlock();
         PdfImageStyle style = block.Style ?? new PdfImageStyle();
@@ -167,7 +167,7 @@ internal static partial class PdfWriter {
                 continue;
             }
 
-            width += image.Width;
+            width += image.Width.ToPoints();
             count++;
         }
 
@@ -182,7 +182,7 @@ internal static partial class PdfWriter {
                 continue;
             }
 
-            width += shape.Width;
+            width += shape.Width.ToPoints();
             count++;
         }
 
@@ -280,7 +280,7 @@ internal static partial class PdfWriter {
                 consumedWidth;
 
             AddHeaderFooterShape(paintCache, sb, page, options, shape, shapeX, isHeader);
-            consumedWidths[shape.Align] = consumedWidth + shape.Width + HeaderFooterInlineGap;
+            consumedWidths[shape.Align] = consumedWidth + shape.Width.ToPoints() + HeaderFooterInlineGap;
         }
     }
 

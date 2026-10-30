@@ -9,10 +9,10 @@ internal sealed class HorizontalRuleBlock : IPdfBlock {
 
     public HorizontalRuleBlock(double thickness, global::OfficeIMO.OfficeColor color, double spacingBefore, double spacingAfter)
         : this(new PdfHorizontalRuleStyle {
-            Thickness = thickness,
+            Thickness = global::OfficeIMO.OfficeLength.Points(thickness),
             Color = color,
-            SpacingBefore = spacingBefore,
-            SpacingAfter = spacingAfter
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter)
         }) {
     }
 }

@@ -57,7 +57,7 @@ public class PdfEngineRoadmapFoundationTests {
         byte[] bytes = document
             .Paragraph(paragraph => paragraph.Text("Page one"))
             .Spacer(100)
-            .Component(component, new PdfFlowOptions { MinimumRemainingHeight = 100 })
+            .Component(component, new PdfFlowOptions { MinimumRemainingHeight = global::OfficeIMO.OfficeLength.Points(100) })
             .ToBytes();
 
         Assert.Equal(2, component.Invocations);

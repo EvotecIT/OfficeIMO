@@ -40,7 +40,7 @@ public partial class PdfTextExtractorPageTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row => row
-                            .Gap(36)
+                            .Gap(global::OfficeIMO.OfficeLength.Points(36))
                             .PercentColumn(50, column => column
                                 .Paragraph(p => p.Text("Left Start marker"))
                                 .Paragraph(p => p.Text("Left Finish marker")))

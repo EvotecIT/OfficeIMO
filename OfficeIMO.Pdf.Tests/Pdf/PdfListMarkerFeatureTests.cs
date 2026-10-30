@@ -21,7 +21,7 @@ public sealed class PdfListMarkerFeatureTests {
             }));
         var document = PdfDocument.Create(options);
         var items = new[] { new PdfListItem("body", marker: marker) };
-        var style = new PdfListStyle { MarkerFontFamily = primary, MarkerFontSize = 20D, MarkerGap = 12D };
+        var style = new PdfListStyle { MarkerFontFamily = primary, MarkerFontSize = global::OfficeIMO.OfficeLength.Points(20D), MarkerGap = global::OfficeIMO.OfficeLength.Points(12D) };
         if (inRow) document.Compose(compose => compose.Page(page => page.Content(content =>
             content.Row(row => row.PercentColumn(100, column => column.RichBullets(items, style: style))))));
         else document.RichBullets(items, style: style);
@@ -45,8 +45,8 @@ public sealed class PdfListMarkerFeatureTests {
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('1', '.', 'A', 'V')));
         var style = new PdfListStyle {
             MarkerFontFamily = ManagedTextShapingTestAssets.FamilyName,
-            MarkerFontSize = 20D,
-            MarkerGap = 12D
+            MarkerFontSize = global::OfficeIMO.OfficeLength.Points(20D),
+            MarkerGap = global::OfficeIMO.OfficeLength.Points(12D)
         };
         var items = new[] { new PdfListItem("first"), new PdfListItem("second", marker: "AV") };
         var document = PdfDocument.Create(options);
@@ -73,9 +73,9 @@ public sealed class PdfListMarkerFeatureTests {
             ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', 'V')));
         var style = new PdfListStyle {
             MarkerFontFamily = ManagedTextShapingTestAssets.FamilyName,
-            MarkerFontSize = 20D,
-            MarkerWidth = 30D,
-            MarkerGap = 12D,
+            MarkerFontSize = global::OfficeIMO.OfficeLength.Points(20D),
+            MarkerWidth = global::OfficeIMO.OfficeLength.Points(30D),
+            MarkerGap = global::OfficeIMO.OfficeLength.Points(12D),
             MarkerAlign = PdfAlign.Right,
             MarkerFeatureSettings = kerning < 0 ? null : OfficeTextFeatureSettings.Default.With("kern", kerning)
         };

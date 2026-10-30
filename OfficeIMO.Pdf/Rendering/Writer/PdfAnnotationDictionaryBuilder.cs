@@ -564,7 +564,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
     private static string BuildMkEntry(PdfFormFieldStyle? style) {
         PdfFormFieldStyle effectiveStyle = style ?? new PdfFormFieldStyle();
         var sb = new StringBuilder();
-        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth > 0) {
+        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth.ToPoints() > 0) {
             sb.Append(" /BC [").Append(PdfAcroFormDictionaryBuilder.FormatColor(effectiveStyle.BorderColor.Value)).Append(']');
         }
 
@@ -576,7 +576,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
     }
 
     private static string BuildBorderStyleEntry(PdfFormFieldStyle? style) {
-        if (style == null || style.BorderWidth <= 0D) {
+        if (style == null || style.BorderWidth.ToPoints() <= 0D) {
             return string.Empty;
         }
 
@@ -590,11 +590,11 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         var sb = new StringBuilder(" /BS << /S /");
         sb.Append(styleName);
         sb.Append(" /W ");
-        sb.Append(FormatCoordinate(style.BorderWidth));
+        sb.Append(FormatCoordinate(style.BorderWidth.ToPoints()));
         if (isDashed) {
-            IReadOnlyList<double> dashPattern = hasDashPattern ? style.BorderDashPattern! : DefaultBorderDashPattern;
+            double[] dashPattern = hasDashPattern ? style.BorderDashPattern?.Select(static length => length.ToPoints()).ToArray()! : DefaultBorderDashPattern;
             sb.Append(" /D [");
-            for (int i = 0; i < dashPattern.Count; i++) {
+            for (int i = 0; i < dashPattern.Length; i++) {
                 if (i > 0) {
                     sb.Append(' ');
                 }

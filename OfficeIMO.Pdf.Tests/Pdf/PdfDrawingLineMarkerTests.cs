@@ -21,7 +21,7 @@ public sealed class PdfDrawingLineMarkerTests {
         shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Arrow, 18, 20);
         shape.Transform = OfficeTransform.RotateDegrees(30, 40, 0);
         var drawing = new OfficeDrawing(140, 100).AddShape(shape, 20, 50);
-        PdfDocument pdf = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Compose(builder => builder.Page(page => page.Size(140, 100).Margin(0)
+        PdfDocument pdf = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Compose(builder => builder.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(140), global::OfficeIMO.OfficeLength.Points(100)).Margin(global::OfficeIMO.OfficeLength.Points(0))
             .Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(140), global::OfficeIMO.OfficeLength.Points(100)))));
         OfficeDrawing read = PdfReadDocument.Open(pdf.ToBytes()).Pages[0].ToDrawing();
         OfficeShape[] painted = Shapes(read).Select(item => item.Shape).ToArray();
@@ -45,7 +45,7 @@ public sealed class PdfDrawingLineMarkerTests {
         shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Arrow, 20, 20);
         shape.ClipPath = OfficeClipPath.Rectangle(60, 40);
         var drawing = new OfficeDrawing(140, 100).AddShape(shape, 20, 20);
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Compose(builder => builder.Page(page => page.Size(140, 100).Margin(0)
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Compose(builder => builder.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(140), global::OfficeIMO.OfficeLength.Points(100)).Margin(global::OfficeIMO.OfficeLength.Points(0))
             .Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(140), global::OfficeIMO.OfficeLength.Points(100))))).ToBytes();
         Assert.DoesNotContain("/Subtype /Image", System.Text.Encoding.ASCII.GetString(bytes));
         OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(bytes));
@@ -120,8 +120,8 @@ public sealed class PdfDrawingLineMarkerTests {
         else {
             var warning = Assert.Single(warnings);
             Assert.Equal(footer ? "Footer" : "Header", warning.Source);
-            Assert.True(footer ? warning.LayoutDiagnostic!.Y < 0 :
-                warning.LayoutDiagnostic!.Y + warning.LayoutDiagnostic.Height > options.PageHeight.ToPoints());
+            Assert.True(footer ? warning.LayoutDiagnostic?.Y?.ToPoints() < 0 :
+                warning.LayoutDiagnostic?.Y?.ToPoints() + warning.LayoutDiagnostic?.Height?.ToPoints() > options.PageHeight.ToPoints());
             Assert.True(report.HasLoss);
         }
     }
@@ -265,7 +265,7 @@ public sealed class PdfDrawingLineMarkerTests {
         shape.StrokeWidth = 1; shape.StrokeColor = OfficeColor.Red;
         shape.StrokeStartMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 10, 10);
         shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 10, 10);
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Compose(b => b.Page(p => p.Size(100, 60).Margin(0)
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Compose(b => b.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(60)).Margin(global::OfficeIMO.OfficeLength.Points(0))
             .Canvas(c => c.Drawing(new OfficeDrawing(100, 60).AddShape(shape, 0, 0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(60))))).ToBytes();
         Assert.Equal(2, Shapes(PdfReadDocument.Open(bytes).Pages[0].ToDrawing()).Count(item => item.Shape.FillColor == OfficeColor.Red));
         OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(bytes));

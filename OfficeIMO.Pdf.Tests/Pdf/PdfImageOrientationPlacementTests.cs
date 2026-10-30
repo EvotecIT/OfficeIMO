@@ -155,9 +155,9 @@ public sealed partial class PdfImageOrientationPlacementTests {
 
     private static byte[] Compose(string path, byte[] source) {
         byte[] pdf = PdfDocument.Create(builder => builder.Page(page => {
-            if (path == "header") page.Header(header => header.Image(source, 60, 40));
-            if (path == "footer") page.Footer(footer => footer.Image(source, 60, 40));
-            if (path == "page-watermark") page.ImageWatermark(source, 60, 40, opacity: 1, rotationAngle: 0);
+            if (path == "header") page.Header(header => header.Image(source, global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(40)));
+            if (path == "footer") page.Footer(footer => footer.Image(source, global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(40)));
+            if (path == "page-watermark") page.ImageWatermark(source, global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(40), opacity: 1, rotationAngle: 0);
             page.Content(content => {
                 switch (path) {
                     case "flow": content.Image(source, global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(40)); break;
@@ -176,14 +176,14 @@ public sealed partial class PdfImageOrientationPlacementTests {
                             style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) };
                         }
                         content.Table(new[] { new[] { PdfTableCell.WithImages(string.Empty,
-                            new[] { new PdfTableCellImage(source, 60, 40) }) } }, style: style);
+                            new[] { new PdfTableCellImage(source, global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(40)) }) } }, style: style);
                         break;
                     case "inline": content.Paragraph(paragraph => paragraph.InlineImage(source, global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(40), fit: OfficeImageFit.Stretch)); break;
                     default: content.Paragraph(paragraph => paragraph.Text("Image target")); break;
                 }
             });
         }), Options()).ToBytes();
-        var stamp = new PdfImageStampOptions { X = 10, Y = 20, Width = 60, Height = 40 };
+        var stamp = new PdfImageStampOptions { X = global::OfficeIMO.OfficeLength.Points(10), Y = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(60), Height = global::OfficeIMO.OfficeLength.Points(40) };
         return path == "stamp" ? PdfStamper.StampImage(pdf, source, stamp)
             : path == "watermark" ? PdfStamper.WatermarkImage(pdf, source, stamp) : pdf;
     }

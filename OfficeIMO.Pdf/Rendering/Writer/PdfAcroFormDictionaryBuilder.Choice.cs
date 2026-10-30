@@ -7,7 +7,7 @@ internal static partial class PdfAcroFormDictionaryBuilder {
         Action<StringBuilder, int, double, PdfFormFieldStyle> appendRow) {
         var content = new StringBuilder("q\n");
         content.Append(BuildFormFieldBackgroundAppearanceContent(width, height, style));
-        if (style.BorderColor.HasValue && style.BorderWidth > 0D)
+        if (style.BorderColor.HasValue && style.BorderWidth.ToPoints() > 0D)
             content.Append(BuildRectangularBorderAppearanceContent(width, height, style));
         content.Append("2 2 ").Append(Format(Math.Max(0D, width - 4D))).Append(' ')
             .Append(Format(Math.Max(0D, height - 4D))).Append(" re W n\n");

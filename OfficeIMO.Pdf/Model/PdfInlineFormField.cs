@@ -41,7 +41,7 @@ internal sealed class PdfInlineFormWidget : PdfInlineElement {
 
     internal PdfInlineFormWidget(PdfInlineFormField field, double width, double height, double baselineOffset = 0D,
         PdfTextRun? sourceRun = null)
-        : base(width, height, baselineOffset, null) {
+        : base(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), global::OfficeIMO.OfficeLength.Points(baselineOffset), null) {
         Guard.NotNull(field, nameof(field));
         if (sourceRun?.InlineElement != null)
             throw new ArgumentException("A form widget's source line metrics require a text run.", nameof(sourceRun));

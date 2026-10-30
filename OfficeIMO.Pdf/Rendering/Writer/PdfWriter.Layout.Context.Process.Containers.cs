@@ -25,21 +25,21 @@ internal static partial class PdfWriter {
             double outerX = frame.X;
             double contentWidth = frame.ContentWidth;
 
-            double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
-            var firstVisual = MeasureContainerFirstVisual(container, style, outerX + style.PaddingX, contentWidth, GetClosingContainerPadding());
+            double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints());
+            var firstVisual = MeasureContainerFirstVisual(container, style, outerX + style.PaddingX.ToPoints(), contentWidth, GetClosingContainerPadding());
             double firstVisualHeight = firstVisual.Height;
-            double minimumStartHeight = spacingBefore + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight;
+            double minimumStartHeight = spacingBefore + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset.ToPoints() + firstVisualHeight;
             double firstContentHeight = minimumStartHeight - spacingBefore;
             RunningFrameAdmissionAttempt? runningAdmission = null;
             void RemeasureContainerStart() {
                 style = ResolveContainerStyle(container);
-                spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
+                spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints());
                 parentLeft = currentOpts.MarginLeft.ToPoints(); parentWidth = width;
                 frame = ResolveContainerFrame(container, style, parentLeft, parentWidth);
                 outerWidth = frame.Width; outerX = frame.X; contentWidth = frame.ContentWidth;
-                firstVisual = MeasureContainerFirstVisual(container, style, frame.X + style.PaddingX, frame.ContentWidth, GetClosingContainerPadding());
+                firstVisual = MeasureContainerFirstVisual(container, style, frame.X + style.PaddingX.ToPoints(), frame.ContentWidth, GetClosingContainerPadding());
                 firstVisualHeight = firstVisual.Height;
-                minimumStartHeight = spacingBefore + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight;
+                minimumStartHeight = spacingBefore + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset.ToPoints() + firstVisualHeight;
                 firstContentHeight = minimumStartHeight - spacingBefore;
             }
             bool AdvanceContainerAdmission(double requiredHeight) =>
@@ -95,7 +95,7 @@ internal static partial class PdfWriter {
                 while (keepHeight.Value > GetMaximumBlockContinuationHeight() + .001D || ShouldAdvanceForBlockHeight(keepHeight.Value)) {
                     NewBlockFrame();
                     style = ResolveContainerStyle(container);
-                    spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
+                    spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints());
                     parentLeft = currentOpts.MarginLeft.ToPoints(); parentWidth = width;
                     keepHeight = MeasureWholeBlockAtFrameStart(container, parentLeft, parentWidth, currentOpts.DefaultFontSize.ToPoints());
                     if (!keepHeight.HasValue)
@@ -150,11 +150,11 @@ internal static partial class PdfWriter {
             outerWidth = frame.Width;
             contentWidth = frame.ContentWidth;
             IReadOnlyList<IPdfBlock> contentBlocks = ResolveContainerContentBlocks(container, style,
-                outerX + style.PaddingX, contentWidth, currentOpts.DefaultFontSize.ToPoints());
+                outerX + style.PaddingX.ToPoints(), contentWidth, currentOpts.DefaultFontSize.ToPoints());
             var nestedOptions = currentOpts.Clone();
-            nestedOptions.MarginLeft = global::OfficeIMO.OfficeLength.Points(outerX + style.PaddingX);
-            nestedOptions.MarginRight = global::OfficeIMO.OfficeLength.Points(nestedOptions.PageWidth.ToPoints() - (outerX + outerWidth - style.PaddingX));
-            nestedOptions.MarginBottom += global::OfficeIMO.OfficeLength.Points(style.FragmentBottomInset);
+            nestedOptions.MarginLeft = global::OfficeIMO.OfficeLength.Points(outerX + style.PaddingX.ToPoints());
+            nestedOptions.MarginRight = global::OfficeIMO.OfficeLength.Points(nestedOptions.PageWidth.ToPoints() - (outerX + outerWidth - style.PaddingX.ToPoints()));
+            nestedOptions.MarginBottom += style.FragmentBottomInset;
             // Imported fixed table frames may extend beyond the physical page.
             // Their derived horizontal margins are coordinates, while the page
             // options and the positive finite content frame remain validated.
@@ -189,13 +189,13 @@ internal static partial class PdfWriter {
                 }
             }
 
-            if (style.SpacingAfter > 0D) {
+            if (style.SpacingAfter.ToPoints() > 0D) {
                 ConsumeSpacer(GetContainerSpacingAfter(style, y - currentOpts.MarginBottom.ToPoints()));
             }
         }
 
         private static double GetContainerSpacingAfter(PdfPanelStyle style, double available) =>
-            style.ClipSpacingAfterAtFrameEnd ? Math.Min(style.SpacingAfter, Math.Max(0D, available)) : style.SpacingAfter;
+            style.ClipSpacingAfterAtFrameEnd ? Math.Min(style.SpacingAfter.ToPoints(), Math.Max(0D, available)) : style.SpacingAfter.ToPoints();
 
         private static (double X, double Width, double ContentWidth) ResolveContainerFrame(PdfPanelStyle style, double parentLeft, double parentWidth) {
             double outerWidth = ResolveContainerOuterWidth(style, parentWidth);
@@ -205,7 +205,7 @@ internal static partial class PdfWriter {
                 PdfAlign.Right => parentLeft + parentWidth - outerWidth,
                 _ => parentLeft
             };
-            double contentWidth = outerWidth - 2D * style.PaddingX;
+            double contentWidth = outerWidth - 2D * style.PaddingX.ToPoints();
             if (contentWidth <= 0.001D) throw new ArgumentException("Container padding must leave positive content width.");
             return (outerX, outerWidth, contentWidth);
         }
@@ -238,11 +238,11 @@ internal static partial class PdfWriter {
                 scope.OuterWidth = frame.Width;
                 // Only the frame changes during continuation. Reuse child options
                 // and their accumulated font usage instead of copying assets per page.
-                scope.NestedOptions.MarginLeft = global::OfficeIMO.OfficeLength.Points(scope.OuterX + scope.Style.PaddingX);
+                scope.NestedOptions.MarginLeft = global::OfficeIMO.OfficeLength.Points(scope.OuterX + scope.Style.PaddingX.ToPoints());
                 scope.NestedOptions.MarginTop = currentOpts.MarginTop;
-                scope.NestedOptions.MarginBottom = global::OfficeIMO.OfficeLength.Points(currentOpts.MarginBottom.ToPoints() + scope.Style.FragmentBottomInset);
+                scope.NestedOptions.MarginBottom = currentOpts.MarginBottom + scope.Style.FragmentBottomInset;
                 scope.NestedOptions.MarginRight = global::OfficeIMO.OfficeLength.Points(currentOpts.PageWidth.ToPoints() -
-                    (scope.OuterX + scope.OuterWidth - scope.Style.PaddingX));
+                    (scope.OuterX + scope.OuterWidth - scope.Style.PaddingX.ToPoints()));
                 currentOpts = scope.NestedOptions;
                 width = currentOpts.PageWidth.ToPoints() - currentOpts.MarginLeft.ToPoints() - currentOpts.MarginRight.ToPoints();
                 scope.IsContinuation = true;
@@ -279,7 +279,7 @@ internal static partial class PdfWriter {
             bool top = scope.Style.RepeatFragmentDecoration || !scope.IsContinuation;
             bool end = scope.Style.RepeatFragmentDecoration || !continues;
             if (scope.Style.Background.HasValue) {
-                DrawRoundedRowFill(decoration, scope.Style.Background.Value, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, scope.Style.CornerRadius, top, top, end, end, emitGeneratedStructure);
+                DrawRoundedRowFill(decoration, scope.Style.Background.Value, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, scope.Style.CornerRadius.ToPoints(), top, top, end, end, emitGeneratedStructure);
             }
 
             DrawPanelBorder(decoration, scope.Style, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, emitGeneratedStructure,

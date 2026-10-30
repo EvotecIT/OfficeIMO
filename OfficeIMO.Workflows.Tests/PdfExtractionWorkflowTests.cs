@@ -122,7 +122,7 @@ public sealed class PdfExtractionWorkflowTests {
     }
 
     private static byte[] CreatePdf() => PdfDocument.Create(document => {
-        for (int index = 0; index < 3; index++) { int width = 200 + index; document.Page(page => page.Size(width, 350)); }
+        for (int index = 0; index < 3; index++) { int width = 200 + index; document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(350))); }
     }).ToBytes();
     private sealed class InlineProgress(Action<OfficeWorkflowProgress> report) : IProgress<OfficeWorkflowProgress> {
         public void Report(OfficeWorkflowProgress value) => report(value);

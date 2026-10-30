@@ -175,7 +175,7 @@ public sealed class PdfSigningWorkflowTests {
         protected override void Dispose(bool disposing) { if (!_closed) { _closed = true; commit(ToArray()); } base.Dispose(disposing); }
     }
     private static byte[] CreatePdf() => PdfDocument.Create(document => {
-        document.Page(page => page.Size(200, 300)); document.Page(page => page.Size(210, 310));
+        document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300))); document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(210), global::OfficeIMO.OfficeLength.Points(310)));
     }).ToBytes();
     private static X509Certificate2 CreateCertificate() {
         using var rsa = RSA.Create(2048);

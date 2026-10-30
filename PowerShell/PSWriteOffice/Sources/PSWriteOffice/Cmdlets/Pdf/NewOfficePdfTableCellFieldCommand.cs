@@ -55,7 +55,7 @@ public sealed class NewOfficePdfTableCellFieldCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var field = ParameterSetName == ParameterSetChoice
-            ? PdfTableCellFormField.ChoiceField(Name, Option, Value, Width, Height, FontSize, !ListBox.IsPresent)
+            ? PdfTableCellFormField.ChoiceField(Name, Option, Value, global::OfficeIMO.OfficeLength.Points(Width), global::OfficeIMO.OfficeLength.Points(Height), global::OfficeIMO.OfficeLength.Points(FontSize), !ListBox.IsPresent)
             : PdfTableCellFormField.TextField(Name, Value, global::OfficeIMO.OfficeLength.Points(Width), global::OfficeIMO.OfficeLength.Points(Height), global::OfficeIMO.OfficeLength.Points(FontSize));
         WriteObject(field);
     }

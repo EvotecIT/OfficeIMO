@@ -98,8 +98,8 @@ public class PdfDrawingInteropTests {
     public void Options_SnapshotDefaultDrawingStyle() {
         var style = new PdfDrawingStyle {
             Align = PdfAlign.Center,
-            SpacingBefore = 4,
-            SpacingAfter = 9,
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(9),
             KeepWithNext = true,
             ConstrainToContentWidth = true
         };
@@ -108,24 +108,24 @@ public class PdfDrawingInteropTests {
         };
 
         style.Align = PdfAlign.Right;
-        style.SpacingBefore = 1;
-        style.SpacingAfter = 2;
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(1);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(2);
         style.KeepWithNext = false;
         style.ConstrainToContentWidth = false;
 
         PdfDrawingStyle readback = options.DefaultDrawingStyle!;
         readback.Align = PdfAlign.Left;
-        readback.SpacingAfter = 20;
+        readback.SpacingAfter = global::OfficeIMO.OfficeLength.Points(20);
 
         PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(PdfAlign.Center, options.DefaultDrawingStyle!.Align);
-        Assert.Equal(4, options.DefaultDrawingStyle.SpacingBefore);
-        Assert.Equal(9, options.DefaultDrawingStyle.SpacingAfter);
+        Assert.Equal(4, options.DefaultDrawingStyle.SpacingBefore.ToPoints());
+        Assert.Equal(9, options.DefaultDrawingStyle.SpacingAfter.ToPoints());
         Assert.True(options.DefaultDrawingStyle.KeepWithNext);
         Assert.True(options.DefaultDrawingStyle.ConstrainToContentWidth);
         Assert.Equal(PdfAlign.Center, clone.DefaultDrawingStyle!.Align);
-        Assert.Equal(9, clone.DefaultDrawingStyle.SpacingAfter);
+        Assert.Equal(9, clone.DefaultDrawingStyle.SpacingAfter.ToPoints());
         Assert.True(clone.DefaultDrawingStyle.KeepWithNext);
         Assert.True(clone.DefaultDrawingStyle.ConstrainToContentWidth);
     }
@@ -134,7 +134,7 @@ public class PdfDrawingInteropTests {
     public void Options_ApplyThemeSnapshotsDefaultDrawingStyle() {
         var drawingStyle = new PdfDrawingStyle {
             Align = PdfAlign.Center,
-            SpacingAfter = 8,
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(8),
             KeepWithNext = true
         };
         var theme = new PdfTheme {
@@ -143,13 +143,13 @@ public class PdfDrawingInteropTests {
         var options = new PdfCreateOptions().ApplyTheme(theme);
 
         drawingStyle.Align = PdfAlign.Right;
-        drawingStyle.SpacingAfter = 1;
+        drawingStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(1);
         drawingStyle.KeepWithNext = false;
 
         PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(PdfAlign.Center, options.DefaultDrawingStyle!.Align);
-        Assert.Equal(8, options.DefaultDrawingStyle.SpacingAfter);
+        Assert.Equal(8, options.DefaultDrawingStyle.SpacingAfter.ToPoints());
         Assert.True(options.DefaultDrawingStyle.KeepWithNext);
         Assert.Equal(PdfAlign.Center, clone.DefaultDrawingStyle!.Align);
         Assert.True(clone.DefaultDrawingStyle.KeepWithNext);
@@ -159,8 +159,8 @@ public class PdfDrawingInteropTests {
     public void DefaultDrawingStyle_AppliesAlignmentAndSpacingToFollowingShapesAndRows() {
         var style = new PdfDrawingStyle {
             Align = PdfAlign.Center,
-            SpacingBefore = 4,
-            SpacingAfter = 8
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
         };
         var shape = OfficeShape.Rectangle(40, 20);
         shape.FillColor = OfficeColor.WhiteSmoke;
@@ -184,7 +184,7 @@ public class PdfDrawingInteropTests {
             .ToBytes();
 
         style.Align = PdfAlign.Right;
-        style.SpacingBefore = 0;
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0);
 
         var (objects, _) = PdfSyntax.ParseObjects(bytes);
         string ReadPageProgram(PdfObject value) {

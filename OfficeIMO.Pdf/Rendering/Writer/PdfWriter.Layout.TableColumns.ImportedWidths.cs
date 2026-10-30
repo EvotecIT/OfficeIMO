@@ -26,7 +26,7 @@ internal static partial class PdfWriter {
                 PdfTableCellParagraph paragraph = ranges[paragraphIndex].Paragraph;
                 // A hanging first line has extra room, but any word may need
                 // the narrower continuation frame at the full body indent.
-                indents = Math.Max(indents, Math.Max(0D, paragraph.LeftIndent + paragraph.RightIndent));
+                indents = Math.Max(indents, Math.Max(0D, paragraph.LeftIndent.ToPoints() + paragraph.RightIndent.ToPoints()));
             }
             if (objectsOnly) {
                 // A constrained source grid can wrap text below its word

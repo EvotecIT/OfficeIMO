@@ -303,7 +303,7 @@ public sealed partial class OfficeVisualIntegrationTests {
         OfficeVisualConversionResult visual = CreateArtifact().ToOfficeVisual(new OfficeVisualConversionOptions {
             WidthPoints = 300D
         });
-        var style = new PdfDrawingStyle { SpacingBefore = 6D };
+        var style = new PdfDrawingStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(6D) };
 
         byte[] pdf = PdfDocument.Create(
                 _ => { },
@@ -328,7 +328,7 @@ public sealed partial class OfficeVisualIntegrationTests {
         byte[] pdf = PdfDocument.Create(
                 _ => { },
                 new PdfCreateOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers())
-            .AddVisualArtifact(visual, style: new PdfDrawingStyle { SpacingBefore = 6D })
+            .AddVisualArtifact(visual, style: new PdfDrawingStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(6D) })
             .ToBytes();
         string content = Encoding.ASCII.GetString(pdf);
 

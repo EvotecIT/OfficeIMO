@@ -9,9 +9,9 @@ public sealed class PdfColumnTerminalSpacingTests {
     [InlineData(0, 40)]
     [InlineData(20, 60)]
     public void Columns_TerminalSpacingRetainsBalancedBreakpointsAndIsSnapshotted(double spacing, double followingOffset) {
-        var options = new PdfMultiColumnOptions { Gap = 20, FinalColumnSpacingAfter = spacing };
+        var options = new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), FinalColumnSpacingAfter = global::OfficeIMO.OfficeLength.Points(spacing) };
         var document = Render(options);
-        options.FinalColumnSpacingAfter = 100;
+        options.FinalColumnSpacingAfter = global::OfficeIMO.OfficeLength.Points(100);
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.InRange(Word(pdf, 1, "Column003").BoundingBox.Left, 259.9, 260.1);
@@ -20,7 +20,7 @@ public sealed class PdfColumnTerminalSpacingTests {
 
     [Fact]
     public void Columns_TerminalSpacingStopsAtThePhysicalPageMargin() {
-        using var pdf = PdfPigDocument.Open(Render(new PdfMultiColumnOptions { Gap = 20, FinalColumnSpacingAfter = 1000 }).ToBytes());
+        using var pdf = PdfPigDocument.Open(Render(new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), FinalColumnSpacingAfter = global::OfficeIMO.OfficeLength.Points(1000) }).ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.InRange(Word(pdf, 1, "Column003").BoundingBox.Left, 259.9, 260.1);
         Assert.Equal(Word(pdf, 1, "Column001").BoundingBox.Top, Word(pdf, 2, "AfterColumns").BoundingBox.Top, 2);
@@ -34,7 +34,7 @@ public sealed class PdfColumnTerminalSpacingTests {
             .Columns(content => {
                 content.Paragraph(p => p.Text("Column001\nColumn002"), style: style);
                 content.ColumnBreak();
-            }, new PdfMultiColumnOptions { Gap = 20, BalanceLastPage = false, FinalColumnSpacingAfter = 20 })
+            }, new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false, FinalColumnSpacingAfter = global::OfficeIMO.OfficeLength.Points(20) })
             .Paragraph(p => p.Text("AfterColumns"), style: style).ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.Equal(60D, Word(pdf, 1, "Column001").BoundingBox.Top - Word(pdf, 1, "AfterColumns").BoundingBox.Top, 2);

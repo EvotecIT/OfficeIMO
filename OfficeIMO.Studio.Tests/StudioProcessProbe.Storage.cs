@@ -17,7 +17,7 @@ internal static partial class StudioProcessProbe {
         Assert.NotEqual(parentNamespace, new FileInfo("/proc/self/ns/mnt").LinkTarget);
         string source = Path.Combine(volume, "source.pdf");
         string destination = Path.Combine(root, "recovered.pdf");
-        PdfDocument.Create(builder => builder.Page(page => page.Size(600, 800))).Save(source);
+        PdfDocument.Create(builder => builder.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)))).Save(source);
         byte[] original = File.ReadAllBytes(source);
         using (var host = new StudioDocumentTabHost(open => new MainWindowViewModel(
             _ => Task.FromResult<string?>(null), openDocumentInTab: open, services: services), _ => { })) {
@@ -65,7 +65,7 @@ internal static partial class StudioProcessProbe {
         string source = Path.Combine(root, "source.pdf");
         string destination = Path.Combine(volume, "saved.pdf");
         string filler = Path.Combine(volume, "fill.bin");
-        PdfDocument.Create(builder => builder.Page(page => page.Size(600, 800))).Save(source);
+        PdfDocument.Create(builder => builder.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)))).Save(source);
         byte[] original = File.ReadAllBytes(source);
         File.WriteAllBytes(destination, original);
         using var host = new StudioDocumentTabHost(open => new MainWindowViewModel(

@@ -10,7 +10,7 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void ImportedPictureClipUsesTheCurrentParagraphFragmentTopAfterNoteContinuation() {
         var document = PdfDocument.Create(Options());
-        var picture = new PdfInlineImage(PdfPngTestImages.CreateRgbPng((byte)0, (byte)180, (byte)80), 16, 48) {
+        var picture = new PdfInlineImage(PdfPngTestImages.CreateRgbPng((byte)0, (byte)180, (byte)80), global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(48)) {
             AllowFrameOverflow = true
         };
         PdfTextRun[] runs = Enumerable.Range(0, 10).SelectMany(index => index is 1 or 8

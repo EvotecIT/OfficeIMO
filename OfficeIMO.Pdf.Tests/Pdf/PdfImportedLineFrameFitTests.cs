@@ -47,10 +47,10 @@ public sealed class PdfImportedLineFrameFitTests {
         var document = PdfDocument.Create(Options(bodyHeight));
         string text = count == 1 ? "A" : "A\nB\nC\nD";
         if (kind == "heading") document.Content.Heading(1, text, style: new PdfHeadingStyle {
-            FontSize = 10D, SpacingBefore = 0D, SpacingAfter = 0D, LineSpacing = spacing, KeepWithNext = false
+            FontSize = global::OfficeIMO.OfficeLength.Points(10D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D), LineSpacing = spacing, KeepWithNext = false
         });
         else if (kind == "list") document.Content.Numbered(new[] { text }, style: new PdfListStyle {
-            FontSize = 10D, MarkerFontSize = 10D, SpacingBefore = 0D, SpacingAfter = 0D,
+            FontSize = global::OfficeIMO.OfficeLength.Points(10D), MarkerFontSize = global::OfficeIMO.OfficeLength.Points(10D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D),
             LineSpacing = spacing, KeepTogether = keep
         });
         else document.Paragraph(p => p.Text(text), style: new PdfParagraphStyle {

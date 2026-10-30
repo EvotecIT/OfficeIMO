@@ -64,7 +64,7 @@ public sealed class PdfInlineFormLineMetricsTests {
         if (field) {
             var metrics = Assert.IsType<PdfWriter.PositionedTextBoxMeasurement>(
                 PdfWriter.MeasurePositionedTextBox(source, options));
-            var appearance = new PdfFormFieldStyle { BackgroundColor = null, BorderColor = null, BorderWidth = 0 };
+            var appearance = new PdfFormFieldStyle { BackgroundColor = null, BorderColor = null, BorderWidth = global::OfficeIMO.OfficeLength.Points(0) };
             var descriptor = new PdfInlineFormField(PdfCanvasFormFieldItem.CheckBox("LargerSource", true,
                 "Yes", "Yes", 0, 0, metrics.Width, metrics.Ascent + metrics.Descent, appearance),
                 source, PdfTextRun.Normal("O", fontSize: global::OfficeIMO.OfficeLength.Points(20), font: PdfStandardFont.Helvetica));
@@ -82,10 +82,10 @@ public sealed class PdfInlineFormLineMetricsTests {
         else if (frame == "column") document.Content.Row(row => row.RelativeColumn(column =>
             column.Paragraph(paragraph => paragraph.Runs(runs), style: style)));
         else if (frame == "canvas") document.Canvas(canvas => canvas.TextBox(runs, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(240),
-            new PdfCanvasTextBoxStyle { FontSize = 10, LineHeight = 12, LineSpacing = spacing,
-                PaddingX = 0, PaddingY = 0, Background = null, BorderColor = null }));
+            new PdfCanvasTextBoxStyle { FontSize = global::OfficeIMO.OfficeLength.Points(10), LineHeight = global::OfficeIMO.OfficeLength.Points(12), LineSpacing = spacing,
+                PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0), Background = null, BorderColor = null }));
         else {
-            var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: 10, lineSpacing: spacing) });
+            var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: global::OfficeIMO.OfficeLength.Points(10), lineSpacing: spacing) });
             var tableStyle = PdfTableStyles.Minimal();
             tableStyle.HeaderRowCount = 0; tableStyle.FontSize = global::OfficeIMO.OfficeLength.Points(10);
             tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0); tableStyle.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0); tableStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0);

@@ -61,7 +61,7 @@ internal static partial class PdfWriter {
                 }
 
                 tableOfContentsDestinations.Add(entry.DestinationName);
-                double leftIndent = (entry.Level - options.MinimumLevel) * options.IndentPerLevel;
+                double leftIndent = (entry.Level - options.MinimumLevel) * options.IndentPerLevel.ToPoints();
                 var style = new PdfParagraphStyle {
                     LeftIndent = global::OfficeIMO.OfficeLength.Points(leftIndent),
                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(2D),

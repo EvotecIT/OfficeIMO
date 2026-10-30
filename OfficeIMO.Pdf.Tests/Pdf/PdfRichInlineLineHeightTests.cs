@@ -56,7 +56,7 @@ public sealed class PdfRichInlineLineHeightTests {
             MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),
             CompressContentStreams = false };
         var text = new PdfTextRun("A", fontSize: global::OfficeIMO.OfficeLength.Points(24), font: PdfStandardFont.Helvetica);
-        var box = PdfTextRun.Inline(new PdfInlineBox(20, 32, background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2, .5, .8), baselineOffset: -20));
+        var box = PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(32), background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2, .5, .8), baselineOffset: global::OfficeIMO.OfficeLength.Points(-20)));
         var runs = boxFirst ? new[] { box, text, new PdfTextRun("\nB", fontSize: global::OfficeIMO.OfficeLength.Points(8)) }
             : new[] { text, box, new PdfTextRun("\nB", fontSize: global::OfficeIMO.OfficeLength.Points(8)) };
         var style = new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8), LineSpacing = spacing ?? PdfLineSpacing.Multiple(1.4),
@@ -65,10 +65,10 @@ public sealed class PdfRichInlineLineHeightTests {
         if (frame == "flow") document.Paragraph(p => p.Runs(runs), style: style);
         else if (frame == "column") document.Content.Row(row => row.RelativeColumn(column => column.Paragraph(p => p.Runs(runs), style: style)));
         else if (frame == "canvas") document.Canvas(canvas => canvas.TextBox(runs, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(240),
-            new PdfCanvasTextBoxStyle { FontSize = 8, LineHeight = 11.2, PaddingX = 0, PaddingY = 0,
+            new PdfCanvasTextBoxStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8), LineHeight = global::OfficeIMO.OfficeLength.Points(11.2), PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0),
                 Background = null, BorderColor = null }));
         else {
-            var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: 8, lineSpacing: style.LineSpacing) });
+            var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: global::OfficeIMO.OfficeLength.Points(8), lineSpacing: style.LineSpacing) });
             var tableStyle = PdfTableStyles.Minimal();
             tableStyle.HeaderRowCount = 0; tableStyle.FontSize = global::OfficeIMO.OfficeLength.Points(8);
             tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0); tableStyle.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0); tableStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0);

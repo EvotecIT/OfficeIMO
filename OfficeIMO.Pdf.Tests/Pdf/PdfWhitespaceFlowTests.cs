@@ -138,7 +138,7 @@ public sealed class PdfWhitespaceFlowTests {
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(PdfTextWhitespaceMode.Preserve))
             .Paragraph(p => p.Runs(new[] {
                 PdfTextRun.Normal(new string(' ', overflow ? 60 : 2)),
-                PdfTextRun.Inline(new PdfInlineBox(10, 8)), PdfTextRun.Normal("BETA")
+                PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(8))), PdfTextRun.Normal("BETA")
             })).ToBytes());
         var beta = pdf.GetPage(1).Letters.First(l => l.Value == "B");
         Assert.InRange(Math.Abs(beta.StartBaseLine.X - 30D - (overflow ? 0D : 6.672D)), 0, .02D);
@@ -249,7 +249,7 @@ public sealed class PdfWhitespaceFlowTests {
     public void MixedSignedSpacesPaintTheirTotalAdvance(PdfTextWhitespaceMode mode, double tracking, bool inline) {
         var runs = new List<PdfTextRun> { PdfTextRun.Normal("A ", fontSize: global::OfficeIMO.OfficeLength.Points(12D)),
             PdfTextRun.Normal(" ", fontSize: global::OfficeIMO.OfficeLength.Points(12D)).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(tracking)) };
-        if (inline) runs.Add(PdfTextRun.Inline(new PdfInlineBox(10D, 8D)));
+        if (inline) runs.Add(PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(8D))));
         runs.Add(PdfTextRun.Normal("B", fontSize: global::OfficeIMO.OfficeLength.Points(12D)));
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(mode)).Paragraph(p => p.Runs(runs)).ToBytes());
         var letters = pdf.GetPage(1).Letters.Where(l => l.Value is "A" or "B").ToArray();
@@ -274,7 +274,7 @@ public sealed class PdfWhitespaceFlowTests {
         if (explicitStop) style.AddTabStop(global::OfficeIMO.OfficeLength.Points(60D), leader: PdfTabLeaderStyle.Dots);
         byte[] Render(bool space) {
             var runs = new List<PdfTextRun> { PdfTextRun.Normal("A\t" + (space ? " " : "")) };
-            if (inline) runs.Add(PdfTextRun.Inline(new PdfInlineBox(10D, 8D)));
+            if (inline) runs.Add(PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(8D))));
             runs.Add(PdfTextRun.Normal("B"));
             return PdfDocument.Create(options).Paragraph(p => p.Runs(runs), style: style).ToBytes();
         }
@@ -328,7 +328,7 @@ public sealed class PdfWhitespaceFlowTests {
         PdfParagraphStyle style = options.DefaultParagraphStyle!; style.AddTabStop(global::OfficeIMO.OfficeLength.Points(60D), align);
         byte[] Render(bool space) {
             var runs = new List<PdfTextRun> { PdfTextRun.Normal("A\t" + (space ? " " : "")) };
-            if (inline) runs.Add(PdfTextRun.Inline(new PdfInlineBox(10D, 8D)));
+            if (inline) runs.Add(PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(8D))));
             runs.Add(PdfTextRun.Normal("B"));
             return PdfDocument.Create(options).Paragraph(p => p.Runs(runs), style: style).ToBytes();
         }
@@ -366,13 +366,13 @@ public sealed class PdfWhitespaceFlowTests {
 
     private static byte[] RenderCell(PdfCreateOptions options, PdfTextRun[] runs, bool columns, double secondColumnWidth = 128D) {
         var cells = new[] { new[] { new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs,
-            fontSize: 12D, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(14.4D)), widowControl: false) }) } };
+            fontSize: global::OfficeIMO.OfficeLength.Points(12D), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(14.4D)), widowControl: false) }) } };
         var style = new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0),
             BorderWidth = global::OfficeIMO.OfficeLength.Points(0), RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
         PdfDocument document = PdfDocument.Create(options);
         if (columns) document.Columns(content => content.Table(cells, style: style), new PdfMultiColumnOptions {
             BalanceLastPage = false, ColumnDefinitions = new[] {
-                new PdfFlowColumn(PdfColumnWidth.Fixed(96D), 20D), new PdfFlowColumn(PdfColumnWidth.Fixed(secondColumnWidth), 0D)
+                new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(96D)), global::OfficeIMO.OfficeLength.Points(20D)), new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(secondColumnWidth)), global::OfficeIMO.OfficeLength.Points(0D))
             } });
         else document.Table(cells, style: style);
         return document.ToBytes();

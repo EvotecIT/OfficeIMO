@@ -105,7 +105,7 @@ public sealed class AddOfficePdfRowCommand : PSCmdlet
         {
             if (Gap.HasValue)
             {
-                row.Gap(Gap.Value);
+                row.Gap(global::OfficeIMO.OfficeLength.Points(Gap.Value));
             }
 
             var style = CreateStyle();
@@ -137,12 +137,12 @@ public sealed class AddOfficePdfRowCommand : PSCmdlet
 
         return new PdfRowStyle
         {
-            SpacingBefore = SpacingBefore ?? 0D,
-            SpacingAfter = SpacingAfter ?? 0D,
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(SpacingBefore ?? 0D),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(SpacingAfter ?? 0D),
             KeepTogether = KeepTogether.IsPresent,
             KeepWithNext = KeepWithNext.IsPresent,
             ColumnSeparatorColor = separatorColor,
-            ColumnSeparatorWidth = ColumnSeparatorWidth ?? (separatorColor.HasValue ? 0.5D : 0D)
+            ColumnSeparatorWidth = global::OfficeIMO.OfficeLength.Points(ColumnSeparatorWidth ?? (separatorColor.HasValue ? 0.5D : 0D))
         };
     }
 }

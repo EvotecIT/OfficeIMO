@@ -40,7 +40,7 @@ public sealed partial class PdfCreateOptions {
             return;
         }
 
-        var layoutDiagnostic = new PdfLayoutDiagnostic(kind, source, message, x, y, width, height);
+        var layoutDiagnostic = new PdfLayoutDiagnostic(kind, source, message, (x.HasValue ? global::OfficeIMO.OfficeLength.Points(x.Value) : (global::OfficeIMO.OfficeLength?)null), (y.HasValue ? global::OfficeIMO.OfficeLength.Points(y.Value) : (global::OfficeIMO.OfficeLength?)null), (width.HasValue ? global::OfficeIMO.OfficeLength.Points(width.Value) : (global::OfficeIMO.OfficeLength?)null), (height.HasValue ? global::OfficeIMO.OfficeLength.Points(height.Value) : (global::OfficeIMO.OfficeLength?)null));
         DiagnosticsReport.Add(new PdfConversionWarning(
             _diagnosticsConverter,
             code,

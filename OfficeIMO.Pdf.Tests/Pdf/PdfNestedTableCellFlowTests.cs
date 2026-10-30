@@ -314,7 +314,7 @@ public class PdfNestedTableCellFlowTests {
         var document = PdfDocument.Create(Options(190D));
         var expected = Enumerable.Range(0, 40).Select(index => "KeptLine" + index.ToString("00")).ToArray();
         var runs = new[] { PdfTextRun.Normal(string.Join("\n", expected)) };
-        var paragraph = new PdfTableCellParagraph(runs, fontSize: 8D, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10D)),
+        var paragraph = new PdfTableCellParagraph(runs, fontSize: global::OfficeIMO.OfficeLength.Points(8D), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10D)),
             widowControl: false, keepTogether: true);
         var nested = new TableBlock(new[] { new[] { new PdfTableCell("NestedPeer") } }, PdfAlign.Left, Style());
         var rows = new[] { new[] { new PdfTableCell(runs, new[] { paragraph }), Cell(nested), new PdfTableCell("ShortPeer") } };
@@ -339,7 +339,7 @@ public class PdfNestedTableCellFlowTests {
         document.Content.Spacer(global::OfficeIMO.OfficeLength.Points(80D));
         var expected = Enumerable.Range(0, 6).Select(index => "FittingLine" + index.ToString("00")).ToArray();
         var runs = new[] { PdfTextRun.Normal(string.Join("\n", expected)) };
-        var paragraph = new PdfTableCellParagraph(runs, fontSize: 8D, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10D)),
+        var paragraph = new PdfTableCellParagraph(runs, fontSize: global::OfficeIMO.OfficeLength.Points(8D), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10D)),
             widowControl: false, keepTogether: true);
         var nested = new TableBlock(new[] { new[] { new PdfTableCell("FittingPeer") } }, PdfAlign.Left, Style());
         document.Content.Table(new[] { new[] { new PdfTableCell(runs, new[] { paragraph }), Cell(nested) } }, style: Style());

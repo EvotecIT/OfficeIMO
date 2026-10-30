@@ -48,7 +48,7 @@ public static class XpsPdfExtensions {
                 var projection = new XpsSvgConverter(page, cancellationToken, explicitPageLinks: true, nativeDrawing: true).Convert(false);
                 var drawing = XpsPage.ImportDrawing(navigation.MapLinks(projection.Svg, pageIndex, cancellationToken), cancellationToken, structure?.HasNativeStructure == true);
                 double width = page.Width * 72D / 96D, height = page.Height * 72D / 96D;
-                builder.Page(p => p.Size(width, height).Margin(new PdfPageMargins(OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0)))
+                builder.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)).Margin(new PdfPageMargins(OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0)))
                     .Canvas(c => {
                         navigation.AddDestinations(c, projection, pageIndex, width, height, cancellationToken);
                         if (drawing.Elements.Count > 0) {

@@ -7,16 +7,16 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfCanvasTextBoxStyle {
     private PdfAlign _align = PdfAlign.Left;
-    private double _borderWidth = 0.5D;
-    private double _paddingX = 6D;
-    private double _paddingY = 4D;
-    private double? _paddingLeft;
-    private double? _paddingRight;
-    private double? _paddingTop;
-    private double? _paddingBottom;
-    private double _cornerRadius;
-    private double? _fontSize;
-    private double? _lineHeight;
+    private global::OfficeIMO.OfficeLength _borderWidth = global::OfficeIMO.OfficeLength.Points(0.5D);
+    private global::OfficeIMO.OfficeLength _paddingX = global::OfficeIMO.OfficeLength.Points(6D);
+    private global::OfficeIMO.OfficeLength _paddingY = global::OfficeIMO.OfficeLength.Points(4D);
+    private global::OfficeIMO.OfficeLength? _paddingLeft;
+    private global::OfficeIMO.OfficeLength? _paddingRight;
+    private global::OfficeIMO.OfficeLength? _paddingTop;
+    private global::OfficeIMO.OfficeLength? _paddingBottom;
+    private global::OfficeIMO.OfficeLength _cornerRadius;
+    private global::OfficeIMO.OfficeLength? _fontSize;
+    private global::OfficeIMO.OfficeLength? _lineHeight;
     private double? _backgroundOpacity;
     private PdfStandardFont? _font;
     private PdfVerticalAlign _verticalAlign = PdfVerticalAlign.Top;
@@ -40,10 +40,10 @@ public sealed class PdfCanvasTextBoxStyle {
     public global::OfficeIMO.OfficeColor? BorderColor { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
 
     /// <summary>Border stroke width in points.</summary>
-    public double BorderWidth {
+    public global::OfficeIMO.OfficeLength BorderWidth {
         get => _borderWidth;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(BorderWidth), "Canvas text box border width must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(BorderWidth), "Canvas text box border width must be a non-negative finite value.");
             _borderWidth = value;
         }
     }
@@ -58,75 +58,75 @@ public sealed class PdfCanvasTextBoxStyle {
     public OfficeStrokeLineJoin? BorderLineJoin { get; set; }
 
     /// <summary>Corner radius for rounded text boxes. Zero renders a regular rectangle.</summary>
-    public double CornerRadius {
+    public global::OfficeIMO.OfficeLength CornerRadius {
         get => _cornerRadius;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(CornerRadius), "Canvas text box corner radius must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(CornerRadius), "Canvas text box corner radius must be a non-negative finite value.");
             _cornerRadius = value;
         }
     }
 
     /// <summary>Horizontal padding inside the text box, in points.</summary>
-    public double PaddingX {
+    public global::OfficeIMO.OfficeLength PaddingX {
         get => _paddingX;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(PaddingX), "Canvas text box horizontal padding must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(PaddingX), "Canvas text box horizontal padding must be a non-negative finite value.");
             _paddingX = value;
         }
     }
 
     /// <summary>Vertical padding inside the text box, in points.</summary>
-    public double PaddingY {
+    public global::OfficeIMO.OfficeLength PaddingY {
         get => _paddingY;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(PaddingY), "Canvas text box vertical padding must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(PaddingY), "Canvas text box vertical padding must be a non-negative finite value.");
             _paddingY = value;
         }
     }
 
     /// <summary>Optional left padding override, in points. When null <see cref="PaddingX"/> is used.</summary>
-    public double? PaddingLeft {
+    public global::OfficeIMO.OfficeLength? PaddingLeft {
         get => _paddingLeft;
         set {
-            ValidateOptionalNonNegativeFiniteValue(value, nameof(PaddingLeft), "Canvas text box left padding must be a non-negative finite value.");
+            ValidateOptionalNonNegativeFiniteValue(value?.ToPoints(), nameof(PaddingLeft), "Canvas text box left padding must be a non-negative finite value.");
             _paddingLeft = value;
         }
     }
 
     /// <summary>Optional right padding override, in points. When null <see cref="PaddingX"/> is used.</summary>
-    public double? PaddingRight {
+    public global::OfficeIMO.OfficeLength? PaddingRight {
         get => _paddingRight;
         set {
-            ValidateOptionalNonNegativeFiniteValue(value, nameof(PaddingRight), "Canvas text box right padding must be a non-negative finite value.");
+            ValidateOptionalNonNegativeFiniteValue(value?.ToPoints(), nameof(PaddingRight), "Canvas text box right padding must be a non-negative finite value.");
             _paddingRight = value;
         }
     }
 
     /// <summary>Optional top padding override, in points. When null <see cref="PaddingY"/> is used.</summary>
-    public double? PaddingTop {
+    public global::OfficeIMO.OfficeLength? PaddingTop {
         get => _paddingTop;
         set {
-            ValidateOptionalNonNegativeFiniteValue(value, nameof(PaddingTop), "Canvas text box top padding must be a non-negative finite value.");
+            ValidateOptionalNonNegativeFiniteValue(value?.ToPoints(), nameof(PaddingTop), "Canvas text box top padding must be a non-negative finite value.");
             _paddingTop = value;
         }
     }
 
     /// <summary>Optional bottom padding override, in points. When null <see cref="PaddingY"/> is used.</summary>
-    public double? PaddingBottom {
+    public global::OfficeIMO.OfficeLength? PaddingBottom {
         get => _paddingBottom;
         set {
-            ValidateOptionalNonNegativeFiniteValue(value, nameof(PaddingBottom), "Canvas text box bottom padding must be a non-negative finite value.");
+            ValidateOptionalNonNegativeFiniteValue(value?.ToPoints(), nameof(PaddingBottom), "Canvas text box bottom padding must be a non-negative finite value.");
             _paddingBottom = value;
         }
     }
 
-    internal double EffectivePaddingLeft => PaddingLeft ?? PaddingX;
+    internal double EffectivePaddingLeft => (PaddingLeft?.ToPoints()) ?? PaddingX.ToPoints();
 
-    internal double EffectivePaddingRight => PaddingRight ?? PaddingX;
+    internal double EffectivePaddingRight => (PaddingRight?.ToPoints()) ?? PaddingX.ToPoints();
 
-    internal double EffectivePaddingTop => PaddingTop ?? PaddingY;
+    internal double EffectivePaddingTop => (PaddingTop?.ToPoints()) ?? PaddingY.ToPoints();
 
-    internal double EffectivePaddingBottom => PaddingBottom ?? PaddingY;
+    internal double EffectivePaddingBottom => (PaddingBottom?.ToPoints()) ?? PaddingY.ToPoints();
 
     /// <summary>Default foreground color for text runs that do not specify a color.</summary>
     public global::OfficeIMO.OfficeColor? TextColor { get; set; }
@@ -150,19 +150,19 @@ public sealed class PdfCanvasTextBoxStyle {
     }
 
     /// <summary>Default font size for text runs that do not specify a font size.</summary>
-    public double? FontSize {
+    public global::OfficeIMO.OfficeLength? FontSize {
         get => _fontSize;
         set {
-            ValidateOptionalPositiveFiniteValue(value, nameof(FontSize), "Canvas text box font size must be a positive finite value.");
+            ValidateOptionalPositiveFiniteValue(value?.ToPoints(), nameof(FontSize), "Canvas text box font size must be a positive finite value.");
             _fontSize = value;
         }
     }
 
     /// <summary>Default line height for wrapped text. When null, the font size is multiplied by 1.2.</summary>
-    public double? LineHeight {
+    public global::OfficeIMO.OfficeLength? LineHeight {
         get => _lineHeight;
         set {
-            ValidateOptionalPositiveFiniteValue(value, nameof(LineHeight), "Canvas text box line height must be a positive finite value.");
+            ValidateOptionalPositiveFiniteValue(value?.ToPoints(), nameof(LineHeight), "Canvas text box line height must be a positive finite value.");
             _lineHeight = value;
         }
     }

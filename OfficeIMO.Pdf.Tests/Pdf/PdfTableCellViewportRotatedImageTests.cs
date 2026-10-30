@@ -66,9 +66,9 @@ public sealed partial class PdfTableCellViewportTests {
     private static byte[] RenderRotatedImage(string mode, PdfImageStyle imageStyle, bool fragment = true) {
         double width = fragment ? 80 : 200;
         var cell = PdfTableCell.WithImages(string.Empty, new[] {
-            new PdfTableCellImage(PdfPngTestImages.CreateRgbPng(2, 2), 12, 60, imageStyle, linkUri: "https://example.com/")
+            new PdfTableCellImage(PdfPngTestImages.CreateRgbPng(2, 2), global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(60), imageStyle, linkUri: "https://example.com/")
         });
-        if (fragment) cell = cell.WithViewport(new PdfTableCellViewport(200, 72, 80, 72, offsetX: 120));
+        if (fragment) cell = cell.WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(72), offsetX: global::OfficeIMO.OfficeLength.Points(120)));
         var rows = new[] { new[] { cell } };
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(320), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
             MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24) };

@@ -15,8 +15,8 @@ public sealed class PdfDrawingFlowWidthTests {
             .AddLink(EmbeddedLink, 100, 40, 200, 80);
         var document = PdfDocument.Create(Options(300, 220));
         document.Content.Panel(content => content.Drawing(drawing, style: Constrained(), linkUri: ObjectLink),
-            new PdfPanelStyle { MaxWidth = 180, PaddingX = 10, PaddingY = 0, BorderWidth = 0,
-                SpacingBefore = 0, SpacingAfter = 0, KeepTogether = true });
+            new PdfPanelStyle { MaxWidth = global::OfficeIMO.OfficeLength.Points(180), PaddingX = global::OfficeIMO.OfficeLength.Points(10), PaddingY = global::OfficeIMO.OfficeLength.Points(0), BorderWidth = global::OfficeIMO.OfficeLength.Points(0),
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepTogether = true });
 
         byte[] bytes = document.ToBytes();
         PdfImagePlacement image = Assert.Single(PdfDocument.Load(bytes).Images.Placements());
@@ -145,7 +145,7 @@ public sealed class PdfDrawingFlowWidthTests {
         options.MaxGeneratedPages = 2;
         var document = PdfDocument.Create(options);
         PdfDrawingStyle style = Constrained();
-        style.SpacingAfter = spacingAfter;
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter);
         document.Content.Columns(content => content.Panel(panel =>
             panel.Drawing(ImageDrawing(400, height), style: style), PlainPanel(10)), UnequalColumns());
 
@@ -160,7 +160,7 @@ public sealed class PdfDrawingFlowWidthTests {
         options.MaxGeneratedPages = 2;
         var document = PdfDocument.Create(options);
         PdfPanelStyle panelStyle = PlainPanel(0);
-        panelStyle.PaddingY = 20;
+        panelStyle.PaddingY = global::OfficeIMO.OfficeLength.Points(20);
         panelStyle.RepeatFragmentDecoration = false;
         PdfParagraphStyle paragraphStyle = Paragraph();
         paragraphStyle.LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(230));
@@ -262,10 +262,10 @@ public sealed class PdfDrawingFlowWidthTests {
     public void KeptRowUsesConstrainedDrawingHeightForMeasurementAndPlacement() {
         var document = PdfDocument.Create(Options(260, 220));
         document.Content.Spacer(global::OfficeIMO.OfficeLength.Points(80));
-        document.Content.Row(row => row.Gap(20).Style(new PdfRowStyle { KeepTogether = true })
-            .FixedColumn(100, content => content.Drawing(ImageDrawing(400, 320), style: Constrained(), linkUri: ObjectLink)
+        document.Content.Row(row => row.Gap(global::OfficeIMO.OfficeLength.Points(20)).Style(new PdfRowStyle { KeepTogether = true })
+            .FixedColumn(global::OfficeIMO.OfficeLength.Points(100), content => content.Drawing(ImageDrawing(400, 320), style: Constrained(), linkUri: ObjectLink)
                 .Paragraph(p => p.Text("Caption"), style: Paragraph()))
-            .FixedColumn(100, content => content.Paragraph(p => p.Text("Adjacent"), style: Paragraph())));
+            .FixedColumn(global::OfficeIMO.OfficeLength.Points(100), content => content.Paragraph(p => p.Text("Adjacent"), style: Paragraph())));
 
         byte[] bytes = document.ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
@@ -331,7 +331,7 @@ public sealed class PdfDrawingFlowWidthTests {
     private static PdfDrawingStyle Constrained() => new() { ConstrainToContentWidth = true };
 
     private static PdfPanelStyle PlainPanel(double paddingX) => new() {
-        PaddingX = paddingX, PaddingY = 0, BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 0
+        PaddingX = global::OfficeIMO.OfficeLength.Points(paddingX), PaddingY = global::OfficeIMO.OfficeLength.Points(0), BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
     };
 
     private static PdfCreateOptions Options(double width, double height) => new() {
@@ -344,7 +344,7 @@ public sealed class PdfDrawingFlowWidthTests {
 
     private static PdfMultiColumnOptions UnequalColumns() => new() {
         BalanceLastPage = false, ColumnDefinitions = new[] {
-            new PdfFlowColumn(PdfColumnWidth.Fixed(300), 20), new PdfFlowColumn(PdfColumnWidth.Fixed(100))
+            new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(300)), global::OfficeIMO.OfficeLength.Points(20)), new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(100)))
         }
     };
 }

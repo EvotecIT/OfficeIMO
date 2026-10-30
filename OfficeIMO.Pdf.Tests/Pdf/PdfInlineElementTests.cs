@@ -12,7 +12,7 @@ public class PdfInlineElementTests {
     public void TableRowShrinkingReservesFixedInlineWidth(bool canvas) {
         global::OfficeIMO.OfficeColor fill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2D, .5D, .8D);
         PdfTableCell cell = new PdfTableCell(new[] {
-            PdfTextRun.Inline(new PdfInlineBox(30, 10, background: fill)),
+            PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(10), background: fill)),
             PdfTextRun.Normal("ABCDE")
         }).WithNoWrap();
         PdfTableStyle style = new PdfTableStyle {
@@ -202,7 +202,7 @@ public class PdfInlineElementTests {
                 new[] {
                     PdfTableCell.RichTextCell(new[] {
                         PdfTextRun.Normal(longValue, fontSize: global::OfficeIMO.OfficeLength.Points(30), font: PdfStandardFont.Courier),
-                        PdfTextRun.Inline(new PdfInlineBox(12, 10, background: fill))
+                        PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(10), background: fill))
                     })
                 }
             }, style: new PdfTableStyle {

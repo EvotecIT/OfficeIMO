@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfTextStyle {
     private PdfStandardFont _font = PdfStandardFont.Helvetica;
-    private double _fontSize = 11;
+    private global::OfficeIMO.OfficeLength _fontSize = global::OfficeIMO.OfficeLength.Points(11);
 
     /// <summary>Default standard font family.</summary>
     public PdfStandardFont Font {
@@ -17,10 +17,10 @@ public sealed class PdfTextStyle {
     }
 
     /// <summary>Default font size in points.</summary>
-    public double FontSize {
+    public global::OfficeIMO.OfficeLength FontSize {
         get => _fontSize;
         set {
-            Guard.Positive(value, nameof(FontSize));
+            Guard.Positive(value.ToPoints(), nameof(FontSize));
             _fontSize = value;
         }
     }
@@ -40,7 +40,7 @@ public sealed class PdfTextStyle {
     internal void ApplyTo(PdfCreateOptions options) {
         Guard.NotNull(options, nameof(options));
         options.DefaultFont = Font;
-        options.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(FontSize);
+        options.DefaultFontSize = FontSize;
         options.DefaultTextColor = Color;
     }
 }

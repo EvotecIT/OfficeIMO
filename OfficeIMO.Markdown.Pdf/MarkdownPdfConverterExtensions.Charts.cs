@@ -837,7 +837,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         PdfCore.PdfDrawingStyle drawingStyle = visualTheme.FigureStyleSnapshot.DrawingStyleSnapshot;
-        availableHeight -= drawingStyle.SpacingBefore + drawingStyle.SpacingAfter;
+        availableHeight -= drawingStyle.SpacingBefore.ToPoints() + drawingStyle.SpacingAfter.ToPoints();
         return availableHeight > 0D && !double.IsNaN(availableHeight) && !double.IsInfinity(availableHeight);
     }
 

@@ -17,7 +17,7 @@ public sealed class PdfAnchoredCanvasFlowTests {
             MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         }).Columns(content => content.Paragraph(paragraph => paragraph.Text("ANCHOR " +
                 string.Join(" ", Enumerable.Repeat("Column continuation text", 32))), style: style),
-            new PdfMultiColumnOptions { ColumnCount = 2, Gap = 12, BalanceLastPage = true, BalanceParagraphLines = balanceLines });
+            new PdfMultiColumnOptions { ColumnCount = 2, Gap = global::OfficeIMO.OfficeLength.Points(12), BalanceLastPage = true, BalanceParagraphLines = balanceLines });
         for (int serialization = 0; serialization < 2; serialization++) {
             var reopened = PdfDocument.Load(document.ToBytes());
             var placement = Assert.Single(reopened.Images.Placements());

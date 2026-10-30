@@ -54,10 +54,10 @@ public static partial class PowerPointPdfConverterExtensions {
                         PdfCore.PdfLayoutDiagnosticKind.ClippedContent,
                         "PowerPointTableCell",
                         diagnostic.Message,
-                        diagnostic.X ?? x,
-                        diagnostic.Y ?? y,
-                        diagnostic.Width ?? width,
-                        diagnostic.Height ?? height));
+                        global::OfficeIMO.OfficeLength.Points((diagnostic.X?.ToPoints()) ?? x),
+                        global::OfficeIMO.OfficeLength.Points((diagnostic.Y?.ToPoints()) ?? y),
+                        global::OfficeIMO.OfficeLength.Points((diagnostic.Width?.ToPoints()) ?? width),
+                        global::OfficeIMO.OfficeLength.Points((diagnostic.Height?.ToPoints()) ?? height)));
             });
             if (reportedCellOverflow && !hasAncestorPageClip) {
                 canvas.Clip(global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(slideWidth!.Value), global::OfficeIMO.OfficeLength.Points(slideHeight!.Value), render);

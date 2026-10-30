@@ -4,14 +4,14 @@ namespace OfficeIMO.Pdf;
 /// Visual style for generated simple AcroForm fields.
 /// </summary>
 public class PdfFormFieldStyle {
-    private double _borderWidth = 1D;
+    private global::OfficeIMO.OfficeLength _borderWidth = global::OfficeIMO.OfficeLength.Points(1D);
     private string? _alternateName;
     private string? _mappingName;
     private PdfFormFieldTextAlignment? _textAlignment;
     private int? _maxLength;
-    private double[]? _borderDashPattern;
+    private global::OfficeIMO.OfficeLength[]? _borderDashPattern;
     private PdfFormFieldBorderStyle _borderStyle = PdfFormFieldBorderStyle.Solid;
-    private double _cornerRadius;
+    private global::OfficeIMO.OfficeLength _cornerRadius;
 
     /// <summary>Source sibling order retained independently from widget serialization order.</summary>
     internal long? LogicalOrder { get; set; }
@@ -89,11 +89,11 @@ public class PdfFormFieldStyle {
     }
 
     /// <summary>Border stroke width in points. Set to 0 to suppress border drawing.</summary>
-    public double BorderWidth {
+    public global::OfficeIMO.OfficeLength BorderWidth {
         get => _borderWidth;
         set {
-            if (value < 0 || double.IsNaN(value) || double.IsInfinity(value)) {
-                throw new ArgumentOutOfRangeException(nameof(value), value, "PDF form field border width must be a non-negative finite number.");
+            if (value.ToPoints() < 0 || double.IsNaN(value.ToPoints()) || double.IsInfinity(value.ToPoints())) {
+                throw new ArgumentOutOfRangeException(nameof(value), value.ToPoints(), "PDF form field border width must be a non-negative finite number.");
             }
 
             _borderWidth = value;
@@ -101,11 +101,11 @@ public class PdfFormFieldStyle {
     }
 
     /// <summary>Uniform circular corner radius in points for generated field appearance streams.</summary>
-    public double CornerRadius {
+    public global::OfficeIMO.OfficeLength CornerRadius {
         get => _cornerRadius;
         set {
-            if (value < 0 || double.IsNaN(value) || double.IsInfinity(value)) {
-                throw new ArgumentOutOfRangeException(nameof(value), value, "PDF form field corner radius must be a non-negative finite number.");
+            if (value.ToPoints() < 0 || double.IsNaN(value.ToPoints()) || double.IsInfinity(value.ToPoints())) {
+                throw new ArgumentOutOfRangeException(nameof(value), value.ToPoints(), "PDF form field corner radius must be a non-negative finite number.");
             }
 
             _cornerRadius = value;
@@ -131,7 +131,7 @@ public class PdfFormFieldStyle {
     }
 
     /// <summary>Optional border dash pattern emitted into generated appearance streams. Null or empty output means a solid border.</summary>
-    public IReadOnlyList<double>? BorderDashPattern {
+    public System.Collections.Generic.IReadOnlyList<global::OfficeIMO.OfficeLength>? BorderDashPattern {
         get => _borderDashPattern;
         set {
             if (value == null) {
@@ -143,10 +143,10 @@ public class PdfFormFieldStyle {
                 throw new ArgumentException("PDF form field border dash pattern must contain at least one value.", nameof(value));
             }
 
-            var copy = new double[value.Count];
+            var copy = new global::OfficeIMO.OfficeLength[value.Count];
             bool hasPositiveSegment = false;
             for (int i = 0; i < value.Count; i++) {
-                double segment = value[i];
+                double segment = value[i].ToPoints();
                 if (segment < 0 || double.IsNaN(segment) || double.IsInfinity(segment)) {
                     throw new ArgumentOutOfRangeException(nameof(value), segment, "PDF form field border dash pattern values must be non-negative finite numbers.");
                 }
@@ -155,7 +155,7 @@ public class PdfFormFieldStyle {
                     hasPositiveSegment = true;
                 }
 
-                copy[i] = segment;
+                copy[i] = value[i];
             }
 
             if (!hasPositiveSegment) {
@@ -194,7 +194,7 @@ public class PdfFormFieldStyle {
             BorderStyle = BorderStyle,
             TextColor = TextColor,
             MarkColor = MarkColor,
-            BorderDashPattern = _borderDashPattern == null ? null : (double[])_borderDashPattern.Clone(),
+            BorderDashPattern = _borderDashPattern == null ? null : (global::OfficeIMO.OfficeLength[])_borderDashPattern.Clone(),
             IsReadOnly = IsReadOnly,
             IsRequired = IsRequired,
             IsNoExport = IsNoExport,

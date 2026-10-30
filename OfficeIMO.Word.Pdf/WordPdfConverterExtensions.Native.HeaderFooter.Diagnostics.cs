@@ -136,7 +136,7 @@ namespace OfficeIMO.Word.Pdf {
                 defaultHeaderShapes.Count > 0 || firstHeaderShapes.Count > 0 || evenHeaderShapes.Count > 0) {
                 page.Header(header => {
                     if (headerMarginExpansion > 0D) {
-                        header.Offset(GetNativeHeaderOffset(options, headerMarginExpansion));
+                        header.Offset(global::OfficeIMO.OfficeLength.Points(GetNativeHeaderOffset(options, headerMarginExpansion)));
                     }
 
                     if (headerFont.HasValue) {
@@ -152,7 +152,7 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     if (headerFontSize.HasValue) {
-                        header.FontSize(headerFontSize.Value);
+                        header.FontSize(global::OfficeIMO.OfficeLength.Points(headerFontSize.Value));
                     }
 
                     if (defaultHeader?.HasStyledZones == true) {
@@ -197,7 +197,7 @@ namespace OfficeIMO.Word.Pdf {
 
             string pageNumberFormat = GetNativePageNumberFormat(options);
             page.Footer(footer => {
-                footer.Offset(GetNativeFooterOffset(options));
+                footer.Offset(global::OfficeIMO.OfficeLength.Points(GetNativeFooterOffset(options)));
                 if (footerFont.HasValue) {
                     footer.Font(footerFont.Value);
                 }
@@ -211,7 +211,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 if (footerFontSize.HasValue) {
-                    footer.FontSize(footerFontSize.Value);
+                    footer.FontSize(global::OfficeIMO.OfficeLength.Points(footerFontSize.Value));
                 }
 
                 NativeHeaderFooterText? resolvedDefaultFooter = WithNativeFooterPageNumber(defaultFooter, includePageNumbers, pageNumberFormat);

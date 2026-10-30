@@ -303,7 +303,7 @@ static void AddMetric(
     PowerPointAutoShape card = slide.AddRectangle(OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(92), label);
     card.FillColor = fill;
     card.OutlineColor = accent;
-    card.OutlineWidthPoints = 1.25;
+    card.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.25);
     AddText(slide, value, left + 14, top + 12, 150, 34, 24, bold: true, color: accent);
     AddText(slide, label, left + 14, top + 52, 150, 24, 12, color: "52657A");
 }

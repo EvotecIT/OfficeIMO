@@ -14,8 +14,8 @@ public partial class PdfDocumentComplianceAssessmentTests {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
-            .Header(header => header.Image(CreateMinimalRgbPng(), 24, 12, alternativeText: "Header logo"))
-            .Footer(footer => footer.Image(CreateMinimalRgbPng(), 24, 12, alternativeText: "Footer logo"))
+            .Header(header => header.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), alternativeText: "Header logo"))
+            .Footer(footer => footer.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), alternativeText: "Footer logo"))
             .Paragraph(paragraph => paragraph.Text("Header and footer image marked content."))
             .ToBytes();
 
@@ -47,8 +47,8 @@ public partial class PdfDocumentComplianceAssessmentTests {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
-            .Header(header => header.Image(CreateMinimalRgbPng(), 24, 12))
-            .Footer(footer => footer.Image(CreateMinimalRgbPng(), 24, 12))
+            .Header(header => header.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12)))
+            .Footer(footer => footer.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12)))
             .Paragraph(paragraph => paragraph.Text("Header and footer decorative images."))
             .ToBytes();
 
@@ -88,11 +88,11 @@ public partial class PdfDocumentComplianceAssessmentTests {
             })
             .TaggedPdfCatalogMarkers()
             .Header(header => {
-                if (contentStory) header.Content(content => content.Paragraph(paragraph => paragraph.Text("Running header")), 24D);
+                if (contentStory) header.Content(content => content.Paragraph(paragraph => paragraph.Text("Running header")), global::OfficeIMO.OfficeLength.Points(24D));
                 else header.Text("Running header");
             })
             .Footer(footer => {
-                if (contentStory) footer.Content(content => content.Paragraph(paragraph => paragraph.Text("Running footer")), 24D);
+                if (contentStory) footer.Content(content => content.Paragraph(paragraph => paragraph.Text("Running footer")), global::OfficeIMO.OfficeLength.Points(24D));
                 else footer.Text("Page {page} of {pages}");
             })
             .Paragraph(paragraph => paragraph.Text("Body text remains structured."))
@@ -150,9 +150,9 @@ public partial class PdfDocumentComplianceAssessmentTests {
         var panelStyle = new PdfPanelStyle {
             Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
             BorderColor = global::OfficeIMO.OfficeColor.FromRgb(37, 99, 235),
-            BorderWidth = 0.8,
-            PaddingX = 10,
-            PaddingY = 8
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.8),
+            PaddingX = global::OfficeIMO.OfficeLength.Points(10),
+            PaddingY = global::OfficeIMO.OfficeLength.Points(8)
         };
         PdfTableStyle tableStyle = PdfTableStyles.Minimal();
         tableStyle.HeaderRowCount = 1;

@@ -529,7 +529,7 @@ public sealed partial class PdfPageCanvas {
                 applyTextColor ? style.TextColor : run.Color,
                 run.Italic,
                 run.Strike,
-                (applyFontSize ? global::OfficeIMO.OfficeLength.Points(style.FontSize!.Value) : run.FontSize),
+                (applyFontSize ? style.FontSize!.Value : run.FontSize),
                 applyFont ? style.Font : run.Font,
                 run.LinkUri,
                 run.LinkContents,
@@ -555,7 +555,7 @@ public sealed partial class PdfPageCanvas {
             throw new ArgumentException("Canvas text box padding must leave a positive text area.", paramName);
         }
 
-        if (style.CornerRadius > Math.Min(width, height) / 2D) {
+        if (style.CornerRadius.ToPoints() > Math.Min(width, height) / 2D) {
             throw new ArgumentOutOfRangeException(paramName, "Canvas text box corner radius cannot exceed half of the text box width or height.");
         }
     }

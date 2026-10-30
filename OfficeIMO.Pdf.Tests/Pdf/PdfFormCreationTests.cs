@@ -138,7 +138,7 @@ public class PdfFormCreationTests {
                 new[] {
                     PdfTableCell.WithCheckBoxes(
                         "Table approval",
-                        new[] { new PdfTableCellCheckBox("Table.Approved", isChecked: true, size: 12) })
+                        new[] { new PdfTableCellCheckBox("Table.Approved", isChecked: true, size: global::OfficeIMO.OfficeLength.Points(12)) })
                 }
             }, style: PdfTableStyles.Light())
             .ToBytes();
@@ -173,8 +173,8 @@ public class PdfFormCreationTests {
                 new[] {
                     new PdfTableCell(
                         runs,
-                        new[] { new PdfTableCellParagraph(runs, spacingBefore: spacingBefore) },
-                        checkBoxes: new[] { new PdfTableCellCheckBox("Table.InlineApproved", isChecked: true, size: 12) })
+                        new[] { new PdfTableCellParagraph(runs, spacingBefore: global::OfficeIMO.OfficeLength.Points(spacingBefore)) },
+                        checkBoxes: new[] { new PdfTableCellCheckBox("Table.InlineApproved", isChecked: true, size: global::OfficeIMO.OfficeLength.Points(12)) })
                 }
             }, style: PdfTableStyles.Light())
             .ToBytes();
@@ -201,7 +201,7 @@ public class PdfFormCreationTests {
                         "Table form fields",
                         new[] {
                             PdfTableCellFormField.TextField("Table.DueDate", "2026-05-31", width: global::OfficeIMO.OfficeLength.Points(140), height: global::OfficeIMO.OfficeLength.Points(18)),
-                            PdfTableCellFormField.ChoiceField("Table.Country", new[] { "Poland", "Germany" }, value: "Germany", width: 140, height: 18)
+                            PdfTableCellFormField.ChoiceField("Table.Country", new[] { "Poland", "Germany" }, value: "Germany", width: global::OfficeIMO.OfficeLength.Points(140), height: global::OfficeIMO.OfficeLength.Points(18))
                         })
                 }
             }, style: PdfTableStyles.Light())
@@ -335,9 +335,9 @@ public class PdfFormCreationTests {
         var style = new PdfFormFieldStyle {
             BackgroundColor = global::OfficeIMO.OfficeColor.FromRgb(238, 242, 255),
             BorderColor = global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175),
-            BorderWidth = 2,
-            CornerRadius = 5,
-            BorderDashPattern = new[] { 6D, 2D },
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(2),
+            CornerRadius = global::OfficeIMO.OfficeLength.Points(5),
+            BorderDashPattern = new[] { 6D, 2D }.Select(global::OfficeIMO.OfficeLength.Points).ToArray(),
             TextColor = global::OfficeIMO.OfficeColor.FromRgb(127, 29, 29),
             MarkColor = global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52),
             TextAlignment = PdfFormFieldTextAlignment.Center
@@ -376,8 +376,8 @@ public class PdfFormCreationTests {
         Assert.Contains("0.498 0.114 0.114 rg", filledRaw, StringComparison.Ordinal);
 
         PdfFormFieldStyle clone = style.Clone();
-        style.CornerRadius = 0;
-        Assert.Equal(5, clone.CornerRadius);
+        style.CornerRadius = global::OfficeIMO.OfficeLength.Points(0);
+        Assert.Equal(5, clone.CornerRadius.ToPoints());
     }
 
     [Fact]
@@ -385,7 +385,7 @@ public class PdfFormCreationTests {
         var style = new PdfFormFieldStyle {
             BackgroundColor = global::OfficeIMO.OfficeColor.White,
             BorderColor = global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175),
-            BorderWidth = 2,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(2),
             BorderStyle = PdfFormFieldBorderStyle.Underline,
             TextColor = global::OfficeIMO.OfficeColor.Black
         };
@@ -406,7 +406,7 @@ public class PdfFormCreationTests {
         var style = new PdfFormFieldStyle {
             BackgroundColor = global::OfficeIMO.OfficeColor.White,
             BorderColor = global::OfficeIMO.OfficeColor.Black,
-            BorderWidth = 2,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(2),
             BorderStyle = PdfFormFieldBorderStyle.Beveled,
             TextColor = global::OfficeIMO.OfficeColor.Black
         };
@@ -931,7 +931,7 @@ public class PdfFormCreationTests {
                     .Element(element => element.Content(nested => nested.CheckBox("Element.Accept", isChecked: true, size: global::OfficeIMO.OfficeLength.Points(14), spacingAfter: global::OfficeIMO.OfficeLength.Points(10)))));
 
                 content.Row(row => row
-                    .Gap(24)
+                    .Gap(global::OfficeIMO.OfficeLength.Points(24))
                     .PercentColumn(50, column => column
                         .Paragraph(p => p.Text("Left column"))
                         .TextField("Left.Email", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20), value: "left@example.com", spacingAfter: global::OfficeIMO.OfficeLength.Points(8))
@@ -1016,12 +1016,12 @@ public class PdfFormCreationTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, size: 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, gap: -1));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, align: PdfAlign.Justify));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderWidth = -1 });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { CornerRadius = -1 });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { CornerRadius = double.NaN });
-        Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { BorderDashPattern = Array.Empty<double>() });
-        Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { BorderDashPattern = new[] { 0D, 0D } });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderDashPattern = new[] { -1D } });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderWidth = global::OfficeIMO.OfficeLength.Points(-1) });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { CornerRadius = global::OfficeIMO.OfficeLength.Points(-1) });
+
+        Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { BorderDashPattern = Array.Empty<double>().Select(global::OfficeIMO.OfficeLength.Points).ToArray() });
+        Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { BorderDashPattern = new[] { 0D, 0D }.Select(global::OfficeIMO.OfficeLength.Points).ToArray() });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderDashPattern = new[] { -1D }.Select(global::OfficeIMO.OfficeLength.Points).ToArray() });
         Assert.Equal(PdfFormFieldBorderStyle.Beveled, new PdfFormFieldStyle { BorderStyle = PdfFormFieldBorderStyle.Beveled }.BorderStyle);
         Assert.Equal(PdfFormFieldBorderStyle.Inset, new PdfFormFieldStyle { BorderStyle = PdfFormFieldBorderStyle.Inset }.BorderStyle);
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderStyle = (PdfFormFieldBorderStyle)999 });

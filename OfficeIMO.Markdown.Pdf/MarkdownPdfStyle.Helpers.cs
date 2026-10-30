@@ -100,11 +100,11 @@ public sealed partial class MarkdownPdfStyle {
     private static PdfCore.PdfPanelStyle Panel(int backgroundR, int backgroundG, int backgroundB, int borderR, int borderG, int borderB, double borderWidth, double paddingX, double paddingY, double spacingBefore, double spacingAfter) => new PdfCore.PdfPanelStyle {
         Background = Color(backgroundR, backgroundG, backgroundB),
         BorderColor = Color(borderR, borderG, borderB),
-        BorderWidth = borderWidth,
-        PaddingX = paddingX,
-        PaddingY = paddingY,
-        SpacingBefore = spacingBefore,
-        SpacingAfter = spacingAfter,
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(borderWidth),
+        PaddingX = global::OfficeIMO.OfficeLength.Points(paddingX),
+        PaddingY = global::OfficeIMO.OfficeLength.Points(paddingY),
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore),
+        SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter),
         KeepTogether = false
     };
 
@@ -112,7 +112,7 @@ public sealed partial class MarkdownPdfStyle {
         PdfCore.PdfPanelStyle style = Panel(backgroundR, backgroundG, backgroundB, borderR, borderG, borderB, borderWidth, paddingX, paddingY, spacingBefore, spacingAfter);
         style.LeftBorder = new PdfCore.PdfPanelBorder {
             Color = Color(leftR, leftG, leftB),
-            Width = leftWidth
+            Width = global::OfficeIMO.OfficeLength.Points(leftWidth)
         };
         return style;
     }

@@ -70,7 +70,7 @@ internal static partial class PdfWriter {
                 List<RichSeg> line = lines[index];
                 if (line.Any(segment => !segment.IsLineBoxStrut &&
                     (segment.InlineElement is PdfInlineBox box
-                        ? box.Background.HasValue || box.BorderColor.HasValue && box.BorderWidth > 0D
+                        ? box.Background.HasValue || box.BorderColor.HasValue && box.BorderWidth.ToPoints() > 0D
                         : segment.InlineElement == null && !string.IsNullOrWhiteSpace(segment.Text)))) {
                     double inkBaseline = AdjustRichLineBaseline(baseline, line, currentOpts, fontSize, font);
                     GetRichLineInkMetrics(line, currentOpts, out double ascent, out double descent);

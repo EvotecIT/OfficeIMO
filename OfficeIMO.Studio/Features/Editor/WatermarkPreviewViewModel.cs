@@ -61,8 +61,8 @@ public sealed partial class WatermarkPreviewViewModel : ObservableObject, IDispo
         Text = options.Text; UseImage = _image is not null;
         var color = options.Color;
         Color = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
-        X = (decimal?)options.X; Y = (decimal?)options.Y;
-        Width = (decimal)options.Width; Height = (decimal)options.Height; FontSize = (decimal)options.FontSize;
+        X = (decimal?)options.X?.ToPoints(); Y = (decimal?)options.Y?.ToPoints();
+        Width = (decimal)options.Width.ToPoints(); Height = (decimal)options.Height.ToPoints(); FontSize = (decimal)options.FontSize.ToPoints();
         Rotation = (decimal)options.RotationDegrees; Opacity = (decimal)(options.Opacity * 100);
         BehindContent = options.BehindContent;
         PageRange = options.TargetPages is null ? "" : string.Join(",", options.TargetPages.Resolve(PageCount));
@@ -150,8 +150,8 @@ public sealed partial class WatermarkPreviewViewModel : ObservableObject, IDispo
             var options = new PdfWatermarkOptions {
                 Id = _watermarkId, Font = _font,
                 Text = Text, ImageBytes = UseImage ? _image : null,
-                X = X.HasValue ? (double)X.Value : null, Y = Y.HasValue ? (double)Y.Value : null,
-                Width = (double)Width, Height = (double)Height, FontSize = (double)FontSize,
+                X = X.HasValue ? global::OfficeIMO.OfficeLength.Points((double)X.Value) : null, Y = Y.HasValue ? global::OfficeIMO.OfficeLength.Points((double)Y.Value) : null,
+                Width = global::OfficeIMO.OfficeLength.Points((double)Width), Height = global::OfficeIMO.OfficeLength.Points((double)Height), FontSize = global::OfficeIMO.OfficeLength.Points((double)FontSize),
                 RotationDegrees = (double)Rotation, Opacity = (double)Opacity / 100D,
                 Color = global::OfficeIMO.OfficeColor.FromRgb(color.R, color.G, color.B), BehindContent = BehindContent,
                 TargetPages = string.IsNullOrWhiteSpace(PageRange) ? null : PdfPageSelector.Parse(PageRange)

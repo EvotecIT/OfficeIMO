@@ -63,7 +63,7 @@ public sealed class PdfFormOcrReviewTests {
 
     [Fact]
     public async Task OverlappingFieldsRemainAmbiguousAndRequireExplicitValues() {
-        var source = PdfDocument.Create(compose => compose.Page(page => page.Size(300, 300))).Forms.Edit(edit => {
+        var source = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).Forms.Edit(edit => {
             edit.Create(new() { Name = "First", X = 20, Y = 200, Width = 150, Height = 30 });
             edit.Create(new() { Name = "Second", X = 20, Y = 200, Width = 150, Height = 30 });
         }).ToDocument();

@@ -9,7 +9,7 @@ internal static partial class PdfWriter {
             PdfHorizontalRuleStyle ruleStyle = ResolveHorizontalRuleStyle(hr, currentOpts);
             ValidateHorizontalRule(ruleStyle);
             if (ruleStyle.KeepWithNext && nextBlock != null) {
-                KeepFixedBlockWithNext(0D, ruleStyle.Thickness, ruleStyle.SpacingBefore, ruleStyle.SpacingAfter, blockList, blockIndex);
+                KeepFixedBlockWithNext(0D, ruleStyle.Thickness.ToPoints(), ruleStyle.SpacingBefore.ToPoints(), ruleStyle.SpacingAfter.ToPoints(), blockList, blockIndex);
             }
 
             RenderHorizontalRuleBlock(hr, currentOpts.MarginLeft.ToPoints(), width);
@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
             PdfDrawingStyle shapeStyle = ResolveDrawingStyle(sbk, currentOpts);
             PdfDocument.ValidateDrawingStyle(shapeStyle, "Shape");
             if (shapeStyle.KeepWithNext && nextBlock != null) {
-                KeepFixedBlockWithNext(sbk.Shape.Width, sbk.Shape.Height, shapeStyle.SpacingBefore, shapeStyle.SpacingAfter, blockList, blockIndex);
+                KeepFixedBlockWithNext(sbk.Shape.Width, sbk.Shape.Height, shapeStyle.SpacingBefore.ToPoints(), shapeStyle.SpacingAfter.ToPoints(), blockList, blockIndex);
             }
 
             RenderShapeBlock(sbk, currentOpts.MarginLeft.ToPoints(), width);
@@ -40,10 +40,10 @@ internal static partial class PdfWriter {
             PdfImageStyle imageStyle = ResolveImageStyle(ib, currentOpts);
             PdfDocument.ValidateImageStyleForBox(imageStyle, ib.Width, ib.Height, nameof(imageStyle.ClipPath));
             PdfDocument.ValidateImageFitDimensions(ib.Info, imageStyle.Fit, nameof(imageStyle.Fit));
-            double imageSpacingBefore = ResolveTopLevelSpacingBefore(imageStyle.SpacingBefore);
-            var imageBox = ResolveImageFlowBox(ib, imageStyle, contentWidth, imageSpacingBefore, imageStyle.SpacingAfter);
-            double needed = imageSpacingBefore + imageBox.Height + imageStyle.SpacingAfter;
-            EnsureFixedFlowBlockFits("Image", imageBox.Width, imageBox.Height + imageStyle.SpacingAfter, GetMaximumFixedFlowWidth(contentWidth), GetClosingContainerPadding());
+            double imageSpacingBefore = ResolveTopLevelSpacingBefore(imageStyle.SpacingBefore.ToPoints());
+            var imageBox = ResolveImageFlowBox(ib, imageStyle, contentWidth, imageSpacingBefore, imageStyle.SpacingAfter.ToPoints());
+            double needed = imageSpacingBefore + imageBox.Height + imageStyle.SpacingAfter.ToPoints();
+            EnsureFixedFlowBlockFits("Image", imageBox.Width, imageBox.Height + imageStyle.SpacingAfter.ToPoints(), GetMaximumFixedFlowWidth(contentWidth), GetClosingContainerPadding());
             while (true) {
                 bool advance = imageBox.Width > contentWidth + .001D || y - needed - GetClosingContainerPadding() < FootnoteBodyBottom - .001D;
                 if (!advance && imageStyle.KeepWithNext && nextBlock != null) {
@@ -54,8 +54,8 @@ internal static partial class PdfWriter {
                 if (!advance) break;
                 AdvanceFixedFlowFrame(ref contentWidth);
                 imageSpacingBefore = 0D;
-                imageBox = ResolveImageFlowBox(ib, imageStyle, contentWidth, imageSpacingBefore, imageStyle.SpacingAfter);
-                needed = imageBox.Height + imageStyle.SpacingAfter;
+                imageBox = ResolveImageFlowBox(ib, imageStyle, contentWidth, imageSpacingBefore, imageStyle.SpacingAfter.ToPoints());
+                needed = imageBox.Height + imageStyle.SpacingAfter.ToPoints();
                 EnsureFixedFlowBlockFits("Image", imageBox.Width, needed, GetMaximumFixedFlowWidth(contentWidth), GetClosingContainerPadding());
             }
             if (imageSpacingBefore > 0) y -= imageSpacingBefore;
@@ -76,7 +76,7 @@ internal static partial class PdfWriter {
             }
 
             pageDirty = true;
-            y -= imageBox.Height + imageStyle.SpacingAfter;
+            y -= imageBox.Height + imageStyle.SpacingAfter.ToPoints();
         }
 
 

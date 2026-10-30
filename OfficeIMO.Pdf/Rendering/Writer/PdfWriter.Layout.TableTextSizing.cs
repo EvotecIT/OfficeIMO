@@ -205,7 +205,7 @@ internal static partial class PdfWriter {
                 if (run.InlineElement != null) {
                     preparedRuns[runIndex] = new TableRunWidthMeasurement(
                         run.HorizontalOffset,
-                        run.InlineElement.Width,
+                        run.InlineElement.Width.ToPoints(),
                         0D,
                         null,
                         inline: true);

@@ -1,4 +1,5 @@
 using System.Threading;
+using System.Linq;
 
 namespace OfficeIMO.Pdf;
 
@@ -291,11 +292,11 @@ internal static partial class PdfFormFiller {
             fontSize,
             style.TextColor,
             style.BorderColor,
-            style.BorderWidth,
+            style.BorderWidth.ToPoints(),
             style.BackgroundColor,
             MapFormTextAlignment(style.TextAlignment),
             padding: 3D,
-            borderDashPattern: style.BorderDashPattern,
+            borderDashPattern: style.BorderDashPattern?.Select(static length => length.ToPoints()).ToArray(),
             borderStyle: style.BorderStyle);
 
         var dictionary = new PdfDictionary();
@@ -355,7 +356,7 @@ internal static partial class PdfFormFiller {
         PdfFormFieldStyle labelStyle = PdfAcroFormEditor.CreateButtonCaptionStyle(style);
         labelStyle.BackgroundColor = null;
         labelStyle.BorderColor = null;
-        labelStyle.BorderWidth = 0D;
+        labelStyle.BorderWidth = global::OfficeIMO.OfficeLength.Points(0D);
         labelStyle.TextAlignment = PdfFormFieldTextAlignment.Left;
         PdfStream labelAppearance = CreateAuthoredTextWidgetAppearance(
             objects,
@@ -406,7 +407,7 @@ internal static partial class PdfFormFiller {
         }
 
         if (TryReadWidgetBorderWidth(objects, widget, out double borderWidth)) {
-            style.BorderWidth = borderWidth;
+            style.BorderWidth = global::OfficeIMO.OfficeLength.Points(borderWidth);
         }
 
         if (TryReadWidgetBorderStyle(objects, widget, out PdfFormFieldBorderStyle borderStyle)) {
@@ -414,7 +415,7 @@ internal static partial class PdfFormFiller {
         }
 
         if (TryReadWidgetBorderDashPattern(objects, widget, out IReadOnlyList<double>? borderDashPattern)) {
-            style.BorderDashPattern = borderDashPattern;
+            style.BorderDashPattern = borderDashPattern?.Select(global::OfficeIMO.OfficeLength.Points).ToArray();
         }
 
         if (TryReadDefaultAppearanceTextColor(objects, widget, inheritedDefaultAppearance, out global::OfficeIMO.OfficeColor textColor)) {

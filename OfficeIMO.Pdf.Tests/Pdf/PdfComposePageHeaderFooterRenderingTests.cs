@@ -296,11 +296,11 @@ namespace OfficeIMO.Tests.Pdf {
                 c.Page(page => {
                     page.Header(header => header
                         .Font(PdfStandardFont.HelveticaBold)
-                        .FontSize(13)
+                        .FontSize(global::OfficeIMO.OfficeLength.Points(13))
                         .Text("Typography header"));
                     page.Footer(footer => footer
                         .Font(PdfStandardFont.TimesItalic)
-                        .FontSize(8)
+                        .FontSize(global::OfficeIMO.OfficeLength.Points(8))
                         .Text(text => text.Text("Typography footer ").CurrentPage().Text("/").TotalPages()));
                     page.Content(content =>
                         content.Column(column =>
@@ -343,13 +343,13 @@ namespace OfficeIMO.Tests.Pdf {
 
             doc.Compose(c => {
                 c.Page(page => {
-                    page.Size(612, 792);
-                    page.Margin(72);
+                    page.Size(global::OfficeIMO.OfficeLength.Points(612), global::OfficeIMO.OfficeLength.Points(792));
+                    page.Margin(global::OfficeIMO.OfficeLength.Points(72));
                     page.Header(header => header
-                        .Offset(12)
+                        .Offset(global::OfficeIMO.OfficeLength.Points(12))
                         .Text("Offset header"));
                     page.Footer(footer => footer
-                        .Offset(20)
+                        .Offset(global::OfficeIMO.OfficeLength.Points(20))
                         .Text(text => text.Text("Offset footer ").CurrentPage().Text("/").TotalPages()));
                     page.Content(content =>
                         content.Column(column =>
@@ -555,12 +555,12 @@ namespace OfficeIMO.Tests.Pdf {
                 .ToArray();
             Assert.Contains(clippingWarnings, warning =>
                 warning.Source == "Header" &&
-                (warning.LayoutDiagnostic?.Y ?? 0D) + (warning.LayoutDiagnostic?.Height ?? 0D) > options.PageHeight.ToPoints() &&
-                warning.LayoutDiagnostic?.Height > 0D);
+                (warning.LayoutDiagnostic?.Y?.ToPoints() ?? 0D) + (warning.LayoutDiagnostic?.Height?.ToPoints() ?? 0D) > options.PageHeight.ToPoints() &&
+                warning.LayoutDiagnostic?.Height?.ToPoints() > 0D);
             Assert.Contains(clippingWarnings, warning =>
                 warning.Source == "Footer" &&
-                warning.LayoutDiagnostic?.Y < 0D &&
-                warning.LayoutDiagnostic.Height > 0D);
+                warning.LayoutDiagnostic?.Y?.ToPoints() < 0D &&
+                warning.LayoutDiagnostic?.Height?.ToPoints() > 0D);
             Assert.True(report.HasLoss);
         }
 
@@ -607,14 +607,14 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Contains(backgroundReport.Warnings, warning =>
                 warning.Code == "header-footer-page-bounds-clipped" &&
                 warning.Source == "Header" &&
-                (warning.LayoutDiagnostic?.Y ?? 0D) + (warning.LayoutDiagnostic?.Height ?? 0D) > backgroundOptions.PageHeight.ToPoints());
+                (warning.LayoutDiagnostic?.Y?.ToPoints() ?? 0D) + (warning.LayoutDiagnostic?.Height?.ToPoints() ?? 0D) > backgroundOptions.PageHeight.ToPoints());
             Assert.True(backgroundReport.HasLoss);
 
             Assert.NotEmpty(underlineBytes);
             Assert.Contains(underlineReport.Warnings, warning =>
                 warning.Code == "header-footer-page-bounds-clipped" &&
                 warning.Source == "Footer" &&
-                warning.LayoutDiagnostic?.Y < 0D);
+                warning.LayoutDiagnostic?.Y?.ToPoints() < 0D);
             Assert.True(underlineReport.HasLoss);
         }
 
@@ -735,8 +735,8 @@ namespace OfficeIMO.Tests.Pdf {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
                 })
-                .Header(header => header.Image(png, 24, 12, PdfAlign.Left).Text("HeaderImageText"))
-                .Footer(footer => footer.Image(png, 30, 10, PdfAlign.Center))
+                .Header(header => header.Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), PdfAlign.Left).Text("HeaderImageText"))
+                .Footer(footer => footer.Image(png, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(10), PdfAlign.Center))
                 .Paragraph(paragraph => paragraph.Text("Header footer image body"));
 
             byte[] bytes = doc.ToBytes();
@@ -765,7 +765,7 @@ namespace OfficeIMO.Tests.Pdf {
                 })
                 .Header(header => header
                     .Zones(null, "Centered header", null)
-                    .Image(png, 24, 12, PdfAlign.Center))
+                    .Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), PdfAlign.Center))
                 .Paragraph(paragraph => paragraph.Text("Body"));
 
             byte[] bytes = doc.ToBytes();
@@ -807,7 +807,7 @@ namespace OfficeIMO.Tests.Pdf {
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
-                .Header(header => header.Image(png, 150, 14, PdfAlign.Center))
+                .Header(header => header.Image(png, global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(14), PdfAlign.Center))
                 .Footer(footer => footer.Shape(footerShape, PdfAlign.Right))
                 .Paragraph(paragraph => paragraph.Text("Header footer visual overflow body"))
                 .ToBytes();
@@ -854,8 +854,8 @@ namespace OfficeIMO.Tests.Pdf {
                 warning.Code == "header-footer-page-bounds-clipped" &&
                 warning.Source == "Header");
             Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic?.Kind);
-            Assert.True((warning.LayoutDiagnostic?.X ?? 0D) + (warning.LayoutDiagnostic?.Width ?? 0D) > options.PageWidth.ToPoints());
-            Assert.InRange(warning.LayoutDiagnostic?.Width ?? 0D, 35.999D, 36.001D);
+            Assert.True((((warning.LayoutDiagnostic?.X)?.ToPoints()) ?? 0D) + (((warning.LayoutDiagnostic?.Width)?.ToPoints()) ?? 0D) > options.PageWidth.ToPoints());
+            Assert.InRange(((warning.LayoutDiagnostic?.Width)?.ToPoints()) ?? 0D, 35.999D, 36.001D);
             Assert.True(report.HasLoss);
         }
 
@@ -920,8 +920,8 @@ namespace OfficeIMO.Tests.Pdf {
                 warning.Code == "header-footer-page-bounds-clipped" &&
                 warning.Source == "Header");
             Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic?.Kind);
-            Assert.InRange(warning.LayoutDiagnostic?.X ?? 0D, 195.999D, 196.001D);
-            Assert.InRange(warning.LayoutDiagnostic?.Width ?? 0D, 68.999D, 69.001D);
+            Assert.InRange(((warning.LayoutDiagnostic?.X)?.ToPoints()) ?? 0D, 195.999D, 196.001D);
+            Assert.InRange(((warning.LayoutDiagnostic?.Width)?.ToPoints()) ?? 0D, 68.999D, 69.001D);
             Assert.True(report.HasLoss);
         }
 
@@ -951,8 +951,8 @@ namespace OfficeIMO.Tests.Pdf {
                 warning.Code == "header-footer-page-bounds-clipped" &&
                 warning.Source == "Header");
             Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic?.Kind);
-            Assert.InRange(warning.LayoutDiagnostic?.X ?? 0D, -1.001D, -0.999D);
-            Assert.InRange(warning.LayoutDiagnostic?.Width ?? 0D, 27.999D, 28.001D);
+            Assert.InRange(((warning.LayoutDiagnostic?.X)?.ToPoints()) ?? 0D, -1.001D, -0.999D);
+            Assert.InRange(((warning.LayoutDiagnostic?.Width)?.ToPoints()) ?? 0D, 27.999D, 28.001D);
             Assert.True(report.HasLoss);
         }
 
@@ -987,7 +987,7 @@ namespace OfficeIMO.Tests.Pdf {
                 warning.Code == "header-footer-page-bounds-clipped" &&
                 warning.Source == "Header");
             Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic?.Kind);
-            Assert.True((warning.LayoutDiagnostic?.X ?? 0D) + (warning.LayoutDiagnostic?.Width ?? 0D) > options.PageWidth.ToPoints());
+            Assert.True((((warning.LayoutDiagnostic?.X)?.ToPoints()) ?? 0D) + (((warning.LayoutDiagnostic?.Width)?.ToPoints()) ?? 0D) > options.PageWidth.ToPoints());
             Assert.True(report.HasLoss);
         }
 
@@ -1038,7 +1038,7 @@ namespace OfficeIMO.Tests.Pdf {
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
-                .Header(header => header.Image(png, 300, 14, PdfAlign.Center))
+                .Header(header => header.Image(png, global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(14), PdfAlign.Center))
                 .Paragraph(paragraph => paragraph.Text("Physical page clipping diagnostic body"))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
@@ -1064,7 +1064,7 @@ namespace OfficeIMO.Tests.Pdf {
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
-                .Header(header => header.Image(portraitPng, 300, 20, PdfAlign.Center, OfficeImageFit.Contain))
+                .Header(header => header.Image(portraitPng, global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(20), PdfAlign.Center, OfficeImageFit.Contain))
                 .Paragraph(paragraph => paragraph.Text("Contained header image body"))
                 .ToBytes();
 
@@ -1090,7 +1090,7 @@ namespace OfficeIMO.Tests.Pdf {
             byte[] bytes = PdfDocument.Create(options)
                 .Header(header => header
                     .Zones("H", null, null)
-                    .Image(portraitPng, 300, 20, PdfAlign.Left, OfficeImageFit.Contain))
+                    .Image(portraitPng, global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(20), PdfAlign.Left, OfficeImageFit.Contain))
                 .Paragraph(paragraph => paragraph.Text("Contained zoned header image body"))
                 .ToBytes();
 
@@ -1114,8 +1114,8 @@ namespace OfficeIMO.Tests.Pdf {
 
             byte[] bytes = PdfDocument.Create(options)
                 .Header(header => header
-                    .Image(png, 120, 14, PdfAlign.Left)
-                    .Image(png, 120, 14, PdfAlign.Center))
+                    .Image(png, global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(14), PdfAlign.Left)
+                    .Image(png, global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(14), PdfAlign.Center))
                 .Paragraph(paragraph => paragraph.Text("Visual-only header overlap body"))
                 .ToBytes();
 

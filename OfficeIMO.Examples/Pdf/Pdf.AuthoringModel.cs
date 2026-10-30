@@ -18,20 +18,20 @@ namespace OfficeIMO.Examples.Pdf {
                         .Semantic(PdfSemanticRole.Article)
                         .Background(global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252))
                         .Border(global::OfficeIMO.OfficeColor.FromRgb(148, 163, 184))
-                        .Padding(vertical: 12, horizontal: 14)
+                        .Padding(vertical: global::OfficeIMO.OfficeLength.Points(12), horizontal: global::OfficeIMO.OfficeLength.Points(14))
                         .KeepTogether()
                         .Content(article => article
                             .H1("Operational summary")
                             .Text("The same content receiver powers documents, pages, elements, components, and row columns.")
                             .Spacer(global::OfficeIMO.OfficeLength.Points(10))
                             .Row(row => row
-                                .Gap(12)
-                                .FixedColumn(54, cell => cell
+                                .Gap(global::OfficeIMO.OfficeLength.Points(12))
+                                .FixedColumn(global::OfficeIMO.OfficeLength.Points(54), cell => cell
                                     .H3("ID")
                                     .Text("A-104"))
                                 .AutoColumn(cell => cell
                                     .H3("Owner")
-                                    .Text("Operations"), maximum: 100)
+                                    .Text("Operations"), maximum: global::OfficeIMO.OfficeLength.Points(100))
                                 .RelativeColumn(cell => cell
                                     .H3("Status")
                                     .Text("Validated through explicit fixed, automatic, and relative sizing.")))))

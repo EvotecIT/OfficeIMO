@@ -102,7 +102,7 @@ public partial class PdfDocumentVisualQualityTests {
         string[] tokens = Enumerable.Range(1, 8).Select(n => $"Tall{n}").ToArray();
         PdfTextRun[] runs = { PdfTextRun.Normal(string.Join("\n", tokens)) };
         PdfTableCell anchor = new(runs, new[] {
-            new PdfTableCellParagraph(runs, fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(60)), widowControl: false)
+            new PdfTableCellParagraph(runs, fontSize: global::OfficeIMO.OfficeLength.Points(12), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(60)), widowControl: false)
         }, rowSpan: 3);
         PdfTableStyle style = Style();
         style.HeaderRowCount = 1;
@@ -133,8 +133,8 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTextRun[] kept = { PdfTextRun.Normal(string.Join("\n", keptTokens)) };
         PdfTextRun[] runs = { PdfTextRun.Normal(string.Join("\n", tallTokens.Concat(keptTokens))) };
         PdfTableCell anchor = new(runs, new[] {
-            new PdfTableCellParagraph(tall, fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(inClosingPanelRow ? 80 : 60)), widowControl: false),
-            new PdfTableCellParagraph(kept, fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(oversizedWidowParagraph ? 30 : 18)),
+            new PdfTableCellParagraph(tall, fontSize: global::OfficeIMO.OfficeLength.Points(12), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(inClosingPanelRow ? 80 : 60)), widowControl: false),
+            new PdfTableCellParagraph(kept, fontSize: global::OfficeIMO.OfficeLength.Points(12), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(oversizedWidowParagraph ? 30 : 18)),
                 keepTogether: !oversizedWidowParagraph, widowControl: oversizedWidowParagraph)
         }, rowSpan: 3);
         PdfTableStyle style = Style();
@@ -152,7 +152,7 @@ public partial class PdfDocumentVisualQualityTests {
         if (inClosingPanelRow) {
             document.Compose(builder => builder.Page(page => page.Content(content => content
                 .Element(element => element.Style(new PdfPanelStyle {
-                    PaddingX = 0, PaddingY = 20, SpacingBefore = 0, SpacingAfter = 0,
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(20), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
                     RepeatFragmentDecoration = false
                 }).Content(inner => inner.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))))))));
         } else AddTable(document, rows, style, false);
@@ -177,13 +177,13 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTextRun[] ending = { PdfTextRun.Normal("End") };
         PdfTextRun[] tall = { PdfTextRun.Normal(string.Join("\n", tokens)) };
         PdfTableCell anchor = new(runs, new[] {
-            new PdfTableCellParagraph(tall, fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(90)), widowControl: false),
-            new PdfTableCellParagraph(ending, fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(15)), widowControl: false)
+            new PdfTableCellParagraph(tall, fontSize: global::OfficeIMO.OfficeLength.Points(12), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(90)), widowControl: false),
+            new PdfTableCellParagraph(ending, fontSize: global::OfficeIMO.OfficeLength.Points(12), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(15)), widowControl: false)
         }, rowSpan: 3);
         PdfDocument document = PdfDocument.Create(Options(160));
         document.Compose(builder => builder.Page(page => page.Content(content => content
             .Element(element => element.Style(new PdfPanelStyle {
-                PaddingX = 0, PaddingY = 20, SpacingBefore = 0, SpacingAfter = 0,
+                PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(20), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
                 RepeatFragmentDecoration = repeatDecoration
             }).Content(inner => {
                 inner.Paragraph(p => p.Text("Prelude"), style: new PdfParagraphStyle {
@@ -207,7 +207,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void DeferredMergedParagraphRetainsEveryLineWhenItsNeighborContinuesIntoANarrowerColumn() {
         PdfTextRun[] runs = { PdfTextRun.Normal("Kept1\nKept2\nKept3\nKept4") };
         PdfTableCell anchor = new(runs, new[] {
-            new PdfTableCellParagraph(runs, fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18)),
+            new PdfTableCellParagraph(runs, fontSize: global::OfficeIMO.OfficeLength.Points(12), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18)),
                 keepTogether: true, widowControl: false)
         }, rowSpan: 3);
         string[] neighbors = Enumerable.Range(1, 8).Select(n => $"N{n}").ToArray();
@@ -228,8 +228,8 @@ public partial class PdfDocumentVisualQualityTests {
             }, style: style);
         }, new PdfMultiColumnOptions {
             ColumnDefinitions = new[] {
-                new PdfFlowColumn(PdfColumnWidth.Fixed(300), 20),
-                new PdfFlowColumn(PdfColumnWidth.Fixed(100))
+                new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(300)), global::OfficeIMO.OfficeLength.Points(20)),
+                new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(100)))
             }, BalanceLastPage = false
         });
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());

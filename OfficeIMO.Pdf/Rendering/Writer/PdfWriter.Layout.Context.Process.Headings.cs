@@ -9,7 +9,7 @@ internal static partial class PdfWriter {
             PdfHeadingStyle? headingStyle = ResolveHeadingStyle(hb, currentOpts);
             double size = GetHeadingFontSize(hb, headingStyle);
             double leading = GetHeadingLeading(headingStyle, size);
-            double spacingBefore = (y < frameStart - 0.001 || headingStyle?.ApplySpacingBeforeAtTop == true) ? headingStyle?.SpacingBefore ?? 0D : 0D;
+            double spacingBefore = (y < frameStart - 0.001 || headingStyle?.ApplySpacingBeforeAtTop == true) ? (headingStyle?.SpacingBefore.ToPoints()) ?? 0D : 0D;
             double spacingAfter = GetHeadingSpacingAfter(headingStyle, leading);
             var headingFont = GetHeadingFont(currentOpts, headingStyle);
             global::OfficeIMO.OfficeColor? headingColor = hb.Color ?? headingStyle?.Color;
@@ -45,7 +45,7 @@ internal static partial class PdfWriter {
                             hb.LinkUri, remainingStyle, hb.LinkContents, hb.LinkDestinationName, remainingRuns);
                     }
                     double before = firstLogicalLine && headingStyle?.ApplySpacingBeforeAtTop == true
-                        ? headingStyle.SpacingBefore : 0D;
+                        ? headingStyle.SpacingBefore.ToPoints() : 0D;
                     (lines, lineHeights) = WrapHeadingForFrame(source, remainingRuns, remainingStyle,
                         currentOpts.MarginLeft.ToPoints(), width, size, leading, y - before);
                     lineGaps = lines.Select(line => line is RichLine row ? row.FragmentTopGap : 0D).ToList();
@@ -61,7 +61,7 @@ internal static partial class PdfWriter {
                 double availableHeight = GetMaximumBlockContinuationHeight();
                 while (keepHeight > needed + 0.001 && keepHeight <= availableHeight + 0.001 && ShouldAdvanceForBlockHeight(keepHeight)) {
                     NewHeadingFrame();
-                    spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
+                    spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore.ToPoints() : 0D;
                     needed = spacingBefore + textHeight + spacingAfter;
                     keepHeight = needed + MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, currentOpts.MarginLeft.ToPoints(), width, currentOpts.DefaultFontSize.ToPoints(), needed);
                     availableHeight = GetMaximumBlockContinuationHeight();
@@ -71,19 +71,19 @@ internal static partial class PdfWriter {
             double fitNeeded = spacingBefore + MeasureRichLinesFrameFitHeight(lines, lineHeights, leading, lineGaps) + spacingAfter;
             if (y < frameStart - 0.001 && y - fitNeeded < FootnoteBodyBottom) {
                 NewHeadingFrame();
-                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
+                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore.ToPoints() : 0D;
                 needed = spacingBefore + textHeight + spacingAfter;
             }
             while (lineHeights.Count > 0 && ShouldAdvanceForBlockHeight(spacingBefore + GetRichLineFrameFitHeight(lines[0], lineHeights[0], lineGaps[0]))) {
                 NewHeadingFrame();
-                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
+                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore.ToPoints() : 0D;
             }
             while (lineHeights.Count > 0 && spacingBefore + GetRichLineFrameFitHeight(lines[0], lineHeights[0], lineGaps[0]) > frameStart - FootnoteBodyBottom + 0.001) {
                 if (!TryAdvanceForRunningContent(ref runningAdmission,
                     spacingBefore + GetRichLineFrameFitHeight(lines[0], lineHeights[0], lineGaps[0]),
                     preserve => NewHeadingFrame(preserve)))
                     throw new ArgumentException("Heading spacing and first line exceed the available page content height.");
-                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
+                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore.ToPoints() : 0D;
             }
             if (spacingBefore > 0) {
                 y -= spacingBefore;

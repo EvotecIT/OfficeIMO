@@ -14,7 +14,7 @@ public class PdfImportedSpacerWrappingTests {
     public void ImportedCellSpacerDoesNotWidenRemainingChunkBudget(double spacerWidth, double firstTextX) {
         const string text = "a-a-a-a-a-a-a-a-a-a-a-a";
         var cell = new PdfTableCell(new[] {
-            PdfTextRun.Inline(new PdfInlineBox(spacerWidth, 0.01D, borderWidth: 0D) { IsTextSpacer = true }),
+            PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(spacerWidth), global::OfficeIMO.OfficeLength.Points(0.01D), borderWidth: global::OfficeIMO.OfficeLength.Points(0D)) { IsTextSpacer = true }),
             PdfTextRun.Normal(text, fontSize: global::OfficeIMO.OfficeLength.Points(1D), font: PdfStandardFont.Helvetica)
         });
         var options = new PdfCreateOptions {

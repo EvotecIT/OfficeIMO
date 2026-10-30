@@ -21,7 +21,7 @@ public sealed class PdfTableCellOrientationTests {
         style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(2); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2);
         var paragraphs = new[] { "ABCD", "EFGH", "IJKL", "MNOP", "QRST" }
             .Select(text => new PdfTableCellParagraph(new[] { PdfTextRun.Normal(text) },
-                fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(6)))).ToArray();
+                fontSize: global::OfficeIMO.OfficeLength.Points(12), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(6)))).ToArray();
         var cell = new PdfTableCell(paragraphs.SelectMany(paragraph => paragraph.Runs), paragraphs,
             textRotation: rotation, linkUri: "https://example.com/turned-clip");
         var cells = new[] { new[] { cell } };
@@ -56,8 +56,8 @@ public sealed class PdfTableCellOrientationTests {
         style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(2); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2);
         var first = new[] { new PdfTextRun("ABCD", fontSize: global::OfficeIMO.OfficeLength.Points(12)) };
         var second = new[] { new PdfTextRun("EFGH", fontSize: global::OfficeIMO.OfficeLength.Points(36)) };
-        var paragraphs = new[] { new PdfTableCellParagraph(first, fontSize: 12),
-            new PdfTableCellParagraph(second, fontSize: 36) };
+        var paragraphs = new[] { new PdfTableCellParagraph(first, fontSize: global::OfficeIMO.OfficeLength.Points(12)),
+            new PdfTableCellParagraph(second, fontSize: global::OfficeIMO.OfficeLength.Points(36)) };
         var cell = new PdfTableCell(first.Concat(second), paragraphs,
             textRotation: rotation, linkUri: "https://example.com/turned-paragraphs");
         var cells = new[] { new[] { cell } };
@@ -118,7 +118,7 @@ public sealed class PdfTableCellOrientationTests {
         style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), null };
         var turned = new PdfTableCell(new[] { PdfTextRun.Normal("TURNED") }, paragraphs: null,
             linkUri: "https://example.com/turned", textRotation: rotation,
-            images: new[] { new PdfTableCellImage(PdfPngTestImages.CreateRgbPng(2, 2), 12, 12) });
+            images: new[] { new PdfTableCellImage(PdfPngTestImages.CreateRgbPng(2, 2), global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(12)) });
         var cells = new[] { new[] { turned, new PdfTableCell(string.Join("\n",
             Enumerable.Range(1, 45).Select(line => "Line" + line.ToString("D2")))) } };
         var document = PdfDocument.Create(options);
@@ -187,7 +187,7 @@ public sealed class PdfTableCellOrientationTests {
         style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         var cell = new PdfTableCell(new[] { PdfTextRun.Normal("ABCD") }, paragraphs: null, textRotation: rotation)
             .WithNoWrap().WithNamedDestination("turned-cell")
-            .WithViewport(new PdfTableCellViewport(100, 80, 100, 80));
+            .WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(80)));
         var cells = new[] { new[] { cell } };
         PdfDocument document = PdfDocument.Create(options);
         byte[] bytes = surface switch {

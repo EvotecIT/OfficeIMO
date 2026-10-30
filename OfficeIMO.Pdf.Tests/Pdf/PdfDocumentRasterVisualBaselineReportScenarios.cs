@@ -67,9 +67,9 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
-                    BorderWidth = 0.5,
-                    PaddingX = 9,
-                    PaddingY = 7
+                    BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(9),
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                 })
             .ToBytes();
     }
@@ -113,8 +113,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
-                    PaddingX = 9,
-                    PaddingY = 7
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(9),
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                 })
             .Table(new[] {
                 new[] { "Signal", "Evidence", "Action" },
@@ -176,7 +176,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                             .Spacer(global::OfficeIMO.OfficeLength.Points(41.4)));
 
                         content.Row(row => row
-                            .Gap(30)
+                            .Gap(global::OfficeIMO.OfficeLength.Points(30))
                             .PercentColumn(47, column => column
                                 .H3("Prepared by")
                                 .HR(global::OfficeIMO.OfficeLength.Points(1.2), global::OfficeIMO.OfficeColor.Black, spacingBefore: global::OfficeIMO.OfficeLength.Points(2), spacingAfter: global::OfficeIMO.OfficeLength.Points(10))
@@ -198,11 +198,11 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                                     new PdfPanelStyle {
                                         Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                                         BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 218, 226),
-                                        BorderWidth = 0.5,
-                                        PaddingX = 8,
-                                        PaddingY = 6,
-                                        SpacingBefore = 10,
-                                        SpacingAfter = 0
+                                        BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+                                        PaddingX = global::OfficeIMO.OfficeLength.Points(8),
+                                        PaddingY = global::OfficeIMO.OfficeLength.Points(6),
+                                        SpacingBefore = global::OfficeIMO.OfficeLength.Points(10),
+                                        SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                                     });
                         });
                     });
@@ -403,10 +403,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         return new PdfPanelStyle {
             Background = global::OfficeIMO.OfficeColor.FromRgb(230, 247, 238),
             BorderColor = global::OfficeIMO.OfficeColor.FromRgb(42, 132, 82),
-            BorderWidth = 1.2,
-            PaddingX = 8,
-            PaddingY = 5,
-            MaxWidth = 245
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(1.2),
+            PaddingX = global::OfficeIMO.OfficeLength.Points(8),
+            PaddingY = global::OfficeIMO.OfficeLength.Points(5),
+            MaxWidth = global::OfficeIMO.OfficeLength.Points(245)
         };
     }
 

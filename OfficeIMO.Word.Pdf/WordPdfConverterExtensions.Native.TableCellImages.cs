@@ -11,8 +11,8 @@ namespace OfficeIMO.Word.Pdf {
                     cancellationToken: options?.CancellationToken ?? cancellationToken)) return false;
             double width = image.Width?.ToPoints() ?? 144D;
             double height = image.Height?.ToPoints() ?? 144D;
-            run = PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineImage(prepared, width, height,
-                CreateNativeImageStyle(image, options, "inline image"), baselineOffset: 0D) {
+            run = PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineImage(prepared, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height),
+                CreateNativeImageStyle(image, options, "inline image"), baselineOffset: global::OfficeIMO.OfficeLength.Points(0D)) {
                 ClipToParagraphFragment = clipToParagraphFragment
             });
             return true;

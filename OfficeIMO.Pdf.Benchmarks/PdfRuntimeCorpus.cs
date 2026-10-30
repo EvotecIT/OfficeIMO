@@ -40,7 +40,7 @@ internal static class PdfRuntimeCorpus {
         return PdfDocument.Create(compose => {
             for (int page = 1; page <= pages; page++) {
                 int number = page;
-                compose.Page(layout => layout.Size(PageWidth, PageHeight).Content(content => {
+                compose.Page(layout => layout.Size(global::OfficeIMO.OfficeLength.Points(PageWidth), global::OfficeIMO.OfficeLength.Points(PageHeight)).Content(content => {
                     content.Paragraph(text => text.Text(Title(number)))
                         .Paragraph(text => text.Text(Neighbor(number)))
                         .Paragraph(text => text.Text(Target(number)));

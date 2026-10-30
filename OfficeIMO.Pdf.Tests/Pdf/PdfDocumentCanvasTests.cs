@@ -1105,10 +1105,10 @@ public class PdfDocumentCanvasTests {
             .Canvas(canvas => canvas.TextBox("Premium text box", global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(140), global::OfficeIMO.OfficeLength.Points(50), new PdfCanvasTextBoxStyle {
                 Background = global::OfficeIMO.OfficeColor.FromRgb(245, 250, 255),
                 BorderColor = global::OfficeIMO.OfficeColor.FromRgb(24, 96, 160),
-                BorderWidth = 1.5D,
-                PaddingX = 8D,
-                PaddingY = 6D,
-                FontSize = 10D,
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(1.5D),
+                PaddingX = global::OfficeIMO.OfficeLength.Points(8D),
+                PaddingY = global::OfficeIMO.OfficeLength.Points(6D),
+                FontSize = global::OfficeIMO.OfficeLength.Points(10D),
                 TextColor = global::OfficeIMO.OfficeColor.FromRgb(20, 40, 70),
                 Align = PdfAlign.Center
             }))
@@ -1147,9 +1147,9 @@ public class PdfDocumentCanvasTests {
                 new PdfCanvasTextBoxStyle {
                     Background = null,
                     BorderColor = null,
-                    FontSize = 12D,
-                    PaddingX = 0D,
-                    PaddingY = 0D
+                    FontSize = global::OfficeIMO.OfficeLength.Points(12D),
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(0D),
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(0D)
                 },
                 rotationAngle: 0D,
                 diagnosticHandler: item => diagnostic = item));
@@ -1162,10 +1162,10 @@ public class PdfDocumentCanvasTests {
         Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, diagnostic!.Kind);
         Assert.Equal("PdfCanvasTextBox", diagnostic.Source);
         Assert.True(diagnostic.HasBounds);
-        Assert.Equal(20D, diagnostic.X);
-        Assert.Equal(20D, diagnostic.Y);
-        Assert.Equal(80D, diagnostic.Width);
-        Assert.Equal(18D, diagnostic.Height);
+        Assert.Equal(20D, (diagnostic.X?.ToPoints()));
+        Assert.Equal(20D, (diagnostic.Y?.ToPoints()));
+        Assert.Equal(80D, (diagnostic.Width?.ToPoints()));
+        Assert.Equal(18D, (diagnostic.Height?.ToPoints()));
     }
 
     [Fact]
@@ -1178,11 +1178,11 @@ public class PdfDocumentCanvasTests {
             .Canvas(canvas => canvas.TextBox("Asymmetric", global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(140), global::OfficeIMO.OfficeLength.Points(50), new PdfCanvasTextBoxStyle {
                 Background = null,
                 BorderColor = null,
-                PaddingLeft = 20D,
-                PaddingRight = 4D,
-                PaddingTop = 6D,
-                PaddingBottom = 2D,
-                FontSize = 10D
+                PaddingLeft = global::OfficeIMO.OfficeLength.Points(20D),
+                PaddingRight = global::OfficeIMO.OfficeLength.Points(4D),
+                PaddingTop = global::OfficeIMO.OfficeLength.Points(6D),
+                PaddingBottom = global::OfficeIMO.OfficeLength.Points(2D),
+                FontSize = global::OfficeIMO.OfficeLength.Points(10D)
             }))
             .ToBytes();
 
@@ -1197,10 +1197,10 @@ public class PdfDocumentCanvasTests {
             new PdfCanvasTextBoxStyle {
                 Background = null,
                 BorderColor = null,
-                PaddingX = 0D,
-                PaddingY = 0D,
-                FontSize = 10D,
-                LineHeight = 12D,
+                PaddingX = global::OfficeIMO.OfficeLength.Points(0D),
+                PaddingY = global::OfficeIMO.OfficeLength.Points(0D),
+                FontSize = global::OfficeIMO.OfficeLength.Points(10D),
+                LineHeight = global::OfficeIMO.OfficeLength.Points(12D),
                 VerticalAlign = verticalAlign
             };
 
@@ -1252,8 +1252,8 @@ public class PdfDocumentCanvasTests {
                 .TextBox("Layered", global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(42), new PdfCanvasTextBoxStyle {
                     Background = global::OfficeIMO.OfficeColor.FromRgb(250, 250, 250),
                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(75, 85, 99),
-                    BorderWidth = 1D,
-                    FontSize = 10D
+                    BorderWidth = global::OfficeIMO.OfficeLength.Points(1D),
+                    FontSize = global::OfficeIMO.OfficeLength.Points(10D)
                 })
                 .Shape(shape, global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(48)))
             .ToBytes();
@@ -1398,10 +1398,10 @@ public class PdfDocumentCanvasTests {
         Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, diagnostic.Kind);
         Assert.Equal("PdfCanvasTableCell", diagnostic.Source);
         Assert.True(diagnostic.HasBounds);
-        Assert.Equal(20D, diagnostic.X);
-        Assert.Equal(20D, diagnostic.Y);
-        Assert.Equal(80D, diagnostic.Width);
-        Assert.Equal(22D, diagnostic.Height);
+        Assert.Equal(20D, (diagnostic.X?.ToPoints()));
+        Assert.Equal(20D, (diagnostic.Y?.ToPoints()));
+        Assert.Equal(80D, (diagnostic.Width?.ToPoints()));
+        Assert.Equal(22D, (diagnostic.Height?.ToPoints()));
     }
 
     [Fact]
@@ -1431,8 +1431,8 @@ public class PdfDocumentCanvasTests {
             new[] {
                 PdfTableCell.WithImages(
                     "Assets",
-                    new[] { new PdfTableCellImage(CreateMinimalRgbPng(), 12, 12) },
-                    checkBoxes: new[] { new PdfTableCellCheckBox("Canvas.Approved", isChecked: true, size: 10) },
+                    new[] { new PdfTableCellImage(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(12)) },
+                    checkBoxes: new[] { new PdfTableCellCheckBox("Canvas.Approved", isChecked: true, size: global::OfficeIMO.OfficeLength.Points(10)) },
                     formFields: new[] { PdfTableCellFormField.TextField("Canvas.Owner", "Ada", width: global::OfficeIMO.OfficeLength.Points(44), height: global::OfficeIMO.OfficeLength.Points(12), fontSize: global::OfficeIMO.OfficeLength.Points(8)) })
             }
         };
@@ -1463,8 +1463,8 @@ public class PdfDocumentCanvasTests {
             new[] {
                 PdfTableCell.WithImages(
                     "Assets",
-                    new[] { new PdfTableCellImage(CreateMinimalRgbPng(), 12, 12) },
-                    checkBoxes: new[] { new PdfTableCellCheckBox("Canvas.Rotated", isChecked: true, size: 10) },
+                    new[] { new PdfTableCellImage(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(12)) },
+                    checkBoxes: new[] { new PdfTableCellCheckBox("Canvas.Rotated", isChecked: true, size: global::OfficeIMO.OfficeLength.Points(10)) },
                     formFields: new[] { PdfTableCellFormField.TextField("Canvas.RotatedOwner", "Ada", width: global::OfficeIMO.OfficeLength.Points(44), height: global::OfficeIMO.OfficeLength.Points(12), fontSize: global::OfficeIMO.OfficeLength.Points(8)) })
             }
         };
@@ -1500,7 +1500,7 @@ public class PdfDocumentCanvasTests {
             new[] {
                 PdfTableCell.WithImages(
                     string.Empty,
-                    new[] { new PdfTableCellImage(CreateMinimalRgbPng(), 40, 40) })
+                    new[] { new PdfTableCellImage(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(40)) })
             }
         };
 
@@ -1768,8 +1768,8 @@ public class PdfDocumentCanvasTests {
             .Canvas(canvas => canvas.TextBox("Rotated box", global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(42), new PdfCanvasTextBoxStyle {
                 Background = global::OfficeIMO.OfficeColor.FromRgb(250, 250, 250),
                 BorderColor = global::OfficeIMO.OfficeColor.FromRgb(75, 85, 99),
-                BorderWidth = 1D,
-                FontSize = 10D
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(1D),
+                FontSize = global::OfficeIMO.OfficeLength.Points(10D)
             }, rotationAngle: 90D))
             .ToBytes();
 
@@ -1791,7 +1791,7 @@ public class PdfDocumentCanvasTests {
                     PageHeight = global::OfficeIMO.OfficeLength.Points(100)
                 })
                 .Canvas(canvas => canvas.TextBox("Bad", global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(10), new PdfCanvasTextBoxStyle {
-                    PaddingY = 5D
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(5D)
                 })));
 
         Assert.Contains("Canvas text box padding must leave a positive text area.", ex.Message, StringComparison.Ordinal);
@@ -1822,7 +1822,7 @@ public class PdfDocumentCanvasTests {
         PdfCreateOptions options = CreateCanvasOptions();
         const string uri = "https://evotec.xyz/canvas-textbox";
         var style = new PdfCanvasTextBoxStyle {
-            FontSize = 10D
+            FontSize = global::OfficeIMO.OfficeLength.Points(10D)
         };
 
         byte[] flatBytes = PdfDocument.Create(options)

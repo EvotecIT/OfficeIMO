@@ -20,7 +20,7 @@ public sealed class StudioNativeReviewTests : IDisposable {
         string path = Path.Combine(_root, name);
         PdfDocument.Create(document => {
             foreach (string text in pages)
-                document.Page(page => page.Size(400, 300).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
         }).Save(path);
         return path;
     }

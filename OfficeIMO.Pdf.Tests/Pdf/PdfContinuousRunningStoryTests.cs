@@ -74,10 +74,10 @@ public sealed class PdfContinuousRunningStoryTests {
     [Fact]
     public void AKeptParagraphIsRemeasuredInTheReplacementRunningFrame() {
         var document = Create();
-        document.Header(header => header.Content(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(220)), 18));
+        document.Header(header => header.Content(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(220)), global::OfficeIMO.OfficeLength.Points(18)));
         Line(document, "FIRST");
         var next = PdfDocument.Create(Presentation("HEADER_B"));
-        next.Header(header => header.Content(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(20)), 18));
+        next.Header(header => header.Content(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(20)), global::OfficeIMO.OfficeLength.Points(18)));
         document.BeginRunningContentSection(1, next.Options);
         document.Paragraph(paragraph => paragraph.Text("NEXT_FRAME_BODY"), style: new PdfParagraphStyle {
             FontSize = global::OfficeIMO.OfficeLength.Points(12), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),

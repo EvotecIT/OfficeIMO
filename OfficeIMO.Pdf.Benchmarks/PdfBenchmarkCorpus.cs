@@ -54,7 +54,7 @@ internal static class PdfBenchmarkCorpus {
                     })
                     .Bullets(boundaryItems)
                     .Row(row => row
-                        .Gap(12)
+                        .Gap(global::OfficeIMO.OfficeLength.Points(12))
                         .PercentColumn(50, column => column.Numbered(boundaryItems.Take(3)))
                         .PercentColumn(50, column => column.Bullets(boundaryItems.Skip(2).Take(3))))
                     .Rectangle(

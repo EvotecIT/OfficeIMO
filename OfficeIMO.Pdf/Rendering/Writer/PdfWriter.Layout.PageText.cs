@@ -434,14 +434,14 @@ internal static partial class PdfWriter {
                 (textWidth > 0D ? textWidth + HeaderFooterInlineGap : 0D) +
                 imageConsumedWidth;
             double imageBottomY = isHeader
-                ? options.PageHeight.ToPoints() - options.MarginTop.ToPoints() + options.HeaderOffsetY.ToPoints() - image.Height
+                ? options.PageHeight.ToPoints() - options.MarginTop.ToPoints() + options.HeaderOffsetY.ToPoints() - image.Height.ToPoints()
                 : options.MarginBottom.ToPoints() - options.FooterOffsetY.ToPoints();
             ImageBlock block = image.ToImageBlock();
             PdfImageStyle style = block.Style ?? new PdfImageStyle();
             PageImage pageImage = CreatePageImage(block, style, imageX, imageBottomY);
             GetImageAnnotationBounds(pageImage, out double imageLeft, out _, out double imageRight, out _);
             IncludeHorizontalBounds(imageLeft, imageRight, ref visibleLeft, ref visibleRight);
-            imageConsumedWidth += image.Width + HeaderFooterInlineGap;
+            imageConsumedWidth += image.Width.ToPoints() + HeaderFooterInlineGap;
         }
 
         double shapeConsumedWidth = 0D;
@@ -466,7 +466,7 @@ internal static partial class PdfWriter {
                         null, isHeader ? "Header" : "Footer", "marker", out double markerLeft, out _, out double markerWidth, out _))
                     IncludeHorizontalBounds(markerLeft, markerLeft + markerWidth, ref visibleLeft, ref visibleRight);
             }
-            shapeConsumedWidth += headerFooterShape.Width + HeaderFooterInlineGap;
+            shapeConsumedWidth += headerFooterShape.Width.ToPoints() + HeaderFooterInlineGap;
         }
 
         return !double.IsPositiveInfinity(visibleLeft) && !double.IsNegativeInfinity(visibleRight);

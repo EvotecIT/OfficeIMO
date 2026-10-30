@@ -31,13 +31,13 @@ internal static partial class PdfWriter {
             if (container?.FrameTable is not { } table)
                 return ResolveContainerFrame(style, parentLeft, parentWidth);
             PdfTableStyle tableStyle = PreparePairedTableBorders(table, table.Style!);
-            double available = parentWidth - container.FrameTableIndent - 2D * style.PaddingX;
+            double available = parentWidth - container.FrameTableIndent - 2D * style.PaddingX.ToPoints();
             int columns = GetTableColumnCount(table);
             int headers = Math.Min(tableStyle.HeaderRowCount, table.Rows.Count);
             int footerStart = table.Rows.Count - Math.Min(tableStyle.FooterRowCount, table.Rows.Count - headers);
             double contentWidth = ResolveTableColumnLayout(table, currentOpts, tableStyle, columns, available,
                 GetTableBodyFontSize(tableStyle, fontSize ?? currentOpts.DefaultFontSize.ToPoints()), headers, footerStart).Width;
-            double outerWidth = contentWidth + 2D * style.PaddingX;
+            double outerWidth = contentWidth + 2D * style.PaddingX.ToPoints();
             ValidatePanelStyle(style, outerWidth);
             PdfTableStyle placement = tableStyle.Clone();
             placement.LeftIndent = global::OfficeIMO.OfficeLength.Points(container.FrameTableIndent);

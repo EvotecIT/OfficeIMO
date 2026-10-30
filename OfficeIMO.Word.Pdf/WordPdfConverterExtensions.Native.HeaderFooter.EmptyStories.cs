@@ -28,14 +28,14 @@ public static partial class WordPdfConverterExtensions {
             var content = CreateNativeRunningStory(story, section, options, fontMap, listMarkers, defaults, isFooter,
                 includeGeneratedPageNumber: false);
             if (isFooter) page.Footer(footer => {
-                if (index == 1) footer.FirstPageContent(content, distance);
-                else if (index == 2) footer.EvenPagesContent(content, distance);
-                else footer.Content(content, distance);
+                if (index == 1) footer.FirstPageContent(content, global::OfficeIMO.OfficeLength.Points(distance));
+                else if (index == 2) footer.EvenPagesContent(content, global::OfficeIMO.OfficeLength.Points(distance));
+                else footer.Content(content, global::OfficeIMO.OfficeLength.Points(distance));
             });
             else page.Header(header => {
-                if (index == 1) header.FirstPageContent(content, distance);
-                else if (index == 2) header.EvenPagesContent(content, distance);
-                else header.Content(content, distance);
+                if (index == 1) header.FirstPageContent(content, global::OfficeIMO.OfficeLength.Points(distance));
+                else if (index == 2) header.EvenPagesContent(content, global::OfficeIMO.OfficeLength.Points(distance));
+                else header.Content(content, global::OfficeIMO.OfficeLength.Points(distance));
             });
             if (isFooter) RetainNativeTextFreeFooterProjection(page.Options, story, listMarkers, fontMap,
                 index == 1 ? PdfCore.PdfRunningContentVariant.FirstPage

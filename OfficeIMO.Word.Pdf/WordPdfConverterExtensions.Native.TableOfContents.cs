@@ -163,7 +163,7 @@ namespace OfficeIMO.Word.Pdf {
                     Title = null,
                     MinimumLevel = tableOfContent.MinLevel,
                     MaximumLevel = tableOfContent.MaxLevel,
-                    IndentPerLevel = 22D,
+                    IndentPerLevel = global::OfficeIMO.OfficeLength.Points(22D),
                     Entries = navigation
                 });
             }

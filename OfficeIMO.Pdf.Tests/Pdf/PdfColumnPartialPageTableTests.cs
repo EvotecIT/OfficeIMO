@@ -55,7 +55,7 @@ public sealed class PdfColumnPartialPageTableTests {
         var style = TableStyle();
         style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(130), global::OfficeIMO.OfficeLength.Points(130) };
         var viewport = new PdfTableCell("MergedCell", rowSpan: 2)
-            .WithViewport(new PdfTableCellViewport(100, 260, 100, 260));
+            .WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(260)));
         using var pdf = PdfPigDocument.Open(RenderTable(new[] {
             new[] { viewport, new PdfTableCell("FirstRow") }, new[] { new PdfTableCell("SecondRow") }
         }, style));
@@ -79,8 +79,8 @@ public sealed class PdfColumnPartialPageTableTests {
         var document = PdfDocument.Create(options).Container(content => {
             content.Paragraph(p => p.Text("Prelude"), style: ParagraphStyle());
             content.Columns(columns => columns.Table(new[] { new[] { new PdfTableCell("TooTall") } }, style: style),
-                new PdfMultiColumnOptions { Gap = 20 });
-        }, new PdfPanelStyle { PaddingY = 20, PaddingX = 0 });
+                new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20) });
+        }, new PdfPanelStyle { PaddingY = global::OfficeIMO.OfficeLength.Points(20), PaddingX = global::OfficeIMO.OfficeLength.Points(0) });
         ArgumentException error = Assert.Throws<ArgumentException>(() => document.ToBytes());
         Assert.Contains("height", error.Message, StringComparison.Ordinal);
     }
@@ -108,8 +108,8 @@ public sealed class PdfColumnPartialPageTableTests {
             .Container(outer => outer.Panel(inner => {
                 inner.Paragraph(p => p.Text("Prelude"), style: ParagraphStyle());
                 inner.Columns(columns => columns.Table(new[] { new[] { new PdfTableCell("FittingCell") } }, style: style),
-                    new PdfMultiColumnOptions { Gap = 20 });
-            }, new PdfPanelStyle { PaddingY = 10, PaddingX = 0 }), new PdfPanelStyle { PaddingY = 20, PaddingX = 0 }).ToBytes());
+                    new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20) });
+            }, new PdfPanelStyle { PaddingY = global::OfficeIMO.OfficeLength.Points(10), PaddingX = global::OfficeIMO.OfficeLength.Points(0) }), new PdfPanelStyle { PaddingY = global::OfficeIMO.OfficeLength.Points(20), PaddingX = global::OfficeIMO.OfficeLength.Points(0) }).ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "FittingCell");
         Assert.Single(pdf.GetPage(2).GetWords(), word => word.Text == "FittingCell");
@@ -119,7 +119,7 @@ public sealed class PdfColumnPartialPageTableTests {
 
     private static byte[] Render(int lines, bool keepTogether, PdfTableStyle style) {
         var runs = new[] { PdfTextRun.Normal(string.Join("\n", Enumerable.Range(1, lines).Select(index => $"Cell{index:D3}"))) };
-        var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: 12,
+        var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: global::OfficeIMO.OfficeLength.Points(12),
             lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), widowControl: false, keepTogether: keepTogether) });
         return RenderTable(new[] { new[] { cell } }, style);
     }
@@ -128,7 +128,7 @@ public sealed class PdfColumnPartialPageTableTests {
             MarginTop=global::OfficeIMO.OfficeLength.Points(40), MarginBottom=global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize=global::OfficeIMO.OfficeLength.Points(12) })
             .Paragraph(p => p.Text(string.Join("\n", Enumerable.Range(1, 12).Select(index => $"Before{index:D3}"))), style: ParagraphStyle())
             .Columns(content => content.Table(rows, style: style),
-                new PdfMultiColumnOptions { Gap=20, BalanceTableRowLines=true })
+                new PdfMultiColumnOptions { Gap=global::OfficeIMO.OfficeLength.Points(20), BalanceTableRowLines=true })
             .Paragraph(p => p.Text("AfterColumns"), style: ParagraphStyle()).ToBytes();
     private static double X(PdfPigDocument pdf, int page, string marker) =>
         pdf.GetPage(page).GetWords().Single(word => word.Text == marker).BoundingBox.Left;

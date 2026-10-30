@@ -105,10 +105,10 @@ public sealed partial class PdfParagraphBuilder {
     }
     /// <summary>Adds an image that participates in paragraph wrapping.</summary>
     public PdfParagraphBuilder InlineImage(byte[] imageBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText = null, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Contain, global::OfficeIMO.OfficeLength? baselineOffset = null) =>
-        Inline(new PdfInlineImage(imageBytes, width.ToPoints(), height.ToPoints(), alternativeText, fit, (baselineOffset ?? global::OfficeIMO.OfficeLength.Points(0D)).ToPoints()));
+        Inline(new PdfInlineImage(imageBytes, width, height, alternativeText, fit, (baselineOffset ?? global::OfficeIMO.OfficeLength.Points(0D))));
     /// <summary>Adds a filled and/or bordered box that participates in paragraph wrapping.</summary>
     public PdfParagraphBuilder InlineBox(global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeColor? background = null, global::OfficeIMO.OfficeColor? borderColor = null, global::OfficeIMO.OfficeLength? borderWidth = null, string? alternativeText = null, global::OfficeIMO.OfficeLength? baselineOffset = null) =>
-        Inline(new PdfInlineBox(width.ToPoints(), height.ToPoints(), background, borderColor, (borderWidth ?? global::OfficeIMO.OfficeLength.Points(0.5D)).ToPoints(), alternativeText, (baselineOffset ?? global::OfficeIMO.OfficeLength.Points(0D)).ToPoints()));
+        Inline(new PdfInlineBox(width, height, background, borderColor, (borderWidth ?? global::OfficeIMO.OfficeLength.Points(0.5D)), alternativeText, (baselineOffset ?? global::OfficeIMO.OfficeLength.Points(0D))));
     /// <summary>Adds a bold text run.</summary>
     public PdfParagraphBuilder Bold(string text, global::OfficeIMO.OfficeColor? color = null) { AddRun(new PdfTextRun(text, bold: true, underline: false, color: color ?? _currentColor, italic: false, fontSize: _currentFontSize, font: _currentFont, backgroundColor: _currentBackgroundColor, fontFamily: _currentFontFamily)); return this; }
     /// <summary>Adds an italic text run.</summary>
