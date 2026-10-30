@@ -1,8 +1,9 @@
 using System.Text;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.Internal;
 
-/// <summary>Preserves the observed single-story Quill profile while replacing plain text. Native acceptance remains unqualified.</summary>
+/// <summary>Preserves the observed single-story Quill profile while replacing styled paragraph text. Native acceptance remains unqualified.</summary>
 internal static class PublisherQuillTextWriter {
     internal static byte[]? TryRewrite(byte[] source, PublisherQuillStoryStyles binding,
         PublisherTextStory before, PublisherTextStory after, OfficeLegacyImportLimits limits, long maximumBytes, CancellationToken token) {
@@ -39,6 +40,22 @@ internal static class PublisherQuillTextWriter {
             || pc.Length != 512 || pp.Length != 512 || pc.Offset % 512 != 0 || pp.Offset % 512 != 0) return null;
         if (!FormattingPage(pc, "FDPC") || !FormattingPage(pp, "FDPP")
             || !Index(Find("BTEC"), pc) || !Index(Find("BTEP"), pp)) return null;
+        IReadOnlyList<OfficeRichTextRun> oldRuns = before.Paragraphs[0].Runs, newRuns = after.Paragraphs[0].Runs;
+        PublisherQuillStyleUse[] characterUses = binding.Uses.Where(use => use.Tag == "FDPC").ToArray();
+        if (characterUses.Length != oldRuns.Count && characterUses.Length != oldRuns.Count + 1) return null;
+        int nativePosition = 0;
+        for (int index = 0; index < oldRuns.Count; index++) {
+            PublisherQuillStyleUse use = characterUses[index];
+            int end = checked(nativePosition + oldRuns[index].Text.Length);
+            bool includesCr = index == oldRuns.Count - 1 && characterUses.Length == oldRuns.Count;
+            if (use.NativeStart != nativePosition || use.NativeLength != oldRuns[index].Text.Length + (includesCr ? 1 : 0)) return null;
+            nativePosition = end;
+        }
+        if (nativePosition + 1 != before.Text.Length) return null;
+        bool replacePage = oldRuns.Count != 1 || newRuns.Count != 1
+            || oldRuns[0].FontSize != newRuns[0].FontSize || oldRuns[0].Bold != newRuns[0].Bold;
+        byte[]? characterPage = replacePage ? CharacterPage() : null;
+        if (replacePage && characterPage == null) return null;
         byte[] replacement = Encoding.Unicode.GetBytes(after.Text.Replace('\n', '\r'));
         int growth = Math.Max(0, replacement.Length - text.Length);
         int shift = checked((growth + 511) / 512 * 512);
@@ -60,7 +77,9 @@ internal static class PublisherQuillTextWriter {
             if (chunk == text) Write(descriptor + 20, (uint)replacement.Length);
         }
         Write(strs.Offset + shift + 12, (uint)after.Text.Length);
-        RemapPage(pc); RemapPage(pp);
+        if (characterPage == null) RemapPage(pc);
+        else Buffer.BlockCopy(characterPage, 0, output, pc.Offset + shift, characterPage.Length);
+        RemapPage(pp);
         foreach (string tag in new[] { "BTEC", "BTEP" }) {
             PublisherQuillChunk index = Find(tag);
             Write(index.Offset + shift + 16, (uint)(text.Offset + replacement.Length));
@@ -71,12 +90,13 @@ internal static class PublisherQuillTextWriter {
 
         bool FormattingPage(PublisherQuillChunk page, string tag) {
             int count = data.U16(page.Offset);
-            if (data.U16(page.Offset + 2) != 1 || count < 1 || count > 2 || tag == "FDPP" && count != 1) return false;
+            if (data.U16(page.Offset + 2) != 1 || data.U32(page.Offset + 4) != 0
+                || count < 1 || count > 84 || tag == "FDPP" && count != 1) return false;
             PublisherQuillStyleUse[] uses = binding.Uses.Where(use => use.Tag == tag).ToArray();
             if (uses.Length != count) return false;
             for (int index = 0; index < count; index++) {
                 int end = data.Offset(data.U32(page.Offset + 8 + index * 4));
-                if (end != text.End && (tag != "FDPC" || end != text.End - 2)) return false;
+                if (end <= text.Offset || end > text.End) return false;
                 int opl = page.Offset + data.U16(page.Offset + 8 + count * 4 + index * 2);
                 PublisherQuillStyleUse use = uses[index];
                 if (use.ChunkId != 0 || use.RangeIndex != index || use.NativeStart + use.NativeLength != (end - text.Offset) / 2
@@ -90,6 +110,26 @@ internal static class PublisherQuillTextWriter {
             && data.U32(index.Offset) == 1 && data.U32(index.Offset + 4) == 4 && data.U32(index.Offset + 8) == 0
             && data.U32(index.Offset + 12) == 0 && data.U32(index.Offset + 16) == text.End
             && data.U32(index.Offset + 20) == page.Offset;
+        byte[]? CharacterPage() {
+            if (newRuns.Count >= 84) return null;
+            var ranges = new List<PublisherQuillFormattingRange>();
+            int position = text.Offset;
+            for (int index = 0; index < newRuns.Count; index++) {
+                token.ThrowIfCancellationRequested();
+                int original = oldRuns.Count == 1 ? 0 : index;
+                byte[]? style = PublisherQuillCharacterStyleWriter.Rewrite(data, characterUses[original].DirectDefinition,
+                    oldRuns[original], newRuns[index], context);
+                if (style == null) return null;
+                position = checked(position + newRuns[index].Text.Length * 2);
+                ranges.Add(new PublisherQuillFormattingRange(position, style));
+            }
+            byte[]? terminator = PublisherQuillCharacterStyleWriter.Rewrite(data, characterUses[characterUses.Length - 1].DirectDefinition,
+                oldRuns[oldRuns.Count - 1], newRuns[newRuns.Count - 1], context);
+            if (terminator == null) return null;
+            ranges.Add(new PublisherQuillFormattingRange(checked(position + 2), terminator));
+            if (8 + ranges.Count * 6 + ranges.Sum(range => range.Style.Length) > PublisherQuillFormattingPage.PageBytes) return null;
+            return PublisherQuillFormattingPage.Write(ranges);
+        }
         void RemapPage(PublisherQuillChunk page) {
             int count = data.U16(page.Offset);
             for (int index = 0; index < count; index++) {

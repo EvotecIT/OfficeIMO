@@ -1,3 +1,4 @@
+using OfficeIMO.Publisher.Internal;
 using OfficeIMO.Drawing;
 using static OfficeIMO.Publisher.WriterProbe.NativeEncoding;
 
@@ -7,10 +8,10 @@ namespace OfficeIMO.Publisher.WriterProbe;
 internal static class QuillCharacterFormatting {
     private static readonly byte[] FontSelectorIds = { 0, 1, 2, 3, 4, 5, 0x2A, 0x2C };
 
-    internal static IReadOnlyList<QuillFormattingRange> FromParagraph(OfficeRichTextParagraph paragraph, int absoluteTextStart) {
+    internal static IReadOnlyList<PublisherQuillFormattingRange> FromParagraph(OfficeRichTextParagraph paragraph, int absoluteTextStart) {
         if (paragraph.Runs.Count == 0) throw new ArgumentException("The styled probe paragraph requires runs.", nameof(paragraph));
         int characters = 0;
-        var ranges = new List<QuillFormattingRange>();
+        var ranges = new List<PublisherQuillFormattingRange>();
         for (int index = 0; index < paragraph.Runs.Count; index++) {
             OfficeRichTextRun run = paragraph.Runs[index];
             if (!string.Equals(run.FontFamily, "Arial", StringComparison.OrdinalIgnoreCase))
@@ -20,7 +21,7 @@ internal static class QuillCharacterFormatting {
             byte[] font = Variable(0x24, 0x8A, FontSelectorIds.Select(id => Variable(id, 0x88, ShortScalar(0, 0x18, 0))).ToArray());
             byte[] style = Chunk(Marker(2, run.Bold ? (byte)0x0A : (byte)0x02),
                 Scalar(0x0C, 0x22, checked((uint)Math.Round(run.FontSize * 12700))), font);
-            ranges.Add(new QuillFormattingRange(checked(absoluteTextStart + characters * 2), style));
+            ranges.Add(new PublisherQuillFormattingRange(checked(absoluteTextStart + characters * 2), style));
         }
         return ranges;
     }

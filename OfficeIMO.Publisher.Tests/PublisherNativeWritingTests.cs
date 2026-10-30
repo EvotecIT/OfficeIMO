@@ -127,7 +127,7 @@ public sealed class PublisherNativeWritingTests {
 
     [Theory]
     [InlineData("multi-paragraph-story")]
-    [InlineData("format")]
+    [InlineData("italic-format")]
     [InlineData("page")]
     [InlineData("master")]
     [InlineData("assignment")]
@@ -150,11 +150,13 @@ public sealed class PublisherNativeWritingTests {
         switch (mutation) {
             case "multi-paragraph-story": document.ReplaceStoryParagraphs(document.TextStories[0].Id,
                 Paragraphs("First paragraph").Concat(Paragraphs("Second paragraph")).ToArray()); break;
-            case "format":
-                OfficeRichTextRun run = document.TextStories[0].Paragraphs[0].Runs[0];
+            case "italic-format":
+                OfficeRichTextParagraph originalParagraph = document.TextStories[0].Paragraphs[0];
+                OfficeRichTextRun run = originalParagraph.Runs[0];
                 document.ReplaceStoryParagraphs(document.TextStories[0].Id, new[] { new OfficeRichTextParagraph(new[] {
-                    new OfficeRichTextRun(run.Text, run.FontSize, run.Color, !run.Bold, run.Italic, run.Underline, run.FontFamily)
-                }) }); break;
+                    new OfficeRichTextRun(run.Text, run.FontSize, run.Color, run.Bold, !run.Italic, run.Underline, run.FontFamily)
+                }, originalParagraph.Alignment, originalParagraph.LineHeight, originalParagraph.Margins,
+                    originalParagraph.Indent, originalParagraph.LineHeightFactor).WithTabStops(originalParagraph.TabStops) }); break;
             case "page": document.AddPage(); break;
             case "master": document.AddMasterPage("New master"); break;
             case "assignment": document.SetPageMaster(page.Id, null); break;
@@ -314,6 +316,75 @@ public sealed class PublisherNativeWritingTests {
         Assert.Throws<NotSupportedException>(() => prepared.CopyBytes());
         Assert.Contains(prepared.FidelityDiagnostics, item => item.Location == "Quill" && item.LossKind == OfficeConversionLossKind.Failure);
         Assert.Equal(2U, Assert.Single(prepared.StyleDependencies).StoryId);
+    }
+
+    [Theory]
+    [InlineData(18D, false, 228600U)]
+    [InlineData(12D, true, 152400U)]
+    public void Character_format_edits_write_native_size_and_bold_without_replacing_text(double size, bool bold, uint nativeSize) {
+        byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/Text/native-text.pub"));
+        PublisherDocument document = PublisherDocument.Load(source);
+        OfficeRichTextRun original = document.TextStories[0].Paragraphs[0].Runs[0];
+        ReplaceRuns(document, new OfficeRichTextRun(original.Text, size, original.Color, bold, fontFamily: original.FontFamily));
+        PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
+        Assert.True(prepared.IsPrepared, string.Join("; ", prepared.FidelityDiagnostics.Select(item => item.Message)));
+        byte[] output = prepared.CopyBytes(); AssertPreservedStorage(source, output, "Quill/QuillSub/CONTENTS");
+        PublisherDocument reopened = PublisherDocument.Load(output);
+        Assert.Equal("Publisher text\n", reopened.TextStories[0].Text);
+        OfficeRichTextRun run = Assert.Single(reopened.TextStories[0].Paragraphs[0].Runs);
+        Assert.Equal((size, bold, "Arial"), (run.FontSize, run.Bold, run.FontFamily));
+        byte[] q = Compound(output).Streams["Quill/QuillSub/CONTENTS"];
+        PublisherQuillStyleUse use = reopened.SourceStyleCatalog.Stories[0].Uses.First(item => item.Tag == "FDPC");
+        var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+        var fields = new PublisherBlockReader(new PublisherBinaryData(q, "Quill"), context)
+            .Chunk(use.DirectDefinition.Offset, use.DirectDefinition.Offset + use.DirectDefinition.Length);
+        Assert.Equal(nativeSize, Assert.Single(fields, field => field.Id == 0x0C).Value);
+        if (bold) Assert.Equal(0x0A, Assert.Single(fields, field => field.Id == 2).Type);
+        Assert.Throws<OfficeConversionException>(() => prepared.RequireNoLoss());
+    }
+
+    [Fact]
+    public void Styled_story_text_and_formatting_survive_native_preparation_and_a_second_edit() {
+        byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/Text/native-text.pub"));
+        PublisherDocument document = PublisherDocument.Load(source);
+        ReplaceRuns(document, new OfficeRichTextRun("Plain 12 | ", 12, OfficeColor.Black, fontFamily: "Arial"),
+            new OfficeRichTextRun("Bold 18", 18, OfficeColor.Black, bold: true, fontFamily: "Arial"),
+            new OfficeRichTextRun(" | Plain 12", 12, OfficeColor.Black, fontFamily: "Arial"));
+        PublisherNativePreparation first = document.PrepareNativeBytes(MaximumBytes);
+        Assert.True(first.IsPrepared, string.Join("; ", first.FidelityDiagnostics.Select(item => item.Message)));
+        byte[] output = first.CopyBytes(); AssertPreservedStorage(source, output, "Quill/QuillSub/CONTENTS");
+        PublisherDocument reopened = PublisherDocument.Load(output);
+        Assert.Equal("Plain 12 | Bold 18 | Plain 12\n", reopened.TextStories[0].Text);
+        Assert.Equal(new[] { 12D, 18D, 12D }, reopened.TextStories[0].Paragraphs[0].Runs.Select(run => run.FontSize));
+        Assert.Equal(new[] { false, true, false }, reopened.TextStories[0].Paragraphs[0].Runs.Select(run => run.Bold));
+        ReplaceRuns(reopened, reopened.TextStories[0].Paragraphs[0].Runs[0],
+            new OfficeRichTextRun("Re-edited", 20, OfficeColor.Black, fontFamily: "Arial"), reopened.TextStories[0].Paragraphs[0].Runs[2]);
+        PublisherNativePreparation second = reopened.PrepareNativeBytes(MaximumBytes);
+        Assert.True(second.IsPrepared, string.Join("; ", second.FidelityDiagnostics.Select(item => item.Message)));
+        byte[] final = second.CopyBytes(); AssertPreservedStorage(output, final, "Quill/QuillSub/CONTENTS");
+        PublisherTextStory story = PublisherDocument.Load(final).TextStories[0];
+        Assert.Equal("Plain 12 | Re-edited | Plain 12\n", story.Text);
+        Assert.Equal((20D, false), (story.Paragraphs[0].Runs[1].FontSize, story.Paragraphs[0].Runs[1].Bold));
+        Assert.Equal(final, reopened.PrepareNativeBytes(MaximumBytes).CopyBytes());
+    }
+
+    [Fact]
+    public void Styled_paragraph_exceeding_the_native_formatting_page_refuses_bytes_without_losing_model_text() {
+        PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/Text/native-text.pub"));
+        ReplaceRuns(document, Enumerable.Range(0, 4).Select(index =>
+            new OfficeRichTextRun("Part " + index, 12, OfficeColor.Black, fontFamily: "Arial")).ToArray());
+        PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
+        Assert.False(prepared.IsPrepared);
+        Assert.Throws<NotSupportedException>(() => prepared.CopyBytes());
+        Assert.Contains(prepared.FidelityDiagnostics, item => item.Location == "Quill" && item.LossKind == OfficeConversionLossKind.Failure);
+        Assert.Equal("Part 0Part 1Part 2Part 3\n", document.TextStories[0].Text);
+    }
+
+    private static void ReplaceRuns(PublisherDocument document, params OfficeRichTextRun[] runs) {
+        PublisherTextStory story = Assert.Single(document.TextStories);
+        OfficeRichTextParagraph original = Assert.Single(story.Paragraphs);
+        document.ReplaceStoryParagraphs(story.Id, new[] { new OfficeRichTextParagraph(runs, original.Alignment,
+            original.LineHeight, original.Margins, original.Indent, original.LineHeightFactor).WithTabStops(original.TabStops) });
     }
 
     private static IReadOnlyList<OfficeRichTextParagraph> Paragraphs(string text) =>

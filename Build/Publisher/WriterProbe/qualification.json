@@ -175,15 +175,15 @@
     },
     {
       "path": "Program.cs",
-      "sha256": "d06500e99d0e28d94c804bf548e5ef41d269ac13d3e16be625b0a201bacfdc2a"
+      "sha256": "b75b89f5a785ef02a5748e88550cc99a7bb94f787f29f85896a78db03e050021"
     },
     {
       "path": "QuillCandidate.cs",
-      "sha256": "3f877763234e7396ca73adf452be0031dee11237c005f2322fc18229d482f8fd"
+      "sha256": "7f2ff312088e92c0109543f66823612e44985c4f5aa6310f8b816d899b23c790"
     },
     {
       "path": "QuillCharacterFormatting.cs",
-      "sha256": "26f1e8d34e29450022136a7fa82e7528e20134345c6ce1cf680a50977bcc7c14"
+      "sha256": "33f136bb10ca82484da7b6a8bae2b1f507ca8a64f02aef80d82cdfd6c9eb9916"
     },
     {
       "path": "QuillDefaultLibraries.cs",
@@ -191,7 +191,11 @@
     },
     {
       "path": "QuillTextFormatting.cs",
-      "sha256": "06f20f9f8fbf7796a7fed2c8842ad8d1d9dfed1031262391f0e9d931e5ce2335"
+      "sha256": "4bf8c3979a16a8920fa0ce65abade7894b1febbe8219cea8f3689b9ec64db1c4"
+    },
+    {
+      "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillFormattingPage.cs",
+      "sha256": "e51e9274ccf2d6081ed94345a24acda229922f4effaba1f67bb391c28a701e4a"
     }
   ],
   "reproduction": "Build the opt-in probe with the pinned SDK, run the recorded create command with the repository image, then Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full on an isolated copy. Compare native inventories and both PDFs against the explicit candidate expectations. Native artifact hashes identify this observed run; a subsequent native save can include different metadata."

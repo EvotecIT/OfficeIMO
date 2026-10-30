@@ -1,3 +1,4 @@
+using OfficeIMO.Publisher.Internal;
 using System.Text;
 using static OfficeIMO.Publisher.WriterProbe.NativeEncoding;
 
@@ -30,16 +31,16 @@ internal static class QuillCandidate {
             // TEXT is first, so its absolute formatting endpoint follows its
             // actual serialized position even when the other libraries grow.
             int textEnd = FirstPayloadOffset + text.Length * 2;
-            int firstPageOffset = Align(FirstPayloadOffset + records.Sum(record => record.Body.Length), QuillTextFormatting.PageBytes);
-            var characterRanges = new List<QuillFormattingRange>();
-            var paragraphRanges = new List<QuillFormattingRange>();
+            int firstPageOffset = Align(FirstPayloadOffset + records.Sum(record => record.Body.Length), PublisherQuillFormattingPage.PageBytes);
+            var characterRanges = new List<PublisherQuillFormattingRange>();
+            var paragraphRanges = new List<PublisherQuillFormattingRange>();
             int storyStart = FirstPayloadOffset;
             foreach (var story in stories) {
                 int storyEnd = storyStart + story.Source.Text.Length * 2;
                 if (story.Source.Paragraph == null)
-                    characterRanges.Add(new QuillFormattingRange(storyEnd, Chunk(Scalar(0x0C, 0x22, 18 * 12700))));
+                    characterRanges.Add(new PublisherQuillFormattingRange(storyEnd, Chunk(Scalar(0x0C, 0x22, 18 * 12700))));
                 else characterRanges.AddRange(QuillCharacterFormatting.FromParagraph(story.Source.Paragraph, storyStart));
-                paragraphRanges.Add(new QuillFormattingRange(storyEnd, Chunk()));
+                paragraphRanges.Add(new PublisherQuillFormattingRange(storyEnd, Chunk()));
                 storyStart = storyEnd;
             }
             records.AddRange(QuillTextFormatting.CreateRecords(textEnd, firstPageOffset, characterRanges, paragraphRanges));

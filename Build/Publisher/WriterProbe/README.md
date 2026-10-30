@@ -34,6 +34,7 @@ dotnet $probe render ./reference.pub ./managed-comparison
 dotnet $probe preserve ./reference.pub ./exact-copy.pub
 dotnet $probe edit ./reference.pub ./edited.pub 293 36 48 120 84 0000FF
 dotnet $probe edit-text ./native-text.pub ./edited-text.pub 2 'Replacement text'
+dotnet $probe edit-story ./native-text.pub ./styled-edit.pub 2 ./runs.json
 ```
 
 Output parent directories must exist. Existing outputs are never overwritten.
@@ -87,16 +88,32 @@ change. Invalid or unreachable directory trees, noncanonical roots and nonempty
 active-content, signature or protected streams are outside edited-source support.
 
 `edit-text` replaces a single nonempty plain story with one paragraph and one
-styled run, retaining that formatting and its final native CR convention. The
+styled run, retaining that formatting and its final native CR convention.
+`edit-story` reads an array of `Text`, `FontSize` and `Bold` values from a JSON
+file bounded to 64 KiB. Other run and paragraph attributes come from the source:
+
+```json
+[
+  { "Text": "Plain 12 | ", "FontSize": 12, "Bold": false },
+  { "Text": "Bold 18", "FontSize": 18, "Bold": true },
+  { "Text": " | Plain 12", "FontSize": 12, "Bold": false }
+]
+```
+
+A single original run can split into styled runs. A styled source can be edited
+again with the same run count, retaining each original run's other OPL fields.
+Font sizes require exact native units and the supported range; ambiguous native
+size/bold tokens and formatting-page overflow refuse output. The
 observed modern profile has one frame, no table story, one Quill directory, the
 original 15 tag/ID records, single character/paragraph formatting pages and
 matching BTE indexes. Other profiles are refused. Growth moves the following
 payload by whole 512-byte pages, retaining formatting-page alignment; shrinking
-clears the former text tail. Opaque style/library payloads stay unchanged while
+clears the former text tail. The shared Publisher formatting-page codec emits
+changed run boundaries and OPLs. Unchanged OPL tokens and opaque style/library payloads stay unchanged while
 TEXT, STRS, FDPC/FDPP endpoints and BTEC/BTEP references are updated. Cached
 previews in other streams are retained and their freshness remains unassessed.
 
-Formatting changes, multiple paragraphs/runs/stories, tables, image replacement,
+Other formatting changes, run merges, multiple paragraphs/stories, tables, image replacement,
 page/master relationships, new objects and source-free publications have no writer in this path. Every
 current semantic family is compared with the import baseline before output;
 source-byte retention does not permit dropping unsupported edits. Prepared edit

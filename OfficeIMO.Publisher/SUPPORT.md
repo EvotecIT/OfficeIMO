@@ -91,9 +91,12 @@ unchanged. Native bytes and compound metadata are retained privately and remain
 inert. The import-time semantic baseline and exact source OfficeArt bindings
 support an internal contributor preparation path: unchanged content copies the
 original bytes; bounded existing anchor and solid-scalar edits replace the
-OfficeArt stream. A single plain-story profile can replace text of different
-lengths with unchanged formatting by updating Quill text, story lengths,
-formatting endpoints and page indexes. Other logical streams and directory
+OfficeArt stream. A single-paragraph story profile can replace text of different
+lengths and edit font size/bold through retained per-run OPLs, Quill text, story lengths,
+formatting endpoints and page indexes. A single original run can split into
+styled runs, and matching run counts can be edited again within one formatting
+page. Unsupported run merges, other formatting and page-capacity overflow refuse
+output. Other logical streams and directory
 metadata remain unchanged, including cached previews whose freshness is unassessed.
 Unsupported semantic changes refuse output. This path does not establish
 repair-free opening, native edit acceptance or opaque semantic preservation and
