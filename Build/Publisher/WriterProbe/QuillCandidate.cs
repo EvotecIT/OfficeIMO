@@ -13,33 +13,46 @@ internal static class QuillCandidate {
         if (text != null) {
             records.Add(new QuillRecord("TEXT", 0, Encoding.Unicode.GetBytes(text)));
             records.Add(new QuillRecord("SYID", 0, Bytes(writer => { writer.Write(0U); writer.Write(1U); writer.Write(1U); })));
-            records.Add(new QuillRecord("STRS", 0, Bytes(writer => { writer.Write(1U); writer.Write(4U); writer.Write((uint)text.Length); })));
+            records.Add(new QuillRecord("STRS", 0, Bytes(writer => {
+                writer.Write(1U); writer.Write(8U); writer.Write(0U); // Count, record size, clean flags hypothesis.
+                writer.Write((uint)text.Length); writer.Write(0U); // Per-story length table plus final zero.
+                writer.Write(Chunk()); // One self-inclusive, empty SDF record.
+            })));
         }
         records.AddRange(QuillDefaultLibraries.Create());
         if (text != null) {
             // TEXT is first, so its absolute formatting endpoint follows its
             // actual serialized position even when the other libraries grow.
             int textEnd = FirstPayloadOffset + text.Length * 2;
-            records.Add(new QuillRecord("FDPC", 0, Range(textEnd, Chunk(Scalar(0x0C, 0x20, 18 * 12700)))));
-            records.Add(new QuillRecord("FDPP", 0, Range(textEnd, Chunk())));
+            int firstPageOffset = Align(FirstPayloadOffset + records.Sum(record => record.Body.Length), QuillTextFormatting.PageBytes);
+            records.AddRange(QuillTextFormatting.CreateRecords(textEnd, firstPageOffset));
         }
-        int payloadEnd = FirstPayloadOffset + records.Sum(record => record.Body.Length);
+        var positionedRecords = new List<(QuillRecord Record, int Offset)>();
+        int payloadEnd = FirstPayloadOffset;
+        foreach (var record in records) {
+            payloadEnd = Align(payloadEnd, record.Alignment);
+            positionedRecords.Add((record, payloadEnd));
+            payloadEnd += record.Body.Length;
+        }
         int logicalLength = Math.Max(MinimumStreamBytes, payloadEnd);
         byte[] header = Header(records.Count, logicalLength);
         int directoryEnd = header.Length + records.Count * 24;
         if (directoryEnd > FirstPayloadOffset) throw new InvalidDataException("The Quill directory exceeds its allocated envelope.");
-        int offset = FirstPayloadOffset;
         return Bytes(writer => {
             writer.Write(header);
-            foreach (var record in records) {
+            foreach (var (record, offset) in positionedRecords) {
                 writer.Write((ushort)24); writer.Write(Encoding.ASCII.GetBytes(record.Tag));
                 writer.Write(record.Id); writer.Write((ushort)1); writer.Write((ushort)0);
                 writer.Write(Encoding.ASCII.GetBytes(record.Tag));
                 writer.Write(offset); writer.Write(record.Body.Length);
-                offset += record.Body.Length;
             }
             writer.Write(new byte[FirstPayloadOffset - directoryEnd]);
-            foreach (var record in records) writer.Write(record.Body);
+            int offsetWritten = FirstPayloadOffset;
+            foreach (var (record, offset) in positionedRecords) {
+                writer.Write(new byte[offset - offsetWritten]);
+                writer.Write(record.Body);
+                offsetWritten = offset + record.Body.Length;
+            }
             writer.Write(new byte[logicalLength - payloadEnd]);
         });
     }
@@ -56,10 +69,7 @@ internal static class QuillCandidate {
         writer.Write((ushort)(FirstPayloadOffset - 8)); writer.Write((ushort)totalDescriptors); writer.Write(uint.MaxValue);
     });
 
-    private static byte[] Range(int textEnd, byte[] style) => Bytes(writer => {
-        writer.Write((ushort)1); writer.Write(new byte[6]);
-        writer.Write(textEnd); writer.Write((ushort)14); writer.Write(style);
-    });
+    private static int Align(int offset, int alignment) => checked((offset + alignment - 1) / alignment * alignment);
 }
 
-internal sealed record QuillRecord(string Tag, ushort Id, byte[] Body);
+internal sealed record QuillRecord(string Tag, ushort Id, byte[] Body, int Alignment = 1);

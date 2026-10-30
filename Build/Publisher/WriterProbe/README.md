@@ -68,6 +68,15 @@ The stream has at least 1,024 bytes when descriptors are present. Header
 `+0x0C` declares the total descriptor count; the single directory declares its
 own count separately. Both counts follow the actual generated records.
 
+Text candidates carry generated 512-byte `FDPC` and `FDPP` formatting pages,
+allocated on 512-byte boundaries. Each page has one range, auxiliary WORD 1,
+a zero reserved DWORD and a calculated page-relative OPL offset. Its range end
+is the absolute end of the `TEXT` bytes. `BTEC` and `BTEP` use one four-byte
+record, flags zero, bounds `[0, absolute TEXT end]` and the calculated absolute
+offset of the matching formatting page. Stream padding and descriptor lengths
+follow that layout. These carriers address the observed missing-index load
+failure; their text semantics still require native qualification.
+
 The current Quill defaults are generated libraries: `INK ` version words
 `0x74/0x74`, an indexed `FONT` library with a generated Arial entry, one `STSH` name entry selecting
 the native built-in default and two paired empty character/paragraph OPLs in
