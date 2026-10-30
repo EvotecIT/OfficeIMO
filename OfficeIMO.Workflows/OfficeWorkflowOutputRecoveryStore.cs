@@ -141,24 +141,34 @@ public sealed partial class OfficeWorkflowOutputRecoveryStore {
                 entries = Directory.EnumerateFileSystemEntries(directory).Take(17).ToArray();
                 if (entries.Length > 16 || entries.Any(path => !IsIncompleteFile(path))) continue;
                 var claims = new List<OfficeFileCommitClaim>();
+                var closedWindowsClaims = new List<FileStream>();
                 try {
                     bool acquired = true;
                     foreach (string target in GetCommitTargets(directory)) {
-                        if (!entries.Contains(OfficeFileCommitClaim.CreatePath(target), StringComparer.Ordinal)) continue;
-                        try { claims.Add(OfficeFileCommitClaim.Acquire(target)); }
+                        string claimPath = OfficeFileCommitClaim.CreatePath(target);
+                        if (!entries.Contains(claimPath, StringComparer.Ordinal)) continue;
+                        try {
+                            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+                                closedWindowsClaims.Add(new FileStream(claimPath, FileMode.Open, FileAccess.Read, FileShare.Delete));
+                            else
+                                claims.Add(OfficeFileCommitClaim.Acquire(target));
+                        }
                         catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
                             acquired = false;
                             break;
                         }
                     }
                     if (!acquired) continue;
-                    // Keep the canonical claims through deletion. On Unix their owner
-                    // unlinks the same locked inode before releasing it; do not delete
-                    // a claim separately or race a successor's acquisition.
+                    // The private recovery directory is under its exclusive lease. On
+                    // Windows, delete only its known closed claim paths while the open
+                    // handles prevent a conforming writer from taking those paths.
+                    // Unix claim owners unlink their locked inodes on disposal.
                     foreach (string path in entries) {
-                        if (Path.GetFileName(path) != ".lease" && !IsCommitClaim(path)) File.Delete(path);
+                        if (Path.GetFileName(path) != ".lease" &&
+                            (closedWindowsClaims.Count > 0 || !IsCommitClaim(path))) File.Delete(path);
                     }
                 } finally {
+                    foreach (FileStream claim in closedWindowsClaims) claim.Dispose();
                     foreach (OfficeFileCommitClaim claim in claims) claim.Dispose();
                 }
             }

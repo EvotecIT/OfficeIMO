@@ -12,32 +12,26 @@ public sealed class EpubIndexAuthoringContracts {
 
     [Fact]
     public void LocatorAliasesToOneResourceShareTheirValidatedTarget() {
-        byte[] original = Book().Write().Bytes;
-        using var input = new ZipArchive(new MemoryStream(original), ZipArchiveMode.Read);
         using var output = new MemoryStream();
-        using (var archive = new ZipArchive(output, ZipArchiveMode.Create, true)) {
-            foreach (ZipArchiveEntry entry in input.Entries) {
-                ZipArchiveEntry copy = archive.CreateEntry(entry.FullName,
-                    entry.FullName == "mimetype" ? CompressionLevel.NoCompression : CompressionLevel.Optimal);
-                using var destination = copy.Open();
-                if (entry.FullName != "EPUB/package.opf") {
-                    using var source = entry.Open(); source.CopyTo(destination);
-                    continue;
-                }
-                using var sourcePackage = entry.Open();
-                XDocument package = XDocument.Load(sourcePackage);
-                XNamespace opf = package.Root!.Name.Namespace;
-                XElement manifest = package.Root.Element(opf + "manifest")!;
-                XElement spine = package.Root.Element(opf + "spine")!;
-                XElement declared = manifest.Elements(opf + "item").Single(item => (string?)item.Attribute("id") == "source");
-                foreach (int index in Enumerable.Range(0, 12)) {
-                    string id = "alias-" + index;
-                    XElement alias = new XElement(declared); alias.SetAttributeValue("id", id);
-                    manifest.Add(alias);
-                    spine.Add(new XElement(opf + "itemref", new XAttribute("idref", id)));
-                }
-                package.Save(destination);
+        byte[] original = Book().Write().Bytes;
+        output.Write(original, 0, original.Length);
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Update, true)) {
+            ZipArchiveEntry packageEntry = archive.GetEntry("EPUB/package.opf")!;
+            XDocument package;
+            using (var source = packageEntry.Open()) package = XDocument.Load(source);
+            XNamespace opf = package.Root!.Name.Namespace;
+            XElement manifest = package.Root.Element(opf + "manifest")!;
+            XElement spine = package.Root.Element(opf + "spine")!;
+            XElement declared = manifest.Elements(opf + "item").Single(item => (string?)item.Attribute("id") == "source");
+            foreach (int index in Enumerable.Range(0, 12)) {
+                string id = "alias-" + index;
+                XElement alias = new XElement(declared); alias.SetAttributeValue("id", id);
+                manifest.Add(alias);
+                spine.Add(new XElement(opf + "itemref", new XAttribute("idref", id)));
             }
+            packageEntry.Delete();
+            using var destination = archive.CreateEntry("EPUB/package.opf", CompressionLevel.Optimal).Open();
+            package.Save(destination);
         }
         var book = EpubPublication.Load(new MemoryStream(output.ToArray()));
         EpubIndexLocator[] locators = Enumerable.Range(0, 12).Select(index => new EpubIndexLocator {

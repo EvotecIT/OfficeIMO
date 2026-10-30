@@ -74,7 +74,7 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
 
         Assert.NotNull(result);
         Assert.Equal(count, result!.Series.Count);
-        Assert.Equal((uint)(count - 1), result.Series[^1].SourceIndex);
+        Assert.Equal((uint)(count - 1), result.Series[result.Series.Count - 1].SourceIndex);
         Console.WriteLine($"Automatic chart colours: {count} plot series, {timer.Elapsed.TotalMilliseconds:F2} ms.");
     }
 
