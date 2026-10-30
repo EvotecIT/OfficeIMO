@@ -158,10 +158,11 @@ internal static partial class TableDetector {
                 effectiveSplits,
                 "band-group",
                 lineSplitOverrides);
+            // Validated drifting cells do not share one global whitespace channel.
             if (table != null &&
                 (table.Rows.Count >= 3 || HasStrongTwoRowEvidence(table, groupLines)) &&
                 HasValidatedRows(table, groupLines) &&
-                !HasCrossingColumnText(groupLines, effectiveSplits, lineSplitOverrides)) {
+                (requiresAlignedCellSplits || !HasCrossingColumnText(groupLines, effectiveSplits, lineSplitOverrides))) {
                 result.Add(table);
                 claimedBandIndexes.UnionWith(splitBandIndexes);
                 claimedBandIndexes.UnionWith(includedBridgeBandIndexes);
@@ -191,11 +192,10 @@ internal static partial class TableDetector {
         }
         double fontSize = 0D;
         foreach (TextLayoutEngine.TextLine line in lines) {
-            List<double> lineSplits = lineSplitOverrides is not null &&
-                                      lineSplitOverrides.TryGetValue(line, out List<double>? splitOverride)
-                ? splitOverride
-                : splits;
-            if (lineSplits.Count != splits.Count) continue;
+            // Attached headers and spanning bridge rows have their own assignment geometry.
+            // They must not narrow the channel between the body's columns.
+            if (lineSplitOverrides?.ContainsKey(line) == true) continue;
+            List<double> lineSplits = splits;
             var lineLefts = new double[columnCount];
             var lineRights = new double[columnCount];
             var populated = new bool[columnCount];

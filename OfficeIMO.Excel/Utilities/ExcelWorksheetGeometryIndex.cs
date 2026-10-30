@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel.Utilities {
             _defaultRowHeightPoints = defaultRowHeightPoints;
         }
 
-        internal static ExcelWorksheetGeometryIndex Create(WorksheetPart? worksheetPart) {
+        internal static ExcelWorksheetGeometryIndex Create(WorksheetPart? worksheetPart, OfficeIMO.Drawing.OfficeFontFaceCollection? fonts = null) {
             X.Worksheet? worksheet = worksheetPart?.Worksheet;
             X.SheetFormatProperties? format = worksheet?.GetFirstChild<X.SheetFormatProperties>();
             double defaultRowHeight = format?.DefaultRowHeight?.Value > 0
@@ -90,7 +90,7 @@ namespace OfficeIMO.Excel.Utilities {
                 sheetData,
                 rowIndexMayBeTruncated,
                 format,
-                ExcelColumnGeometry.GetMaximumDigitWidth(worksheetPart),
+                ExcelColumnGeometry.GetMaximumDigitWidth(worksheetPart, fonts),
                 defaultRowHeight);
         }
 

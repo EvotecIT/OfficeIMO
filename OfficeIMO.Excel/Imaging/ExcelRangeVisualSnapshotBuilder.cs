@@ -66,7 +66,7 @@ namespace OfficeIMO.Excel {
             Dictionary<int, ExcelRowInfo> rowDefinitions = sheet.GetRowDefinitions().ToDictionary(row => row.Index);
             bool defaultRowsHidden = sheet.DefaultRowsHidden;
             List<ExcelColumnInfo> columnDefinitions = sheet.GetColumnDefinitions().ToList();
-            ExcelWorksheetGeometryIndex geometry = ExcelWorksheetGeometryIndex.Create(sheet.WorksheetPart);
+            ExcelWorksheetGeometryIndex geometry = ExcelWorksheetGeometryIndex.Create(sheet.WorksheetPart, options.Fonts);
             List<ExcelMergedRangeInfo> merges = sheet.GetMergedRanges()
                 .Where(merge => Intersects(merge.StartRow, merge.StartColumn, merge.EndRow, merge.EndColumn, firstRow, firstColumn, lastRow, lastColumn))
                 .ToList();

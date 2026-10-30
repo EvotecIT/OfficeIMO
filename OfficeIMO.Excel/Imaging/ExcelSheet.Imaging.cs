@@ -544,7 +544,7 @@ namespace OfficeIMO.Excel {
             }
 
             IReadOnlyList<ExcelColumnInfo> columns = GetColumnDefinitions();
-            ExcelWorksheetGeometryIndex geometry = ExcelWorksheetGeometryIndex.Create(WorksheetPart);
+            ExcelWorksheetGeometryIndex geometry = ExcelWorksheetGeometryIndex.Create(WorksheetPart, options.Fonts);
             Dictionary<int, ExcelRowInfo> rows = GetRowDefinitions().ToDictionary(row => row.Index);
             cancellationToken.ThrowIfCancellationRequested();
             bool defaultRowsHidden = DefaultRowsHidden;
