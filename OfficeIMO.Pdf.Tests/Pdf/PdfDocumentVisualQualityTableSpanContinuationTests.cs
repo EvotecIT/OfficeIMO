@@ -21,10 +21,10 @@ public partial class PdfDocumentVisualQualityTests {
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
         style.RowStripeFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.21, 0.31, 0.41);
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 60, 70, 70 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(70) };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(320),
@@ -57,10 +57,10 @@ public partial class PdfDocumentVisualQualityTests {
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
         style.RowStripeFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.21, 0.31, 0.41);
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 45, 45, 45 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45) };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(320),
@@ -98,10 +98,10 @@ public partial class PdfDocumentVisualQualityTests {
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 60, 70, 70 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(70) };
         style.BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> {
             global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33)
         };
@@ -140,10 +140,10 @@ public partial class PdfDocumentVisualQualityTests {
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 45, 45, 45 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45) };
         style.BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> {
             global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33)
         };
@@ -187,10 +187,10 @@ public partial class PdfDocumentVisualQualityTests {
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 60, 70, 70 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(70) };
         style.BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> {
             null,
             global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33)
@@ -226,10 +226,10 @@ public partial class PdfDocumentVisualQualityTests {
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 45, 45, 45 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45) };
         style.BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> {
             null,
             global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33)
@@ -270,11 +270,11 @@ public partial class PdfDocumentVisualQualityTests {
         style.HeaderFill = null;
         style.RowStripeFill = null;
         style.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56);
-        style.RowSeparatorWidth = 0.6;
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 60, 70, 70 };
+        style.RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.6);
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(70) };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(320),
@@ -308,11 +308,11 @@ public partial class PdfDocumentVisualQualityTests {
         style.HeaderFill = null;
         style.RowStripeFill = null;
         style.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56);
-        style.RowSeparatorWidth = 0.6;
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 45, 45, 45 };
+        style.RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.6);
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45) };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(320),
@@ -348,14 +348,14 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56);
-        style.BorderWidth = 0.6;
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0.6);
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 60, 70, 70 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(70) };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(320),
@@ -391,14 +391,14 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56);
-        style.BorderWidth = 0.6;
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0.6);
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 45, 45, 45 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45) };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(320),

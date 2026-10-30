@@ -41,16 +41,16 @@ public partial class PdfDocumentVisualQualityTests {
     public void TableBlock_SnapshotsRowsStyleAndLinksIntoReadOnlyModel() {
         var body = new[] { "Original", (string)null! };
         var style = PdfTableStyles.Minimal();
-        style.BorderWidth = 2;
-        style.CellPaddingX = 7;
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(2);
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(7);
         style.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33);
-        style.RowSeparatorWidth = 0.8;
+        style.RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.8);
         style.HeaderSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.44, 0.55, 0.66);
-        style.HeaderSeparatorWidth = 1.2;
+        style.HeaderSeparatorWidth = global::OfficeIMO.OfficeLength.Points(1.2);
         style.FooterSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.22, 0.33, 0.44);
-        style.FooterSeparatorWidth = 1.4;
-        style.MaxWidth = 160;
-        style.LeftIndent = 18;
+        style.FooterSeparatorWidth = global::OfficeIMO.OfficeLength.Points(1.4);
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(160);
+        style.LeftIndent = global::OfficeIMO.OfficeLength.Points(18);
 
         var block = new TableBlock(new[] {
             new[] { "Name", "Value" },
@@ -60,16 +60,16 @@ public partial class PdfDocumentVisualQualityTests {
         block.AddLink((1, 0), "https://evotec.xyz");
         body[0] = "Mutated";
         body[1] = "AlsoMutated";
-        style.BorderWidth = 5;
-        style.CellPaddingX = 20;
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(5);
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(20);
         style.RowSeparatorColor = global::OfficeIMO.OfficeColor.Black;
-        style.RowSeparatorWidth = 2;
+        style.RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(2);
         style.HeaderSeparatorColor = global::OfficeIMO.OfficeColor.White;
-        style.HeaderSeparatorWidth = 3;
+        style.HeaderSeparatorWidth = global::OfficeIMO.OfficeLength.Points(3);
         style.FooterSeparatorColor = global::OfficeIMO.OfficeColor.White;
-        style.FooterSeparatorWidth = 4;
-        style.MaxWidth = 220;
-        style.LeftIndent = 30;
+        style.FooterSeparatorWidth = global::OfficeIMO.OfficeLength.Points(4);
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(220);
+        style.LeftIndent = global::OfficeIMO.OfficeLength.Points(30);
 
         Assert.False(block.Rows is List<string[]>);
         Assert.False(block.Cells is List<IReadOnlyList<PdfTableCell>>);
@@ -80,16 +80,16 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal("Original", block.Cells[1][0].Text);
         Assert.Equal(1, block.Cells[1][0].ColumnSpan);
         Assert.Equal(1, block.Cells[1][0].RowSpan);
-        Assert.Equal(2, block.Style!.BorderWidth);
-        Assert.Equal(7, block.Style.CellPaddingX);
+        Assert.Equal(2, block.Style!.BorderWidth.ToPoints());
+        Assert.Equal(7, block.Style.CellPaddingX.ToPoints());
         Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33), block.Style.RowSeparatorColor);
-        Assert.Equal(0.8, block.Style.RowSeparatorWidth);
+        Assert.Equal(0.8, block.Style.RowSeparatorWidth.ToPoints());
         Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.44, 0.55, 0.66), block.Style.HeaderSeparatorColor);
-        Assert.Equal(1.2, block.Style.HeaderSeparatorWidth);
+        Assert.Equal(1.2, block.Style.HeaderSeparatorWidth.ToPoints());
         Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.22, 0.33, 0.44), block.Style.FooterSeparatorColor);
-        Assert.Equal(1.4, block.Style.FooterSeparatorWidth);
-        Assert.Equal(160, block.Style.MaxWidth);
-        Assert.Equal(18, block.Style.LeftIndent);
+        Assert.Equal(1.4, block.Style.FooterSeparatorWidth.ToPoints());
+        Assert.Equal(160, block.Style.MaxWidth?.ToPoints());
+        Assert.Equal(18, block.Style.LeftIndent.ToPoints());
         Assert.True(block.Links.TryGetValue((1, 0), out string? uri));
         Assert.Equal("https://evotec.xyz", uri);
     }
@@ -122,7 +122,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
         var style = PdfTableStyles.Minimal();
-        style.CellPaddingX = 22;
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(22);
 
         byte[] bytes = PdfDocument.Create(options)
             .DefaultTableStyle(style)
@@ -132,7 +132,7 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .ToBytes();
 
-        style.CellPaddingX = 0;
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
@@ -155,9 +155,9 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
         var defaultStyle = PdfTableStyles.Minimal();
-        defaultStyle.CellPaddingX = 24;
+        defaultStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(24);
         var explicitStyle = PdfTableStyles.Minimal();
-        explicitStyle.CellPaddingX = 2;
+        explicitStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(2);
 
         byte[] bytes = PdfDocument.Create(options)
             .DefaultTableStyle(defaultStyle)

@@ -262,9 +262,9 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Paragraph_KeepWithNextUsesConfiguredTableColumnWidthsForFollowingTable() {
         var style = PdfTableStyles.Minimal();
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 3;
-        style.ColumnWidthPoints = new List<double?> { 44, null };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(3);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(44), null };
 
         var options = new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(260),

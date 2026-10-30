@@ -23,8 +23,8 @@ public sealed class PdfRunSpacingFontTrackingTests {
         using var table = PdfPigDocument.Open(PdfDocument.Create(options).Table(new[] {
             new[] { PdfTableCell.RichTextCell(new[] { Run(explicitSize ? 30D : null) }) }
         }, style: new PdfTableStyle {
-            FontSize = 30D, MinimumShrinkFontSize = 1D, ShrinkTextToFit = true,
-            ColumnWidthPoints = new() { 100D }, CellPaddingX = 0D, CellPaddingY = 0D, HeaderRowCount = 0
+            FontSize = global::OfficeIMO.OfficeLength.Points(30D), MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(1D), ShrinkTextToFit = true,
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100D) }, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D), HeaderRowCount = 0
         }).ToBytes());
         var letters = table.GetPage(1).Letters;
         Assert.Equal("AABBAABBAABBAABB", string.Concat(letters.Select(letter => letter.Value)));

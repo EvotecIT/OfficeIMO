@@ -11,10 +11,10 @@ public sealed partial class PdfTableCellViewportTests {
     public void Overlapping_viewport_spans_move_as_one_visible_group(string mode) {
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(180), MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24) };
         var style = PdfTableStyles.Minimal();
-        style.HeaderRowCount = 0; style.FontSize = 10; style.CellPaddingX = 0; style.CellPaddingY = 0;
-        style.CellSpacing = 0; style.SpacingBefore = 0; style.SpacingAfter = 0;
-        style.ColumnWidthPoints = new List<double?> { 50, 50, 80 };
-        style.FixedRowHeights = new List<double?> { 40, 40, 40 };
+        style.HeaderRowCount = 0; style.FontSize = global::OfficeIMO.OfficeLength.Points(10); style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellSpacing = global::OfficeIMO.OfficeLength.Points(0); style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(80) };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(40) };
         var viewport = new PdfTableCellViewport(50, 160, 50, 80, offsetY: 80);
         var rows = new[] {
             new[] { new PdfTableCell("FirstSpan", rowSpan: 2).WithViewport(viewport), new PdfTableCell("Row1"), new PdfTableCell("Last1") },
@@ -74,11 +74,11 @@ public sealed partial class PdfTableCellViewportTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = repeatHeader ? 1 : 0;
         style.RepeatHeaderRowCount = repeatHeader ? 1 : 0;
-        style.FontSize = 10; style.LineHeight = 1.2;
-        style.ColumnWidthPoints = new List<double?> { 100, 80 };
-        style.FixedRowHeights = repeatHeader ? new List<double?> { 20, rowHeight, rowHeight } : new List<double?> { rowHeight, rowHeight };
-        style.CellPaddingX = 0; style.CellPaddingY = 0; style.CellSpacing = 0;
-        style.SpacingBefore = 0; style.SpacingAfter = 0;
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(10); style.LineHeight = 1.2;
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(80) };
+        style.FixedRowHeights = (repeatHeader ? new List<double?> { 20, rowHeight, rowHeight } : new List<double?> { rowHeight, rowHeight }) is { } lengths5090 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths5090, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0); style.CellSpacing = global::OfficeIMO.OfficeLength.Points(0);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         style.VerticalAlignments = new List<PdfCellVerticalAlign> { PdfCellVerticalAlign.Bottom, PdfCellVerticalAlign.Top };
         var cell = new PdfTableCell("BottomFragment", rowSpan: 2)
             .WithViewport(new PdfTableCellViewport(100, rowHeight * 4, 100, rowHeight * 2, offsetY: rowHeight * 2));

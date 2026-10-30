@@ -148,9 +148,9 @@ internal static class RtfPdfMapping {
             : null;
         PdfCore.PdfTableStyle style = callerStyle?.Clone() ?? new PdfCore.PdfTableStyle {
             BorderColor = null,
-            BorderWidth = 0D,
-            CellPaddingX = 0D,
-            CellPaddingY = 0D
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0D),
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D)
         };
         int headerRowCount = GetRenderableHeaderRowCount(table);
         style.HeaderRowCount = headerRowCount;
@@ -251,10 +251,10 @@ internal static class RtfPdfMapping {
         }
 
         return new PdfCore.PdfCellPadding {
-            Top = top,
-            Left = left,
-            Bottom = bottom,
-            Right = right
+            Top = (top) is { } points12168 ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(points12168) : null,
+            Left = (left) is { } points12192 ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(points12192) : null,
+            Bottom = (bottom) is { } points12219 ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(points12219) : null,
+            Right = (right) is { } points12247 ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(points12247) : null
         };
     }
 
@@ -321,7 +321,7 @@ internal static class RtfPdfMapping {
     private static PdfCore.PdfCellBorderSide CreatePdfCellBorderSide(RtfDocument document, RtfTableCellBorderStyle style, int? width, int? colorIndex) {
         return new PdfCore.PdfCellBorderSide {
             Color = ToPdfColor(document, colorIndex) ?? DefaultBorderColor,
-            Width = width.HasValue && width.Value > 0 ? width.Value / 8D : 0.5D,
+            Width = global::OfficeIMO.OfficeLength.Points(width.HasValue && width.Value > 0 ? width.Value / 8D : 0.5D),
             DashStyle = ToPdfDashStyle(style),
             LineStyle = style == RtfTableCellBorderStyle.Double ? PdfCore.PdfCellBorderLineStyle.TwoLine : PdfCore.PdfCellBorderLineStyle.Standard
         };

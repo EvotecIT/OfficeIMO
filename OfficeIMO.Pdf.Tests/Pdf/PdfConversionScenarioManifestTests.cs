@@ -272,8 +272,8 @@ public sealed class PdfConversionScenarioManifestTests {
                     new[] { "Україна", "Київ", "Watch" }
                 }, style: new PdfCore.PdfTableStyle {
                     HeaderRowCount = 1,
-                    CellPaddingX = 6,
-                    CellPaddingY = 4
+                    CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                    CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
                 })
                 .Footer(footer => footer.Text("Generated proof {page}/{pages}"))
                 .ToBytes();
@@ -2287,10 +2287,10 @@ public sealed class PdfConversionScenarioManifestTests {
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, alternativeText: "Logical proof pixel")
             .ToBytes();
@@ -2538,10 +2538,10 @@ public sealed class PdfConversionScenarioManifestTests {
                 new[] { "Pipeline coverage", "84", "Sales" },
                 new[] { "Risk burn-down", "76", "Operations" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 150, 70, 110 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(110) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .Image(PdfPngTestImages.CreateRgbPng(3, 2), 48, 32, alternativeText: "Wide diagnostics badge")
             .Image(PdfPngTestImages.CreateRgbPng(2, 3), 32, 48, alternativeText: "Tall diagnostics badge")

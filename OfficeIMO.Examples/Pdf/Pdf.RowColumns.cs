@@ -73,13 +73,13 @@ namespace OfficeIMO.Examples.Pdf {
                                         HeaderTextColor = global::OfficeIMO.OfficeColor.White,
                                         RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                                         BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
-                                        BorderWidth = 0.5,
-                                        CellPaddingX = 4,
-                                        CellPaddingY = 3,
+                                        BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+                                        CellPaddingX = global::OfficeIMO.OfficeLength.Points(4),
+                                        CellPaddingY = global::OfficeIMO.OfficeLength.Points(3),
                                         HeaderRowCount = 1,
                                         RightAlignNumeric = false,
-                                        SpacingBefore = 7,
-                                        SpacingAfter = 7,
+                                        SpacingBefore = global::OfficeIMO.OfficeLength.Points(7),
+                                        SpacingAfter = global::OfficeIMO.OfficeLength.Points(7),
                                         Alignments = new System.Collections.Generic.List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right },
                                         ColumnWidthWeights = new System.Collections.Generic.List<double> { 1.2, 0.8 }
                                     })

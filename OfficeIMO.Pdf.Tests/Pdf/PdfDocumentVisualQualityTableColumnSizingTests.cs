@@ -26,7 +26,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         var style = PdfTableStyles.Minimal();
-        style.ColumnWidthPoints = new List<double?> { 60, null, 50 };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), null, global::OfficeIMO.OfficeLength.Points(50) };
 
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
@@ -61,7 +61,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         var style = PdfTableStyles.Minimal();
-        style.ColumnWidthPoints = new List<double?> { 60, null, 50 };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), null, global::OfficeIMO.OfficeLength.Points(50) };
 
         byte[] bytes = PdfDocument.Create(options)
             .Compose(document =>
@@ -102,14 +102,14 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = false;
         style.ColumnWidthWeights = boundsCase == 0 ? new List<double> { 4, 3, 3 } : new List<double> { 1, 1, 1 };
-        style.ColumnMinWidthPoints = boundsCase switch {
+        style.ColumnMinWidths = (boundsCase switch {
             0 => new List<double?> { 150, 60, null },
             1 => new List<double?> { null, 90, null },
             2 => new List<double?> { 110, null, null },
             _ => new List<double?> { null, 240, null }
-        };
-        if (boundsCase > 0) style.ColumnMaxWidthPoints = boundsCase == 2
-            ? new List<double?> { null, 50, 50 } : new List<double?> { 50, null, null };
+        }) is { } lengths5049 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths5049, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
+        if (boundsCase > 0) style.ColumnMaxWidths = (boundsCase == 2
+            ? new List<double?> { null, 50, 50 } : new List<double?> { 50, null, null }) is { } lengths5357 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths5357, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] { new[] { "A", "B", "C" } }, style: style)
             .ToBytes();
@@ -136,7 +136,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.ColumnWidthWeights = new List<double> { 1, 10, 1 };
-        style.ColumnMinWidthPoints = new List<double?> { 80, null, null };
+        style.ColumnMinWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80), null, null };
 
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
@@ -169,7 +169,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.ColumnWidthWeights = new List<double> { 1, 10, 1 };
-        style.ColumnMinWidthPoints = new List<double?> { 80, null, null };
+        style.ColumnMinWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80), null, null };
 
         byte[] bytes = PdfDocument.Create(options)
             .Compose(document =>
@@ -207,7 +207,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.ColumnWidthWeights = new List<double> { 1, 1, 1 };
-        style.ColumnMinWidthPoints = new List<double?> { 180, 180, 180 };
+        style.ColumnMinWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(180) };
 
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
@@ -237,7 +237,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.ColumnWidthWeights = new List<double> { 1, 10, 1 };
-        style.ColumnMaxWidthPoints = new List<double?> { null, 120, null };
+        style.ColumnMaxWidths = new List<global::OfficeIMO.OfficeLength?> { null, global::OfficeIMO.OfficeLength.Points(120), null };
 
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
@@ -270,7 +270,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.ColumnWidthWeights = new List<double> { 1, 10, 1 };
-        style.ColumnMaxWidthPoints = new List<double?> { null, 120, null };
+        style.ColumnMaxWidths = new List<global::OfficeIMO.OfficeLength?> { null, global::OfficeIMO.OfficeLength.Points(120), null };
 
         byte[] bytes = PdfDocument.Create(options)
             .Compose(document =>
@@ -307,7 +307,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         var style = PdfTableStyles.Minimal();
-        style.ColumnWidthPoints = new List<double?> { 80, null };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80), null };
         style.VerticalAlignments = new List<PdfCellVerticalAlign> { PdfCellVerticalAlign.Bottom, PdfCellVerticalAlign.Top };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -342,7 +342,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         var style = PdfTableStyles.Minimal();
-        style.ColumnWidthPoints = new List<double?> { 80, null };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80), null };
         style.VerticalAlignments = new List<PdfCellVerticalAlign> { PdfCellVerticalAlign.Bottom, PdfCellVerticalAlign.Top };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -412,7 +412,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void Table_AutoFitUsesPreferredWidthForCompactContent() {
         var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
-        style.PreferredWidth = 160;
+        style.PreferredWidth = global::OfficeIMO.OfficeLength.Points(160);
         style.PreserveWidth = true;
         style.HeaderFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.17, 0.27, 0.37);
         style.BorderColor = null;
@@ -441,8 +441,8 @@ public partial class PdfDocumentVisualQualityTests {
     public void RowColumnTable_AutoFitCanExpandPastPreferredWidthWithinMaximumWidth() {
         var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
-        style.PreferredWidth = 80;
-        style.MaxWidth = 150;
+        style.PreferredWidth = global::OfficeIMO.OfficeLength.Points(80);
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(150);
         style.PreserveWidth = true;
         style.HeaderFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.18, 0.28, 0.38);
         style.BorderColor = null;
@@ -486,7 +486,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
-        style.MaxWidth = options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints();
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints());
 
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
@@ -533,7 +533,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
-        style.MaxWidth = options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints();
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints());
 
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
@@ -621,7 +621,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
-        style.MaxWidth = options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints();
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints());
 
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
@@ -673,7 +673,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
-        style.MaxWidth = options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints();
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints());
 
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
@@ -728,7 +728,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
-        style.MaxWidth = options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints();
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints());
 
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
@@ -774,7 +774,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
-        style.MaxWidth = options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints();
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints());
 
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
@@ -835,7 +835,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
-        style.MaxWidth = options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints();
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints());
 
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
@@ -889,7 +889,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.AutoFitColumns = true;
-        style.MaxWidth = options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints();
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints());
 
         var rows = new List<string[]> {
             new[] { "State", "Level", "Code", "Topic", "Zone", "Owner", "Target" }
@@ -943,15 +943,15 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.TableGrid();
         style.AutoFitColumns = true;
-        style.MaxWidth = options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints();
-        style.FontSize = 11D;
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints());
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(11D);
         style.LineHeight = 1.22D;
         style.HeaderRowCount = 1;
         style.RepeatHeaderRowCount = 1;
-        style.CellPaddingTop = 0D;
-        style.CellPaddingBottom = 0D;
-        style.CellPaddingLeft = 5.4D;
-        style.CellPaddingRight = 5.4D;
+        style.CellPaddingTop = global::OfficeIMO.OfficeLength.Points(0D);
+        style.CellPaddingBottom = global::OfficeIMO.OfficeLength.Points(0D);
+        style.CellPaddingLeft = global::OfficeIMO.OfficeLength.Points(5.4D);
+        style.CellPaddingRight = global::OfficeIMO.OfficeLength.Points(5.4D);
 
         var rows = new List<string[]> {
             new[] { "Status", "Severity", "CheckId", "Category", "ZoneName", "OwnerName", "Target" }
@@ -1088,7 +1088,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         var style = PdfTableStyles.RightAlignedNumbers();
-        style.ColumnWidthPoints = new List<double?> { 120, 100 };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(100) };
 
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
@@ -1126,7 +1126,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         var style = PdfTableStyles.RightAlignedNumbers();
-        style.ColumnWidthPoints = new List<double?> { 120, 100 };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(100) };
 
         byte[] bytes = PdfDocument.Create(options)
             .Compose(document =>

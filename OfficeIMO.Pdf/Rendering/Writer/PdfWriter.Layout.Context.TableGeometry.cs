@@ -50,7 +50,7 @@ internal static partial class PdfWriter {
             var rows = PrepareFlowTableRows(table, style, columns, columnLayout.Widths, gap, gap,
                 style.HeaderRowCount, table.Rows.Count - style.FooterRowCount);
             var cellFlows = PrepareContainedTableCells(table, style, rows, columnLayout.Widths, gap);
-            double radius = ResolveTableCornerRadius(style.CornerRadius, columnLayout.Width,
+            double radius = ResolveTableCornerRadius(style.CornerRadius.ToPoints(), columnLayout.Width,
                 logicalTopBoundary ? rows.Heights[0] : double.PositiveInfinity,
                 logicalBottomBoundary ? rows.Heights[rows.Heights.Length - 1] : double.PositiveInfinity,
                 columnLayout.Widths[0], columnLayout.Widths[columnLayout.Widths.Length - 1]);

@@ -15,8 +15,8 @@ public partial class PdfDocumentVisualQualityTests {
         double FollowingTextY(bool consumesVerticalFlow) {
             var style = PdfTableStyles.Minimal();
             style.HeaderRowCount = 0;
-            style.FixedRowHeights = new List<double?> { 36 };
-            style.ColumnWidthPoints = new List<double?> { 80 };
+            style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(36) };
+            style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80) };
             style.ConsumesVerticalFlow = consumesVerticalFlow;
             PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
@@ -47,7 +47,7 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.ConsumesVerticalFlow = false;
-        style.FixedRowHeights = new List<double?> { 38, 38, 38, 38, 38 };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(38), global::OfficeIMO.OfficeLength.Points(38), global::OfficeIMO.OfficeLength.Points(38), global::OfficeIMO.OfficeLength.Points(38), global::OfficeIMO.OfficeLength.Points(38) };
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
             MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30), MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
@@ -84,10 +84,10 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = 0;
-        style.CellPaddingY = 0;
-        style.ColumnWidthPoints = new List<double?> { 120 };
-        style.FixedRowHeights = new List<double?> { 18 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120) };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(18) };
         PdfTableCell[][] rows = {
             new[] {
                 PdfTableCell.RichTextCell(new[] {
@@ -134,9 +134,9 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = 0;
-        style.CellPaddingY = 0;
-        style.ColumnWidthPoints = new List<double?> { 80 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80) };
         PdfTableCell[][] rows = {
             new[] {
                 PdfTableCell.RichTextCell(new[] {
@@ -179,10 +179,10 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
-        style.BorderWidth = 0D;
-        style.CellPaddingX = 0D;
-        style.CellPaddingY = 0D;
-        style.ColumnWidthPoints = new List<double?> { 60, 60 };
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0D);
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(60) };
         PdfTextRun[] runs = { PdfTextRun.Normal(new string('M', 80)) };
         PdfTableCell[][] rows = {
             new[] {
@@ -230,11 +230,11 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = 0;
-        style.CellPaddingY = 0;
-        style.MaxWidth = 200;
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(200);
         style.PreserveWidth = true;
-        style.ColumnWidthPoints = new List<double?> { 125, 75 };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(125), global::OfficeIMO.OfficeLength.Points(75) };
         PdfTextRun[] label = { PdfTextRun.Normal("Total Award Percent:") };
         PdfTableCell[][] rows = {
             new[] {

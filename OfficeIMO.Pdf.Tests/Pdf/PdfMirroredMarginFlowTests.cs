@@ -22,7 +22,7 @@ public sealed class PdfMirroredMarginFlowTests {
                     break;
                 case "table":
                     content.Table(markers.Select(marker => new[] { marker }), style: new PdfTableStyle {
-                        HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 2
+                        HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(2)
                     });
                     break;
                 case "list":
@@ -120,7 +120,7 @@ public sealed class PdfMirroredMarginFlowTests {
         var document = PdfDocument.Create(builder => builder.Content(content => {
             content.Text("Seed").Spacer(130);
             if (table) content.Table(new[] { new[] { "Moved" }, new[] { "Together" } },
-                style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = 0, KeepTogether = true });
+                style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), KeepTogether = true });
             else content.Text("Moved\nTogether", style: new PdfParagraphStyle { KeepTogether = true });
         }), MirroredOptions());
         using var pdf = PdfPigDocument.Open(document.ToBytes());

@@ -57,16 +57,16 @@ public partial class PdfDocumentVisualQualityTests {
         // Isolate border paint from the deferred minimum-row grouping contract.
         style.MinimumBodyRowsOnFirstPage = 0;
         style.MinimumBodyRowsOnLastPage = 0;
-        style.CellSpacing = spacing;
+        style.CellSpacing = global::OfficeIMO.OfficeLength.Points(spacing);
         style.HeaderRowCount = header ? 1 : 0;
-        style.FixedRowHeights = Enumerable.Repeat<double?>(20, rowCount).ToList();
+        style.FixedRowHeights = (Enumerable.Repeat<double?>(20, rowCount).ToList()) is { } lengths3239 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths3239, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
         style.CellFills = new Dictionary<(int, int), global::OfficeIMO.OfficeColor> {
             [(1, 0)] = global::OfficeIMO.OfficeColor.FromRgb(255, 230, 160), [(1, 1)] = global::OfficeIMO.OfficeColor.FromRgb(240, 240, 240)
         };
         if (mode == "uniform") {
             for (int row = 0; row < rowCount; row++)
                 for (int column = 0; column < 2; column++) style.CellBorders![(row, column)] = new PdfCellBorder {
-                    Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), Width = 2, LineStyle = PdfCellBorderLineStyle.TwoLine
+                    Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), Width = global::OfficeIMO.OfficeLength.Points(2), LineStyle = PdfCellBorderLineStyle.TwoLine
                 };
         } else if (mode == "top-only") {
             style.CellBorders![(1, 0)] = MixedPairedBorder(top: true);

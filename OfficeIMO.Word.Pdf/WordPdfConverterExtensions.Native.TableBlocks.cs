@@ -154,7 +154,7 @@ namespace OfficeIMO.Word.Pdf {
                     style.Position = CreateNativeTablePosition(tablePosition,
                         table._tableProperties?.GetFirstChild<W.TableOverlap>()?.Val?.Value != W.TableOverlapValues.Never);
                     // tblpX is a placement coordinate, not a width reservation.
-                    style.LeftIndent = 0;
+                    style.LeftIndent = global::OfficeIMO.OfficeLength.Points(0);
                 }
             }
             if (cellFills.Count > 0) {

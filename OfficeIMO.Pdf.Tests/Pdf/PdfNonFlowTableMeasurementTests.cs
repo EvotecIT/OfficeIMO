@@ -192,9 +192,9 @@ public sealed class PdfNonFlowTableMeasurementTests {
     };
 
     private static PdfTableStyle OverlayStyle(double height) => new() {
-        HeaderRowCount = 0, ConsumesVerticalFlow = false, FontSize = 10D,
-        ColumnWidthPoints = new List<double?> { 80D }, FixedRowHeights = new List<double?> { height },
-        CellPaddingX = 0, CellPaddingY = 0, BorderWidth = 0,
-        SpacingBefore = 0, SpacingAfter = 0
+        HeaderRowCount = 0, ConsumesVerticalFlow = false, FontSize = global::OfficeIMO.OfficeLength.Points(10D),
+        ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80D) }, FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(height) },
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), BorderWidth = global::OfficeIMO.OfficeLength.Points(0),
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
     };
 }

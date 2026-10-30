@@ -168,14 +168,14 @@ internal static partial class PdfWriter {
                     double captionLeading = 0;
                     double captionHeight = 0;
                     if (!string.IsNullOrWhiteSpace(style.Caption)) {
-                        double captionSize = style.CaptionFontSize ?? size;
+                        double captionSize = style.CaptionFontSize?.ToPoints() ?? size;
                         captionLeading = captionSize * 1.25;
                         var captionFont = ChooseNormal(currentOpts.DefaultFont);
                         captionRuns = new[] { PdfTextRun.Normal(style.Caption!, style.CaptionColor, captionSize) };
                         var captionWrap = WrapRichRunsCore(captionRuns, tableWidth, captionSize, captionFont, captionLeading, null, DefaultParagraphTabStopWidth, currentOpts);
                         captionLines = captionWrap.Lines;
                         captionLineHeights = captionWrap.LineHeights;
-                        captionHeight = MeasureRichLinesHeight(captionLineHeights, captionLines.Count, captionLeading) + style.CaptionSpacingAfter;
+                        captionHeight = MeasureRichLinesHeight(captionLineHeights, captionLines.Count, captionLeading) + style.CaptionSpacingAfter.ToPoints();
                         double firstRowHeight = rowHeights.Length > 0 ? rowHeights[0] : 0;
                         double maxContentHeightForCaption = currentOpts.PageHeight.ToPoints() - currentOpts.MarginTop.ToPoints() - currentOpts.MarginBottom.ToPoints();
                         if (captionHeight + firstRowHeight > maxContentHeightForCaption + 0.001) {
@@ -397,7 +397,7 @@ internal static partial class PdfWriter {
 
             if (item is ColTable table) {
                 double firstRowHeight = table.RowHeights.Length == 0 ? 0D : table.RowHeights[0];
-                return table.Style.SpacingBefore + table.CaptionHeight + firstRowHeight;
+                return table.Style.SpacingBefore.ToPoints() + table.CaptionHeight + firstRowHeight;
             }
 
             if (item is ColRule rule) {

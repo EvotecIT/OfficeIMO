@@ -645,12 +645,12 @@ internal static partial class PdfWriter {
                     return fragment?.Height ?? 0D;
                 }
                 int count = firstVisualOnly ? Math.Min(1, geometry.Rows.Heights.Length) : geometry.Rows.Heights.Length;
-                return ResolveTopLevelSpacingBefore(style.SpacingBefore) + GetTableRowsHeight(geometry.Rows.Heights, 0, count, geometry.Gap) +
-                    (firstVisualOnly ? 0D : style.SpacingAfter);
+                return ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints()) + GetTableRowsHeight(geometry.Rows.Heights, 0, count, geometry.Gap) +
+                    (firstVisualOnly ? 0D : style.SpacingAfter.ToPoints());
             }
             int columns = GetTableColumnCount(table);
             if (columns == 0 || table.Rows.Count == 0) {
-                return ResolveTopLevelSpacingBefore(style.SpacingBefore) + (firstVisualOnly ? 0D : style.SpacingAfter);
+                return ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints()) + (firstVisualOnly ? 0D : style.SpacingAfter.ToPoints());
             }
 
             double columnGap = GetTableCellSpacing(style);
@@ -672,19 +672,19 @@ internal static partial class PdfWriter {
             double[] rowHeights = prepared.Heights;
             double captionHeight = 0D;
             if (!string.IsNullOrWhiteSpace(style.Caption)) {
-                double captionSize = style.CaptionFontSize ?? fontSize;
+                double captionSize = style.CaptionFontSize?.ToPoints() ?? fontSize;
                 double captionLeading = captionSize * 1.25D;
                 var captionRuns = new[] { PdfTextRun.Normal(style.Caption!, style.CaptionColor, captionSize) };
                 var captionWrap = WrapRichRunsCore(captionRuns, columnLayout.Width, captionSize, ChooseNormal(currentOpts.DefaultFont), captionLeading, null, DefaultParagraphTabStopWidth, currentOpts);
-                captionHeight = MeasureRichLinesHeight(captionWrap.LineHeights, captionWrap.Lines.Count, captionLeading) + style.CaptionSpacingAfter;
+                captionHeight = MeasureRichLinesHeight(captionWrap.LineHeights, captionWrap.Lines.Count, captionLeading) + style.CaptionSpacingAfter.ToPoints();
             }
 
             int measuredRowCount = firstVisualOnly ? 1 : rowHeights.Length;
             double rowHeight = firstVisualOnly && allowTableFragments
                 ? MeasureTableFirstFragmentHeight(table, style, prepared, columns, columnLayout.Widths, columnGap)
                 : GetTableRowsHeight(rowHeights, 0, measuredRowCount, rowGap);
-            double tableHeight = (style.Position == null ? ResolveTopLevelSpacingBefore(style.SpacingBefore) : 0D) + captionHeight + rowHeight;
-            return firstVisualOnly || style.Position != null ? tableHeight : tableHeight + style.SpacingAfter;
+            double tableHeight = (style.Position == null ? ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints()) : 0D) + captionHeight + rowHeight;
+            return firstVisualOnly || style.Position != null ? tableHeight : tableHeight + style.SpacingAfter.ToPoints();
         }
 
         private void ConsumeSpacer(double height) {

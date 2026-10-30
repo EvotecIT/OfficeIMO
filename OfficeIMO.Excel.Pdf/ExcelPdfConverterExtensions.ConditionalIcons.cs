@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel.Pdf {
                 if (!TryGetWorksheetConditionalIconBounds(data, columnWidths, rowHeights, key.Row, key.Column, out var cell)) continue;
                 var bounds = OfficeConditionalIconRenderer.GetCellBounds(cell.Width / 0.75D, cell.Height / 0.75D, 0.75D * scale);
                 PdfCore.PdfCellPadding padding = paddings.TryGetValue(key, out var existing) ? existing.Clone() : new PdfCore.PdfCellPadding();
-                padding.Left = Math.Min(cell.Width * scale, bounds.X + bounds.Size + 3D * scale + (padding.Left ?? style.CellPaddingLeft ?? style.CellPaddingX));
+                padding.Left = global::OfficeIMO.OfficeLength.Points(Math.Min(cell.Width * scale, bounds.X + bounds.Size + 3D * scale + (padding.Left?.ToPoints() ?? style.CellPaddingLeft?.ToPoints() ?? style.CellPaddingX.ToPoints())));
                 paddings[key] = padding;
             }
             style.CellPaddings = paddings;

@@ -35,11 +35,11 @@ namespace OfficeIMO.Examples.Pdf {
                 PdfTableStyle style = PdfTableStyles.FromWordTableStyle(styleName);
                 style.Caption = styleName;
                 style.CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(80, 90, 100);
-                style.CaptionFontSize = 8.5;
-                style.CaptionSpacingAfter = 4;
-                style.SpacingBefore = 6;
-                style.SpacingAfter = 6;
-                style.ColumnWidthPoints = new List<double?> { 76, 70, 300 };
+                style.CaptionFontSize = global::OfficeIMO.OfficeLength.Points(8.5);
+                style.CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(4);
+                style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(6);
+                style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(6);
+                style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(76), global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(300) };
                 style.AutoFitColumns = false;
                 style.Alignments = new List<PdfColumnAlign> {
                     PdfColumnAlign.Left,

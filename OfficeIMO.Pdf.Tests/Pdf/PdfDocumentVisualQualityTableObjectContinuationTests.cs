@@ -32,9 +32,9 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0; style.RepeatHeaderRowCount = 0;
         style.MinimumBodyRowsOnFirstPage = 0; style.MinimumBodyRowsOnLastPage = 0;
-        style.CellPaddingY = 2; style.SpacingBefore = 0; style.SpacingAfter = 0; style.CellSpacing = 0;
-        if (fixedHeight) style.FixedRowHeights = new List<double?> { null, 100 };
-        else style.RowMinHeights = new List<double?> { null, 100 };
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2); style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0); style.CellSpacing = global::OfficeIMO.OfficeLength.Points(0);
+        if (fixedHeight) style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { null, global::OfficeIMO.OfficeLength.Points(100) };
+        else style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { null, global::OfficeIMO.OfficeLength.Points(100) };
         var rows = new[] { new[] { "Filler" }, new[] { string.Join("\n", Enumerable.Range(1, lineCount).Select(line => "Unique" + line.ToString("D2"))) } };
         var document = PdfDocument.Create(options);
         if (inColumn) document.Compose(compose => compose.Page(page => page.Content(content =>
@@ -50,7 +50,7 @@ public partial class PdfDocumentVisualQualityTests {
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(180), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
             MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20) };
         var style = PdfTableStyles.Minimal();
-        style.HeaderRowCount = 0; style.RepeatHeaderRowCount = 0; style.MinRowHeight = 141;
+        style.HeaderRowCount = 0; style.RepeatHeaderRowCount = 0; style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(141);
         var document = PdfDocument.Create(options);
         var rows = new[] { new[] { "Required row height" } };
         if (inColumn) document.Compose(compose => compose.Page(page => page.Content(content =>
@@ -68,7 +68,7 @@ public partial class PdfDocumentVisualQualityTests {
             MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9) };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1; style.RepeatHeaderRowCount = 1;
-        style.CellPaddingY = 2;
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2);
         var rows = new[] { new[] { "Heading" }, new[] { string.Join("\n", Enumerable.Range(1, 11).Select(line => "Unique" + line.ToString("D2"))) } };
         var document = PdfDocument.Create(options);
         if (inColumn) document.Compose(compose => compose.Page(page => page.Content(content =>
@@ -109,8 +109,8 @@ public partial class PdfDocumentVisualQualityTests {
             MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9) };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1; style.RepeatHeaderRowCount = 1;
-        style.CellPaddingX = 2; style.CellPaddingY = 2;
-        style.ColumnWidthPoints = new List<double?> { 60, null };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(2); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), null };
         var cells = new[] {
             new[] { new PdfTableCell("Heading"), new PdfTableCell("Description") },
             new[] { PdfTableCell.WithImages("", new[] { new PdfTableCellImage(CreateMinimalRgbPng(), 30, 130) }),

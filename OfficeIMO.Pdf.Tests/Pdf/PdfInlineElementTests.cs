@@ -16,10 +16,10 @@ public class PdfInlineElementTests {
             PdfTextRun.Normal("ABCDE")
         }).WithNoWrap();
         PdfTableStyle style = new PdfTableStyle {
-            FontSize = 12, HeaderRowCount = 0, HeaderBold = false,
-            ColumnWidthPoints = new() { 50 }, MaxWidth = 50, PreserveWidth = true,
-            CellPaddingX = 0, CellPaddingY = 0, MinimumShrinkFontSize = 4,
-            FixedRowHeights = new() { 30 }, BorderColor = null, ShrinkTextToFit = true
+            FontSize = global::OfficeIMO.OfficeLength.Points(12), HeaderRowCount = 0, HeaderBold = false,
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(50) }, MaxWidth = global::OfficeIMO.OfficeLength.Points(50), PreserveWidth = true,
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(4),
+            FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(30) }, BorderColor = null, ShrinkTextToFit = true
         };
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Courier, PageWidth = global::OfficeIMO.OfficeLength.Points(200), PageHeight = global::OfficeIMO.OfficeLength.Points(150),
@@ -206,10 +206,10 @@ public class PdfInlineElementTests {
                     })
                 }
             }, style: new PdfTableStyle {
-                FontSize = 18,
-                MinimumShrinkFontSize = 7,
+                FontSize = global::OfficeIMO.OfficeLength.Points(18),
+                MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(7),
                 ShrinkTextToFit = true,
-                ColumnWidthPoints = new List<double?> { 108 }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(108) }
             })
             .ToBytes();
 

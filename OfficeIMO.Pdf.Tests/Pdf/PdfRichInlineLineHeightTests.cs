@@ -70,8 +70,8 @@ public sealed class PdfRichInlineLineHeightTests {
         else {
             var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: 8, lineSpacing: style.LineSpacing) });
             var tableStyle = PdfTableStyles.Minimal();
-            tableStyle.HeaderRowCount = 0; tableStyle.FontSize = 8;
-            tableStyle.CellPaddingX = 0; tableStyle.CellPaddingY = 0; tableStyle.SpacingBefore = 0;
+            tableStyle.HeaderRowCount = 0; tableStyle.FontSize = global::OfficeIMO.OfficeLength.Points(8);
+            tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0); tableStyle.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0); tableStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0);
             document.Table(new[] { new[] { cell } }, style: tableStyle);
         }
         return document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

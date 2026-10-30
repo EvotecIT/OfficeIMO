@@ -16,8 +16,8 @@ public class PdfNestedTableCellFlowTests {
         var nested = new TableBlock(new[] { new[] { new PdfTableCell("InnerLeft"), new PdfTableCell("InnerRight") } }, PdfAlign.Left, nestedStyle);
         PdfTableCell cell = Cell(Paragraph("BeforeGrid"), nested, Paragraph("AfterGrid"));
         var outer = Style();
-        outer.MaxWidth = 200D; outer.PreserveWidth = true;
-        outer.ColumnWidthPoints = new List<double?> { 200D };
+        outer.MaxWidth = global::OfficeIMO.OfficeLength.Points(200D); outer.PreserveWidth = true;
+        outer.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(200D) };
         var document = PdfDocument.Create(Options()).TaggedPdfCatalogMarkers().Table(new[] { new[] { cell } }, style: outer);
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -29,7 +29,7 @@ public class PdfNestedTableCellFlowTests {
         var after = Assert.Single(words, word => word.Text == "AfterGrid");
         Assert.True(before.BoundingBox.Bottom > left.BoundingBox.Top);
         Assert.True(left.BoundingBox.Bottom > after.BoundingBox.Top);
-        double expectedInnerWidth = (200D - 2D * outer.CellPaddingX) * .5D;
+        double expectedInnerWidth = (200D - 2D * outer.CellPaddingX.ToPoints()) * .5D;
         Assert.Equal(expectedInnerWidth / 2D, right.BoundingBox.Left - left.BoundingBox.Left, 3);
         Assert.Contains(page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle()),
             bounds => bounds.HasValue && Math.Abs(bounds.Value.Width - expectedInnerWidth) < .001D && bounds.Value.Height > 0D);
@@ -55,17 +55,17 @@ public class PdfNestedTableCellFlowTests {
         else nestedStyle.MaxWidthFraction = .5D;
         nestedStyle.FrameWidthAdjustment = -1D;
         nestedStyle.ResolvedWidthAdjustment = -12D;
-        nestedStyle.CellSpacing = 6D;
+        nestedStyle.CellSpacing = global::OfficeIMO.OfficeLength.Points(6D);
         nestedStyle.PreserveWidth = nestedStyle.AllowWidthBeyondFrame = true;
         nestedStyle.BorderFrame = new PdfTableBorderFrame {
             Spacing = 6D, HorizontalInset = .5D,
-            Border = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.Black, Width = 1D }
+            Border = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.Black, Width = global::OfficeIMO.OfficeLength.Points(1D) }
         };
         var nested = new TableBlock(new[] { new[] { new PdfTableCell("Left"), new PdfTableCell("Right") } },
             PdfAlign.Left, nestedStyle);
         var outer = Style();
-        outer.MaxWidth = 216D; outer.CellPaddingX = 9D; outer.PreserveWidth = true;
-        outer.ColumnWidthPoints = new List<double?> { 216D };
+        outer.MaxWidth = global::OfficeIMO.OfficeLength.Points(216D); outer.CellPaddingX = global::OfficeIMO.OfficeLength.Points(9D); outer.PreserveWidth = true;
+        outer.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(216D) };
         var document = PdfDocument.Create(Options()).Table(new[] { new[] { Cell(nested) } }, style: outer);
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -88,7 +88,7 @@ public class PdfNestedTableCellFlowTests {
         nestedStyle.MaxWidthFraction = .5D;
         nestedStyle.FrameWidthAdjustment = 12D;
         nestedStyle.ResolvedWidthAdjustment = -8D;
-        nestedStyle.HorizontalOffset = 7D;
+        nestedStyle.HorizontalOffset = global::OfficeIMO.OfficeLength.Points(7D);
         nestedStyle.PreserveWidth = nestedStyle.AllowWidthBeyondFrame = true;
         var nested = new TableBlock(new[] { new[] { new PdfTableCell("CapturedOffsets") } }, PdfAlign.Left, nestedStyle);
         PdfTableCell captured = Cell(nested).WithNamedDestination("CapturedOffsetCell").WithNoWrap(false);
@@ -98,10 +98,10 @@ public class PdfNestedTableCellFlowTests {
         nested.Style!.MaxWidthFraction = .75D;
         nested.Style.FrameWidthAdjustment = 50D;
         nested.Style.ResolvedWidthAdjustment = 5D;
-        nested.Style.HorizontalOffset = 30D;
+        nested.Style.HorizontalOffset = global::OfficeIMO.OfficeLength.Points(30D);
         var outer = Style();
-        outer.MaxWidth = 216D; outer.CellPaddingX = 9D; outer.PreserveWidth = true;
-        outer.ColumnWidthPoints = new List<double?> { 216D };
+        outer.MaxWidth = global::OfficeIMO.OfficeLength.Points(216D); outer.CellPaddingX = global::OfficeIMO.OfficeLength.Points(9D); outer.PreserveWidth = true;
+        outer.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(216D) };
         var document = PdfDocument.Create(Options()).Table(new[] { new[] { captured } }, style: outer);
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -124,20 +124,20 @@ public class PdfNestedTableCellFlowTests {
         nestedStyle.MaxWidthFraction = fraction;
         nestedStyle.FrameWidthAdjustment = -1D;
         nestedStyle.ResolvedWidthAdjustment = -2D * spacing;
-        nestedStyle.CellSpacing = spacing;
-        nestedStyle.ColumnWidthPoints = new List<double?> { 45D, 105D };
-        nestedStyle.ColumnMinWidthPoints = minimums;
+        nestedStyle.CellSpacing = global::OfficeIMO.OfficeLength.Points(spacing);
+        nestedStyle.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(45D), global::OfficeIMO.OfficeLength.Points(105D) };
+        nestedStyle.ColumnMinWidths = (minimums) is { } lengths7803 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths7803, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
         nestedStyle.CompressFixedColumnsAboveMinimums = true;
         nestedStyle.PreserveWidth = nestedStyle.AllowWidthBeyondFrame = true;
         nestedStyle.BorderFrame = new PdfTableBorderFrame {
             Spacing = spacing, HorizontalInset = .5D,
-            Border = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.Black, Width = 1D }
+            Border = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.Black, Width = global::OfficeIMO.OfficeLength.Points(1D) }
         };
         var nested = new TableBlock(new[] { new[] { new PdfTableCell("L"), new PdfTableCell("R") } },
             PdfAlign.Left, nestedStyle);
         var outer = Style();
-        outer.MaxWidth = 216D; outer.CellPaddingX = 9D; outer.PreserveWidth = true;
-        outer.ColumnWidthPoints = new List<double?> { 216D };
+        outer.MaxWidth = global::OfficeIMO.OfficeLength.Points(216D); outer.CellPaddingX = global::OfficeIMO.OfficeLength.Points(9D); outer.PreserveWidth = true;
+        outer.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(216D) };
         var document = PdfDocument.Create(Options()).Table(new[] { new[] { Cell(nested) } }, style: outer);
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -200,11 +200,11 @@ public class PdfNestedTableCellFlowTests {
     [InlineData(true, 7D)]
     public void FloatingBookmarkFollowsTheFirstTableRowAfterAutomaticPageClearance(bool orderedCells, double spacingBefore) {
         var floating = Style();
-        floating.ColumnWidthPoints = new List<double?> { 280D };
-        floating.MinRowHeight = 190D;
+        floating.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(280D) };
+        floating.MinRowHeight = global::OfficeIMO.OfficeLength.Points(190D);
         floating.Position = new PdfTablePosition();
         var targetStyle = Style();
-        targetStyle.SpacingBefore = spacingBefore;
+        targetStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore);
         PdfTableCell target = orderedCells
             ? Cell(Paragraph("TargetFirstLine"), Paragraph("TargetSecondLine"))
             : new PdfTableCell("TargetFirstLine\nTargetSecondLine");
@@ -292,11 +292,11 @@ public class PdfNestedTableCellFlowTests {
 
     [Fact]
     public void CellCopyOperationsRetainCapturedNestedStylesAndSourceOrder() {
-        var style = Style(); style.MaxWidth = style.PreferredWidth = 90D; style.PreserveWidth = true;
+        var style = Style(); style.MaxWidth = style.PreferredWidth = global::OfficeIMO.OfficeLength.Points(90D); style.PreserveWidth = true;
         var nested = new TableBlock(new[] { new[] { new PdfTableCell("Captured") } }, PdfAlign.Left, style);
         PdfTableCell source = Cell(Paragraph("First"), nested, Paragraph("Last"));
         PdfTableCell copy = source.WithNamedDestination("CellTarget").WithNoWrap(false).WithShrinkTextToFit(false).WithViewport(null);
-        nested.Style!.MaxWidth = nested.Style.PreferredWidth = 160D;
+        nested.Style!.MaxWidth = nested.Style.PreferredWidth = global::OfficeIMO.OfficeLength.Points(160D);
         var document = PdfDocument.Create(Options()).Table(new[] { new[] { copy } }, style: Style());
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -372,9 +372,9 @@ public class PdfNestedTableCellFlowTests {
     private static PdfParagraphStyle ParagraphStyle() => new() { FontSize = global::OfficeIMO.OfficeLength.Points(8D), LineHeight = 1D, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) };
 
     private static PdfTableStyle Style() => new() {
-        FontSize = 8D, LineHeight = 1D, CellPaddingX = 2D, CellPaddingY = 2D,
-        BorderColor = global::OfficeIMO.OfficeColor.Black, BorderWidth = .5D, HeaderRowCount = 0,
-        AllowRowBreakAcrossPages = true, SpacingBefore = 0D, SpacingAfter = 0D
+        FontSize = global::OfficeIMO.OfficeLength.Points(8D), LineHeight = 1D, CellPaddingX = global::OfficeIMO.OfficeLength.Points(2D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(2D),
+        BorderColor = global::OfficeIMO.OfficeColor.Black, BorderWidth = global::OfficeIMO.OfficeLength.Points(.5D), HeaderRowCount = 0,
+        AllowRowBreakAcrossPages = true, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D)
     };
 
     private static PdfCreateOptions Options(double height = 400D) => new() {

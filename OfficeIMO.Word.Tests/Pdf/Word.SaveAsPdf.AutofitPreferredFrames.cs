@@ -22,7 +22,7 @@ public partial class Word {
             cell.Paragraphs[0].Text = column == 0 ? "A" : "B";
         }
         var configuredStyle = new OfficeIMO.Pdf.PdfTableStyle {
-            MaxWidth = 100D, HeaderRowCount = 0, CellPaddingX = 0D, BorderColor = null
+            MaxWidth = global::OfficeIMO.OfficeLength.Points(100D), HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), BorderColor = null
         };
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic(),
@@ -32,7 +32,7 @@ public partial class Word {
         var left = Assert.Single(page.Letters, letter => letter.Value == "A");
         var right = Assert.Single(page.Letters, letter => letter.Value == "B");
         Assert.Equal(50D, right.StartBaseLine.X - left.StartBaseLine.X, 3);
-        Assert.Equal(100D, configuredStyle.MaxWidth);
+        Assert.Equal(100D, configuredStyle.MaxWidth?.ToPoints());
     }
 
     [Theory]

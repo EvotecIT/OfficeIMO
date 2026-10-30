@@ -30,13 +30,13 @@ internal static partial class PdfWriter {
             double tableWidth = ResolveTableColumnLayout(table, currentOpts, style, count, frameWidth,
                 GetTableBodyFontSize(style, fontSize), style.HeaderRowCount, table.Rows.Count - style.FooterRowCount).Width;
             double flowY = y;
-            double left = PositionTableX(position, tableWidth) + style.HorizontalOffset;
+            double left = PositionTableX(position, tableWidth) + style.HorizontalOffset.ToPoints();
             y = PositionTableY(position, height);
             AvoidFloatingTable(position, left, tableWidth, height);
             bottom = y - height;
-            floatingTables.Add((currentPage, left - position.DistanceLeft,
-                left + tableWidth + position.DistanceRight, y + position.DistanceTop,
-                bottom - position.DistanceBottom, position.AllowOverlap));
+            floatingTables.Add((currentPage, left - position.DistanceLeft.ToPoints(),
+                left + tableWidth + position.DistanceRight.ToPoints(), y + position.DistanceTop.ToPoints(),
+                bottom - position.DistanceBottom.ToPoints(), position.AllowOverlap));
             y = flowY;
             return true;
         }

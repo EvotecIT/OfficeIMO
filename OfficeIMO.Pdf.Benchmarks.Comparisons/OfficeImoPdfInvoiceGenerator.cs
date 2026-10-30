@@ -136,38 +136,38 @@ internal static class OfficeImoPdfInvoiceGenerator {
     };
 
     private static PdfTableStyle IdentityStyle() => new() {
-        HeaderRowCount = 0, RowStripeFill = null, BorderColor = Border, BorderWidth = 0.7D,
-        CornerRadius = 7D, CellPaddingX = 10D, CellPaddingY = 7D, FontSize = 9D, SpacingAfter = 14D,
+        HeaderRowCount = 0, RowStripeFill = null, BorderColor = Border, BorderWidth = global::OfficeIMO.OfficeLength.Points(0.7D),
+        CornerRadius = global::OfficeIMO.OfficeLength.Points(7D), CellPaddingX = global::OfficeIMO.OfficeLength.Points(10D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(7D), FontSize = global::OfficeIMO.OfficeLength.Points(9D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(14D),
         BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> { Surface, null, Surface, null },
         ColumnWidthWeights = new List<double> { 1.1D, 1.4D, 1.4D, 2.1D }
     };
 
     private static PdfTableStyle LinesStyle() => new() {
-        HeaderRowCount = 1, HeaderFill = Navy, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderFontSize = 9D,
-        FontSize = 9D, BorderColor = Border, BorderWidth = 0.5D, CornerRadius = 7D, RowStripeFill = Surface,
-        CellPaddingX = 7D, CellPaddingY = 7D, SpacingAfter = 12D,
+        HeaderRowCount = 1, HeaderFill = Navy, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderFontSize = global::OfficeIMO.OfficeLength.Points(9D),
+        FontSize = global::OfficeIMO.OfficeLength.Points(9D), BorderColor = Border, BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5D), CornerRadius = global::OfficeIMO.OfficeLength.Points(7D), RowStripeFill = Surface,
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(7D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(7D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(12D),
         ColumnWidthWeights = new List<double> { 3.7D, 1.15D, 1.55D, 1D, 1.6D },
         Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right, PdfColumnAlign.Right, PdfColumnAlign.Right, PdfColumnAlign.Right }
     };
 
     private static PdfTableStyle TaxStyle() => new() {
-        HeaderRowCount = 1, HeaderFill = Navy, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderFontSize = 8.5D,
-        FontSize = 8.5D, BorderColor = Border, BorderWidth = 0.5D, CornerRadius = 7D, RowStripeFill = Surface,
-        CellPaddingX = 7D, CellPaddingY = 6D, SpacingAfter = 12D,
+        HeaderRowCount = 1, HeaderFill = Navy, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8.5D),
+        FontSize = global::OfficeIMO.OfficeLength.Points(8.5D), BorderColor = Border, BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5D), CornerRadius = global::OfficeIMO.OfficeLength.Points(7D), RowStripeFill = Surface,
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(7D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(6D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(12D),
         ColumnWidthWeights = new List<double> { 1.2D, 1.5D, 1.4D, 2D },
         Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right, PdfColumnAlign.Right, PdfColumnAlign.Left }
     };
 
     private static PdfTableStyle TotalsStyle() => new() {
-        HeaderRowCount = 0, FontSize = 10D, BorderColor = Border, BorderWidth = 0.6D, CornerRadius = 7D,
+        HeaderRowCount = 0, FontSize = global::OfficeIMO.OfficeLength.Points(10D), BorderColor = Border, BorderWidth = global::OfficeIMO.OfficeLength.Points(0.6D), CornerRadius = global::OfficeIMO.OfficeLength.Points(7D),
         FooterRowCount = 1, FooterFill = Accent, FooterTextColor = global::OfficeIMO.OfficeColor.White, RowStripeFill = Surface,
-        CellPaddingX = 9D, CellPaddingY = 7D,
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(9D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(7D),
         Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right }
     };
 
     private static PdfTableStyle DetailsStyle() => new() {
-        HeaderRowCount = 0, FontSize = 9D, BorderColor = Border, BorderWidth = 0.5D, CornerRadius = 7D,
-        RowStripeFill = Surface, CellPaddingX = 7D, CellPaddingY = 5D, SpacingAfter = 6D,
+        HeaderRowCount = 0, FontSize = global::OfficeIMO.OfficeLength.Points(9D), BorderColor = Border, BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5D), CornerRadius = global::OfficeIMO.OfficeLength.Points(7D),
+        RowStripeFill = Surface, CellPaddingX = global::OfficeIMO.OfficeLength.Points(7D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(5D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(6D),
         ColumnWidthWeights = new List<double> { 1D, 1D }
     };
 }

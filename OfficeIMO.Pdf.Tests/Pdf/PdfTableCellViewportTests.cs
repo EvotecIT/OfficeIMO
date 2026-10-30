@@ -53,8 +53,8 @@ public sealed partial class PdfTableCellViewportTests {
         var adjacent = new PdfTableCell(string.Join("\n", Enumerable.Repeat("Long neighbour", 40)));
         ArgumentException error = Assert.Throws<ArgumentException>(() => Render(mode, cell, PdfCellVerticalAlign.Top, style => {
             style.FixedRowHeights = null;
-            style.ColumnWidthPoints = new List<double?> { 100, 80 };
-            style.RowMinHeights = new List<double?> { 24 };
+            style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(80) };
+            style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(24) };
         }, adjacent));
         Assert.Contains("viewport", error.Message);
     }
@@ -67,9 +67,9 @@ public sealed partial class PdfTableCellViewportTests {
         var upper = new PdfTableCell(text).WithViewport(new PdfTableCellViewport(100, 100, 100, 50));
         var lower = new PdfTableCell(text).WithViewport(new PdfTableCellViewport(100, 100, 100, 50, offsetY: 50));
         using PdfPigDocument first = PdfPigDocument.Open(Render(mode, upper, PdfCellVerticalAlign.Middle,
-            style => style.FixedRowHeights = new List<double?> { 50 }));
+            style => style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(50) }));
         using PdfPigDocument second = PdfPigDocument.Open(Render(mode, lower, PdfCellVerticalAlign.Middle,
-            style => style.FixedRowHeights = new List<double?> { 50 }));
+            style => style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(50) }));
         Assert.Contains("First", first.GetPage(1).Text);
         Assert.Contains("Second", first.GetPage(1).Text);
         Assert.DoesNotContain("Third", first.GetPage(1).Text);
@@ -89,9 +89,9 @@ public sealed partial class PdfTableCellViewportTests {
     public void Diagonal_border_keeps_the_full_cell_slope_inside_a_fragment(string mode, bool rounded) {
         var cell = new PdfTableCell(string.Empty).WithViewport(new PdfTableCellViewport(100, 48, 100, 24));
         byte[] bytes = Render(mode, cell, PdfCellVerticalAlign.Top, style => {
-            style.CornerRadius = rounded ? 4 : 0;
+            style.CornerRadius = global::OfficeIMO.OfficeLength.Points(rounded ? 4 : 0);
             style.CellBorders = new Dictionary<(int, int), PdfCellBorder> { [(0, 0)] = new PdfCellBorder {
-                Top = false, Right = false, Bottom = false, Left = false, DiagonalDown = true, Width = 1, Color = global::OfficeIMO.OfficeColor.Black
+                Top = false, Right = false, Bottom = false, Left = false, DiagonalDown = true, Width = global::OfficeIMO.OfficeLength.Points(1), Color = global::OfficeIMO.OfficeColor.Black
             } };
         });
         string content = PdfTestContentText.ReadDecoded(bytes);
@@ -163,16 +163,16 @@ public sealed partial class PdfTableCellViewportTests {
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.FontSize = 10;
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         style.LineHeight = 1.2;
-        style.ColumnWidthPoints = new List<double?> { 100 };
-        style.FixedRowHeights = new List<double?> { 24 };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(24) };
         style.VerticalAlignments = new List<PdfCellVerticalAlign> { alignment };
-        style.CellPaddingX = 0;
-        style.CellPaddingY = 0;
-        style.CellSpacing = 0;
-        style.SpacingBefore = 0;
-        style.SpacingAfter = 0;
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellSpacing = global::OfficeIMO.OfficeLength.Points(0);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         configure?.Invoke(style);
         var cells = new[] { adjacentCell == null ? new[] { cell } : new[] { cell, adjacentCell } };
         return mode switch {

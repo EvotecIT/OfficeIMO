@@ -393,9 +393,9 @@ public sealed class PdfLogicalTableContinuationContractTests {
             .Table(rows, style: new PdfTableStyle {
                 HeaderRowCount = 2,
                 RepeatHeaderRowCount = 2,
-                ColumnWidthPoints = new List<double?> { 120, 120 },
-                CellPaddingX = 5,
-                CellPaddingY = 3
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(120) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(5),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(3)
             })
             .ToBytes();
     }
@@ -422,9 +422,9 @@ public sealed class PdfLogicalTableContinuationContractTests {
             }, style: new PdfTableStyle {
                 HeaderRowCount = 1,
                 HeaderBold = true,
-                ColumnWidthPoints = new List<double?> { 200, 150, 80 },
-                CellPaddingX = 4,
-                CellPaddingY = 2
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(80) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(4),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(2)
             })
             .PageBreak()
             .Table(new[] {
@@ -435,9 +435,9 @@ public sealed class PdfLogicalTableContinuationContractTests {
             }, style: new PdfTableStyle {
                 HeaderRowCount = 1,
                 HeaderBold = true,
-                ColumnWidthPoints = new List<double?> { 200, 150, 80 },
-                CellPaddingX = 4,
-                CellPaddingY = 2
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(80) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(4),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(2)
             })
             .ToBytes();
     }
@@ -467,9 +467,9 @@ public sealed class PdfLogicalTableContinuationContractTests {
                 new[] { "A-2", "20" }
             }, style: new PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 100D, 100D },
-                CellPaddingX = 4D,
-                CellPaddingY = 2D
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(4D),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(2D)
             })
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Scanned page placeholder."))
@@ -496,9 +496,9 @@ public sealed class PdfLogicalTableContinuationContractTests {
                 new[] { "Second item", "20" }
             }, style: new PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { firstColumnWidth, secondColumnWidth },
-                CellPaddingX = 4,
-                CellPaddingY = 2
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(firstColumnWidth), global::OfficeIMO.OfficeLength.Points(secondColumnWidth) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(4),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(2)
             })
             .ToBytes();
 

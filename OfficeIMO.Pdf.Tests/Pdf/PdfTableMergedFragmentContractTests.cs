@@ -33,10 +33,10 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(true)]
     public void FlexibleMergedFillUsesTheTableRoundedPerimeter(bool inRow) {
         PdfTableStyle style = Style();
-        style.MinRowHeight = 30;
-        style.CornerRadius = 10;
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(30);
+        style.CornerRadius = global::OfficeIMO.OfficeLength.Points(10);
         style.CellFills = new() { [(0, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.31, .41, .51) };
-        style.CellBorders = new() { [(0, 0)] = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.61, .21, .11), Width = 2 } };
+        style.CellBorders = new() { [(0, 0)] = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.61, .21, .11), Width = global::OfficeIMO.OfficeLength.Points(2) } };
         PdfDocument document = PdfDocument.Create(Options(200));
         AddTable(document, new[] {
             new[] { PdfTableCell.Merge("Alpha", rowSpan: 2), PdfTableCell.TextCell("Ready") },
@@ -60,9 +60,9 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(true, 1)]
     public void OneRowMergedFragmentsKeepHiddenVerticalSegments(bool inRow, int hiddenRow) {
         PdfTableStyle style = Style();
-        style.MinRowHeight = 60;
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(60);
         style.CellBorders = new() { [(0, 0)] = new PdfCellBorder {
-            Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.61, .21, .11), Width = 2,
+            Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.61, .21, .11), Width = global::OfficeIMO.OfficeLength.Points(2),
             Top = false, Bottom = false, Left = false, Right = true,
             HiddenRightRowSegments = new() { hiddenRow }
         } };
@@ -116,9 +116,9 @@ public partial class PdfDocumentVisualQualityTests {
     public void MergedBorderMasksUseTheAdmittedPartialRowHeight(bool inRow) {
         PdfTableStyle style = Style();
         style.LineHeight = 1;
-        style.RowMinHeights = new() { null, 30 };
+        style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { null, global::OfficeIMO.OfficeLength.Points(30) };
         style.CellBorders = new() { [(0, 0)] = new PdfCellBorder {
-            Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.61, .21, .11), Width = 2,
+            Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.61, .21, .11), Width = global::OfficeIMO.OfficeLength.Points(2),
             Top = false, Bottom = false, Left = false, Right = true,
             HiddenRightRowSegments = new() { 0 }
         } };
@@ -171,8 +171,8 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTableStyle style = Style();
         style.HeaderRowCount = 1;
         style.RepeatHeaderRowCount = 1;
-        style.SpacingAfter = spacingAfter;
-        style.RowMinHeights = new() { 20, null, null, null };
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter);
+        style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(20), null, null, null };
         PdfDocument document = PdfDocument.Create(Options(140));
         AddTable(document, new[] {
             new[] { PdfTableCell.TextCell("Header"), PdfTableCell.TextCell("Value") },
@@ -193,8 +193,8 @@ public partial class PdfDocumentVisualQualityTests {
     };
 
     private static PdfTableStyle Style() => new() {
-        HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0, FontSize = 12,
-        MinRowHeight = 0, SpacingBefore = 0, SpacingAfter = 0, BorderWidth = 0, RowSeparatorWidth = 0
+        HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12),
+        MinRowHeight = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), BorderWidth = global::OfficeIMO.OfficeLength.Points(0), RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0)
     };
 
     private static void AddTable(PdfDocument document, PdfTableCell[][] rows, PdfTableStyle style, bool inRow, bool reserveClosing = false) {

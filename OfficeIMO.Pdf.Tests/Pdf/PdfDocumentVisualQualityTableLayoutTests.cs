@@ -27,7 +27,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.MinRowHeight = 36;
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(36);
 
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
@@ -62,8 +62,8 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.MinRowHeight = 18;
-        style.RowMinHeights = new List<double?> { 18, 54, 18 };
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Inches(0.25);
+        style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Inches(0.25), global::OfficeIMO.OfficeLength.Pixels(72), global::OfficeIMO.OfficeLength.Millimeters(6.35) };
 
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
@@ -98,8 +98,8 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.MinRowHeight = 18;
-        style.RowMinHeights = new List<double?> { 18, 54, 18 };
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(18);
+        style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(18) };
         var rows = new[] {
             new[] { "Alpha", "Ready" },
             new[] { "Beta", "Ready" },
@@ -174,8 +174,8 @@ public partial class PdfDocumentVisualQualityTests {
         };
         PdfTableStyle defaultLight = PdfTableStyles.Light();
         var cramped = PdfTableStyles.Light();
-        cramped.SpacingBefore = 0;
-        cramped.SpacingAfter = 0;
+        cramped.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0);
+        cramped.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
 
         byte[] defaultBytes = CreateLightTableRhythmProbe(options, style: null);
         byte[] crampedBytes = CreateLightTableRhythmProbe(options, cramped);
@@ -190,8 +190,8 @@ public partial class PdfDocumentVisualQualityTests {
         double defaultAfterY = FindWordStartY(defaultPage, "AfterMarker");
         double crampedAfterY = FindWordStartY(crampedPage, "AfterMarker");
 
-        Assert.Equal(4, defaultLight.SpacingBefore);
-        Assert.Equal(8, defaultLight.SpacingAfter);
+        Assert.Equal(4, defaultLight.SpacingBefore.ToPoints());
+        Assert.Equal(8, defaultLight.SpacingAfter.ToPoints());
         Assert.True(crampedTableY - defaultTableY >= 3, $"Expected default light-table spacing before to move table content down. Cramped y: {crampedTableY:0.##}, default y: {defaultTableY:0.##}.");
         Assert.True(crampedAfterY - defaultAfterY >= 10, $"Expected default light-table rhythm to separate following paragraphs from the grid. Cramped y: {crampedAfterY:0.##}, default y: {defaultAfterY:0.##}.");
     }
@@ -212,8 +212,8 @@ public partial class PdfDocumentVisualQualityTests {
         defaultStyle.HeaderRowCount = 0;
         var spacedStyle = PdfTableStyles.Minimal();
         spacedStyle.HeaderRowCount = 0;
-        spacedStyle.SpacingBefore = 28;
-        spacedStyle.SpacingAfter = 0;
+        spacedStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(28);
+        spacedStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
 
         byte[] defaultBytes = PdfDocument.Create(options)
             .Table(new[] {
@@ -253,8 +253,8 @@ public partial class PdfDocumentVisualQualityTests {
         defaultStyle.HeaderRowCount = 0;
         var spacedStyle = PdfTableStyles.Minimal();
         spacedStyle.HeaderRowCount = 0;
-        spacedStyle.SpacingBefore = 28;
-        spacedStyle.SpacingAfter = 0;
+        spacedStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(28);
+        spacedStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         string[][] rows = {
             new[] { "ColumnTableMarker", "Ready" },
             new[] { "Beta", "Ready" }
@@ -295,8 +295,8 @@ public partial class PdfDocumentVisualQualityTests {
         style.Caption = "SignalCaption";
         style.CaptionAlign = PdfAlign.Right;
         style.CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(80, 90, 100);
-        style.CaptionFontSize = 8;
-        style.CaptionSpacingAfter = 10;
+        style.CaptionFontSize = global::OfficeIMO.OfficeLength.Points(8);
+        style.CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(10);
 
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
@@ -337,8 +337,8 @@ public partial class PdfDocumentVisualQualityTests {
         style.Caption = "SignalCaption";
         style.CaptionAlign = PdfAlign.Right;
         style.CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(80, 90, 100);
-        style.CaptionFontSize = 8;
-        style.CaptionSpacingAfter = 10;
+        style.CaptionFontSize = global::OfficeIMO.OfficeLength.Points(8);
+        style.CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(10);
 
         byte[] bytes = PdfDocument.Create(options)
             .Compose(document =>
@@ -381,8 +381,8 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.Caption = string.Join(" ", Enumerable.Repeat("TallCaption", 40));
-        style.CaptionFontSize = 14;
-        style.CaptionSpacingAfter = 8;
+        style.CaptionFontSize = global::OfficeIMO.OfficeLength.Points(14);
+        style.CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(8);
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(options)
@@ -409,8 +409,8 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.Caption = string.Join(" ", Enumerable.Repeat("TallCaption", 40));
-        style.CaptionFontSize = 14;
-        style.CaptionSpacingAfter = 8;
+        style.CaptionFontSize = global::OfficeIMO.OfficeLength.Points(14);
+        style.CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(8);
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(options)
@@ -514,7 +514,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         var style = PdfTableStyles.Minimal();
-        style.MaxWidth = 180;
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(180);
         style.ColumnWidthWeights = new List<double> { 1, 2 };
         style.HeaderRowCount = 0;
 
@@ -547,7 +547,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         var style = PdfTableStyles.Minimal();
-        style.MaxWidth = 180;
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(180);
         style.ColumnWidthWeights = new List<double> { 1, 2 };
         style.HeaderRowCount = 0;
 
@@ -585,8 +585,8 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         var style = PdfTableStyles.Minimal();
-        style.LeftIndent = 60;
-        style.MaxWidth = 180;
+        style.LeftIndent = global::OfficeIMO.OfficeLength.Points(60);
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(180);
         style.ColumnWidthWeights = new List<double> { 1, 2 };
         style.HeaderRowCount = 0;
 
@@ -619,8 +619,8 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         var style = PdfTableStyles.Minimal();
-        style.LeftIndent = 40;
-        style.MaxWidth = 120;
+        style.LeftIndent = global::OfficeIMO.OfficeLength.Points(40);
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(120);
         style.ColumnWidthWeights = new List<double> { 1, 2 };
         style.HeaderRowCount = 0;
 

@@ -177,7 +177,7 @@ internal static partial class PdfWriter {
         var importedSpanMinimums = new System.Collections.Generic.List<(int Column, int Span, double Width, double PreferredWidth, bool HasAbsolutePreference)>();
         if (style.AutoFitWidthUsesContentMinimum) {
             for (int column = 0; column < cols; column++)
-                minimumWidths[column] = GetOptionalColumnWidth(style.ColumnMinWidthPoints, column,
+                minimumWidths[column] = GetOptionalColumnWidth(style.ColumnMinWidths?.ConvertAll(static length => length?.ToPoints()), column,
                     "Table minimum column widths must be positive finite values.") ?? 0D;
         }
         if (physicalMinimumWidths != null)
@@ -225,7 +225,7 @@ internal static partial class PdfWriter {
                     measuredTextWidth,
                     MeasureTableCellObjectWidth(cell));
                 double horizontalPadding = GetTableCellPaddingLeft(style, rowIndex, cell.Column) + GetTableCellPaddingRight(style, rowIndex, cell.Column);
-                if (style.AutoFitWidthUsesContentMinimum && style.ImportedColumnWidthFractions != null && style.CellSpacing == 0D &&
+                if (style.AutoFitWidthUsesContentMinimum && style.ImportedColumnWidthFractions != null && style.CellSpacing.ToPoints() == 0D &&
                     style.CellBorders != null && style.CellBorders.TryGetValue((rowIndex, cell.Column), out PdfCellBorder? border) &&
                     border.PaintInsideFrame) {
                     // Imported zero-spacing borders shift the text origin by
@@ -407,19 +407,19 @@ internal static partial class PdfWriter {
             int endColumn = Math.Min(cols, span.Column + span.Span);
             if (automaticImportedPreferences) {
                 ApplyImportedAutomaticSpanMinimum(minimumWidths, preferredWidths, span.Column, endColumn,
-                    span.Width - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing);
+                    span.Width - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing.ToPoints());
                 // A merged cell's own absolute preference permits wrapping,
                 // including an explicit zero. Automatic cells still contribute
                 // their unwrapped preference despite absolute cells in other rows.
                 if (!span.HasAbsolutePreference)
                     ApplyImportedAutomaticSpanPreference(preferredWidths, span.Column, endColumn,
-                        span.PreferredWidth - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing);
+                        span.PreferredWidth - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing.ToPoints());
                 continue;
             }
             double available = 0D;
             for (int column = span.Column; column < endColumn; column++)
                 available += minimumWidths[column];
-            double deficit = span.Width - available - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing;
+            double deficit = span.Width - available - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing.ToPoints();
             if (deficit <= 0D) continue;
             for (int column = span.Column; column < endColumn; column++)
                 minimumWidths[column] += available > 0D
@@ -433,13 +433,13 @@ internal static partial class PdfWriter {
             foreach (var span in physicalSpanMinimums!) {
                 int endColumn = Math.Min(cols, span.Column + span.Span);
                 ApplyImportedAutomaticSpanMinimum(physicalMinimumWidths, sourcePreferredWidths, span.Column, endColumn,
-                    span.Width - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing);
+                    span.Width - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing.ToPoints());
             }
             foreach (var span in importedSpanMinimums) {
                 if (!span.HasAbsolutePreference) {
                     int endColumn = Math.Min(cols, span.Column + span.Span);
                     ApplyImportedAutomaticSpanPreference(sourcePreferredWidths, span.Column, endColumn,
-                        span.PreferredWidth - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing);
+                        span.PreferredWidth - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing.ToPoints());
                 }
             }
             for (int column = 0; column < cols; column++)

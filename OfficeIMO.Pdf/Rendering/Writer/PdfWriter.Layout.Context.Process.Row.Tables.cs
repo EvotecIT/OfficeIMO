@@ -12,7 +12,7 @@ internal static partial class PdfWriter {
 
         private bool RenderColumnTable(ColTable table, List<ColItem> items, ColumnTableCursor state, double xCol, double wCol, double fullColumnHeight, double columnPageStartY, double closingPadding = 0D) {
         var tbColumn = table.Block;
-        if (closingPadding > 0D) closingPadding += table.Style.SpacingAfter;
+        if (closingPadding > 0D) closingPadding += table.Style.SpacingAfter.ToPoints();
         var tableStyle = table.Style;
         StringBuilder? pairedBorders = null;
         double textClipBleed = tableStyle.ClipTextToCellBounds ? 0D : TableCellClipBleed;
@@ -28,7 +28,7 @@ internal static partial class PdfWriter {
         double columnTableRowGap = columnGap;
         double xTable = ResolveTableX(tbColumn.Align, tableStyle, xCol, wCol, table.Width);
         double tableCornerRadius = ResolveTableCornerRadius(
-            tableStyle.CornerRadius,
+            tableStyle.CornerRadius.ToPoints(),
             table.Width,
             table.RowHeights[0],
             table.RowHeights[table.RowHeights.Length - 1],
@@ -37,9 +37,9 @@ internal static partial class PdfWriter {
 
         double maxContentHeight = fullColumnHeight;
         int[] viewportRowGroups = GetTableViewportRowGroups(tbColumn, table.Columns);
-        double tableSpacingBefore = state.Line == 0 && state.Consumed > 0.001 ? tableStyle.SpacingBefore : 0D;
+        double tableSpacingBefore = state.Line == 0 && state.Consumed > 0.001 ? tableStyle.SpacingBefore.ToPoints() : 0D;
         if (state.Line == 0 && tableStyle.KeepTogether) {
-            double keepHeight = tableSpacingBefore + table.CaptionHeight + GetTableRowsHeight(table.RowHeights, 0, table.RowHeights.Length, columnTableRowGap) + tableStyle.SpacingAfter;
+            double keepHeight = tableSpacingBefore + table.CaptionHeight + GetTableRowsHeight(table.RowHeights, 0, table.RowHeights.Length, columnTableRowGap) + tableStyle.SpacingAfter.ToPoints();
             if (keepHeight > maxContentHeight + 0.001) {
                 throw new ArgumentException("Table height exceeds the available page content height.");
             }
@@ -52,7 +52,7 @@ internal static partial class PdfWriter {
         }
 
         if (state.Line == 0 && tableStyle.KeepWithNext && state.Index + 1 < items.Count) {
-            double tableHeight = tableSpacingBefore + table.CaptionHeight + GetTableRowsHeight(table.RowHeights, 0, table.RowHeights.Length, columnTableRowGap) + tableStyle.SpacingAfter;
+            double tableHeight = tableSpacingBefore + table.CaptionHeight + GetTableRowsHeight(table.RowHeights, 0, table.RowHeights.Length, columnTableRowGap) + tableStyle.SpacingAfter.ToPoints();
             double nextHeight = MeasureColKeepWithNextChainHeight(items, state.Index + 1);
             double keepHeight = RestoresMeasuredTableFlow(tableStyle, tableHeight, state.Remaining)
                 ? Math.Max(tableHeight, nextHeight) : tableHeight + nextHeight;
@@ -112,7 +112,7 @@ internal static partial class PdfWriter {
             if (neededWithFirstRow > state.Remaining && state.Consumed > 0) return false;
             if (neededWithFirstRow > state.Remaining && state.Consumed == 0) { state.Remaining = 0; return false; }
 
-            double captionSize = tableStyle.CaptionFontSize ?? table.Size;
+            double captionSize = tableStyle.CaptionFontSize?.ToPoints() ?? table.Size;
             var captionFont = ChooseNormal(currentOpts.DefaultFont);
             pageDirty = true;
             int? captionMarkedContentId = RegisterTextStructureElement("Caption", EnsureTableStructureElement());
@@ -320,31 +320,31 @@ internal static partial class PdfWriter {
                     rowUsesBold, renderAsHeader, wholeRowSegment, suppressCellObjects, textColor, rowStructureElementIndex);
             }
 
-            if (tableStyle.BorderColor is not null && tableStyle.BorderWidth > 0) {
+            if (tableStyle.BorderColor is not null && tableStyle.BorderWidth.ToPoints() > 0) {
                 pageDirty = true;
                 bool[] topBorderSkips = GetRowSpanBoundarySkipColumns(tbColumn, rowIndex - 1, table.Columns);
                 bool[] bottomBorderSkips = GetRowSpanBoundarySkipColumns(tbColumn, rowIndex, table.Columns);
                 bool segmentBorderRows = HasSkippedColumns(topBorderSkips, table.Columns) || HasSkippedColumns(bottomBorderSkips, table.Columns);
                 if (roundedRow) {
                     if (roundTop) {
-                        DrawRoundedSideStroke(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, tableStyle.BorderWidth, RoundedRectSide.Top, xTable, rowBottom, table.Width, rowHeight, cornerRadius, roundTop, roundTop, roundBottom, roundBottom, emitGeneratedStructure);
+                        DrawRoundedSideStroke(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth.ToPoints(), tableStyle.BorderWidth.ToPoints(), RoundedRectSide.Top, xTable, rowBottom, table.Width, rowHeight, cornerRadius, roundTop, roundTop, roundBottom, roundBottom, emitGeneratedStructure);
                     } else {
-                        DrawTableHorizontalLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, table.ColumnWidths, columnGap, rowBottom + rowHeight, topBorderSkips, emitGeneratedStructure);
+                        DrawTableHorizontalLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth.ToPoints(), xTable, table.ColumnWidths, columnGap, rowBottom + rowHeight, topBorderSkips, emitGeneratedStructure);
                     }
                     if (roundBottom) {
-                        DrawRoundedSideStroke(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, tableStyle.BorderWidth, RoundedRectSide.Bottom, xTable, rowBottom, table.Width, rowHeight, cornerRadius, roundTop, roundTop, roundBottom, roundBottom, emitGeneratedStructure);
+                        DrawRoundedSideStroke(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth.ToPoints(), tableStyle.BorderWidth.ToPoints(), RoundedRectSide.Bottom, xTable, rowBottom, table.Width, rowHeight, cornerRadius, roundTop, roundTop, roundBottom, roundBottom, emitGeneratedStructure);
                     } else {
-                        DrawTableHorizontalLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, table.ColumnWidths, columnGap, rowBottom, bottomBorderSkips, emitGeneratedStructure);
+                        DrawTableHorizontalLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth.ToPoints(), xTable, table.ColumnWidths, columnGap, rowBottom, bottomBorderSkips, emitGeneratedStructure);
                     }
-                    DrawRoundedSideStroke(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, tableStyle.BorderWidth, RoundedRectSide.Left, xTable, rowBottom, table.Width, rowHeight, cornerRadius, roundTop, roundTop, roundBottom, roundBottom, emitGeneratedStructure);
-                    DrawRoundedSideStroke(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, tableStyle.BorderWidth, RoundedRectSide.Right, xTable, rowBottom, table.Width, rowHeight, cornerRadius, roundTop, roundTop, roundBottom, roundBottom, emitGeneratedStructure);
+                    DrawRoundedSideStroke(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth.ToPoints(), tableStyle.BorderWidth.ToPoints(), RoundedRectSide.Left, xTable, rowBottom, table.Width, rowHeight, cornerRadius, roundTop, roundTop, roundBottom, roundBottom, emitGeneratedStructure);
+                    DrawRoundedSideStroke(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth.ToPoints(), tableStyle.BorderWidth.ToPoints(), RoundedRectSide.Right, xTable, rowBottom, table.Width, rowHeight, cornerRadius, roundTop, roundTop, roundBottom, roundBottom, emitGeneratedStructure);
                 } else if (segmentBorderRows) {
-                    DrawTableHorizontalLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, table.ColumnWidths, columnGap, rowBottom + rowHeight, topBorderSkips, emitGeneratedStructure);
-                    DrawTableHorizontalLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, table.ColumnWidths, columnGap, rowBottom, bottomBorderSkips, emitGeneratedStructure);
-                    DrawVLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, rowBottom + rowHeight, rowBottom, emitGeneratedStructure);
-                    DrawVLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable + table.Width, rowBottom + rowHeight, rowBottom, emitGeneratedStructure);
+                    DrawTableHorizontalLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth.ToPoints(), xTable, table.ColumnWidths, columnGap, rowBottom + rowHeight, topBorderSkips, emitGeneratedStructure);
+                    DrawTableHorizontalLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth.ToPoints(), xTable, table.ColumnWidths, columnGap, rowBottom, bottomBorderSkips, emitGeneratedStructure);
+                    DrawVLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth.ToPoints(), xTable, rowBottom + rowHeight, rowBottom, emitGeneratedStructure);
+                    DrawVLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth.ToPoints(), xTable + table.Width, rowBottom + rowHeight, rowBottom, emitGeneratedStructure);
                 } else {
-                    DrawRoundedRowRect(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, rowBottom, table.Width, rowHeight, cornerRadius, roundTop, roundTop, roundBottom, roundBottom, emitGeneratedStructure);
+                    DrawRoundedRowRect(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth.ToPoints(), xTable, rowBottom, table.Width, rowHeight, cornerRadius, roundTop, roundTop, roundBottom, roundBottom, emitGeneratedStructure);
                 }
 
                 double xi2 = xTable;
@@ -355,14 +355,14 @@ internal static partial class PdfWriter {
                         continue;
                     }
 
-                    DrawVLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xi2, rowBottom + rowHeight, rowBottom, emitGeneratedStructure);
+                    DrawVLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth.ToPoints(), xi2, rowBottom + rowHeight, rowBottom, emitGeneratedStructure);
                     xi2 += columnGap;
                 }
             }
 
             if (renderAsFooter && rowIndex == table.FooterStartRowIndex) {
                 global::OfficeIMO.OfficeColor? footerSeparatorColor = tableStyle.FooterSeparatorColor ?? tableStyle.RowSeparatorColor;
-                double footerSeparatorWidth = tableStyle.FooterSeparatorWidth > 0 ? tableStyle.FooterSeparatorWidth : tableStyle.RowSeparatorWidth;
+                double footerSeparatorWidth = tableStyle.FooterSeparatorWidth.ToPoints() > 0 ? tableStyle.FooterSeparatorWidth.ToPoints() : tableStyle.RowSeparatorWidth.ToPoints();
                 if (footerSeparatorColor is not null && footerSeparatorWidth > 0) {
                     pageDirty = true;
                     DrawTableHorizontalLine(sb, footerSeparatorColor.Value, footerSeparatorWidth, xTable, table.ColumnWidths, columnGap, state.Y, GetRowSpanBoundarySkipColumns(tbColumn, rowIndex - 1, table.Columns), emitGeneratedStructure);
@@ -370,14 +370,14 @@ internal static partial class PdfWriter {
             }
 
             global::OfficeIMO.OfficeColor? separatorColor = renderAsHeader && tableStyle.HeaderSeparatorColor is not null ? tableStyle.HeaderSeparatorColor : tableStyle.RowSeparatorColor;
-            double separatorWidth = renderAsHeader && tableStyle.HeaderSeparatorWidth > 0 ? tableStyle.HeaderSeparatorWidth : tableStyle.RowSeparatorWidth;
+            double separatorWidth = renderAsHeader && tableStyle.HeaderSeparatorWidth.ToPoints() > 0 ? tableStyle.HeaderSeparatorWidth.ToPoints() : tableStyle.RowSeparatorWidth.ToPoints();
             if (separatorColor is not null && separatorWidth > 0) {
                 pageDirty = true;
                 DrawTableHorizontalLine(sb, separatorColor.Value, separatorWidth, xTable, table.ColumnWidths, columnGap, rowBottom, GetRowSpanBoundarySkipColumns(tbColumn, rowIndex, table.Columns), emitGeneratedStructure);
             }
 
             if (tableStyle.CellBorders != null && tableStyle.CellBorders.Count > 0) {
-                double roundedOuterBorder = (tableStyle.BorderColor is not null && tableStyle.BorderWidth > 0) ? tableStyle.BorderWidth : 0D;
+                double roundedOuterBorder = (tableStyle.BorderColor is not null && tableStyle.BorderWidth.ToPoints() > 0) ? tableStyle.BorderWidth.ToPoints() : 0D;
                 double borderX = xTable;
                 for (int borderColumn = 0; borderColumn < table.Columns; borderColumn++) {
                     if (!table.SpanFlow.Contains(rowIndex, borderColumn) && tableStyle.CellBorders.TryGetValue((rowIndex, borderColumn), out PdfCellBorder? cellBorder) &&
@@ -592,10 +592,10 @@ internal static partial class PdfWriter {
             cornerRadius: tableCornerRadius, fullFrameHeight: Math.Max(0D, maxContentHeight - repeatHeaderHeight), closingPadding: closingPadding);
         if (pairedBorders != null) sb.Append(pairedBorders);
         if (rowIndex >= tbColumn.Rows.Count) {
-            if (tableStyle.SpacingAfter > 0 && tableStyle.SpacingAfter <= state.Remaining) {
-                state.Y -= tableStyle.SpacingAfter;
-                state.Remaining -= tableStyle.SpacingAfter;
-                state.Consumed += tableStyle.SpacingAfter;
+            if (tableStyle.SpacingAfter.ToPoints() > 0 && tableStyle.SpacingAfter.ToPoints() <= state.Remaining) {
+                state.Y -= tableStyle.SpacingAfter.ToPoints();
+                state.Remaining -= tableStyle.SpacingAfter.ToPoints();
+                state.Consumed += tableStyle.SpacingAfter.ToPoints();
             }
             state.Index++;
             state.Line = 0;

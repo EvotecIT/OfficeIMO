@@ -172,10 +172,10 @@ public partial class Word {
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, alternativeText: "Semantic import pixel")
             .PageBreak()
@@ -255,7 +255,7 @@ public partial class Word {
                 new[] { "A", "1" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 60D, 60D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(60D) }
             })
             .Canvas(canvas => canvas.Shape(shape, 165D, 140D))
             .ToBytes();
@@ -284,7 +284,7 @@ public partial class Word {
                 HeaderFill = null,
                 RowStripeFill = null,
                 FooterFill = null,
-                ColumnWidthPoints = new List<double?> { 60D, 60D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(60D) }
             })
             .ToBytes();
 
@@ -310,7 +310,7 @@ public partial class Word {
                 HeaderFill = null,
                 RowStripeFill = null,
                 FooterFill = null,
-                ColumnWidthPoints = new List<double?> { 60D, 60D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(60D) }
             })
             .ToBytes();
         byte[] rotated = PdfCore.PdfPageEditor.RotatePages(source, 90, 1);
@@ -343,7 +343,7 @@ public partial class Word {
                 HeaderFill = null,
                 RowStripeFill = null,
                 FooterFill = null,
-                ColumnWidthPoints = new List<double?> { 60D, 60D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(60D) }
             })
             .Canvas(canvas => canvas.Shape(shape, 80D, 115D))
             .ToBytes();
@@ -377,7 +377,7 @@ public partial class Word {
                 HeaderFill = null,
                 RowStripeFill = null,
                 FooterFill = null,
-                ColumnWidthPoints = new List<double?> { 60D, 60D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(60D) }
             })
             .Canvas(canvas => canvas.Shape(line, 50D, 115D))
             .ToBytes();

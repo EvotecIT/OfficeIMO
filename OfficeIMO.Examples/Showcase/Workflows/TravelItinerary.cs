@@ -17,7 +17,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                     new[] { "11:30", "Transfer to workshop venue", "City centre" },
                     new[] { "13:00", "Working lunch and introductions", "Northwind workshop room" },
                     new[] { "14:00", "Service mapping workshop", "Northwind workshop room" }
-                }, style: new PdfTableStyle { HeaderFill = navy, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderRowCount = 1, CellPaddingX = 9, CellPaddingY = 9, RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(241, 245, 249) })
+                }, style: new PdfTableStyle { HeaderFill = navy, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderRowCount = 1, CellPaddingX = global::OfficeIMO.OfficeLength.Points(9), CellPaddingY = global::OfficeIMO.OfficeLength.Points(9), RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(241, 245, 249) })
                 .H2("Thursday / departure", PdfAlign.Left, navy)
                 .Bullets(new[] { "09:00: review the agreed actions and owners.", "12:00: leave the venue with time for the airport transfer.", "15:10: illustrative return flight departure." })
                 .H2("Arrival and changes", PdfAlign.Left, navy)

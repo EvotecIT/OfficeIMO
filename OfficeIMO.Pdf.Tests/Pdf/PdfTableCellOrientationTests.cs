@@ -16,9 +16,9 @@ public sealed class PdfTableCellOrientationTests {
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.ColumnWidthPoints = new List<double?> { 20 };
-        style.FixedRowHeights = new List<double?> { 100 };
-        style.CellPaddingX = 2; style.CellPaddingY = 2;
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(20) };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(2); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2);
         var paragraphs = new[] { "ABCD", "EFGH", "IJKL", "MNOP", "QRST" }
             .Select(text => new PdfTableCellParagraph(new[] { PdfTextRun.Normal(text) },
                 fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(6)))).ToArray();
@@ -52,8 +52,8 @@ public sealed class PdfTableCellOrientationTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0; style.AutoFitColumns = true;
         style.AutoFitWidthUsesContentMinimum = true; style.AutoFitUnspecifiedWidthToContent = true;
-        style.FixedRowHeights = new List<double?> { 100 };
-        style.CellPaddingX = 2; style.CellPaddingY = 2;
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(2); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2);
         var first = new[] { new PdfTextRun("ABCD", fontSize: 12) };
         var second = new[] { new PdfTextRun("EFGH", fontSize: 36) };
         var paragraphs = new[] { new PdfTableCellParagraph(first, fontSize: 12),
@@ -85,8 +85,8 @@ public sealed class PdfTableCellOrientationTests {
         style.HeaderRowCount = 0; style.AutoFitColumns = true;
         style.AutoFitWidthUsesContentMinimum = true;
         style.AutoFitUnspecifiedWidthToContent = true;
-        style.CellPaddingX = 2; style.CellPaddingY = 2;
-        style.FixedRowHeights = new List<double?> { 100 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(2); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2);
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) };
         var cell = new PdfTableCell(new[] { PdfTextRun.Normal("ABCDEFGHIJKLMNOPQRSTUVWXYZ") },
             paragraphs: null, textRotation: rotation, linkUri: "https://example.com/turned-width");
         var cells = new[] { new[] { cell } };
@@ -114,8 +114,8 @@ public sealed class PdfTableCellOrientationTests {
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9) };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = 2; style.CellPaddingY = 2;
-        style.ColumnWidthPoints = new List<double?> { 60, null };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(2); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), null };
         var turned = new PdfTableCell(new[] { PdfTextRun.Normal("TURNED") }, paragraphs: null,
             linkUri: "https://example.com/turned", textRotation: rotation,
             images: new[] { new PdfTableCellImage(PdfPngTestImages.CreateRgbPng(2, 2), 12, 12) });
@@ -149,12 +149,12 @@ public sealed class PdfTableCellOrientationTests {
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
             MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24) };
         var style = PdfTableStyles.Minimal();
-        style.HeaderRowCount = 0; style.FontSize = 12;
+        style.HeaderRowCount = 0; style.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         style.ShrinkTextToFit = true;
-        style.ColumnWidthPoints = new List<double?> { 100 };
-        style.FixedRowHeights = new List<double?> { 80 };
-        style.CellPaddingX = 4; style.CellPaddingY = 4;
-        style.SpacingBefore = 0; style.SpacingAfter = 0;
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80) };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         var cells = new[] { new[] { new PdfTableCell(new[] { new PdfTextRun("ABCD", fontSize: 48) },
             paragraphs: null, textRotation: -90) } };
         PdfDocument document = PdfDocument.Create(options);
@@ -181,10 +181,10 @@ public sealed class PdfTableCellOrientationTests {
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.ColumnWidthPoints = new List<double?> { 100 };
-        style.FixedRowHeights = new List<double?> { 80 };
-        style.CellPaddingX = 4; style.CellPaddingY = 4;
-        style.SpacingBefore = 0; style.SpacingAfter = 0;
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80) };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         var cell = new PdfTableCell(new[] { PdfTextRun.Normal("ABCD") }, paragraphs: null, textRotation: rotation)
             .WithNoWrap().WithNamedDestination("turned-cell")
             .WithViewport(new PdfTableCellViewport(100, 80, 100, 80));

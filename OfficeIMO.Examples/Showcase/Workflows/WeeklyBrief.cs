@@ -38,7 +38,7 @@ internal static class WeeklyBrief {
                 new[] { "Review pilot expansion", "Product", "Friday" }
             }, style: new PdfTableStyle {
                 HeaderFill = navy, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderRowCount = 1,
-                RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(241, 245, 249), CellPaddingX = 8, CellPaddingY = 8
+                RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(241, 245, 249), CellPaddingX = global::OfficeIMO.OfficeLength.Points(8), CellPaddingY = global::OfficeIMO.OfficeLength.Points(8)
             })
             .Paragraph(p => p.Text("Prepared from sample data. Keep the brief focused on decisions and actions."))),
             options)

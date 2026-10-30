@@ -24,8 +24,8 @@ internal sealed class ContainerBlock : IPdfBlock {
     internal ContainerBlock(TableBlock table) {
         PdfTableStyle source = table.Style!;
         PdfTableBorderFrame frame = source.BorderFrame!;
-        FrameTableIndent = source.LeftIndent;
-        FrameTableHorizontalOffset = source.HorizontalOffset;
+        FrameTableIndent = source.LeftIndent.ToPoints();
+        FrameTableHorizontalOffset = source.HorizontalOffset.ToPoints();
         FrameTableBorder = frame.Border?.Clone();
         FrameTableBorderInset = frame.HorizontalInset;
         FrameTableContinuationBottomPadding = frame.Spacing / 2D +
@@ -42,7 +42,7 @@ internal sealed class ContainerBlock : IPdfBlock {
             ContinuationPaddingTopOverride = (repeatsHeader ? frame.Spacing : frame.Spacing / 2D) + topBorderThickness,
             PaddingBottomOverride = frame.Spacing + (frame.Border?.Bottom == true ? frame.Border.BottomBorderSnapshot?.PaintThickness ?? 0D : 0D),
             FragmentBottomInset = frame.Spacing + (frame.Border?.Bottom == true ? frame.Border.BottomBorderSnapshot?.PaintThickness ?? 0D : 0D),
-            SpacingBefore = source.SpacingBefore, SpacingAfter = source.SpacingAfter,
+            SpacingBefore = source.SpacingBefore.ToPoints(), SpacingAfter = source.SpacingAfter.ToPoints(),
             KeepTogether = source.KeepTogether, KeepWithNext = source.KeepWithNext
         };
         if (frame.ReserveCellBorderOutsets) {
@@ -59,9 +59,9 @@ internal sealed class ContainerBlock : IPdfBlock {
         }
         PdfTableStyle innerStyle = source.Clone();
         innerStyle.BorderFrame = null;
-        innerStyle.LeftIndent = 0D;
-        innerStyle.HorizontalOffset = 0D;
-        innerStyle.SpacingBefore = innerStyle.SpacingAfter = 0D;
+        innerStyle.LeftIndent = global::OfficeIMO.OfficeLength.Points(0D);
+        innerStyle.HorizontalOffset = global::OfficeIMO.OfficeLength.Points(0D);
+        innerStyle.SpacingBefore = innerStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         innerStyle.KeepTogether = innerStyle.KeepWithNext = false;
         FrameTable = new TableBlock(table.Cells.Select(row => row.ToArray()), table.Align, innerStyle);
         foreach (var link in table.Links) FrameTable.AddLink(link.Key, link.Value);

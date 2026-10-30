@@ -131,7 +131,7 @@ public sealed class PdfGeneratedAccessibilityTests {
         options.PageHeight = global::OfficeIMO.OfficeLength.Points(240);
         options.MarginLeft = options.MarginRight = options.MarginTop = options.MarginBottom = global::OfficeIMO.OfficeLength.Points(40);
         var style = new PdfTableStyle {
-            HeaderRowCount = 0, ColumnWidthPoints = new List<double?> { 320 }, MinRowHeight = 150,
+            HeaderRowCount = 0, ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(320) }, MinRowHeight = global::OfficeIMO.OfficeLength.Points(150),
             Position = new PdfTablePosition()
         };
         byte[] bytes = PdfDocument.Create(options).Meta(title: "Floating target")

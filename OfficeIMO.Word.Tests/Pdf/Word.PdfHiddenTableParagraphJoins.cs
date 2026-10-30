@@ -104,7 +104,7 @@ public partial class Word {
         table.Rows[0].Cells[0].AddParagraph("MARGIN", removeExistingParagraphs: true);
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
         using var pdf = OpenJoinedParagraphPdf(document);
-        Assert.Equal(5.4D, CreateNativeTableStyleForTest(document.Tables[0]).CellPaddingLeft);
+        Assert.Equal(5.4D, CreateNativeTableStyleForTest(document.Tables[0]).CellPaddingLeft?.ToPoints());
         double expectedX = nativeDoc ? 72D : 77.4D;
         Assert.InRange(pdf.GetPage(1).Letters.First(letter => letter.Value == "M").StartBaseLine.X, expectedX - .1D, expectedX + .1D);
     }
@@ -142,7 +142,7 @@ public partial class Word {
         WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid); table._tableProperties!.TableStyle = null;
         table.Rows[0].Cells[0].AddParagraph("MARGIN", removeExistingParagraphs: true);
         var options = new WordPdfExportOptions { IncludePageNumbers = false,
-            PdfOptions = new PdfCreateOptions { DefaultTableStyle = new PdfTableStyle { CellPaddingLeft = 20D } } };
+            PdfOptions = new PdfCreateOptions { DefaultTableStyle = new PdfTableStyle { CellPaddingLeft = global::OfficeIMO.OfficeLength.Points(20D) } } };
         using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.InRange(pdf.GetPage(1).Letters.First(letter => letter.Value == "M").StartBaseLine.X, 91.9D, 92.1D);
     }
@@ -162,7 +162,7 @@ public partial class Word {
         WordParagraph alpha = table.Rows[0].Cells[0].AddParagraph("ALPHA", removeExistingParagraphs: true); HideJoinMark(alpha, true);
         table.Rows[0].Cells[0].AddParagraph("BETA");
         var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false,
-            PdfOptions = new PdfCreateOptions { DefaultTableStyle = new PdfTableStyle { FontSize = 18D } } });
+            PdfOptions = new PdfCreateOptions { DefaultTableStyle = new PdfTableStyle { FontSize = global::OfficeIMO.OfficeLength.Points(18D) } } });
         Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-hidden-paragraph-join-unsupported");
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
@@ -235,7 +235,7 @@ public partial class Word {
         table.Rows[0].Cells[1].MarginLeft = global::OfficeIMO.OfficeLength.Zero;
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
         var options = new WordPdfExportOptions { IncludePageNumbers = false };
-        if (configuredPdf) options.PdfOptions = new PdfCreateOptions { DefaultTableStyle = new PdfTableStyle { CellPaddingLeft = 20D } };
+        if (configuredPdf) options.PdfOptions = new PdfCreateOptions { DefaultTableStyle = new PdfTableStyle { CellPaddingLeft = global::OfficeIMO.OfficeLength.Points(20D) } };
         using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var margin = pdf.GetPage(1).Letters.First(letter => letter.Value == "M");
         double expectedX = configuredPdf ? 92D : nativeDoc ? 72D : 77.4D;
@@ -270,7 +270,7 @@ public partial class Word {
             Assert.Equal((short)60, checked((short?)(cell.MarginTop?.ToTwips())));
         }
         var options = new WordPdfExportOptions { IncludePageNumbers = false };
-        if (configuredPdf) options.PdfOptions = new PdfCreateOptions { DefaultTableStyle = new PdfTableStyle { CellPaddingLeft = 20D } };
+        if (configuredPdf) options.PdfOptions = new PdfCreateOptions { DefaultTableStyle = new PdfTableStyle { CellPaddingLeft = global::OfficeIMO.OfficeLength.Points(20D) } };
         using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         double expectedX = nativeDoc && !configuredPdf ? 72D : 84D;
         Assert.InRange(pdf.GetPage(1).Letters.First(letter => letter.Value == "M").StartBaseLine.X, expectedX - .1D, expectedX + .1D);

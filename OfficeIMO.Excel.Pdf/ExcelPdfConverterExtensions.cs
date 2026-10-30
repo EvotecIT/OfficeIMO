@@ -80,8 +80,8 @@ namespace OfficeIMO.Excel.Pdf {
                                     int[] pageRows = Enumerable.Range(0, chunk.RowIndexes.Count).ToArray();
                                     PdfCore.PdfTableStyle tableStyle = CreateTableStyle(options, plan.PageSetup, pageRows, chunk.HeaderRowCount, data.Styles, data.ConditionalFills, data.CellReferences, data.StructuredTables, data.ColumnWidths, data.RowHeights, 0, chunk.ColumnIndexes.Count);
                                     ApplyGeneralCellAlignments(tableStyle, data.Values, pageRows);
-                                    double originalFontSize = CreateBaseTableStyle(options).FontSize ?? GetDefaultTableFontSize(options);
-                                    double cellFontScale = (tableStyle.FontSize ?? originalFontSize) / originalFontSize;
+                                    double originalFontSize = CreateBaseTableStyle(options).FontSize?.ToPoints() ?? GetDefaultTableFontSize(options);
+                                    double cellFontScale = (tableStyle.FontSize?.ToPoints() ?? originalFontSize) / originalFontSize;
                                     if (chunkIndex > 0) {
                                         item.PageBreak();
                                     }

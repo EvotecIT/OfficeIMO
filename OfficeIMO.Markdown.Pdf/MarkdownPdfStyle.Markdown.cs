@@ -50,9 +50,9 @@ public sealed partial class MarkdownPdfStyle {
         tableStyle.HeaderTextColor = table.EmphasizeHeader ? ToPdfColorOrNull(palette.TableHeaderText) : null;
         tableStyle.TextColor = text;
         tableStyle.RowStripeFill = table.UseRowStripes ? ToPdfColorOrNull(palette.TableStripeBackground) : null;
-        tableStyle.BorderWidth = table.BorderWidth;
-        tableStyle.CellPaddingX = table.CellPaddingX;
-        tableStyle.CellPaddingY = table.CellPaddingY;
+        tableStyle.BorderWidth = global::OfficeIMO.OfficeLength.Points(table.BorderWidth);
+        tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(table.CellPaddingX);
+        tableStyle.CellPaddingY = global::OfficeIMO.OfficeLength.Points(table.CellPaddingY);
         pdfTheme.TableStyle = tableStyle;
 
         PdfCore.PdfTableStyle frontMatterStyle = pdfTheme.FrontMatterTableStyleSnapshot;

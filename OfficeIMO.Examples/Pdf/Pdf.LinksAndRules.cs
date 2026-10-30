@@ -28,15 +28,15 @@ namespace OfficeIMO.Examples.Pdf {
                 TextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
                 RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                 BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 218, 226),
-                BorderWidth = 0.5,
-                CellPaddingX = 6,
-                CellPaddingY = 5,
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
                 Caption = "Table 1. Linked resources",
                 CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(80, 90, 100),
-                CaptionFontSize = 8.5,
-                CaptionSpacingAfter = 5,
-                SpacingBefore = 6,
-                SpacingAfter = 12
+                CaptionFontSize = global::OfficeIMO.OfficeLength.Points(8.5),
+                CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(5),
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(6),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(12)
             };
 
             PdfDocument.Create(pdf => pdf.Content(content => content

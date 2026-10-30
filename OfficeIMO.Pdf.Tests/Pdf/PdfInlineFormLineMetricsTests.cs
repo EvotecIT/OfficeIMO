@@ -87,8 +87,8 @@ public sealed class PdfInlineFormLineMetricsTests {
         else {
             var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: 10, lineSpacing: spacing) });
             var tableStyle = PdfTableStyles.Minimal();
-            tableStyle.HeaderRowCount = 0; tableStyle.FontSize = 10;
-            tableStyle.CellPaddingX = 0; tableStyle.CellPaddingY = 0; tableStyle.SpacingBefore = 0;
+            tableStyle.HeaderRowCount = 0; tableStyle.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+            tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0); tableStyle.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0); tableStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0);
             document.Table(new[] { new[] { cell } }, style: tableStyle);
         }
         return document.ToBytes();

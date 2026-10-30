@@ -17,7 +17,7 @@ public partial class PdfPageFootnoteTests {
             var style = FootnoteTableStyle();
             style.MinimumBodyRowsOnFirstPage = 0;
             style.MinimumBodyRowsOnLastPage = 0;
-            style.ColumnWidthPoints = new() { 110D, 110D };
+            style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(110D), global::OfficeIMO.OfficeLength.Points(110D) };
             document.Content.Table(new[] {
                 new[] {
                     new PdfTableCell(string.Join("\n", Enumerable.Range(1, 6).Select(index => "Prefix" + index.ToString("00"))), rowSpan: 2),

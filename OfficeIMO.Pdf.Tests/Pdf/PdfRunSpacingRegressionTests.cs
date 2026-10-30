@@ -129,7 +129,7 @@ public sealed class PdfRunSpacingRegressionTests {
         }
         var document = PdfDocument.Create(options);
         if (table) document.Table(new[] { new[] { PdfTableCell.RichTextCell(new[] { first, last }) } },
-            style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = 0D, CellPaddingY = 0D });
+            style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D) });
         else document.Paragraph(p => p.Runs(new[] { first, last }));
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         var lines = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value))

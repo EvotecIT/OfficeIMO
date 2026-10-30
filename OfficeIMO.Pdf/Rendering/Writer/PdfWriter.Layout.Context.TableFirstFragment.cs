@@ -32,7 +32,7 @@ internal static partial class PdfWriter {
             }
             return GetTableRowFootnoteSegments(table, style, rows, columns, columnLayout.Widths, gap, gap,
                 spans, 0, 0, count, y, firstHeight, currentOpts.MarginLeft.ToPoints(),
-                GetMeasuredContinuationFrameHeight(), GetClosingTextPadding(style.SpacingAfter));
+                GetMeasuredContinuationFrameHeight(), GetClosingTextPadding(style.SpacingAfter.ToPoints()));
         }
 
         /// <summary>Preflights a breakable first row at its first legal cell boundary instead of requiring the entire row.</summary>

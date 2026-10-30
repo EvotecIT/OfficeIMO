@@ -14,10 +14,10 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfCore.PdfTableStyle style, double width, double height, int slideNumber, PowerPointPdfExportOptions options) {
         Func<string?, double, string?, OfficeFontStyle, double> measure = options.NativeTextMeasure
             ?? OfficeDrawingTextLayout.CreateMetrics(null).MeasureText;
-        double gap = style.CellSpacing;
+        double gap = style.CellSpacing.ToPoints();
         if (width <= Math.Max(0, table.Columns - 1) * gap || height <= Math.Max(0, table.Rows - 1) * gap) return height;
-        double[] widths = NormalizeTableLayoutSegments(style.ColumnWidthPoints!, width - Math.Max(0, table.Columns - 1) * gap);
-        double[] heights = NormalizeTableLayoutSegments(style.RowMinHeights!, height - Math.Max(0, table.Rows - 1) * gap);
+        double[] widths = NormalizeTableLayoutSegments(style.ColumnWidths?.ConvertAll(static length => length?.ToPoints())!, width - Math.Max(0, table.Columns - 1) * gap);
+        double[] heights = NormalizeTableLayoutSegments(style.RowMinHeights?.ConvertAll(static length => length?.ToPoints())!, height - Math.Max(0, table.Rows - 1) * gap);
         bool reportedFit = false;
         var cellIndexes = new int[rows.Count];
         foreach (var anchor in table.EnumerateAnchorCells()) {
@@ -32,15 +32,15 @@ public static partial class PowerPointPdfConverterExtensions {
             for (int index = column; index < columnEnd; index++) cellWidth += widths[index];
             PdfCore.PdfCellPadding? padding = null;
             style.CellPaddings?.TryGetValue((row, column), out padding);
-            double left = padding?.Left ?? style.CellPaddingLeft ?? style.CellPaddingX;
-            double right = padding?.Right ?? style.CellPaddingRight ?? style.CellPaddingX;
-            double top = padding?.Top ?? style.CellPaddingTop ?? style.CellPaddingY;
-            double bottom = padding?.Bottom ?? style.CellPaddingBottom ?? style.CellPaddingY;
+            double left = padding?.Left?.ToPoints() ?? style.CellPaddingLeft?.ToPoints() ?? style.CellPaddingX.ToPoints();
+            double right = padding?.Right?.ToPoints() ?? style.CellPaddingRight?.ToPoints() ?? style.CellPaddingX.ToPoints();
+            double top = padding?.Top?.ToPoints() ?? style.CellPaddingTop?.ToPoints() ?? style.CellPaddingY.ToPoints();
+            double bottom = padding?.Bottom?.ToPoints() ?? style.CellPaddingBottom?.ToPoints() ?? style.CellPaddingY.ToPoints();
             // Leave the original diagnostic path active for impossible margins.
             double innerWidth = Math.Max(1D, cellWidth - left - right);
-            double fontSize = row < style.HeaderRowCount ? style.HeaderFontSize ?? style.FontSize ?? 18D
-                : row >= table.Rows - style.FooterRowCount ? style.FooterFontSize ?? style.FontSize ?? 18D
-                : style.FontSize ?? 18D;
+            double fontSize = row < style.HeaderRowCount ? style.HeaderFontSize?.ToPoints() ?? style.FontSize?.ToPoints() ?? 18D
+                : row >= table.Rows - style.FooterRowCount ? style.FooterFontSize?.ToPoints() ?? style.FontSize?.ToPoints() ?? 18D
+                : style.FontSize?.ToPoints() ?? 18D;
             bool rowBold = row < style.HeaderRowCount ? style.HeaderBold : row >= table.Rows - style.FooterRowCount && style.FooterBold;
             OfficeRichTextRun[] runs = CreateTableLayoutRuns(cell.Runs, fontSize, rowBold, options);
             string text = string.Concat(runs.Select(run => run.Text));
@@ -49,7 +49,7 @@ public static partial class PowerPointPdfConverterExtensions {
             bool fittedLabel = false;
             if (!string.IsNullOrWhiteSpace(text) && !text.Any(char.IsWhiteSpace)) {
                 double textWidth = runs.Sum(run => measure(run.Text, run.FontSize, run.FontFamily, run.FontStyle));
-                double minimumSize = style.MinimumShrinkFontSize ?? 6D;
+                double minimumSize = style.MinimumShrinkFontSize?.ToPoints() ?? 6D;
                 double minimumWidth = runs.Sum(run => measure(run.Text, Math.Min(run.FontSize, minimumSize), run.FontFamily, run.FontStyle));
                 if (textWidth > innerWidth + .01D && minimumWidth <= innerWidth) {
                     rows[row][cellIndex] = cell.WithShrinkTextToFit();
@@ -67,8 +67,8 @@ public static partial class PowerPointPdfConverterExtensions {
             for (int index = row; index < rowEnd; index++) available += heights[index];
             if (required > available) heights[rowEnd - 1] += required - available;
         }
-        style.RowMinHeights = heights.Select(value => (double?)value).ToList();
-        if (style.FixedRowHeights != null) style.FixedRowHeights = new List<double?>(style.RowMinHeights);
+        style.RowMinHeights = (heights.Select(value => (double?)value).ToList()) is { } lengths4814 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths4814, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
+        if (style.FixedRowHeights != null) style.FixedRowHeights = style.RowMinHeights;
         return heights.Sum() + Math.Max(0, table.Rows - 1) * gap;
     }
 

@@ -22,17 +22,17 @@ namespace OfficeIMO.Examples.Pdf {
                 FooterTextColor = global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85),
                 RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                 BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 218, 226),
-                BorderWidth = 0.5,
-                CellPaddingX = 6,
-                CellPaddingY = 5,
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
                 HeaderRowCount = 1,
                 FooterRowCount = 1,
                 Caption = "Table 1. Example line items",
                 CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(80, 90, 100),
-                CaptionFontSize = 8.5,
-                CaptionSpacingAfter = 5,
-                SpacingBefore = 6,
-                SpacingAfter = 14,
+                CaptionFontSize = global::OfficeIMO.OfficeLength.Points(8.5),
+                CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(5),
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(6),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(14),
                 RightAlignNumeric = true,
                 Alignments = new List<PdfColumnAlign> {
                     PdfColumnAlign.Left,
@@ -41,7 +41,7 @@ namespace OfficeIMO.Examples.Pdf {
                     PdfColumnAlign.Right,
                     PdfColumnAlign.Left
                 },
-                ColumnWidthPoints = new List<double?> { 110, 38, 58, 68, 170 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(110), global::OfficeIMO.OfficeLength.Points(38), global::OfficeIMO.OfficeLength.Points(58), global::OfficeIMO.OfficeLength.Points(68), global::OfficeIMO.OfficeLength.Points(170) },
                 AutoFitColumns = false
             };
 

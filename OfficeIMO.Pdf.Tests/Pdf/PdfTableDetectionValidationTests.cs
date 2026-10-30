@@ -37,7 +37,7 @@ public sealed class PdfTableDetectionValidationTests {
             }, style: new PdfTableStyle {
                 HeaderBold = false,
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 220D, 220D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(220D) }
             })
             .ToBytes();
 
@@ -57,7 +57,7 @@ public sealed class PdfTableDetectionValidationTests {
             }, style: new PdfTableStyle {
                 HeaderBold = false,
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 220D, 220D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(220D) }
             })
             .ToBytes();
 
@@ -77,7 +77,7 @@ public sealed class PdfTableDetectionValidationTests {
             }, style: new PdfTableStyle {
                 HeaderBold = false,
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 220D, 220D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(220D) }
             })
             .ToBytes();
 
@@ -97,7 +97,7 @@ public sealed class PdfTableDetectionValidationTests {
             }, style: new PdfTableStyle {
                 HeaderBold = false,
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 140D, 140D, 140D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(140D) }
             })
             .ToBytes();
 
@@ -393,7 +393,7 @@ public sealed class PdfTableDetectionValidationTests {
             }, style: new PdfTableStyle {
                 HeaderRowCount = 1,
                 HeaderBold = false,
-                ColumnWidthPoints = new List<double?> { 220D, 220D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(220D) }
             })
             .Paragraph(paragraph => paragraph.Text(narrative))
             .Table(new[] {
@@ -403,7 +403,7 @@ public sealed class PdfTableDetectionValidationTests {
             }, style: new PdfTableStyle {
                 HeaderRowCount = 1,
                 HeaderBold = false,
-                ColumnWidthPoints = new List<double?> { 220D, 220D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(220D) }
             })
             .ToBytes();
 
@@ -479,7 +479,7 @@ public sealed class PdfTableDetectionValidationTests {
             }, style: new PdfTableStyle {
                 HeaderBold = false,
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 220D, 220D },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(220D) },
                 CellAlignments = cellAlignments
             })
             .ToBytes();

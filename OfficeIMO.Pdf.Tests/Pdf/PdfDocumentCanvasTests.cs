@@ -1313,13 +1313,13 @@ public class PdfDocumentCanvasTests {
         var style = new PdfTableStyle {
             HeaderRowCount = 1,
             RowStripeFill = null,
-            ColumnWidthPoints = new System.Collections.Generic.List<double?> { 70D, 50D },
-            RowMinHeights = new System.Collections.Generic.List<double?> { 24D, 36D },
+            ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(50D) },
+            RowMinHeights = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(24D), global::OfficeIMO.OfficeLength.Points(36D) },
             CellFills = new System.Collections.Generic.Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
                 [(1, 1)] = global::OfficeIMO.OfficeColor.FromRgb(230, 245, 255)
             },
             CellPaddings = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellPadding> {
-                [(1, 1)] = new PdfCellPadding { Left = 8D, Right = 8D, Top = 4D, Bottom = 4D }
+                [(1, 1)] = new PdfCellPadding { Left = global::OfficeIMO.OfficeLength.Points(8D), Right = global::OfficeIMO.OfficeLength.Points(8D), Top = global::OfficeIMO.OfficeLength.Points(4D), Bottom = global::OfficeIMO.OfficeLength.Points(4D) }
             },
             CellAlignments = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign> {
                 [(1, 1)] = PdfColumnAlign.Center
@@ -1421,10 +1421,10 @@ public class PdfDocumentCanvasTests {
                 80,
                 22,
                 new PdfTableStyle {
-                    RowMinHeights = new List<double?> { 22D },
-                    ColumnWidthPoints = new List<double?> { 80D },
+                    RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(22D) },
+                    ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80D) },
                     CellPaddings = new Dictionary<(int Row, int Column), PdfCellPadding> {
-                        [(0, 0)] = new PdfCellPadding { Left = 2D, Right = 2D, Top = 2D, Bottom = 2D }
+                        [(0, 0)] = new PdfCellPadding { Left = global::OfficeIMO.OfficeLength.Points(2D), Right = global::OfficeIMO.OfficeLength.Points(2D), Top = global::OfficeIMO.OfficeLength.Points(2D), Bottom = global::OfficeIMO.OfficeLength.Points(2D) }
                     }
                 },
                 rotationAngle: 0D,
@@ -1483,9 +1483,9 @@ public class PdfDocumentCanvasTests {
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas.Table(rows, 24, 24, 120, 86, new PdfTableStyle {
-                RowMinHeights = new System.Collections.Generic.List<double?> { 86D },
-                CellPaddingX = 6D,
-                CellPaddingY = 6D
+                RowMinHeights = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(86D) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6D),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(6D)
             }))
             .ToBytes();
 
@@ -1515,9 +1515,9 @@ public class PdfDocumentCanvasTests {
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas.Table(rows, 24, 24, 120, 86, new PdfTableStyle {
-                RowMinHeights = new System.Collections.Generic.List<double?> { 86D },
-                CellPaddingX = 6D,
-                CellPaddingY = 6D
+                RowMinHeights = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(86D) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6D),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(6D)
             }, rotationAngle: 90D))
             .ToBytes();
 
@@ -1550,9 +1550,9 @@ public class PdfDocumentCanvasTests {
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas.Clip(50, 24, 34, 86, clipped => clipped.Table(rows, 24, 24, 120, 86, new PdfTableStyle {
-                RowMinHeights = new System.Collections.Generic.List<double?> { 86D },
-                CellPaddingX = 6D,
-                CellPaddingY = 6D
+                RowMinHeights = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(86D) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6D),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(6D)
             })))
             .ToBytes();
 
@@ -1786,8 +1786,8 @@ public class PdfDocumentCanvasTests {
             }, 30, 30, 120, 60, new PdfTableStyle {
                 HeaderRowCount = 0,
                 RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(220, 235, 250),
-                ColumnWidthPoints = new System.Collections.Generic.List<double?> { 60D, 60D },
-                RowMinHeights = new System.Collections.Generic.List<double?> { 30D, 30D }
+                ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(60D) },
+                RowMinHeights = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(30D) }
             }))
             .ToBytes();
 

@@ -528,7 +528,7 @@ internal static partial class PdfWriter {
                 }
 
                 TableCellContentFrame frame = GetTableCellContentFrame(cell, cellX, cellBottom + cellHeight, cellWidth, cellHeight);
-                double iconSize = Math.Min(icon.Size, Math.Max(1D, Math.Min(frame.Width, frame.Height) - 2D));
+                double iconSize = Math.Min(icon.Size.ToPoints(), Math.Max(1D, Math.Min(frame.Width, frame.Height) - 2D));
                 if (iconSize > 0.001D) {
                     double padLeft = GetTableCellPaddingLeft(style, rowIndex, column);
                     double padRight = GetTableCellPaddingRight(style, rowIndex, column);
@@ -553,8 +553,8 @@ internal static partial class PdfWriter {
                         _ => contentTop - iconSize
                     };
 
-                    iconX += icon.OffsetX;
-                    iconY += icon.OffsetY;
+                    iconX += icon.OffsetX.ToPoints();
+                    iconY += icon.OffsetY.ToPoints();
                     if (cell.Viewport == null || iconX + iconSize > cellX && iconX < cellX + cellWidth && iconY + iconSize > cellBottom && iconY < cellBottom + cellHeight) {
                         if (cell.Viewport != null) new ContentStreamBuilder(sb).SaveState().Rectangle(cellX, cellBottom, cellWidth, cellHeight).ClipPath().EndPath();
                         DrawTableCellIcon(sb, icon, iconX, iconY, iconSize, artifact);
@@ -667,11 +667,11 @@ internal static partial class PdfWriter {
 
     private static double GetTableRowFontSize(PdfTableStyle style, int rowIndex, int headerRowCount, int footerStartRowIndex, double defaultFontSize) {
         if (rowIndex < headerRowCount) {
-            return style.HeaderFontSize ?? GetTableBodyFontSize(style, defaultFontSize);
+            return style.HeaderFontSize?.ToPoints() ?? GetTableBodyFontSize(style, defaultFontSize);
         }
 
         if (rowIndex >= footerStartRowIndex) {
-            return style.FooterFontSize ?? GetTableBodyFontSize(style, defaultFontSize);
+            return style.FooterFontSize?.ToPoints() ?? GetTableBodyFontSize(style, defaultFontSize);
         }
 
         return GetTableBodyFontSize(style, defaultFontSize);

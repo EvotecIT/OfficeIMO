@@ -70,7 +70,7 @@ public class PowerPointPdfTableImportTests {
                 new[] { "Validated", "Yes" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 160, 90 }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(90) }
             })
             .ToBytes();
 
@@ -445,9 +445,9 @@ public class PowerPointPdfTableImportTests {
                 new[] { "B-200", "14" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 180, 80 },
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(80) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
 
@@ -549,7 +549,7 @@ public class PowerPointPdfTableImportTests {
                 new[] { "B-200", "14" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 140, 80 }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(140), global::OfficeIMO.OfficeLength.Points(80) }
             })
             .ToBytes();
         byte[] rotated = PdfCore.PdfPageEditor.RotatePages(source, rotation, 1);
@@ -613,13 +613,13 @@ public class PowerPointPdfTableImportTests {
                 new[] { "Code", "Qty" },
                 new[] { "A-100", "2" },
                 new[] { "B-200", "14" }
-            }, style: new PdfCore.PdfTableStyle { HeaderRowCount = 1, ColumnWidthPoints = new List<double?> { 140, 80 } })
+            }, style: new PdfCore.PdfTableStyle { HeaderRowCount = 1, ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(140), global::OfficeIMO.OfficeLength.Points(80) } })
             .PageBreak()
             .Table(new[] {
                 new[] { "Name", "Total" },
                 new[] { "Alpha", "20" },
                 new[] { "Beta", "30" }
-            }, style: new PdfCore.PdfTableStyle { HeaderRowCount = 1, ColumnWidthPoints = new List<double?> { 140, 80 } })
+            }, style: new PdfCore.PdfTableStyle { HeaderRowCount = 1, ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(140), global::OfficeIMO.OfficeLength.Points(80) } })
             .ToBytes();
 
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
@@ -648,10 +648,10 @@ public class PowerPointPdfTableImportTests {
                 new[] { "R3C1", "R3C2", "R3C3", "R3C4" },
                 new[] { "R4C1", "R4C2", "R4C3", "R4C4" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 80, 80, 80, 80 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(80) },
                 HeaderRowCount = 1,
-                CellPaddingX = 4,
-                CellPaddingY = 3
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(4),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(3)
             })
             .ToBytes();
         var options = PowerPointPdfImportOptions.CreateHybrid();
@@ -714,7 +714,7 @@ public class PowerPointPdfTableImportTests {
                 new[] { "R2C1", "R2C2" },
                 new[] { "R3C1", "R3C2" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 120, 120 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(120) },
                 HeaderRowCount = 1
             })
             .ToBytes();
@@ -751,9 +751,9 @@ public class PowerPointPdfTableImportTests {
                 new[] { "B-200", "14" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 100, 60 },
-                CellPaddingX = 4,
-                CellPaddingY = 3
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(60) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(4),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(3)
             })
             .ToBytes();
         PdfCore.PdfDocument resized = PdfCore.PdfDocument.Load(source).Pages.SetMediaBox(0, 0, 240, 420, 2);
@@ -804,7 +804,7 @@ public class PowerPointPdfTableImportTests {
                 new[] { "B-200", "14" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 180, 80 }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(80) }
             })
             .ToBytes();
         var options = PowerPointPdfImportOptions.CreateHybrid();
@@ -1042,10 +1042,10 @@ public class PowerPointPdfTableImportTests {
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
 
@@ -1145,10 +1145,10 @@ public class PowerPointPdfTableImportTests {
                 new[] { "Code", "Qty" },
                 new[] { "A-100", "2" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 150, 80 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(80) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
 
@@ -1190,9 +1190,9 @@ public class PowerPointPdfTableImportTests {
                 new[] { "Metric", "Value" },
                 new[] { "Large", "24 pt" }
             }, style: new PdfCore.PdfTableStyle {
-                FontSize = 24,
-                HeaderFontSize = 24,
-                ColumnWidthPoints = new List<double?> { 150, 100 },
+                FontSize = global::OfficeIMO.OfficeLength.Points(24),
+                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(24),
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(100) },
                 HeaderRowCount = 1
             })
             .ToBytes();
@@ -1232,9 +1232,9 @@ public class PowerPointPdfTableImportTests {
                 PdfCore.PdfKeyValueRow.Text("Customer", "Evotec"),
                 PdfCore.PdfKeyValueRow.Text("Due", "2026-06-30")
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 120, 170 },
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(170) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .PageBreak()
             .Paragraph(p => p.Text("No table on this page."))
@@ -1296,10 +1296,10 @@ public class PowerPointPdfTableImportTests {
             .Table(new[] {
                 new[] { "Code", "Name" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 90, 150 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(150) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
 
@@ -1337,10 +1337,10 @@ public class PowerPointPdfTableImportTests {
                 new[] { "R3C1", "R3C2", "R3C3", "R3C4" },
                 new[] { "R4C1", "R4C2", "R4C3", "R4C4" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 80, 80, 80, 80 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(80) },
                 HeaderRowCount = 1,
-                CellPaddingX = 4,
-                CellPaddingY = 3
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(4),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(3)
             })
             .ToBytes();
 
@@ -1406,9 +1406,9 @@ public class PowerPointPdfTableImportTests {
             .Table(rows, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 2,
                 RepeatHeaderRowCount = 2,
-                ColumnWidthPoints = new List<double?> { 120, 120 },
-                CellPaddingX = 5,
-                CellPaddingY = 3
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(120) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(5),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(3)
             })
             .ToBytes();
 

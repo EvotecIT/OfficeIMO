@@ -8,9 +8,9 @@ public partial class PdfTableStyle {
     private PdfAlign _captionAlign = PdfAlign.Left;
     private System.Collections.Generic.List<PdfColumnAlign>? _alignments;
     private System.Collections.Generic.List<PdfCellVerticalAlign>? _verticalAlignments;
-    private System.Collections.Generic.List<double?>? _columnWidthPoints;
-    private System.Collections.Generic.List<double?>? _columnMinWidthPoints;
-    private System.Collections.Generic.List<double?>? _columnMaxWidthPoints;
+    private System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>? _columnWidths;
+    private System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>? _columnMinWidths;
+    private System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>? _columnMaxWidths;
     private System.Collections.Generic.List<double>? _columnWidthWeights;
     private System.Collections.Generic.List<global::OfficeIMO.OfficeColor?>? _bodyColumnFills;
     private System.Collections.Generic.Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>? _cellFills;
@@ -20,40 +20,40 @@ public partial class PdfTableStyle {
     private System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellPadding>? _cellPaddings;
     private System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign>? _cellAlignments;
     private System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellVerticalAlign>? _cellVerticalAlignments;
-    private System.Collections.Generic.List<double?>? _rowMinHeights;
-    private System.Collections.Generic.List<double?>? _fixedRowHeights;
+    private System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>? _rowMinHeights;
+    private System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>? _fixedRowHeights;
     private System.Collections.Generic.List<bool?>? _rowAllowBreakAcrossPages;
-    private double _borderWidth = 0.5;
-    private double _cornerRadius;
-    private double _rowSeparatorWidth;
-    private double _headerSeparatorWidth;
-    private double _footerSeparatorWidth;
+    private global::OfficeIMO.OfficeLength _borderWidth = global::OfficeIMO.OfficeLength.Points(0.5);
+    private global::OfficeIMO.OfficeLength _cornerRadius;
+    private global::OfficeIMO.OfficeLength _rowSeparatorWidth;
+    private global::OfficeIMO.OfficeLength _headerSeparatorWidth;
+    private global::OfficeIMO.OfficeLength _footerSeparatorWidth;
     private int _headerRowCount = 1;
     private int _footerRowCount;
     private int? _repeatHeaderRowCount;
     private int _minimumBodyRowsOnFirstPage = 2;
     private int _minimumBodyRowsOnLastPage = 2;
-    private double _cellPaddingX = 4;
-    private double _cellPaddingY = 2;
-    private double? _cellPaddingLeft;
-    private double? _cellPaddingRight;
-    private double? _cellPaddingTop;
-    private double? _cellPaddingBottom;
-    private double _cellSpacing;
-    private double _minRowHeight;
-    private double _spacingBefore;
-    private double _pageContinuationSpacingBefore;
-    private double? _captionFontSize;
-    private double _captionSpacingAfter = 4;
-    private double _spacingAfter;
-    private double _rowBaselineOffset;
-    private double? _preferredWidth;
-    private double? _maxWidth;
-    private double? _fontSize;
+    private global::OfficeIMO.OfficeLength _cellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+    private global::OfficeIMO.OfficeLength _cellPaddingY = global::OfficeIMO.OfficeLength.Points(2);
+    private global::OfficeIMO.OfficeLength? _cellPaddingLeft;
+    private global::OfficeIMO.OfficeLength? _cellPaddingRight;
+    private global::OfficeIMO.OfficeLength? _cellPaddingTop;
+    private global::OfficeIMO.OfficeLength? _cellPaddingBottom;
+    private global::OfficeIMO.OfficeLength _cellSpacing;
+    private global::OfficeIMO.OfficeLength _minRowHeight;
+    private global::OfficeIMO.OfficeLength _spacingBefore;
+    private global::OfficeIMO.OfficeLength _pageContinuationSpacingBefore;
+    private global::OfficeIMO.OfficeLength? _captionFontSize;
+    private global::OfficeIMO.OfficeLength _captionSpacingAfter = global::OfficeIMO.OfficeLength.Points(4);
+    private global::OfficeIMO.OfficeLength _spacingAfter;
+    private global::OfficeIMO.OfficeLength _rowBaselineOffset;
+    private global::OfficeIMO.OfficeLength? _preferredWidth;
+    private global::OfficeIMO.OfficeLength? _maxWidth;
+    private global::OfficeIMO.OfficeLength? _fontSize;
     private double? _lineHeight;
-    private double? _headerFontSize;
-    private double? _footerFontSize;
-    private double? _minimumShrinkFontSize;
+    private global::OfficeIMO.OfficeLength? _headerFontSize;
+    private global::OfficeIMO.OfficeLength? _footerFontSize;
+    private global::OfficeIMO.OfficeLength? _minimumShrinkFontSize;
 
     /// <summary>Color of the table borders and cell grid lines. Set to null to hide borders.</summary>
     public global::OfficeIMO.OfficeColor? BorderColor { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.8, 0.8, 0.8);
@@ -110,26 +110,26 @@ public partial class PdfTableStyle {
     internal System.Collections.Generic.List<double?>? ImportedColumnWidthFractions { get; set; }
     /// <summary>Optional floating placement. A positioned table reserves space for surrounding text without advancing the flow cursor.</summary>
     public PdfTablePosition? Position { get; set; }
-    /// <summary>Stroke width, in points, for table borders and cell grid lines.</summary>
-    public double BorderWidth {
+    /// <summary>Stroke width, as a physical length, for table borders and cell grid lines.</summary>
+    public global::OfficeIMO.OfficeLength BorderWidth {
         get => _borderWidth;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(BorderWidth), "Table border width must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(BorderWidth), "Table border width must be a non-negative finite value.");
             _borderWidth = value;
         }
     }
     /// <summary>
-    /// Corner radius, in points, for the table's outer box. Zero (the default) keeps square corners.
+    /// Corner radius, as a physical length, for the table's outer box. Zero (the default) keeps square corners.
     /// The rounding is applied to the outer perimeter only: the top corners of the first row and the
     /// bottom corners of the last row are rounded, while interior grid lines stay straight. Cell fills
     /// and per-cell border overrides (for example an accent stripe or a top-accent bar) are clipped to
     /// the rounded outer box so they follow the curve instead of overrunning it. Most useful for
     /// single-row / single-cell tables such as callouts and stat cards.
     /// </summary>
-    public double CornerRadius {
+    public global::OfficeIMO.OfficeLength CornerRadius {
         get => _cornerRadius;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(CornerRadius), "Table corner radius must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(CornerRadius), "Table corner radius must be a non-negative finite value.");
             _cornerRadius = value;
         }
     }
@@ -141,31 +141,31 @@ public partial class PdfTableStyle {
     public global::OfficeIMO.OfficeColor? RowStripeFill { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.98, 0.98, 0.98);
     /// <summary>Optional horizontal separator color drawn at the bottom of each table row. Set to null or zero width to disable.</summary>
     public global::OfficeIMO.OfficeColor? RowSeparatorColor { get; set; }
-    /// <summary>Stroke width, in points, for row separators.</summary>
-    public double RowSeparatorWidth {
+    /// <summary>Stroke width, as a physical length, for row separators.</summary>
+    public global::OfficeIMO.OfficeLength RowSeparatorWidth {
         get => _rowSeparatorWidth;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(RowSeparatorWidth), "Table row separator width must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(RowSeparatorWidth), "Table row separator width must be a non-negative finite value.");
             _rowSeparatorWidth = value;
         }
     }
     /// <summary>Optional horizontal separator color used below header rows. Falls back to <see cref="RowSeparatorColor"/> when null.</summary>
     public global::OfficeIMO.OfficeColor? HeaderSeparatorColor { get; set; }
-    /// <summary>Optional stroke width, in points, used below header rows. Falls back to <see cref="RowSeparatorWidth"/> when zero.</summary>
-    public double HeaderSeparatorWidth {
+    /// <summary>Optional stroke width, as a physical length, used below header rows. Falls back to <see cref="RowSeparatorWidth"/> when zero.</summary>
+    public global::OfficeIMO.OfficeLength HeaderSeparatorWidth {
         get => _headerSeparatorWidth;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(HeaderSeparatorWidth), "Table header separator width must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(HeaderSeparatorWidth), "Table header separator width must be a non-negative finite value.");
             _headerSeparatorWidth = value;
         }
     }
     /// <summary>Optional horizontal separator color used above footer rows. Falls back to <see cref="RowSeparatorColor"/> when null.</summary>
     public global::OfficeIMO.OfficeColor? FooterSeparatorColor { get; set; }
-    /// <summary>Optional stroke width, in points, used above footer rows. Falls back to <see cref="RowSeparatorWidth"/> when zero.</summary>
-    public double FooterSeparatorWidth {
+    /// <summary>Optional stroke width, as a physical length, used above footer rows. Falls back to <see cref="RowSeparatorWidth"/> when zero.</summary>
+    public global::OfficeIMO.OfficeLength FooterSeparatorWidth {
         get => _footerSeparatorWidth;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(FooterSeparatorWidth), "Table footer separator width must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(FooterSeparatorWidth), "Table footer separator width must be a non-negative finite value.");
             _footerSeparatorWidth = value;
         }
     }
@@ -329,11 +329,11 @@ public partial class PdfTableStyle {
     }
     /// <summary>Text color for body rows. When null the writer’s default text color is used.</summary>
     public global::OfficeIMO.OfficeColor? TextColor { get; set; }
-    /// <summary>Font size for body cells, in points. When null the document default font size is used.</summary>
-    public double? FontSize {
+    /// <summary>Font size for body cells, as a physical length. When null the document default font size is used.</summary>
+    public global::OfficeIMO.OfficeLength? FontSize {
         get => _fontSize;
         set {
-            ValidateOptionalPositiveFiniteValue(value, nameof(FontSize), "Table body font size must be a positive finite value.");
+            ValidateOptionalPositiveFiniteValue(value?.ToPoints(), nameof(FontSize), "Table body font size must be a positive finite value.");
             _fontSize = value;
         }
     }
@@ -347,11 +347,11 @@ public partial class PdfTableStyle {
     }
     /// <summary>Text color for header cells. When null the writer’s default text color is used.</summary>
     public global::OfficeIMO.OfficeColor? HeaderTextColor { get; set; }
-    /// <summary>Font size for header cells, in points. When null the body table font size is used.</summary>
-    public double? HeaderFontSize {
+    /// <summary>Font size for header cells, as a physical length. When null the body table font size is used.</summary>
+    public global::OfficeIMO.OfficeLength? HeaderFontSize {
         get => _headerFontSize;
         set {
-            ValidateOptionalPositiveFiniteValue(value, nameof(HeaderFontSize), "Table header font size must be a positive finite value.");
+            ValidateOptionalPositiveFiniteValue(value?.ToPoints(), nameof(HeaderFontSize), "Table header font size must be a positive finite value.");
             _headerFontSize = value;
         }
     }
@@ -407,82 +407,82 @@ public partial class PdfTableStyle {
     }
     /// <summary>Text color for footer cells. When null the writer’s default text color is used.</summary>
     public global::OfficeIMO.OfficeColor? FooterTextColor { get; set; }
-    /// <summary>Font size for footer cells, in points. When null the body table font size is used.</summary>
-    public double? FooterFontSize {
+    /// <summary>Font size for footer cells, as a physical length. When null the body table font size is used.</summary>
+    public global::OfficeIMO.OfficeLength? FooterFontSize {
         get => _footerFontSize;
         set {
-            ValidateOptionalPositiveFiniteValue(value, nameof(FooterFontSize), "Table footer font size must be a positive finite value.");
+            ValidateOptionalPositiveFiniteValue(value?.ToPoints(), nameof(FooterFontSize), "Table footer font size must be a positive finite value.");
             _footerFontSize = value;
         }
     }
     /// <summary>When true, footer cells use the bold variant of the document font family.</summary>
     public bool FooterBold { get; set; } = true;
-    /// <summary>Horizontal padding inside each cell, in points.</summary>
-    public double CellPaddingX {
+    /// <summary>Horizontal padding inside each cell, as a physical length.</summary>
+    public global::OfficeIMO.OfficeLength CellPaddingX {
         get => _cellPaddingX;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(CellPaddingX), "Table horizontal cell padding must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(CellPaddingX), "Table horizontal cell padding must be a non-negative finite value.");
             _cellPaddingX = value;
         }
     }
-    /// <summary>Vertical padding inside each cell, in points.</summary>
-    public double CellPaddingY {
+    /// <summary>Vertical padding inside each cell, as a physical length.</summary>
+    public global::OfficeIMO.OfficeLength CellPaddingY {
         get => _cellPaddingY;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(CellPaddingY), "Table vertical cell padding must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(CellPaddingY), "Table vertical cell padding must be a non-negative finite value.");
             _cellPaddingY = value;
         }
     }
-    /// <summary>Optional left padding override inside each cell, in points. When null <see cref="CellPaddingX"/> is used.</summary>
-    public double? CellPaddingLeft {
+    /// <summary>Optional left padding override inside each cell, as a physical length. When null <see cref="CellPaddingX"/> is used.</summary>
+    public global::OfficeIMO.OfficeLength? CellPaddingLeft {
         get => _cellPaddingLeft;
         set {
-            ValidateOptionalNonNegativeFiniteValue(value, nameof(CellPaddingLeft), "Table left cell padding must be a non-negative finite value.");
+            ValidateOptionalNonNegativeFiniteValue(value?.ToPoints(), nameof(CellPaddingLeft), "Table left cell padding must be a non-negative finite value.");
             _cellPaddingLeft = value;
         }
     }
-    /// <summary>Optional right padding override inside each cell, in points. When null <see cref="CellPaddingX"/> is used.</summary>
-    public double? CellPaddingRight {
+    /// <summary>Optional right padding override inside each cell, as a physical length. When null <see cref="CellPaddingX"/> is used.</summary>
+    public global::OfficeIMO.OfficeLength? CellPaddingRight {
         get => _cellPaddingRight;
         set {
-            ValidateOptionalNonNegativeFiniteValue(value, nameof(CellPaddingRight), "Table right cell padding must be a non-negative finite value.");
+            ValidateOptionalNonNegativeFiniteValue(value?.ToPoints(), nameof(CellPaddingRight), "Table right cell padding must be a non-negative finite value.");
             _cellPaddingRight = value;
         }
     }
-    /// <summary>Optional top padding override inside each cell, in points. When null <see cref="CellPaddingY"/> is used.</summary>
-    public double? CellPaddingTop {
+    /// <summary>Optional top padding override inside each cell, as a physical length. When null <see cref="CellPaddingY"/> is used.</summary>
+    public global::OfficeIMO.OfficeLength? CellPaddingTop {
         get => _cellPaddingTop;
         set {
-            ValidateOptionalNonNegativeFiniteValue(value, nameof(CellPaddingTop), "Table top cell padding must be a non-negative finite value.");
+            ValidateOptionalNonNegativeFiniteValue(value?.ToPoints(), nameof(CellPaddingTop), "Table top cell padding must be a non-negative finite value.");
             _cellPaddingTop = value;
         }
     }
-    /// <summary>Optional bottom padding override inside each cell, in points. When null <see cref="CellPaddingY"/> is used.</summary>
-    public double? CellPaddingBottom {
+    /// <summary>Optional bottom padding override inside each cell, as a physical length. When null <see cref="CellPaddingY"/> is used.</summary>
+    public global::OfficeIMO.OfficeLength? CellPaddingBottom {
         get => _cellPaddingBottom;
         set {
-            ValidateOptionalNonNegativeFiniteValue(value, nameof(CellPaddingBottom), "Table bottom cell padding must be a non-negative finite value.");
+            ValidateOptionalNonNegativeFiniteValue(value?.ToPoints(), nameof(CellPaddingBottom), "Table bottom cell padding must be a non-negative finite value.");
             _cellPaddingBottom = value;
         }
     }
-    /// <summary>Optional spacing between adjacent table cells, in points.</summary>
-    public double CellSpacing {
+    /// <summary>Optional spacing between adjacent table cells, as a physical length.</summary>
+    public global::OfficeIMO.OfficeLength CellSpacing {
         get => _cellSpacing;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(CellSpacing), "Table cell spacing must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(CellSpacing), "Table cell spacing must be a non-negative finite value.");
             _cellSpacing = value;
         }
     }
-    /// <summary>Optional minimum row height in points. Set to 0 to size rows from wrapped content.</summary>
-    public double MinRowHeight {
+    /// <summary>Optional minimum row height as a physical length. Set to 0 to size rows from wrapped content.</summary>
+    public global::OfficeIMO.OfficeLength MinRowHeight {
         get => _minRowHeight;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(MinRowHeight), "Table minimum row height must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(MinRowHeight), "Table minimum row height must be a non-negative finite value.");
             _minRowHeight = value;
         }
     }
-    /// <summary>Optional per-row minimum heights in points. Null entries fall back to <see cref="MinRowHeight"/>.</summary>
-    public System.Collections.Generic.List<double?>? RowMinHeights {
+    /// <summary>Optional per-row minimum heights as a physical length. Null entries fall back to <see cref="MinRowHeight"/>.</summary>
+    public System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>? RowMinHeights {
         get => _rowMinHeights;
         set {
             if (value == null) {
@@ -490,17 +490,17 @@ public partial class PdfTableStyle {
                 return;
             }
 
-            var heights = new System.Collections.Generic.List<double?>(value.Count);
-            foreach (double? height in value) {
-                ValidateOptionalNonNegativeFiniteValue(height, nameof(RowMinHeights), "Table row minimum heights must be non-negative finite values.");
+            var heights = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>(value.Count);
+            foreach (global::OfficeIMO.OfficeLength? height in value) {
+                ValidateOptionalNonNegativeFiniteValue(height?.ToPoints(), nameof(RowMinHeights), "Table row minimum heights must be non-negative finite values.");
                 heights.Add(height);
             }
 
             _rowMinHeights = heights;
         }
     }
-    /// <summary>Optional per-row fixed heights in points. Null entries use content-driven row sizing and minimum row heights.</summary>
-    public System.Collections.Generic.List<double?>? FixedRowHeights {
+    /// <summary>Optional per-row fixed heights as a physical length. Null entries use content-driven row sizing and minimum row heights.</summary>
+    public System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>? FixedRowHeights {
         get => _fixedRowHeights;
         set {
             if (value == null) {
@@ -508,28 +508,28 @@ public partial class PdfTableStyle {
                 return;
             }
 
-            var heights = new System.Collections.Generic.List<double?>(value.Count);
-            foreach (double? height in value) {
-                ValidateOptionalNonNegativeFiniteValue(height, nameof(FixedRowHeights), "Table fixed row heights must be non-negative finite values.");
+            var heights = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>(value.Count);
+            foreach (global::OfficeIMO.OfficeLength? height in value) {
+                ValidateOptionalNonNegativeFiniteValue(height?.ToPoints(), nameof(FixedRowHeights), "Table fixed row heights must be non-negative finite values.");
                 heights.Add(height);
             }
 
             _fixedRowHeights = heights;
         }
     }
-    /// <summary>Vertical space before the table, in points.</summary>
-    public double SpacingBefore {
+    /// <summary>Vertical space before the table, as a physical length.</summary>
+    public global::OfficeIMO.OfficeLength SpacingBefore {
         get => _spacingBefore;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(SpacingBefore), "Table spacing before must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(SpacingBefore), "Table spacing before must be a non-negative finite value.");
             _spacingBefore = value;
         }
     }
     /// <summary>Vertical space to reserve before table content when the same table continues on a new page.</summary>
-    public double PageContinuationSpacingBefore {
+    public global::OfficeIMO.OfficeLength PageContinuationSpacingBefore {
         get => _pageContinuationSpacingBefore;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(PageContinuationSpacingBefore), "Table page continuation spacing before must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(PageContinuationSpacingBefore), "Table page continuation spacing before must be a non-negative finite value.");
             _pageContinuationSpacingBefore = value;
         }
     }
@@ -547,54 +547,54 @@ public partial class PdfTableStyle {
     }
     /// <summary>Caption text color. When null the writer's default text color is used.</summary>
     public global::OfficeIMO.OfficeColor? CaptionColor { get; set; }
-    /// <summary>Caption font size in points. When null the document default font size is used.</summary>
-    public double? CaptionFontSize {
+    /// <summary>Caption font size as a physical length. When null the document default font size is used.</summary>
+    public global::OfficeIMO.OfficeLength? CaptionFontSize {
         get => _captionFontSize;
         set {
-            ValidateOptionalPositiveFiniteValue(value, nameof(CaptionFontSize), "Table caption font size must be a positive finite value.");
+            ValidateOptionalPositiveFiniteValue(value?.ToPoints(), nameof(CaptionFontSize), "Table caption font size must be a positive finite value.");
             _captionFontSize = value;
         }
     }
-    /// <summary>Vertical space between the caption and table grid, in points.</summary>
-    public double CaptionSpacingAfter {
+    /// <summary>Vertical space between the caption and table grid, as a physical length.</summary>
+    public global::OfficeIMO.OfficeLength CaptionSpacingAfter {
         get => _captionSpacingAfter;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(CaptionSpacingAfter), "Table caption spacing after must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(CaptionSpacingAfter), "Table caption spacing after must be a non-negative finite value.");
             _captionSpacingAfter = value;
         }
     }
-    /// <summary>Vertical space after the table, in points.</summary>
-    public double SpacingAfter {
+    /// <summary>Vertical space after the table, as a physical length.</summary>
+    public global::OfficeIMO.OfficeLength SpacingAfter {
         get => _spacingAfter;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(SpacingAfter), "Table spacing after must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(SpacingAfter), "Table spacing after must be a non-negative finite value.");
             _spacingAfter = value;
         }
     }
-    /// <summary>Baseline adjustment in points to fine-tune text vertical placement.</summary>
-    public double RowBaselineOffset {
+    /// <summary>Baseline adjustment as a physical length to fine-tune text vertical placement.</summary>
+    public global::OfficeIMO.OfficeLength RowBaselineOffset {
         get => _rowBaselineOffset;
         set {
-            ValidateFiniteValue(value, nameof(RowBaselineOffset), "Table row baseline offset must be a finite value.");
+            ValidateFiniteValue(value.ToPoints(), nameof(RowBaselineOffset), "Table row baseline offset must be a finite value.");
             _rowBaselineOffset = value;
         }
     }
-    /// <summary>Optional maximum rendered table width, in points. When null the table uses the available frame width.</summary>
-    public double? MaxWidth {
+    /// <summary>Optional maximum rendered table width, as a physical length. When null the table uses the available frame width.</summary>
+    public global::OfficeIMO.OfficeLength? MaxWidth {
         get => _maxWidth;
         set {
-            ValidateOptionalPositiveFiniteValue(value, nameof(MaxWidth), "Table max width must be a positive finite value.");
+            ValidateOptionalPositiveFiniteValue(value?.ToPoints(), nameof(MaxWidth), "Table max width must be a positive finite value.");
             _maxWidth = value;
         }
     }
     /// <summary>
-    /// Optional preferred rendered table width, in points. Auto-fit tables may expand beyond this width
+    /// Optional preferred rendered table width, as a physical length. Auto-fit tables may expand beyond this width
     /// to satisfy measured content, up to <see cref="MaxWidth"/> or the available frame width.
     /// </summary>
-    public double? PreferredWidth {
+    public global::OfficeIMO.OfficeLength? PreferredWidth {
         get => _preferredWidth;
         set {
-            ValidateOptionalPositiveFiniteValue(value, nameof(PreferredWidth), "Table preferred width must be a positive finite value.");
+            ValidateOptionalPositiveFiniteValue(value?.ToPoints(), nameof(PreferredWidth), "Table preferred width must be a positive finite value.");
             _preferredWidth = value;
         }
     }
@@ -602,11 +602,11 @@ public partial class PdfTableStyle {
     public bool PreserveWidth { get; set; }
     /// <summary>When true, table rows can reduce their font size to keep cell text within the resolved cell width.</summary>
     public bool ShrinkTextToFit { get; set; }
-    /// <summary>Smallest font size, in points, used by row or cell text shrinking. When null the writer uses 6 points.</summary>
-    public double? MinimumShrinkFontSize {
+    /// <summary>Smallest font size, as a physical length, used by row or cell text shrinking. When null the writer uses 6 points.</summary>
+    public global::OfficeIMO.OfficeLength? MinimumShrinkFontSize {
         get => _minimumShrinkFontSize;
         set {
-            ValidateOptionalPositiveFiniteValue(value, nameof(MinimumShrinkFontSize), "Table minimum shrink font size must be a positive finite value.");
+            ValidateOptionalPositiveFiniteValue(value?.ToPoints(), nameof(MinimumShrinkFontSize), "Table minimum shrink font size must be a positive finite value.");
             _minimumShrinkFontSize = value;
         }
     }
@@ -636,28 +636,28 @@ public partial class PdfTableStyle {
             _verticalAlignments = value == null ? null : new System.Collections.Generic.List<PdfCellVerticalAlign>(value);
         }
     }
-    /// <summary>Optional fixed column widths in points. Null or missing entries are sized by relative weights.</summary>
-    public System.Collections.Generic.List<double?>? ColumnWidthPoints {
-        get => _columnWidthPoints;
+    /// <summary>Optional fixed column widths as a physical length. Null or missing entries are sized by relative weights.</summary>
+    public System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>? ColumnWidths {
+        get => _columnWidths;
         set {
-            ValidateOptionalPositiveFiniteValues(value, nameof(ColumnWidthPoints), "Table fixed column widths must be positive finite values.");
-            _columnWidthPoints = value == null ? null : new System.Collections.Generic.List<double?>(value);
+            ValidateOptionalPositiveFiniteValues(value, nameof(ColumnWidths), "Table fixed column widths must be positive finite values.");
+            _columnWidths = value == null ? null : new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>(value);
         }
     }
-    /// <summary>Optional minimum column widths in points. Null or missing entries have no explicit minimum.</summary>
-    public System.Collections.Generic.List<double?>? ColumnMinWidthPoints {
-        get => _columnMinWidthPoints;
+    /// <summary>Optional minimum column widths as a physical length. Null or missing entries have no explicit minimum.</summary>
+    public System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>? ColumnMinWidths {
+        get => _columnMinWidths;
         set {
-            ValidateOptionalPositiveFiniteValues(value, nameof(ColumnMinWidthPoints), "Table minimum column widths must be positive finite values.");
-            _columnMinWidthPoints = value == null ? null : new System.Collections.Generic.List<double?>(value);
+            ValidateOptionalPositiveFiniteValues(value, nameof(ColumnMinWidths), "Table minimum column widths must be positive finite values.");
+            _columnMinWidths = value == null ? null : new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>(value);
         }
     }
-    /// <summary>Optional maximum column widths in points. Null or missing entries have no explicit maximum.</summary>
-    public System.Collections.Generic.List<double?>? ColumnMaxWidthPoints {
-        get => _columnMaxWidthPoints;
+    /// <summary>Optional maximum column widths as a physical length. Null or missing entries have no explicit maximum.</summary>
+    public System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>? ColumnMaxWidths {
+        get => _columnMaxWidths;
         set {
-            ValidateOptionalPositiveFiniteValues(value, nameof(ColumnMaxWidthPoints), "Table maximum column widths must be positive finite values.");
-            _columnMaxWidthPoints = value == null ? null : new System.Collections.Generic.List<double?>(value);
+            ValidateOptionalPositiveFiniteValues(value, nameof(ColumnMaxWidths), "Table maximum column widths must be positive finite values.");
+            _columnMaxWidths = value == null ? null : new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>(value);
         }
     }
     /// <summary>Optional relative column width weights. Missing columns default to 1.0.</summary>
@@ -795,22 +795,22 @@ public partial class PdfTableStyle {
         if (CellVerticalAlignments != null) clone.CellVerticalAlignments = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellVerticalAlign>(CellVerticalAlignments);
         if (Alignments != null) clone.Alignments = new System.Collections.Generic.List<PdfColumnAlign>(Alignments);
         if (VerticalAlignments != null) clone.VerticalAlignments = new System.Collections.Generic.List<PdfCellVerticalAlign>(VerticalAlignments);
-        if (ColumnWidthPoints != null) clone.ColumnWidthPoints = new System.Collections.Generic.List<double?>(ColumnWidthPoints);
-        if (ColumnMinWidthPoints != null) clone.ColumnMinWidthPoints = new System.Collections.Generic.List<double?>(ColumnMinWidthPoints);
+        if (ColumnWidths != null) clone.ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>(ColumnWidths);
+        if (ColumnMinWidths != null) clone.ColumnMinWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>(ColumnMinWidths);
         if (AutoFitColumnPreferredWidthPoints != null) clone.AutoFitColumnPreferredWidthPoints = new System.Collections.Generic.List<double?>(AutoFitColumnPreferredWidthPoints);
         if (ImportedColumnWidthFractions != null) clone.ImportedColumnWidthFractions = new System.Collections.Generic.List<double?>(ImportedColumnWidthFractions);
-        if (ColumnMaxWidthPoints != null) clone.ColumnMaxWidthPoints = new System.Collections.Generic.List<double?>(ColumnMaxWidthPoints);
+        if (ColumnMaxWidths != null) clone.ColumnMaxWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>(ColumnMaxWidths);
         if (ColumnWidthWeights != null) clone.ColumnWidthWeights = new System.Collections.Generic.List<double>(ColumnWidthWeights);
         return clone;
     }
 
-    private static void ValidateOptionalPositiveFiniteValues(System.Collections.Generic.IEnumerable<double?>? values, string paramName, string message) {
+    private static void ValidateOptionalPositiveFiniteValues(System.Collections.Generic.IEnumerable<global::OfficeIMO.OfficeLength?>? values, string paramName, string message) {
         if (values == null) {
             return;
         }
 
         foreach (var value in values) {
-            if (value.HasValue && (value.Value <= 0 || double.IsNaN(value.Value) || double.IsInfinity(value.Value))) {
+            if (value.HasValue && (value.Value.ToPoints() <= 0 || double.IsNaN(value.Value.ToPoints()) || double.IsInfinity(value.Value.ToPoints()))) {
                 throw new System.ArgumentException(message, paramName);
             }
         }
@@ -865,7 +865,7 @@ public partial class PdfTableStyle {
     }
 
     private static void ValidateCellBorder(PdfCellBorder? border, string paramName) {
-        if (border == null || border.Width < 0 || double.IsNaN(border.Width) || double.IsInfinity(border.Width)) {
+        if (border == null || border.Width.ToPoints() < 0 || double.IsNaN(border.Width.ToPoints()) || double.IsInfinity(border.Width.ToPoints())) {
             throw new System.ArgumentException("Table cell border widths must be non-negative finite values.", paramName);
         }
     }

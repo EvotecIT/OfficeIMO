@@ -36,10 +36,10 @@ public sealed class PowerPointPdfTableFidelityTests {
         var conversion = reopened.ConvertToPdfWithEvidence();
         var item = TableItem(conversion.Value);
         var style = item.Block.Style!;
-        Assert.Equal(7.2D, style.CellPaddingX);
-        Assert.Equal(3.6D, style.CellPaddingY);
+        Assert.Equal(7.2D, style.CellPaddingX.ToPoints());
+        Assert.Equal(3.6D, style.CellPaddingY.ToPoints());
         Assert.True(item.Height > 40D);
-        Assert.Equal(item.Height, style.RowMinHeights!.Sum(value => value!.Value), 5);
+        Assert.Equal(item.Height, style.RowMinHeights!.Sum(value => value!.Value.ToPoints()), 5);
         Assert.True(item.Block.Cells[0][1].ShrinkTextToFit);
         Assert.Equal(global::OfficeIMO.OfficeColor.White, Assert.Single(item.Block.Cells[0][1].Runs).Color);
         Assert.True(Assert.Single(item.Block.Cells[0][1].Runs).Bold);
@@ -94,8 +94,8 @@ public sealed class PowerPointPdfTableFidelityTests {
         Assert.False(run.Bold);
         Assert.Equal((double)fontSize, run.FontSize);
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), run.Color);
-        Assert.Equal(0D, item.Block.Style!.CellPaddings![(0, 0)].Left);
-        Assert.Equal(10D, item.Block.Style.CellPaddings[(0, 0)].Bottom);
+        Assert.Equal(0D, item.Block.Style!.CellPaddings![(0, 0)].Left?.ToPoints());
+        Assert.Equal(10D, item.Block.Style.CellPaddings[(0, 0)].Bottom?.ToPoints());
         Assert.True(item.Height > 24D);
         byte[] bytes = conversion.ToBytes();
         Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "table-cell-overflow");

@@ -78,11 +78,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_RejectsOutOfRangeRowMinimumHeights() {
         var style = PdfTableStyles.Minimal();
-        style.RowMinHeights = new List<double?> {
-            null,
-            null,
-            24
-        };
+        style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { null, null, global::OfficeIMO.OfficeLength.Points(24) };
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
@@ -335,11 +331,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void ParagraphKeepWithNext_RejectsFollowingTableWithOutOfRangeFixedColumnWidth() {
         var style = PdfTableStyles.Minimal();
-        style.ColumnWidthPoints = new List<double?> {
-            null,
-            null,
-            42
-        };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { null, null, global::OfficeIMO.OfficeLength.Points(42) };
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()

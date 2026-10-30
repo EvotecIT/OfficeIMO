@@ -211,10 +211,10 @@ public sealed class PdfRunningContentTests {
     private static PdfTableStyle TableStyle(double height) {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.ColumnWidthPoints = new List<double?> { 100 };
-        style.FixedRowHeights = new List<double?> { height };
-        style.CellPaddingX = 3; style.CellPaddingY = 3;
-        style.BorderWidth = 1;
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(height) };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(3); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(3);
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(1);
         return style;
     }
 

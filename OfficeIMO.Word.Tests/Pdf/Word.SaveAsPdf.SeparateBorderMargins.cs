@@ -21,7 +21,7 @@ public partial class Word {
         table.Rows[0].Cells[2].MarginTop = global::OfficeIMO.OfficeLength.Points(6D);
         WordPdfExportOptions options = BorderFramePdfOptions();
         options.PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions {
-            DefaultTableStyle = new OfficeIMO.Pdf.PdfTableStyle { CornerRadius = 8D }
+            DefaultTableStyle = new OfficeIMO.Pdf.PdfTableStyle { CornerRadius = global::OfficeIMO.OfficeLength.Points(8D) }
         };
 
         using WordDocument imported = WordDocument.Load(new MemoryStream(source.ToBytes()));

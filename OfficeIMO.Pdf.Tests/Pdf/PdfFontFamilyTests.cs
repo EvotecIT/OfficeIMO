@@ -2610,12 +2610,12 @@ public partial class PdfFontFamilyTests {
             new[] { PdfStandardFont.TimesRoman });
         var topLevelStyle = PdfTableStyles.Minimal();
         topLevelStyle.Caption = "Tabela Łódź Zażółć";
-        topLevelStyle.CaptionFontSize = 10;
-        topLevelStyle.CaptionSpacingAfter = 4;
+        topLevelStyle.CaptionFontSize = global::OfficeIMO.OfficeLength.Points(10);
+        topLevelStyle.CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(4);
         var rowColumnStyle = PdfTableStyles.Minimal();
         rowColumnStyle.Caption = "Tabela kolumna Łódź";
-        rowColumnStyle.CaptionFontSize = 10;
-        rowColumnStyle.CaptionSpacingAfter = 4;
+        rowColumnStyle.CaptionFontSize = global::OfficeIMO.OfficeLength.Points(10);
+        rowColumnStyle.CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(4);
 
         byte[] topLevelBytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false

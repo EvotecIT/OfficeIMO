@@ -198,7 +198,7 @@ public class PdfDocumentImageValidationTests {
         var tableStyle = new PdfTableStyle {
             HeaderRowCount = 0,
             BorderColor = null,
-            ColumnWidthPoints = new System.Collections.Generic.List<double?> { 80D }
+            ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80D) }
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -231,7 +231,7 @@ public class PdfDocumentImageValidationTests {
         var tableStyle = new PdfTableStyle {
             HeaderRowCount = 0,
             BorderColor = null,
-            ColumnWidthPoints = new System.Collections.Generic.List<double?> { 80D }
+            ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80D) }
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {

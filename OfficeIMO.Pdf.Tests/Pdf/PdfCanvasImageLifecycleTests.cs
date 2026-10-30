@@ -96,9 +96,9 @@ public sealed class PdfCanvasImageLifecycleTests {
     };
 
     private static PdfTableStyle CreateTableStyle() => new PdfTableStyle {
-        RowMinHeights = new List<double?> { 80D },
-        CellPaddingX = 6D,
-        CellPaddingY = 6D
+        RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80D) },
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(6D),
+        CellPaddingY = global::OfficeIMO.OfficeLength.Points(6D)
     };
 
     private static int CountOccurrences(string value, string pattern) {

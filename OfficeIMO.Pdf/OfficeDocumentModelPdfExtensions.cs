@@ -370,7 +370,7 @@ internal static partial class OfficeDocumentModelPdfExtensions {
             .Select(static entry => new[] { entry.Name, entry.Value ?? string.Empty })
             .ToArray();
         if (rows.Length > 0) {
-            document.Table(rows, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null, SpacingAfter = 10 });
+            document.Table(rows, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null, SpacingAfter = global::OfficeIMO.OfficeLength.Points(10) });
         }
     }
 

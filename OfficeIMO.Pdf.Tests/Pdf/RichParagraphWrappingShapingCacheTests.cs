@@ -96,11 +96,11 @@ namespace OfficeIMO.Tests.Pdf {
                         }).WithNoWrap()
                     }
                 }, style: new PdfTableStyle {
-                    FontSize = 12D,
-                    HeaderFontSize = 12D,
+                    FontSize = global::OfficeIMO.OfficeLength.Points(12D),
+                    HeaderFontSize = global::OfficeIMO.OfficeLength.Points(12D),
                     ShrinkTextToFit = true,
-                    MinimumShrinkFontSize = 6D,
-                    ColumnWidthPoints = new List<double?> { 54D, 72D },
+                    MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(6D),
+                    ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(54D), global::OfficeIMO.OfficeLength.Points(72D) },
                     HeaderRowCount = 1
                 })
                 .ToBytes();

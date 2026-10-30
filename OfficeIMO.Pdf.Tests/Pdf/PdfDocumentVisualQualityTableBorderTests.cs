@@ -20,7 +20,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(2, 1)] = new PdfCellBorder {
                 Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56),
-                Width = 1.7
+                Width = global::OfficeIMO.OfficeLength.Points(1.7)
             }
         };
 
@@ -54,18 +54,18 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(1, 0)] = new PdfCellBorder {
                 Color = null,
-                Width = 0,
+                Width = global::OfficeIMO.OfficeLength.Points(0),
                 Top = true,
                 Right = false,
                 Bottom = false,
                 Left = true,
                 TopBorder = new PdfCellBorderSide {
                     Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0),
-                    Width = 2
+                    Width = global::OfficeIMO.OfficeLength.Points(2)
                 },
                 LeftBorder = new PdfCellBorderSide {
                     Color = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255),
-                    Width = 1.5
+                    Width = global::OfficeIMO.OfficeLength.Points(1.5)
                 }
             }
         };
@@ -99,19 +99,19 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(1, 0)] = new PdfCellBorder {
                 Color = global::OfficeIMO.OfficeColor.FromRgb(18, 52, 86),
-                Width = 1,
+                Width = global::OfficeIMO.OfficeLength.Points(1),
                 DashStyle = OfficeStrokeDashStyle.Dash
             },
             [(1, 1)] = new PdfCellBorder {
                 Color = null,
                 TopBorder = new PdfCellBorderSide {
                     Color = global::OfficeIMO.OfficeColor.FromRgb(120, 80, 40),
-                    Width = 1.5,
+                    Width = global::OfficeIMO.OfficeLength.Points(1.5),
                     DashStyle = OfficeStrokeDashStyle.Dot
                 },
                 BottomBorder = new PdfCellBorderSide {
                     Color = global::OfficeIMO.OfficeColor.FromRgb(40, 120, 80),
-                    Width = 1.25,
+                    Width = global::OfficeIMO.OfficeLength.Points(1.25),
                     DashStyle = OfficeStrokeDashStyle.DashDot
                 }
             }
@@ -147,7 +147,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(1, 0)] = new PdfCellBorder {
                 Color = global::OfficeIMO.OfficeColor.FromRgb(68, 85, 102),
-                Width = 1,
+                Width = global::OfficeIMO.OfficeLength.Points(1),
                 LineStyle = PdfCellBorderLineStyle.TwoLine,
                 DiagonalUp = true,
                 DiagonalDown = true
@@ -156,13 +156,13 @@ public partial class PdfDocumentVisualQualityTests {
                 Color = null,
                 TopBorder = new PdfCellBorderSide {
                     Color = global::OfficeIMO.OfficeColor.FromRgb(120, 80, 40),
-                    Width = 1.25,
+                    Width = global::OfficeIMO.OfficeLength.Points(1.25),
                     LineStyle = PdfCellBorderLineStyle.TwoLine
                 },
                 DiagonalDown = true,
                 DiagonalDownBorder = new PdfCellBorderSide {
                     Color = global::OfficeIMO.OfficeColor.FromRgb(40, 120, 80),
-                    Width = 0.75,
+                    Width = global::OfficeIMO.OfficeLength.Points(0.75),
                     DashStyle = OfficeStrokeDashStyle.Dash,
                     LineStyle = PdfCellBorderLineStyle.TwoLine
                 }
@@ -199,7 +199,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(0, 0)] = new PdfCellBorder {
                 Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0),
-                Width = 3,
+                Width = global::OfficeIMO.OfficeLength.Points(3),
                 DiagonalDown = true
             }
         };
@@ -238,7 +238,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(0, 0)] = new PdfCellBorder {
                 Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0),
-                Width = 3,
+                Width = global::OfficeIMO.OfficeLength.Points(3),
                 DiagonalDown = true
             }
         };
@@ -274,7 +274,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(2, 1)] = new PdfCellBorder {
                 Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56),
-                Width = 1.7
+                Width = global::OfficeIMO.OfficeLength.Points(1.7)
             }
         };
 
@@ -313,7 +313,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(2, 1)] = new PdfCellBorder {
                 Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.3, 0.4),
-                Width = 2.2,
+                Width = global::OfficeIMO.OfficeLength.Points(2.2),
                 Right = false,
                 Bottom = false,
                 Left = false
@@ -349,9 +349,9 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.BorderColor = null;
         style.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56);
-        style.RowSeparatorWidth = 0.6;
+        style.RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.6);
         style.HeaderSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.7, 0.2, 0.1);
-        style.HeaderSeparatorWidth = 1.1;
+        style.HeaderSeparatorWidth = global::OfficeIMO.OfficeLength.Points(1.1);
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(320),
@@ -386,9 +386,9 @@ public partial class PdfDocumentVisualQualityTests {
         style.HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42);
         style.HeaderTextColor = global::OfficeIMO.OfficeColor.White;
         style.BorderColor = global::OfficeIMO.OfficeColor.FromRgb(238, 51, 68);
-        style.BorderWidth = 1.1;
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(1.1);
         style.HeaderSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(238, 51, 68);
-        style.HeaderSeparatorWidth = 1.1;
+        style.HeaderSeparatorWidth = global::OfficeIMO.OfficeLength.Points(1.1);
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(320),
@@ -418,9 +418,9 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.BorderColor = null;
         style.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56);
-        style.RowSeparatorWidth = 0.6;
+        style.RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.6);
         style.HeaderSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.7, 0.2, 0.1);
-        style.HeaderSeparatorWidth = 1.1;
+        style.HeaderSeparatorWidth = global::OfficeIMO.OfficeLength.Points(1.1);
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(320),
@@ -459,10 +459,10 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.BorderColor = null;
         style.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56);
-        style.RowSeparatorWidth = 0.6;
+        style.RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.6);
         style.FooterRowCount = 1;
         style.FooterSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.7, 0.3);
-        style.FooterSeparatorWidth = 1.3;
+        style.FooterSeparatorWidth = global::OfficeIMO.OfficeLength.Points(1.3);
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(320),
@@ -494,10 +494,10 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.BorderColor = null;
         style.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56);
-        style.RowSeparatorWidth = 0.6;
+        style.RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.6);
         style.FooterRowCount = 1;
         style.FooterSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.7, 0.3);
-        style.FooterSeparatorWidth = 1.3;
+        style.FooterSeparatorWidth = global::OfficeIMO.OfficeLength.Points(1.3);
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(320),

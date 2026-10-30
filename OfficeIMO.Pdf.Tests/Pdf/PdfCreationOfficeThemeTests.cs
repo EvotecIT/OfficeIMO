@@ -65,7 +65,7 @@ public sealed class PdfCreationOfficeThemeTests {
     [Fact]
     public void ExplicitOptionsAndBlockRunsWinAndCallerMutationDoesNotChangeSavedOutput() {
         var headings = new PdfHeadingStyles { Level1 = new PdfHeadingStyle { FontSize = 17, Color = OfficeColor.Black } };
-        var tableStyle = new PdfTableStyle { FontSize = 13, HeaderFontSize = 13, HeaderFill = OfficeColor.White };
+        var tableStyle = new PdfTableStyle { FontSize = global::OfficeIMO.OfficeLength.Points(13), HeaderFontSize = global::OfficeIMO.OfficeLength.Points(13), HeaderFill = OfficeColor.White };
         var options = new PdfCreateOptions {
             Theme = OfficeTheme.Classic,
             DefaultFont = PdfStandardFont.Courier,
@@ -102,7 +102,7 @@ public sealed class PdfCreationOfficeThemeTests {
         options.HeaderOffsetY = OfficeLength.Inches(0.25);
         options.FooterFontSize = OfficeLength.Points(20);
         headings.Level1 = new PdfHeadingStyle { FontSize = 60 };
-        tableStyle.FontSize = 60;
+        tableStyle.FontSize = global::OfficeIMO.OfficeLength.Points(60);
         PdfHeadingStyles detached = document.Options.DefaultHeadingStyles!;
         detached.Level1 = new PdfHeadingStyle { FontSize = 70 };
         using var independent = PdfPigDocument.Open(document.ToBytes());
@@ -227,15 +227,15 @@ public sealed class PdfCreationOfficeThemeTests {
 
     [Fact]
     public void TypedTablesUsePageScopedDefaultsAndKeepExplicitNativeStylePrecedence() {
-        var scoped = new PdfTableStyle { FontSize = 14, HeaderFontSize = 14 };
-        var explicitStyle = new PdfTableStyle { FontSize = 7, HeaderFontSize = 7 };
+        var scoped = new PdfTableStyle { FontSize = global::OfficeIMO.OfficeLength.Points(14), HeaderFontSize = global::OfficeIMO.OfficeLength.Points(14) };
+        var explicitStyle = new PdfTableStyle { FontSize = global::OfficeIMO.OfficeLength.Points(7), HeaderFontSize = global::OfficeIMO.OfficeLength.Points(7) };
         using var document = PdfDocument.Create(builder => builder.Page(page => page
             .DefaultTableStyle(scoped)
             .Content(content => content
                 .Table(new[] { new { Item = "PageTableAnchor" } })
                 .Table(new[] { new { Item = "ExplicitTableAnchor" } }, new PdfTableOptions { Style = explicitStyle }))));
-        scoped.FontSize = 30;
-        explicitStyle.FontSize = 40;
+        scoped.FontSize = global::OfficeIMO.OfficeLength.Points(30);
+        explicitStyle.FontSize = global::OfficeIMO.OfficeLength.Points(40);
         using var independent = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(14D, Word(independent, "PageTableAnchor")[0].PointSize, 2);
         Assert.Equal(7D, Word(independent, "ExplicitTableAnchor")[0].PointSize, 2);

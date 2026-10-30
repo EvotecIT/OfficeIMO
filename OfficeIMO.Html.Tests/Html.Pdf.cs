@@ -1414,10 +1414,10 @@ public sealed class HtmlPdfTests {
             new[] { "PDF", "OfficeIMO.Html.Pdf", "Stable" }
         };
         var tableStyle = new PdfCore.PdfTableStyle {
-            ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
             HeaderRowCount = 1,
-            CellPaddingX = 6,
-            CellPaddingY = 4
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
         };
         byte[] baselinePdf = PdfCore.PdfDocument.Create(pdfOptions)
             .H1("Positioned geometry")
@@ -2470,10 +2470,10 @@ public sealed class HtmlPdfTests {
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
     }
@@ -2518,8 +2518,8 @@ public sealed class HtmlPdfTests {
                 new[] { "A-100", "Alpha", "2" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, PdfCore.PdfAlign.Left, null, null, 6, 0, null, linkUri, "Summary link")
             .ToBytes();

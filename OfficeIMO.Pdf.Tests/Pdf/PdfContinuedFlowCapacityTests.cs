@@ -84,8 +84,8 @@ public class PdfContinuedFlowCapacityTests {
         PdfDocument document = PdfDocument.Create(options);
         var tableStyle = new PdfTableStyle {
             HeaderRowCount = 0, RepeatHeaderRowCount = 0, MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0,
-            FixedRowHeights = new List<double?> { 80D, 80D, 80D }, AllowRowBreakAcrossPages = false,
-            FontSize = 6, CellPaddingX = 2, CellPaddingY = 0, SpacingBefore = 0, SpacingAfter = 0
+            FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(80D) }, AllowRowBreakAcrossPages = false,
+            FontSize = global::OfficeIMO.OfficeLength.Points(6), CellPaddingX = global::OfficeIMO.OfficeLength.Points(2), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.Table(new[] {
             new[] { "PageNote0" }, new[] { "PageNote1" }, new[] { "PageNote2" }

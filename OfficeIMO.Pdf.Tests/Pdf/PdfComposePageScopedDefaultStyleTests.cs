@@ -406,7 +406,7 @@ namespace OfficeIMO.Tests.Pdf {
                 Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
             };
             var tableStyle = PdfTableStyles.Minimal();
-            tableStyle.CellPaddingX = 22;
+            tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(22);
             var theme = new PdfTheme {
                 TextStyle = textStyle,
                 TableStyle = tableStyle
@@ -431,7 +431,7 @@ namespace OfficeIMO.Tests.Pdf {
                 });
 
                 textStyle.FontSize = 8;
-                tableStyle.CellPaddingX = 0;
+                tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
                 theme.TextStyle = new PdfTextStyle {
                     Font = PdfStandardFont.Helvetica,
                     FontSize = 8
@@ -468,7 +468,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void ComposePage_DefaultTableStyleAppliesOnlyToThatPageAndSnapshotsInput() {
             var style = PdfTableStyles.Minimal();
-            style.CellPaddingX = 22;
+            style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(22);
             var doc = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
@@ -486,7 +486,7 @@ namespace OfficeIMO.Tests.Pdf {
                             })));
                 });
 
-                style.CellPaddingX = 0;
+                style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
 
                 c.Page(page => {
                     page.Margin(30);

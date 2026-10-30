@@ -19,11 +19,11 @@ public sealed class PdfTableTextLayoutReuseSpacingTests {
             new[] { PdfTableCell.RichTextCell(new[] { styledFirst ? styled : natural }) },
             new[] { PdfTableCell.RichTextCell(new[] { styledFirst ? natural : styled }) }
         }, style: new PdfTableStyle {
-            FontSize = 12D,
+            FontSize = global::OfficeIMO.OfficeLength.Points(12D),
             HeaderRowCount = 0,
-            ColumnWidthPoints = new() { 200D },
-            CellPaddingX = 0D,
-            CellPaddingY = 0D
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(200D) },
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D)
         })), new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D) }).ToBytes();
 
         using var document = PdfPigDocument.Open(bytes);

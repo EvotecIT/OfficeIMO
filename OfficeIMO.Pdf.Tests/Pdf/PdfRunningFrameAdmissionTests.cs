@@ -100,9 +100,9 @@ public sealed class PdfRunningFrameAdmissionTests {
     public void StrictKeptTableReachesTheLargerRunningFrame() {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = style.CellPaddingY = 0D;
-        style.SpacingBefore = style.SpacingAfter = 0D;
-        style.FixedRowHeights = new List<double?> { RequiredParagraphHeight };
+        style.CellPaddingX = style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D);
+        style.SpacingBefore = style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(RequiredParagraphHeight) };
         style.KeepTogether = true;
         style.AllowRowBreakAcrossPages = false;
         PdfDocument document = CreateContentDocument(content =>
@@ -275,8 +275,8 @@ public sealed class PdfRunningFrameAdmissionTests {
     public void LaterTableRowRetainsItsHeightRequirementAfterAnOrdinaryMove(bool fixedHeight) {
         PdfTableStyle style = ReviewTableStyle("fixed");
         var heights = new List<double?> { 150D, RequiredParagraphHeight };
-        style.FixedRowHeights = fixedHeight ? heights : null;
-        if (!fixedHeight) style.RowMinHeights = heights;
+        style.FixedRowHeights = (fixedHeight ? heights : null) is { } lengths11794 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths11794, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
+        if (!fixedHeight) style.RowMinHeights = (heights) is { } lengths11872 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths11872, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
         style.MinimumBodyRowsOnFirstPage = style.MinimumBodyRowsOnLastPage = 1;
         PdfDocument document = CreateContentDocument(content =>
             content.Table(new[] { new[] { "PREFIX" }, new[] { "ROW" } }, style: style),
@@ -294,7 +294,7 @@ public sealed class PdfRunningFrameAdmissionTests {
         PdfTableStyle style = ReviewTableStyle("fixed");
         style.HeaderRowCount = 1;
         style.RepeatHeaderRowCount = 1;
-        style.FixedRowHeights = new List<double?> { 30D, 150D, 40D };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(150D), global::OfficeIMO.OfficeLength.Points(40D) };
         style.MinimumBodyRowsOnFirstPage = style.MinimumBodyRowsOnLastPage = 1;
         PdfDocument document = CreateContentDocument(content =>
             content.Table(new[] { new[] { "HEAD" }, new[] { "PREFIX" }, new[] { "ROW" } }, style: style),
@@ -309,8 +309,8 @@ public sealed class PdfRunningFrameAdmissionTests {
     [Fact]
     public void SplittableTableRowUsesALegalShortFrameInsteadOfSearchingForTheWholeRow() {
         PdfTableStyle style = ReviewTableStyle("split");
-        style.FontSize = 20D;
-        style.FixedRowHeights = new List<double?> { 150D, null };
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(20D);
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(150D), null };
         style.MinimumBodyRowsOnFirstPage = style.MinimumBodyRowsOnLastPage = 1;
         var runs = new[] { PdfTextRun.Normal("B01\nB02\nB03\nB04") };
         // The Word adapter supplies these paragraph-level widow constraints
@@ -361,7 +361,7 @@ public sealed class PdfRunningFrameAdmissionTests {
             if (kind == "table") {
                 PdfTableStyle style = ReviewTableStyle("kept");
                 style.KeepWithNext = true;
-                style.FixedRowHeights = new List<double?> { 40D, 40D };
+                style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(40D) };
                 style.MinimumBodyRowsOnFirstPage = style.MinimumBodyRowsOnLastPage = 1;
                 content.Table(new[] { new[] { "FIRST" }, new[] { "SECOND" } }, style: style);
             } else {
@@ -450,13 +450,13 @@ public sealed class PdfRunningFrameAdmissionTests {
     private static PdfTableStyle ReviewTableStyle(string profile) {
         PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = style.CellPaddingY = 0D;
-        style.SpacingBefore = style.SpacingAfter = 0D;
+        style.CellPaddingX = style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D);
+        style.SpacingBefore = style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
         style.KeepTogether = profile == "kept";
         style.AllowRowBreakAcrossPages = profile == "split";
         if (profile is "kept" or "fixed")
-            style.FixedRowHeights = new List<double?> { RequiredParagraphHeight };
-        else style.FontSize = RequiredParagraphHeight / 1.25D;
+            style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(RequiredParagraphHeight) };
+        else style.FontSize = global::OfficeIMO.OfficeLength.Points(RequiredParagraphHeight / 1.25D);
         return style;
     }
 

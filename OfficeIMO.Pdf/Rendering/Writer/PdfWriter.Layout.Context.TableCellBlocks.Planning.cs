@@ -46,7 +46,7 @@ internal static partial class PdfWriter {
             double frameWidth = currentOpts.PageWidth.ToPoints() - currentOpts.MarginLeft.ToPoints() - currentOpts.MarginRight.ToPoints();
             PreparedTableGeometry geometry = PrepareTableGeometry(table, PreparePairedTableBorders(table, style), frameWidth);
             if (style.KeepWithNext && nextBlock != null) {
-                double tableHeight = style.SpacingBefore + GetTableRowsHeight(geometry.Rows.Heights, 0, table.Rows.Count, geometry.Gap) + style.SpacingAfter;
+                double tableHeight = style.SpacingBefore.ToPoints() + GetTableRowsHeight(geometry.Rows.Heights, 0, table.Rows.Count, geometry.Gap) + style.SpacingAfter.ToPoints();
                 double next = MeasureKeepWithNextChainHeight(blocks, index + 1, currentOpts.MarginLeft.ToPoints(), frameWidth,
                     currentOpts.DefaultFontSize.ToPoints(), tableHeight);
                 double kept = tableHeight + next + GetClosingContainerPadding();

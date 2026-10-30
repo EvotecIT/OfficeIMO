@@ -20,7 +20,7 @@ public partial class PdfDocumentVisualQualityTests {
             PageWidth = global::OfficeIMO.OfficeLength.Points(612), MarginLeft = global::OfficeIMO.OfficeLength.Points(72), MarginRight = global::OfficeIMO.OfficeLength.Points(72),
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
-            DefaultTableStyle = new PdfTableStyle { FontSize = 10, HeaderFontSize = 10, AutoFitColumns = false }
+            DefaultTableStyle = new PdfTableStyle { FontSize = global::OfficeIMO.OfficeLength.Points(10), HeaderFontSize = global::OfficeIMO.OfficeLength.Points(10), AutoFitColumns = false }
         };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -64,7 +64,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.ColumnWidthPoints = new List<double?> { 80 };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80) };
 
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
@@ -101,7 +101,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.ColumnWidthPoints = new List<double?> { 80 };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80) };
 
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
@@ -133,7 +133,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.ColumnWidthPoints = new List<double?> { 80 };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80) };
 
         byte[] bytes = PdfDocument.Create(options)
             .Compose(document =>
@@ -175,7 +175,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.ColumnWidthPoints = new List<double?> { 80 };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80) };
 
         byte[] bytes = PdfDocument.Create(options)
             .Compose(document =>
@@ -343,7 +343,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
         var style = PdfTableStyles.Minimal();
-        style.ColumnWidthPoints = new List<double?> { 70, null };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), null };
 
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
@@ -375,9 +375,9 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_CellTextThatEscapesCellRectanglesIsClipped() {
         var style = PdfTableStyles.Minimal();
-        style.CellPaddingX = 8;
-        style.CellPaddingY = 5;
-        style.RowBaselineOffset = 40;
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(8);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(5);
+        style.RowBaselineOffset = global::OfficeIMO.OfficeLength.Points(40);
 
         byte[] topLevelBytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(320),

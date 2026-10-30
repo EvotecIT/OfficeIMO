@@ -73,10 +73,10 @@ public sealed partial class PdfTableCellViewportTests {
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(320), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
             MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24) };
         var style = PdfTableStyles.Minimal();
-        style.BorderColor = null; style.BorderWidth = 0; style.HeaderRowCount = 0;
-        style.ColumnWidthPoints = new List<double?> { width }; style.FixedRowHeights = new List<double?> { 72 };
-        style.CellPaddingX = 0; style.CellPaddingY = 0; style.CellSpacing = 0;
-        style.SpacingBefore = 0; style.SpacingAfter = 0;
+        style.BorderColor = null; style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0); style.HeaderRowCount = 0;
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(width) }; style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(72) };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0); style.CellSpacing = global::OfficeIMO.OfficeLength.Points(0);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         style.VerticalAlignments = new List<PdfCellVerticalAlign> { PdfCellVerticalAlign.Top };
         return PdfDocument.Create(options).Compose(document => document.Page(page => {
             if (mode == "canvas") page.Canvas(canvas => canvas.Table(rows, 24, 24, width, 72, style));

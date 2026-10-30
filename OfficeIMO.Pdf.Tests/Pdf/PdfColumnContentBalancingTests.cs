@@ -71,7 +71,7 @@ public class PdfColumnContentBalancingTests {
         style.HeaderRowCount = 1;
         style.RepeatHeaderRowCount = 1;
         style.HeaderBold = false;
-        style.HeaderFontSize = 12;
+        style.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(12);
         byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.Table(
             new[] { new[] { new PdfTableCell("Header") } }.Concat(Enumerable.Range(1, bodyRows)
                 .Select(index => new[] { new PdfTableCell("Table" + index.ToString("D3")) })), style: style),
@@ -134,8 +134,8 @@ public class PdfColumnContentBalancingTests {
     };
 
     private static PdfTableStyle TableStyle() => new() {
-        HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0, FontSize = 12, LineHeight = 20D / 12D,
-        BorderWidth = 0, RowSeparatorWidth = 0, SpacingBefore = 0, SpacingAfter = 0,
+        HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 20D / 12D,
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(0), RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
         MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0
     };
 }

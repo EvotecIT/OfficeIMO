@@ -60,11 +60,11 @@ public static class PdfTableStyles {
         TextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
         RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
         BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 218, 226),
-        BorderWidth = 0.5,
-        CellPaddingX = 6,
-        CellPaddingY = 5,
-        SpacingBefore = 4,
-        SpacingAfter = 8
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+        CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+        SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
     };
 
     /// <summary>
@@ -72,7 +72,7 @@ public static class PdfTableStyles {
     /// </summary>
     public static PdfTableStyle Minimal() => new PdfTableStyle {
         BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 210, 210),
-        BorderWidth = 0.5
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5)
     };
 
     /// <summary>
@@ -94,8 +94,8 @@ public static class PdfTableStyles {
         style.RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252);
         style.BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225);
         style.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(226, 232, 240);
-        style.BorderWidth = 0.45;
-        style.HeaderSeparatorWidth = 0.75;
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0.45);
+        style.HeaderSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.75);
         return style;
     }
 
@@ -117,7 +117,7 @@ public static class PdfTableStyles {
         style.HeaderTextColor = global::OfficeIMO.OfficeColor.White;
         style.RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255);
         style.BorderColor = global::OfficeIMO.OfficeColor.FromRgb(191, 219, 254);
-        style.BorderWidth = 0.45;
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0.45);
         return style;
     }
 
@@ -213,9 +213,9 @@ public static class PdfTableStyles {
         FooterFill = null,
         RowStripeFill = null,
         BorderColor = global::OfficeIMO.OfficeColor.Black,
-        BorderWidth = 0.5,
-        CellPaddingX = 5,
-        CellPaddingY = 4,
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(5),
+        CellPaddingY = global::OfficeIMO.OfficeLength.Points(4),
         HeaderBold = false,
         HeaderRowCount = 1,
         FooterRowCount = 0
@@ -231,9 +231,9 @@ public static class PdfTableStyles {
         FooterFill = null,
         RowStripeFill = null,
         BorderColor = global::OfficeIMO.OfficeColor.FromRgb(191, 191, 191),
-        BorderWidth = 0.5,
-        CellPaddingX = 5,
-        CellPaddingY = 4,
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(5),
+        CellPaddingY = global::OfficeIMO.OfficeLength.Points(4),
         HeaderRowCount = 1,
         FooterRowCount = 0
     };
@@ -248,9 +248,9 @@ public static class PdfTableStyles {
         FooterFill = null,
         RowStripeFill = null,
         BorderColor = null,
-        BorderWidth = 0,
-        CellPaddingX = 5,
-        CellPaddingY = 4,
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(0),
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(5),
+        CellPaddingY = global::OfficeIMO.OfficeLength.Points(4),
         HeaderRowCount = 1,
         FooterRowCount = 0
     };
@@ -265,13 +265,13 @@ public static class PdfTableStyles {
         FooterFill = null,
         RowStripeFill = null,
         BorderColor = global::OfficeIMO.OfficeColor.FromRgb(217, 217, 217),
-        BorderWidth = 0.45,
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(0.45),
         HeaderSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(127, 127, 127),
-        HeaderSeparatorWidth = 0.8,
+        HeaderSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.8),
         FooterSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(127, 127, 127),
-        FooterSeparatorWidth = 0.8,
-        CellPaddingX = 5,
-        CellPaddingY = 5,
+        FooterSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.8),
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(5),
+        CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
         HeaderRowCount = 1,
         FooterRowCount = 0
     };
@@ -286,15 +286,15 @@ public static class PdfTableStyles {
         FooterFill = null,
         RowStripeFill = null,
         BorderColor = null,
-        BorderWidth = 0,
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(0),
         RowSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(224, 224, 224),
-        RowSeparatorWidth = 0.45,
+        RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.45),
         HeaderSeparatorColor = global::OfficeIMO.OfficeColor.Black,
-        HeaderSeparatorWidth = 0.8,
+        HeaderSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.8),
         FooterSeparatorColor = global::OfficeIMO.OfficeColor.Black,
-        FooterSeparatorWidth = 0.8,
-        CellPaddingX = 4,
-        CellPaddingY = 6,
+        FooterSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.8),
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(4),
+        CellPaddingY = global::OfficeIMO.OfficeLength.Points(6),
         HeaderRowCount = 1,
         FooterRowCount = 0
     };
@@ -340,13 +340,13 @@ public static class PdfTableStyles {
     };
 
     private static PdfTableStyle CreateDocumentTable(PdfTableStyle style, double fontSize, double headerFontSize, double lineHeight, double paddingX, double paddingY, double spacingBefore, double spacingAfter) {
-        style.FontSize = fontSize;
-        style.HeaderFontSize = headerFontSize;
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
+        style.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(headerFontSize);
         style.LineHeight = lineHeight;
-        style.CellPaddingX = paddingX;
-        style.CellPaddingY = paddingY;
-        style.SpacingBefore = spacingBefore;
-        style.SpacingAfter = spacingAfter;
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(paddingX);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(paddingY);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter);
         style.AutoFitColumns = true;
         return style;
     }

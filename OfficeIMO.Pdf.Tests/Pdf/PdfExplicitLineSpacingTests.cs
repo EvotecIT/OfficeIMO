@@ -14,8 +14,8 @@ public sealed class PdfExplicitLineSpacingTests {
         var runs = new[] { new PdfTextRun("Q\nThisIdentifierShouldShrinkToFit\nZ", fontSize: 30, font: PdfStandardFont.Courier) };
         var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, lineHeight: 3, fontSize: 8,
             lineSpacing: exact ? PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(14)) : PdfLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(20))) });
-        var style = new PdfTableStyle { HeaderRowCount = 0, FontSize = 18, MinimumShrinkFontSize = 7,
-            ShrinkTextToFit = true, ColumnWidthPoints = new() { 180 }, CellPaddingX = 0, CellPaddingY = 0 };
+        var style = new PdfTableStyle { HeaderRowCount = 0, FontSize = global::OfficeIMO.OfficeLength.Points(18), MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(7),
+            ShrinkTextToFit = true, ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(180) }, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0) };
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options()).Table(new[] { new[] { cell } }, style: style).ToBytes());
         var letters = pdf.GetPage(1).Letters;
         var first = Assert.Single(letters, letter => letter.Value == "Q");
@@ -114,7 +114,7 @@ public sealed class PdfExplicitLineSpacingTests {
         var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs,
             fontSize: (style.FontSize?.ToPoints()), lineSpacing: style.LineSpacing) });
         var tableStyle = PdfTableStyles.Minimal(); tableStyle.HeaderRowCount = 0;
-        tableStyle.CellPaddingX = 0; tableStyle.CellPaddingY = 0;
+        tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0); tableStyle.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
         return PdfDocument.Create(Options()).Table(new[] { new[] { cell } }, style: tableStyle).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 }

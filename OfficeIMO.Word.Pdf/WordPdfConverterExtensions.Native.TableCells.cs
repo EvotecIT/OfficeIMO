@@ -153,7 +153,7 @@ namespace OfficeIMO.Word.Pdf {
 
             return new PdfCore.PdfCellBorderSide {
                 Color = ParseNativeColor(NormalizeNativeBorderColor(color)) ?? global::OfficeIMO.OfficeColor.Black,
-                Width = (size?.Value ?? 4U) / 8D,
+                Width = global::OfficeIMO.OfficeLength.Points((size?.Value ?? 4U) / 8D),
                 DashStyle = ToNativeBorderDashStyle(borderStyle),
                 LineStyle = ToNativeBorderLineStyle(borderStyle)
             };

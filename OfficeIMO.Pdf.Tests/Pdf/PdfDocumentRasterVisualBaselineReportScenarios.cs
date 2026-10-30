@@ -218,16 +218,16 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             TextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
             RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
             BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 218, 226),
-            BorderWidth = 0.5,
-            CellPaddingX = 6,
-            CellPaddingY = 5,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
             Caption = "Table 1. Core layout checks",
             CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(80, 90, 100),
-            CaptionFontSize = 8.5,
-            CaptionSpacingAfter = 5,
-            SpacingBefore = 6,
-            SpacingAfter = 14,
-            ColumnWidthPoints = new List<double?> { 82, 310, 76 },
+            CaptionFontSize = global::OfficeIMO.OfficeLength.Points(8.5),
+            CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(5),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(6),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(14),
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(82), global::OfficeIMO.OfficeLength.Points(310), global::OfficeIMO.OfficeLength.Points(76) },
             AutoFitColumns = false
         };
     }
@@ -285,8 +285,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
     private static PdfTableStyle CreateLineItemGateTableStyle() {
         var style = PdfTableStyles.ListTable1Light();
-        style.SpacingBefore = 0;
-        style.SpacingAfter = 14;
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(14);
         style.Alignments = new List<PdfColumnAlign> {
             PdfColumnAlign.Right,
             PdfColumnAlign.Left,
@@ -294,7 +294,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             PdfColumnAlign.Right,
             PdfColumnAlign.Right
         };
-        style.ColumnWidthPoints = new List<double?> { 28, 235, 82, 55, 95 };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(28), global::OfficeIMO.OfficeLength.Points(235), global::OfficeIMO.OfficeLength.Points(82), global::OfficeIMO.OfficeLength.Points(55), global::OfficeIMO.OfficeLength.Points(95) };
         style.AutoFitColumns = false;
         return style;
     }
@@ -308,18 +308,18 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             FooterTextColor = global::OfficeIMO.OfficeColor.Black,
             RowStripeFill = null,
             BorderColor = global::OfficeIMO.OfficeColor.FromRgb(224, 224, 224),
-            BorderWidth = 0.4,
-            CellPaddingX = 6,
-            CellPaddingY = 5,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.4),
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
             HeaderRowCount = 0,
             FooterRowCount = 1,
-            SpacingBefore = 0,
-            SpacingAfter = 10,
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(10),
             Alignments = new List<PdfColumnAlign> {
                 PdfColumnAlign.Right,
                 PdfColumnAlign.Right
             },
-            ColumnWidthPoints = new List<double?> { 105, 105 }
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(105), global::OfficeIMO.OfficeLength.Points(105) }
         };
     }
 
@@ -335,17 +335,17 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             FooterTextColor = global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85),
             RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
             BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 218, 226),
-            BorderWidth = 0.5,
-            CellPaddingX = 6,
-            CellPaddingY = 5,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
             HeaderRowCount = 1,
             FooterRowCount = 1,
             Caption = "Table 1. Example line items",
             CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(80, 90, 100),
-            CaptionFontSize = 8.5,
-            CaptionSpacingAfter = 5,
-            SpacingBefore = 6,
-            SpacingAfter = 14,
+            CaptionFontSize = global::OfficeIMO.OfficeLength.Points(8.5),
+            CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(5),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(6),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(14),
             RightAlignNumeric = true,
             Alignments = new List<PdfColumnAlign> {
                 PdfColumnAlign.Left,
@@ -354,7 +354,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 PdfColumnAlign.Right,
                 PdfColumnAlign.Left
             },
-            ColumnWidthPoints = new List<double?> { 110, 38, 58, 68, 170 },
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(110), global::OfficeIMO.OfficeLength.Points(38), global::OfficeIMO.OfficeLength.Points(58), global::OfficeIMO.OfficeLength.Points(68), global::OfficeIMO.OfficeLength.Points(170) },
             AutoFitColumns = false
         };
     }
@@ -365,13 +365,13 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             HeaderTextColor = global::OfficeIMO.OfficeColor.White,
             RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
             BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
-            BorderWidth = 0.4,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.4),
             RowSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(226, 232, 240),
-            RowSeparatorWidth = 0.45,
-            CellPaddingX = 7,
-            CellPaddingY = 5,
-            HeaderFontSize = 9.5,
-            FontSize = 9,
+            RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.45),
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(7),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
+            HeaderFontSize = global::OfficeIMO.OfficeLength.Points(9.5),
+            FontSize = global::OfficeIMO.OfficeLength.Points(9),
             RightAlignNumeric = true,
             ColumnWidthWeights = new List<double> { 2.1, 1.0, 0.8, 1.2 },
             Alignments = new List<PdfColumnAlign> {
@@ -389,11 +389,11 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             HeaderTextColor = global::OfficeIMO.OfficeColor.White,
             RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255),
             BorderColor = global::OfficeIMO.OfficeColor.FromRgb(191, 219, 254),
-            BorderWidth = 0.45,
-            CellPaddingX = 7,
-            CellPaddingY = 5,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.45),
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(7),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
             HeaderRowCount = 1,
-            FontSize = 8.7,
+            FontSize = global::OfficeIMO.OfficeLength.Points(8.7),
             LineHeight = 1.15,
             ColumnWidthWeights = new List<double> { 1.0, 2.1 }
         };
@@ -428,14 +428,14 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             TextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
             RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
             BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 218, 226),
-            BorderWidth = 0.5,
-            CellPaddingX = 6,
-            CellPaddingY = 5,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
             Caption = "Table 1. Report signals",
             CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(80, 90, 100),
-            CaptionFontSize = 8.5,
-            CaptionSpacingAfter = 5,
-            SpacingBefore = 6,
+            CaptionFontSize = global::OfficeIMO.OfficeLength.Points(8.5),
+            CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(5),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(6),
             AutoFitColumns = true
         };
     }
@@ -447,15 +447,15 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             TextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
             RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
             BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 218, 226),
-            BorderWidth = 0.5,
-            CellPaddingX = 6,
-            CellPaddingY = 5,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
             Caption = "Table 1. Linked resources",
             CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(80, 90, 100),
-            CaptionFontSize = 8.5,
-            CaptionSpacingAfter = 5,
-            SpacingBefore = 6,
-            SpacingAfter = 12
+            CaptionFontSize = global::OfficeIMO.OfficeLength.Points(8.5),
+            CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(5),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(6),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(12)
         };
     }
 

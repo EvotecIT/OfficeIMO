@@ -363,11 +363,11 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 HeaderTextColor = global::OfficeIMO.OfficeColor.White,
                 BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
                 RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
-                CellPaddingX = 7,
-                CellPaddingY = 5,
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(7),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
                 AutoFitColumns = true,
-                SpacingBefore = 4,
-                SpacingAfter = 8
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
             })
             .Paragraph(p => p.Text("The watermark remains readable in the raster gate while the foreground table and panel stay crisp."))
             .ToBytes();
@@ -418,11 +418,11 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 HeaderTextColor = global::OfficeIMO.OfficeColor.White,
                 BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
                 RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
-                CellPaddingX = 7,
-                CellPaddingY = 5,
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(7),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
                 AutoFitColumns = true,
-                SpacingBefore = 4,
-                SpacingAfter = 8
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
             })
             .Paragraph(p => p.Text("The raster gate keeps this from quietly regressing into an above-content stamp or layout-consuming image block."))
             .ToBytes();
@@ -471,11 +471,11 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 HeaderTextColor = global::OfficeIMO.OfficeColor.White,
                 BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
                 RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
-                CellPaddingX = 7,
-                CellPaddingY = 5,
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(7),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
                 AutoFitColumns = true,
-                SpacingBefore = 4,
-                SpacingAfter = 8
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
             })
             .Paragraph(p => p.Text("The border is a generic page primitive that Word, Markdown, Excel, and wrappers can reuse without template-specific APIs."))
             .ToBytes();
@@ -528,11 +528,11 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 HeaderTextColor = global::OfficeIMO.OfficeColor.White,
                 BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
                 RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
-                CellPaddingX = 7,
-                CellPaddingY = 5,
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(7),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
                 AutoFitColumns = true,
-                SpacingBefore = 4,
-                SpacingAfter = 8
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
             })
             .Paragraph(p => p.Text("The same primitive can later power Markdown themes, Word backgrounds, letterheads, and wrapper presets."))
             .ToBytes();
@@ -584,11 +584,11 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 HeaderTextColor = global::OfficeIMO.OfficeColor.White,
                 BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
                 RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
-                CellPaddingX = 7,
-                CellPaddingY = 5,
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(7),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
                 AutoFitColumns = true,
-                SpacingBefore = 4,
-                SpacingAfter = 8
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
             })
             .Paragraph(p => p.Text("This gives Markdown and Office exporters a dependency-free way to create visually richer pages than literal plain Markdown output."))
             .ToBytes();
@@ -659,13 +659,13 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                                     HeaderTextColor = global::OfficeIMO.OfficeColor.White,
                                     RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
-                                    BorderWidth = 0.5,
-                                    CellPaddingX = 4,
-                                    CellPaddingY = 3,
+                                    BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+                                    CellPaddingX = global::OfficeIMO.OfficeLength.Points(4),
+                                    CellPaddingY = global::OfficeIMO.OfficeLength.Points(3),
                                     HeaderRowCount = 1,
                                     RightAlignNumeric = false,
-                                    SpacingBefore = 7,
-                                    SpacingAfter = 7,
+                                    SpacingBefore = global::OfficeIMO.OfficeLength.Points(7),
+                                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(7),
                                     Alignments = new System.Collections.Generic.List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right },
                                     ColumnWidthWeights = new System.Collections.Generic.List<double> { 1.2, 0.8 }
                                 })
@@ -812,11 +812,11 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             PdfTableStyle style = PdfTableStyles.FromWordTableStyle(styleName);
             style.Caption = styleName;
             style.CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(80, 90, 100);
-            style.CaptionFontSize = 8.5;
-            style.CaptionSpacingAfter = 4;
-            style.SpacingBefore = 6;
-            style.SpacingAfter = 6;
-            style.ColumnWidthPoints = new List<double?> { 76, 70, 300 };
+            style.CaptionFontSize = global::OfficeIMO.OfficeLength.Points(8.5);
+            style.CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(4);
+            style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(6);
+            style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(6);
+            style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(76), global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(300) };
             style.AutoFitColumns = false;
             style.Alignments = new List<PdfColumnAlign> {
                 PdfColumnAlign.Left,
@@ -845,15 +845,15 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         var style = PdfTableStyles.ListTable1Light();
         style.Caption = "Accent swatches";
         style.CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(80, 90, 100);
-        style.CaptionFontSize = 8.5;
-        style.CaptionSpacingAfter = 4;
-        style.SpacingBefore = 6;
-        style.SpacingAfter = 4;
-        style.FontSize = 8.5;
-        style.HeaderFontSize = 8.5;
-        style.CellPaddingX = 5;
-        style.CellPaddingY = 3;
-        style.ColumnWidthPoints = new List<double?> { 76, 45, 45, 45, 45, 45, 45 };
+        style.CaptionFontSize = global::OfficeIMO.OfficeLength.Points(8.5);
+        style.CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(4);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(6);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(4);
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(8.5);
+        style.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8.5);
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(5);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(3);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(76), global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45) };
         style.AutoFitColumns = false;
         style.Alignments = new List<PdfColumnAlign> {
             PdfColumnAlign.Left,

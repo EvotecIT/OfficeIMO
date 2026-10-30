@@ -67,18 +67,18 @@ public sealed partial class PdfInvoiceDocument {
     private PdfTableStyle DetailTableStyle(InvoicePdfTheme? theme) {
         PdfTableStyle style = theme == null ? PlainTable() : new PdfTableStyle {
             HeaderRowCount = 0,
-            FontSize = 9D,
-            SpacingAfter = 10D,
+            FontSize = global::OfficeIMO.OfficeLength.Points(9D),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(10D),
             RowStripeFill = null,
             BorderColor = theme.Border,
-            BorderWidth = 0.6D,
-            CornerRadius = theme.CornerRadius,
-            CellPaddingX = 7D,
-            CellPaddingY = 4D,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.6D),
+            CornerRadius = global::OfficeIMO.OfficeLength.Points(theme.CornerRadius),
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(7D),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(4D),
             BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> { theme.Surface, null },
             ColumnWidthWeights = new List<double> { 1D, 1D }
         };
-        if (_layout.CompactDetails) { style.SpacingAfter = 4; style.CellPaddingY = 2; }
+        if (_layout.CompactDetails) { style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(4); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2); }
         return style;
     }
 }

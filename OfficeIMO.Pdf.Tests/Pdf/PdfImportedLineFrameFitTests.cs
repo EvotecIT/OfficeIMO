@@ -12,10 +12,10 @@ public sealed class PdfImportedLineFrameFitTests {
     [InlineData(true)]
     public void ImportedFrameFittingRetainsTheLastLineWhenAFloatingTableIsOnThePage(bool keep) {
         var tableStyle = new PdfTableStyle {
-            HeaderRowCount = 0, FontSize = 2D, CellPaddingX = 0D, CellPaddingY = 0D, MinRowHeight = 4D,
-            ColumnWidthPoints = new System.Collections.Generic.List<double?> { 10D },
+            HeaderRowCount = 0, FontSize = global::OfficeIMO.OfficeLength.Points(2D), CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D), MinRowHeight = global::OfficeIMO.OfficeLength.Points(4D),
+            ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(10D) },
             Position = new PdfTablePosition(PdfTableAnchor.Page, PdfTableAnchor.Page,
-                horizontalOffset: 150D, verticalOffset: 4D)
+                horizontalOffset: global::OfficeIMO.OfficeLength.Points(150D), verticalOffset: global::OfficeIMO.OfficeLength.Points(4D))
         };
         var document = PdfDocument.Create(Options(107D)).Table(new[] { new[] { "T" } }, style: tableStyle)
             .Paragraph(p => p.Text("A\nB\nC\nD"), style: new PdfParagraphStyle {

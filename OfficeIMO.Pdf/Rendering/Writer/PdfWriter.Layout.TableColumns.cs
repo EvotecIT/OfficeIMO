@@ -15,11 +15,11 @@ internal static partial class PdfWriter {
     }
 
     private static double ResolveTableFrameWidth(PdfTableStyle style, double containerWidth) {
-        if (double.IsNaN(style.LeftIndent) || double.IsInfinity(style.LeftIndent)) {
+        if (double.IsNaN(style.LeftIndent.ToPoints()) || double.IsInfinity(style.LeftIndent.ToPoints())) {
             throw new ArgumentException("Table left indent must be a finite value.");
         }
 
-        double frameWidth = containerWidth - style.LeftIndent;
+        double frameWidth = containerWidth - style.LeftIndent.ToPoints();
         if (frameWidth <= 0.001 || double.IsNaN(frameWidth) || double.IsInfinity(frameWidth)) {
             throw new ArgumentException("Table left indent must leave a positive table width.");
         }
@@ -30,7 +30,7 @@ internal static partial class PdfWriter {
     private static double ResolveTableAvailableWidth(PdfTableStyle style, double containerWidth) {
         double frameWidth = ResolveTableFrameWidth(style, containerWidth);
         if (style.MaxWidth.HasValue) {
-            double maxWidth = style.MaxWidth.Value;
+            double maxWidth = style.MaxWidth.Value.ToPoints();
             if (maxWidth <= 0 || double.IsNaN(maxWidth) || double.IsInfinity(maxWidth)) {
                 throw new ArgumentException("Table max width must be a positive finite value.");
             }
@@ -52,7 +52,7 @@ internal static partial class PdfWriter {
         if (TryResolveImportedPercentageFrameWidth(style, autoFitPreferredWidths, autoFitMinimumWidths,
             columnCount, columnGap, availableWidth, out double importedWidth))
             return style.AllowWidthBeyondFrame
-                ? style.MaxWidth.HasValue ? Math.Min(style.MaxWidth.Value, importedWidth) : importedWidth
+                ? style.MaxWidth.HasValue ? Math.Min(style.MaxWidth.Value.ToPoints(), importedWidth) : importedWidth
                 : Math.Min(availableWidth, importedWidth);
         if (!style.PreferredWidth.HasValue && !style.AutoFitUnspecifiedWidthToContent) {
             return availableWidth;
@@ -61,7 +61,7 @@ internal static partial class PdfWriter {
         // Imported automatic tables grow from their measured content. Generic
         // PDF tables retain their page-width default.
         double preferredWidth = style.PreferredWidth.HasValue
-            ? style.AllowWidthBeyondFrame ? style.PreferredWidth.Value : Math.Min(availableWidth, style.PreferredWidth.Value)
+            ? style.AllowWidthBeyondFrame ? style.PreferredWidth.Value.ToPoints() : Math.Min(availableWidth, style.PreferredWidth.Value.ToPoints())
             : 0D;
         double measuredContentWidth = 0D;
         // A content-sized imported table without an authored frame uses its
@@ -85,7 +85,7 @@ internal static partial class PdfWriter {
         measuredContentWidth += Math.Max(0, columnCount - 1) * columnGap;
         double desiredWidth = Math.Max(preferredWidth, measuredContentWidth);
         if (style.AllowWidthBeyondFrame) {
-            return style.MaxWidth.HasValue ? Math.Min(style.MaxWidth.Value, desiredWidth) : desiredWidth;
+            return style.MaxWidth.HasValue ? Math.Min(style.MaxWidth.Value.ToPoints(), desiredWidth) : desiredWidth;
         }
         return Math.Min(availableWidth, desiredWidth);
     }
@@ -258,13 +258,13 @@ internal static partial class PdfWriter {
         double totalWeight = 0D;
 
         for (int column = 0; column < columns; column++) {
-            double? minWidth = GetOptionalColumnWidth(style.ColumnMinWidthPoints, column, "Table minimum column widths must be positive finite values.");
+            double? minWidth = GetOptionalColumnWidth(style.ColumnMinWidths?.ConvertAll(static length => length?.ToPoints()), column, "Table minimum column widths must be positive finite values.");
             if (autoFitMinimumWidths != null && column < autoFitMinimumWidths.Length &&
                 (!minWidth.HasValue || style.AutoFitWidthUsesContentMinimum)) {
                 minWidth = Math.Max(minWidth ?? 0D, autoFitMinimumWidths[column]);
             }
 
-            double? maxWidth = GetOptionalColumnWidth(style.ColumnMaxWidthPoints, column, "Table maximum column widths must be positive finite values.");
+            double? maxWidth = GetOptionalColumnWidth(style.ColumnMaxWidths?.ConvertAll(static length => length?.ToPoints()), column, "Table maximum column widths must be positive finite values.");
             if (minWidth.HasValue && maxWidth.HasValue && minWidth.Value > maxWidth.Value + 0.001) {
                 throw new ArgumentException("Table minimum column widths cannot be greater than maximum column widths.");
             }
@@ -272,10 +272,10 @@ internal static partial class PdfWriter {
             minWidths[column] = minWidth;
             maxWidths[column] = maxWidth;
 
-            if (style.ColumnWidthPoints != null &&
-                column < style.ColumnWidthPoints.Count &&
-                style.ColumnWidthPoints[column].HasValue) {
-                double fixedWidth = style.ColumnWidthPoints[column]!.Value;
+            if (style.ColumnWidths != null &&
+                column < style.ColumnWidths.Count &&
+                style.ColumnWidths[column].HasValue) {
+                double fixedWidth = style.ColumnWidths[column]!.Value.ToPoints();
                 if (fixedWidth <= 0 || double.IsNaN(fixedWidth) || double.IsInfinity(fixedWidth)) {
                     throw new ArgumentException("Table fixed column widths must be positive finite values.");
                 }
@@ -344,7 +344,7 @@ internal static partial class PdfWriter {
     }
 
     private static double ResolveTableX(PdfAlign align, PdfTableStyle style, double containerLeft, double containerWidth, double tableWidth) {
-        double frameLeft = containerLeft + style.LeftIndent + style.HorizontalOffset;
+        double frameLeft = containerLeft + style.LeftIndent.ToPoints() + style.HorizontalOffset.ToPoints();
         double frameWidth = ResolveTableFrameWidth(style, containerWidth);
         double alignmentSpace = frameWidth - tableWidth;
         if (!style.AllowWidthBeyondFrame) alignmentSpace = Math.Max(0D, alignmentSpace);

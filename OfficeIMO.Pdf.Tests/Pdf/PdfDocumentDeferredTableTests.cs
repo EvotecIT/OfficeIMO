@@ -76,7 +76,7 @@ public class PdfDocumentDeferredTableTests {
         style.HeaderRowCount = 1;
         style.FooterRowCount = 1;
         style.Caption = "Deferred caption";
-        style.SpacingAfter = 8;
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(8);
 
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(300),

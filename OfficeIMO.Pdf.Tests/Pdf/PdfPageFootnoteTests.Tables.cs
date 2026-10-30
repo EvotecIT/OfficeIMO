@@ -124,9 +124,9 @@ public partial class PdfPageFootnoteTests {
     }
 
     private static PdfTableStyle FootnoteTableStyle() => new() {
-        HeaderRowCount = 0, FontSize = 8, LineHeight = 1.25D,
-        CellPaddingX = 0, CellPaddingY = 0, MinRowHeight = 0,
-        SpacingBefore = 0, SpacingAfter = 0, BorderWidth = 0, RowSeparatorWidth = 0
+        HeaderRowCount = 0, FontSize = global::OfficeIMO.OfficeLength.Points(8), LineHeight = 1.25D,
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), MinRowHeight = global::OfficeIMO.OfficeLength.Points(0),
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), BorderWidth = global::OfficeIMO.OfficeLength.Points(0), RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0)
     };
 
     private static IReadOnlyList<PdfTextRun> TableReferenceLines(int count, int referenceLine,

@@ -24,10 +24,10 @@ public partial class PdfDocumentReadResultTests {
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .Image(CreateMinimalRgbPng(), 18, 18)
             .ToBytes();
@@ -75,7 +75,7 @@ public partial class PdfDocumentReadResultTests {
                 new[] { "Service", "2", "$125.50" },
                 new[] { "Discount", "1", "(10.00)" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 130, 60, 90 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(130), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(90) },
                 HeaderRowCount = 1
             })
             .ToBytes();
@@ -105,7 +105,7 @@ public partial class PdfDocumentReadResultTests {
                 new[] { "A-100", "2", "123" },
                 new[] { "B-200", "14", "n/a" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 100, 60, 90 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(90) },
                 HeaderRowCount = 1
             })
             .ToBytes();
@@ -148,10 +148,10 @@ public partial class PdfDocumentReadResultTests {
                 new[] { "Pipeline coverage", "84", "Sales" },
                 new[] { "Risk burn-down", "76", "Operations" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 150, 70, 110 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(110) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
 
@@ -194,7 +194,7 @@ public partial class PdfDocumentReadResultTests {
                 new[] { "Alice", "42" },
                 new[] { "Bob", "37" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 120, 80 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(80) },
                 HeaderRowCount = 1
             })
             .ToBytes();
@@ -233,7 +233,7 @@ public partial class PdfDocumentReadResultTests {
                 new[] { "Product B", "11", "21" },
                 new[] { "Product C", "12", "22" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 150, 70, 70 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(70) },
                 HeaderRowCount = 0
             })
             .ToBytes();
@@ -268,7 +268,7 @@ public partial class PdfDocumentReadResultTests {
                 new[] { "Suomi", "Helsinki" }
             }, style: new PdfTableStyle {
                 HeaderRowCount = 0,
-                ColumnWidthPoints = new List<double?> { 150, 150 }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(150) }
             })
             .ToBytes();
 
@@ -332,7 +332,7 @@ public partial class PdfDocumentReadResultTests {
                 new[] { "Söder", "Mikael" }
             }, style: new PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 150, 150 }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(150) }
             })
             .ToBytes();
 
@@ -360,9 +360,9 @@ public partial class PdfDocumentReadResultTests {
                 PdfKeyValueRow.Text("Customer", "Evotec"),
                 PdfKeyValueRow.Text("Due", "2026-06-30")
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 120, 170 },
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(170) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
 

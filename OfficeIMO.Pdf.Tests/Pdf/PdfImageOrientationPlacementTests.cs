@@ -170,10 +170,10 @@ public sealed partial class PdfImageOrientationPlacementTests {
                     case "floating":
                         var style = PdfTableStyles.Minimal();
                         style.HeaderRowCount = 0;
-                        style.CellPaddingX = style.CellPaddingY = 0;
+                        style.CellPaddingX = style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
                         if (path == "floating") {
                             style.Position = new PdfTablePosition();
-                            style.ColumnWidthPoints = new List<double?> { 100 };
+                            style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) };
                         }
                         content.Table(new[] { new[] { PdfTableCell.WithImages(string.Empty,
                             new[] { new PdfTableCellImage(source, 60, 40) }) } }, style: style);

@@ -15,6 +15,20 @@ its default remains half a point. Paper cell padding uses lengths, and
 `TableParagraphSpacingPoints` and `TableLineSpacingPoints` become
 `TableParagraphSpacing` and nullable `TableLineSpacing`.
 
+## PDF table lengths
+
+`PdfTableStyle` and its cell border, padding, icon and floating-position models
+use `OfficeLength` for physical sizes, spacing and offsets. For example,
+replace `CellPaddingX = 4` with `CellPaddingX = OfficeLength.Points(4)`.
+Font sizes remain nullable where null inherits a document default.
+
+Column bounds are `ColumnWidths`, `ColumnMinWidths` and `ColumnMaxWidths`,
+replacing the `Points` names. These and `RowMinHeights`/`FixedRowHeights` contain
+nullable lengths; null collections or entries retain their existing meaning.
+Use `new List<OfficeLength?> { OfficeLength.Inches(1), null }` for a fixed
+first column with an automatic second column. `ColumnWidthWeights` and
+`LineHeight` remain numeric relative values.
+
 ## Markdown image lengths
 
 `ImageBlock`, `MarkdownNativeImageBlock` and `MarkdownDocument.Image` use

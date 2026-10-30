@@ -51,16 +51,16 @@ public class PdfDelimitedTokenFrameTests {
         });
         else {
             var style = new PdfTableStyle {
-                FontSize = 10D, LineHeight = 1D, HeaderRowCount = 0,
-                CellPaddingX = 2D, CellPaddingY = 2D,
-                ColumnWidthPoints = new List<double?> { frameWidth },
-                MaxWidth = frameWidth, PreferredWidth = frameWidth, PreserveWidth = true
+                FontSize = global::OfficeIMO.OfficeLength.Points(10D), LineHeight = 1D, HeaderRowCount = 0,
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(2D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(2D),
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(frameWidth) },
+                MaxWidth = global::OfficeIMO.OfficeLength.Points(frameWidth), PreferredWidth = global::OfficeIMO.OfficeLength.Points(frameWidth), PreserveWidth = true
             };
             PdfTableCell cell = new(text);
             if (route == 2) {
                 var inner = new TableBlock(new[] { new[] { cell } }, PdfAlign.Left, style);
                 cell = new PdfTableCell(Array.Empty<PdfTextRun>(), null, blocks: new IPdfBlock[] { inner });
-                style = style.Clone(); style.CellPaddingX = style.CellPaddingY = 0D;
+                style = style.Clone(); style.CellPaddingX = style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D);
             }
             document.Content.Table(new[] { new[] { cell } }, style: style);
         }

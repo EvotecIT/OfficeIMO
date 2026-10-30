@@ -100,15 +100,15 @@ public partial class PdfDocumentVisualQualityTests {
         PdfCellBorderLineStyle lineStyle = PdfCellBorderLineStyle.TwoLine) {
         var style = new PdfTableStyle {
             HeaderRowCount = 0, BorderColor = null, HeaderFill = null, RowStripeFill = null,
-            CellPaddingX = padding, CellPaddingY = padding, FontSize = 12, LineHeight = 1,
-            PreferredWidth = 200, CellSpacing = spacing,
-            ColumnWidthPoints = new List<double?> { 100, 100 },
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(padding), CellPaddingY = global::OfficeIMO.OfficeLength.Points(padding), FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 1,
+            PreferredWidth = global::OfficeIMO.OfficeLength.Points(200), CellSpacing = global::OfficeIMO.OfficeLength.Points(spacing),
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100) },
             CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder>()
         };
         for (int row = 0; row < 2; row++)
             for (int column = 0; column < 2; column++)
                 style.CellBorders[(row, column)] = new PdfCellBorder {
-                    Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), Width = 2, LineStyle = lineStyle
+                    Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), Width = global::OfficeIMO.OfficeLength.Points(2), LineStyle = lineStyle
                 };
         string[][] rows = { new[] { "gypA", "gypB" }, new[] { "gypC", "gypD" } };
         if (surface == "fragment") {

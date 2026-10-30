@@ -363,12 +363,12 @@ public partial class PdfDocumentVisualQualityTests {
             [(1, 1)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.Circle,
                 Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56),
-                Size = 8
+                Size = global::OfficeIMO.OfficeLength.Points(8)
             }
         };
         style.CellPaddings = new Dictionary<(int Row, int Column), PdfCellPadding> {
             [(1, 1)] = new PdfCellPadding {
-                Left = 16
+                Left = global::OfficeIMO.OfficeLength.Points(16)
             }
         };
 
@@ -405,12 +405,12 @@ public partial class PdfDocumentVisualQualityTests {
             [(1, 1)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.TriangleUp,
                 Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56),
-                Size = 8
+                Size = global::OfficeIMO.OfficeLength.Points(8)
             }
         };
         style.CellPaddings = new Dictionary<(int Row, int Column), PdfCellPadding> {
             [(1, 1)] = new PdfCellPadding {
-                Left = 16
+                Left = global::OfficeIMO.OfficeLength.Points(16)
             }
         };
 
@@ -461,12 +461,12 @@ public partial class PdfDocumentVisualQualityTests {
             [(0, 0)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.TriangleUp,
                 Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.75, 0.25, 0.1),
-                Size = 8
+                Size = global::OfficeIMO.OfficeLength.Points(8)
             }
         };
         style.CellPaddings = new Dictionary<(int Row, int Column), PdfCellPadding> {
             [(0, 0)] = new PdfCellPadding {
-                Left = 16
+                Left = global::OfficeIMO.OfficeLength.Points(16)
             }
         };
 

@@ -27,7 +27,7 @@ internal static class WorkshopPack {
                 new[] { "11:30", "Commitments", "Action list" }
             }, style: new PdfTableStyle {
                 HeaderFill = accent, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderRowCount = 1,
-                CellPaddingX = 8, CellPaddingY = 8, RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(247, 242, 251)
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(8), CellPaddingY = global::OfficeIMO.OfficeLength.Points(8), RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(247, 242, 251)
             })
             .PageBreak()
             .H1("Exercise sheet", PdfAlign.Left, accent)

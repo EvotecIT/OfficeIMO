@@ -99,7 +99,7 @@ public class PdfDocumentPaginationFidelityTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.RepeatHeaderRowCount = 1;
-        style.FixedRowHeights = new List<double?> { 20, 20, 20 };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20) };
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(paragraph => paragraph.Text("IntroMarker"), style: new PdfParagraphStyle {

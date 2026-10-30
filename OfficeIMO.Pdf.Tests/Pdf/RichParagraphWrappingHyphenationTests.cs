@@ -250,8 +250,8 @@ public class RichParagraphWrappingHyphenationTests {
         double wordAdvance = measured[measured.Count - 1].EndBaseLine.X - measured[0].StartBaseLine.X;
         // Keep the delimiter-carry case within a real cell frame. The former
         // 42-point column left only 34 points for a roughly 39-point word.
-        double columnWidth = wordAdvance + style.CellPaddingX * 2D;
-        style.ColumnWidthPoints = new System.Collections.Generic.List<double?> { columnWidth, 70 };
+        double columnWidth = wordAdvance + style.CellPaddingX.ToPoints() * 2D;
+        style.ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(columnWidth), global::OfficeIMO.OfficeLength.Points(70) };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(160),
@@ -280,7 +280,7 @@ public class RichParagraphWrappingHyphenationTests {
         using var rendered = PdfPigDocument.Open(bytes);
         var codeColumn = rendered.GetPage(1).Letters.Where(letter => letter.StartBaseLine.X < 18D + columnWidth).ToArray();
         Assert.Equal("CodeDNS-RECORD-STATIC-001", string.Concat(codeColumn.Select(letter => letter.Value)));
-        Assert.All(codeColumn, letter => Assert.True(letter.EndBaseLine.X <= 18D + columnWidth - style.CellPaddingX + .001D));
+        Assert.All(codeColumn, letter => Assert.True(letter.EndBaseLine.X <= 18D + columnWidth - style.CellPaddingX.ToPoints() + .001D));
     }
 
     private static int CountOccurrences(string text, string value) {

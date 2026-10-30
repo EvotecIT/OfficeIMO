@@ -19,9 +19,9 @@ public sealed class PdfTableTextReuseTests {
             };
             var style = PdfTableStyles.Minimal();
             style.HeaderRowCount = 0;
-            style.FontSize = 10;
-            style.CellPaddingX = style.CellPaddingY = 0;
-            style.ColumnWidthPoints = new List<double?> { 100, 100, 100 };
+            style.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+            style.CellPaddingX = style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+            style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100) };
             PdfTextRun Plain() => PdfTextRun.Normal("AB", fontSize: explicitSize ? 10 : null);
             PdfTextRun styled = horizontalScaling
                 ? Plain().WithHorizontalTextScaling(150)
@@ -61,9 +61,9 @@ public sealed class PdfTableTextReuseTests {
             };
             var style = PdfTableStyles.Minimal();
             style.HeaderRowCount = 0;
-            style.FontSize = 10;
-            style.CellPaddingX = style.CellPaddingY = 0;
-            style.ColumnWidthPoints = new List<double?> { 90, 270 };
+            style.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+            style.CellPaddingX = style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+            style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(270) };
             // Imported Word tables retain this policy after their grid widths
             // are resolved. Oversized no-wrap text must fit that page frame.
             style.AutoFitWidthUsesContentMinimum = true;
@@ -103,12 +103,12 @@ public sealed class PdfTableTextReuseTests {
             }
             var style = PdfTableStyles.Minimal();
             style.HeaderRowCount = 0;
-            style.FontSize = 10;
-            style.CellPaddingX = 0;
-            style.CellPaddingY = 0;
-            style.SpacingBefore = 0;
-            style.SpacingAfter = 0;
-            style.ColumnWidthPoints = new List<double?> { 35, null };
+            style.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+            style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
+            style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+            style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0);
+            style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
+            style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(35), null };
             var rows = Enumerable.Range(0, 18).Select(index => new[] {
                 new PdfTableCell(new[] { PdfTextRun.Normal("R" + index.ToString("D3"), fontSize: explicitSize ? 10 : null) }),
                 new PdfTableCell(new[] { PdfTextRun.Normal("Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau",
@@ -179,11 +179,11 @@ public sealed class PdfTableTextReuseTests {
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
         var style = PdfTableStyles.Minimal();
-        style.FontSize = 10;
-        style.CellPaddingX = 0;
-        style.CellPaddingY = 0;
-        style.ColumnWidthPoints = new List<double?> { 70, 70, 70 };
-        style.FixedRowHeights = new List<double?> { 120, 120, 120 };
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(70) };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(120) };
         var rows = new List<PdfTableCell[]>();
         for (int rowIndex = 0; rowIndex < 3; rowIndex++) {
             var cells = new PdfTableCell[3];
@@ -218,10 +218,10 @@ public sealed class PdfTableTextReuseTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.FooterRowCount = 1;
-        style.FontSize = 10;
-        style.HeaderFontSize = 12;
-        style.FooterFontSize = 8;
-        style.ColumnWidthPoints = new List<double?> { 70, 190, 80 };
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+        style.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(12);
+        style.FooterFontSize = global::OfficeIMO.OfficeLength.Points(8);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(190), global::OfficeIMO.OfficeLength.Points(80) };
         var rows = new List<PdfTableCell[]>();
         for (int index = 0; index < count; index++) {
             double size = index == 0 ? 12 : index == count - 1 ? 8 : 10;

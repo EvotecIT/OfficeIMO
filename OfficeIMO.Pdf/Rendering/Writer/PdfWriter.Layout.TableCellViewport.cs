@@ -38,8 +38,8 @@ internal static partial class PdfWriter {
         double bottomInset = Thickness(border.Bottom, border.BottomBorderSnapshot);
         if (style.CellTextClipIncludesVerticalPadding) {
             PdfCellPadding? padding = GetTableCellPaddingOverride(style, row, column);
-            topInset = Math.Max(topInset, padding?.Top ?? GetTableCellPaddingTop(style));
-            bottomInset = Math.Max(bottomInset, padding?.Bottom ?? GetTableCellPaddingBottom(style));
+            topInset = Math.Max(topInset, padding?.Top?.ToPoints() ?? GetTableCellPaddingTop(style));
+            bottomInset = Math.Max(bottomInset, padding?.Bottom?.ToPoints() ?? GetTableCellPaddingBottom(style));
         }
         return new TableCellContentFrame(left + leftInset, top - topInset,
             Math.Max(0D, width - leftInset - rightInset), Math.Max(0D, height - topInset - bottomInset));

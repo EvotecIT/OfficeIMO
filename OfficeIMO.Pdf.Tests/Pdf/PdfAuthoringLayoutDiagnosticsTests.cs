@@ -202,7 +202,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     public void SeparateClippedCellsKeepDistinctOccurrences() {
         var report = new PdfConversionReport();
         var style = CreateTableStyle(18);
-        style.FixedRowHeights = new List<double?> { 18, 18 };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(18) };
         byte[] bytes = PdfDocument.Create(CreateOptions(report)).Table(new[] {
             new[] { new PdfTableCell("First\nHiddenOne") },
             new[] { new PdfTableCell("Second\nHiddenTwo") }
@@ -238,15 +238,15 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.RepeatHeaderRowCount = 0;
-        style.FontSize = 9;
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         style.LineHeight = 4D / 3D; // Table line height is a multiplier: 9-point text advances 12 points.
-        style.CellPaddingX = 0;
-        style.CellPaddingY = 0;
-        style.CellSpacing = 0;
-        style.SpacingBefore = 0;
-        style.SpacingAfter = 0;
-        style.ColumnWidthPoints = new List<double?> { 120 };
-        style.FixedRowHeights = fixedHeight.HasValue ? new List<double?> { fixedHeight } : null;
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellSpacing = global::OfficeIMO.OfficeLength.Points(0);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120) };
+        style.FixedRowHeights = (fixedHeight.HasValue ? new List<double?> { fixedHeight } : null) is { } lengths13387 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths13387, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
         return style;
     }
 }

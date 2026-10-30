@@ -1380,8 +1380,8 @@ public partial class PowerPointSaveAsPdfTests {
         Assert.Equal(150D, item.Width);
         // Authored row heights are minimums. Default table margins may require
         // growing the header, while the taller body row retains its height.
-        Assert.True(item.Block.Style!.RowMinHeights![0] >= 28D);
-        Assert.Equal(42D, item.Block.Style.RowMinHeights[1]);
+        Assert.True((item.Block.Style!.RowMinHeights == null ? null : System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(item.Block.Style!.RowMinHeights, static length => length?.ToPoints())))![0] >= 28D);
+        Assert.Equal(42D, item.Block.Style.RowMinHeights[1]?.ToPoints());
         Assert.True(item.Height >= 70D);
         byte[] bytes = result.ToBytes();
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "table-cell-overflow");
@@ -1417,8 +1417,8 @@ public partial class PowerPointSaveAsPdfTests {
         var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(pdfDocument.Blocks));
         PdfCore.PdfCanvasTableItem tableItem = Assert.Single(canvas.Items.OfType<PdfCore.PdfCanvasTableItem>());
         PdfCore.PdfTableStyle style = Assert.IsType<PdfCore.PdfTableStyle>(tableItem.Block.Style);
-        Assert.Equal(18D, style.FontSize);
-        Assert.Equal(18D, style.HeaderFontSize);
+        Assert.Equal(18D, style.FontSize?.ToPoints());
+        Assert.Equal(18D, style.HeaderFontSize?.ToPoints());
 
         Assert.NotNull(style.CellFills);
         global::OfficeIMO.OfficeColor headerFill = style.CellFills![(0, 0)];
@@ -1429,7 +1429,7 @@ public partial class PowerPointSaveAsPdfTests {
         Assert.NotNull(style.CellBorders);
         PdfCore.PdfCellBorder headerBorder = style.CellBorders![(0, 0)];
         Assert.NotNull(headerBorder.BottomBorder);
-        Assert.True(headerBorder.BottomBorder!.Width >= 1D);
+        Assert.True(headerBorder.BottomBorder!.Width.ToPoints() >= 1D);
 
         string expectedThemeFont = presentation.GetThemeLatinFonts().MinorLatin!;
         Assert.False(string.IsNullOrWhiteSpace(expectedThemeFont));
@@ -1469,8 +1469,8 @@ public partial class PowerPointSaveAsPdfTests {
         table.GetCell(1, 1).Text = "99";
 
         var configuredStyle = new PdfCore.PdfTableStyle {
-            CellPaddingX = 8D,
-            CellPaddingY = 6D,
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(8D),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(6D),
             BorderColor = null,
             HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
             HeaderTextColor = global::OfficeIMO.OfficeColor.FromRgb(240, 245, 250),
@@ -1478,8 +1478,8 @@ public partial class PowerPointSaveAsPdfTests {
             CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
                 [(1, 1)] = global::OfficeIMO.OfficeColor.FromRgb(200, 210, 220)
             },
-            FontSize = 12.5D,
-            SpacingAfter = 11D
+            FontSize = global::OfficeIMO.OfficeLength.Points(12.5D),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(11D)
         };
 
         PdfCore.PdfDocument pdfDocument = presentation.ToPdf(new PowerPointPdfExportOptions {
@@ -1494,24 +1494,24 @@ public partial class PowerPointSaveAsPdfTests {
         PdfCore.PdfTableStyle style = tableItem.Block.Style!;
 
         Assert.Equal(1, style.HeaderRowCount);
-        Assert.Equal(8D, style.CellPaddingX);
-        Assert.Equal(6D, style.CellPaddingY);
+        Assert.Equal(8D, style.CellPaddingX.ToPoints());
+        Assert.Equal(6D, style.CellPaddingY.ToPoints());
         Assert.Null(style.BorderColor);
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30), style.HeaderFill);
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(240, 245, 250), style.HeaderTextColor);
         Assert.Null(style.RowStripeFill);
-        Assert.Equal(12.5D, style.FontSize);
-        Assert.Equal(11D, style.SpacingAfter);
-        Assert.Equal(new double?[] { 90D, 60D }, style.ColumnWidthPoints);
+        Assert.Equal(12.5D, style.FontSize?.ToPoints());
+        Assert.Equal(11D, style.SpacingAfter.ToPoints());
+        Assert.Equal(new double?[] { 90D, 60D }, style.ColumnWidths?.ConvertAll(static length => length?.ToPoints()));
         Assert.NotNull(style.RowMinHeights);
-        Assert.Equal(2, style.RowMinHeights!.Count);
-        Assert.Equal(28D, style.RowMinHeights[0]);
-        Assert.True(style.RowMinHeights[0] >= 12.5D * 1.2D + 12D);
-        Assert.Equal(42D, style.RowMinHeights[1]);
+        Assert.Equal(2, style.RowMinHeights?.ConvertAll(static length => length?.ToPoints())!.Count);
+        Assert.Equal(28D, style.RowMinHeights[0]?.ToPoints());
+        Assert.True(style.RowMinHeights[0]?.ToPoints() >= 12.5D * 1.2D + 12D);
+        Assert.Equal(42D, style.RowMinHeights[1]?.ToPoints());
         Assert.Equal(70D, tableItem.Height);
 
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(220, 235, 250), configuredStyle.RowStripeFill);
-        Assert.Null(configuredStyle.ColumnWidthPoints);
+        Assert.Null(configuredStyle.ColumnWidths);
         Assert.Null(configuredStyle.RowMinHeights);
         Assert.NotNull(style.CellFills);
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(200, 210, 220), style.CellFills![(1, 1)]);

@@ -99,9 +99,9 @@ public sealed class PdfInlineFormTests {
             new PdfTableCell(new[] { PdfTextRun.Normal(cached) })
         } };
         byte[] source = PdfDocument.Create(Options(400, 160)).Table(rows, style: new PdfTableStyle {
-            HeaderRowCount = 0, HeaderBold = false, FontSize = 12, LineHeight = 1.2D,
-            CellPaddingX = 0, CellPaddingY = 0, BorderColor = null,
-            ColumnWidthPoints = new List<double?> { 110, 110, 110 }, MaxWidth = 330, PreserveWidth = true
+            HeaderRowCount = 0, HeaderBold = false, FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 1.2D,
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), BorderColor = null,
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(110), global::OfficeIMO.OfficeLength.Points(110), global::OfficeIMO.OfficeLength.Points(110) }, MaxWidth = global::OfficeIMO.OfficeLength.Points(330), PreserveWidth = true
         }).ToBytes();
         PdfDocumentInfo info = PdfInspector.Inspect(source);
         Assert.Equal(2, info.FormFields.Count);

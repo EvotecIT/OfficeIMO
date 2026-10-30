@@ -24,56 +24,56 @@ internal static partial class PdfWriter {
             if (!IsValidPdfAlign(style.CaptionAlign)) {
                 throw new ArgumentException("Table caption alignment must be Left, Center, or Right.");
             }
-            if (style.BorderWidth < 0 || double.IsNaN(style.BorderWidth) || double.IsInfinity(style.BorderWidth)) {
+            if (style.BorderWidth.ToPoints() < 0 || double.IsNaN(style.BorderWidth.ToPoints()) || double.IsInfinity(style.BorderWidth.ToPoints())) {
                 throw new ArgumentException("Table border width must be a non-negative finite value.");
             }
-            if (style.RowSeparatorWidth < 0 || double.IsNaN(style.RowSeparatorWidth) || double.IsInfinity(style.RowSeparatorWidth)) {
+            if (style.RowSeparatorWidth.ToPoints() < 0 || double.IsNaN(style.RowSeparatorWidth.ToPoints()) || double.IsInfinity(style.RowSeparatorWidth.ToPoints())) {
                 throw new ArgumentException("Table row separator width must be a non-negative finite value.");
             }
-            if (style.HeaderSeparatorWidth < 0 || double.IsNaN(style.HeaderSeparatorWidth) || double.IsInfinity(style.HeaderSeparatorWidth)) {
+            if (style.HeaderSeparatorWidth.ToPoints() < 0 || double.IsNaN(style.HeaderSeparatorWidth.ToPoints()) || double.IsInfinity(style.HeaderSeparatorWidth.ToPoints())) {
                 throw new ArgumentException("Table header separator width must be a non-negative finite value.");
             }
-            if (style.FooterSeparatorWidth < 0 || double.IsNaN(style.FooterSeparatorWidth) || double.IsInfinity(style.FooterSeparatorWidth)) {
+            if (style.FooterSeparatorWidth.ToPoints() < 0 || double.IsNaN(style.FooterSeparatorWidth.ToPoints()) || double.IsInfinity(style.FooterSeparatorWidth.ToPoints())) {
                 throw new ArgumentException("Table footer separator width must be a non-negative finite value.");
             }
-            if (style.CellPaddingX < 0 || double.IsNaN(style.CellPaddingX) || double.IsInfinity(style.CellPaddingX)) {
+            if (style.CellPaddingX.ToPoints() < 0 || double.IsNaN(style.CellPaddingX.ToPoints()) || double.IsInfinity(style.CellPaddingX.ToPoints())) {
                 throw new ArgumentException("Table horizontal cell padding must be a non-negative finite value.");
             }
-            if (style.CellPaddingY < 0 || double.IsNaN(style.CellPaddingY) || double.IsInfinity(style.CellPaddingY)) {
+            if (style.CellPaddingY.ToPoints() < 0 || double.IsNaN(style.CellPaddingY.ToPoints()) || double.IsInfinity(style.CellPaddingY.ToPoints())) {
                 throw new ArgumentException("Table vertical cell padding must be a non-negative finite value.");
             }
-            if (style.MinRowHeight < 0 || double.IsNaN(style.MinRowHeight) || double.IsInfinity(style.MinRowHeight)) {
+            if (style.MinRowHeight.ToPoints() < 0 || double.IsNaN(style.MinRowHeight.ToPoints()) || double.IsInfinity(style.MinRowHeight.ToPoints())) {
                 throw new ArgumentException("Table minimum row height must be a non-negative finite value.");
             }
-            if (style.RowMinHeights != null) {
-                foreach (double? rowMinHeight in style.RowMinHeights) {
-                    if (rowMinHeight.HasValue && (rowMinHeight.Value < 0 || double.IsNaN(rowMinHeight.Value) || double.IsInfinity(rowMinHeight.Value))) {
+            if (style.RowMinHeights is { } rowMinHeights) {
+                foreach (OfficeLength? rowMinHeight in rowMinHeights) {
+                    if (rowMinHeight.HasValue && rowMinHeight.Value < OfficeLength.Zero) {
                         throw new ArgumentException("Table row minimum heights must be non-negative finite values.");
                     }
                 }
             }
-            if (style.SpacingBefore < 0 || double.IsNaN(style.SpacingBefore) || double.IsInfinity(style.SpacingBefore)) {
+            if (style.SpacingBefore.ToPoints() < 0 || double.IsNaN(style.SpacingBefore.ToPoints()) || double.IsInfinity(style.SpacingBefore.ToPoints())) {
                 throw new ArgumentException("Table spacing before must be a non-negative finite value.");
             }
             if (style.Caption != null && string.IsNullOrWhiteSpace(style.Caption)) {
                 throw new ArgumentException("Table caption cannot be empty or whitespace.");
             }
-            if (style.CaptionFontSize.HasValue && (style.CaptionFontSize.Value <= 0 || double.IsNaN(style.CaptionFontSize.Value) || double.IsInfinity(style.CaptionFontSize.Value))) {
+            if (style.CaptionFontSize.HasValue && (style.CaptionFontSize.Value.ToPoints() <= 0 || double.IsNaN(style.CaptionFontSize.Value.ToPoints()) || double.IsInfinity(style.CaptionFontSize.Value.ToPoints()))) {
                 throw new ArgumentException("Table caption font size must be a positive finite value.");
             }
-            if (style.MinimumShrinkFontSize.HasValue && (style.MinimumShrinkFontSize.Value <= 0 || double.IsNaN(style.MinimumShrinkFontSize.Value) || double.IsInfinity(style.MinimumShrinkFontSize.Value))) {
+            if (style.MinimumShrinkFontSize.HasValue && (style.MinimumShrinkFontSize.Value.ToPoints() <= 0 || double.IsNaN(style.MinimumShrinkFontSize.Value.ToPoints()) || double.IsInfinity(style.MinimumShrinkFontSize.Value.ToPoints()))) {
                 throw new ArgumentException("Table minimum shrink font size must be a positive finite value.");
             }
-            if (style.CaptionSpacingAfter < 0 || double.IsNaN(style.CaptionSpacingAfter) || double.IsInfinity(style.CaptionSpacingAfter)) {
+            if (style.CaptionSpacingAfter.ToPoints() < 0 || double.IsNaN(style.CaptionSpacingAfter.ToPoints()) || double.IsInfinity(style.CaptionSpacingAfter.ToPoints())) {
                 throw new ArgumentException("Table caption spacing after must be a non-negative finite value.");
             }
-            if (style.SpacingAfter < 0 || double.IsNaN(style.SpacingAfter) || double.IsInfinity(style.SpacingAfter)) {
+            if (style.SpacingAfter.ToPoints() < 0 || double.IsNaN(style.SpacingAfter.ToPoints()) || double.IsInfinity(style.SpacingAfter.ToPoints())) {
                 throw new ArgumentException("Table spacing after must be a non-negative finite value.");
             }
-            if (style.PageContinuationSpacingBefore < 0 || double.IsNaN(style.PageContinuationSpacingBefore) || double.IsInfinity(style.PageContinuationSpacingBefore)) {
+            if (style.PageContinuationSpacingBefore.ToPoints() < 0 || double.IsNaN(style.PageContinuationSpacingBefore.ToPoints()) || double.IsInfinity(style.PageContinuationSpacingBefore.ToPoints())) {
                 throw new ArgumentException("Table page continuation spacing before must be a non-negative finite value.");
             }
-            if (double.IsNaN(style.RowBaselineOffset) || double.IsInfinity(style.RowBaselineOffset)) {
+            if (double.IsNaN(style.RowBaselineOffset.ToPoints()) || double.IsInfinity(style.RowBaselineOffset.ToPoints())) {
                 throw new ArgumentException("Table row baseline offset must be a finite value.");
             }
             if (style.CellFills != null) {
@@ -88,7 +88,7 @@ internal static partial class PdfWriter {
                     if (cellBorder.Key.Row < 0 || cellBorder.Key.Column < 0) {
                         throw new ArgumentException("Table cell border coordinates cannot be negative.");
                     }
-                    if (cellBorder.Value == null || cellBorder.Value.Width < 0 || double.IsNaN(cellBorder.Value.Width) || double.IsInfinity(cellBorder.Value.Width)) {
+                    if (cellBorder.Value == null || cellBorder.Value.Width.ToPoints() < 0 || double.IsNaN(cellBorder.Value.Width.ToPoints()) || double.IsInfinity(cellBorder.Value.Width.ToPoints())) {
                         throw new ArgumentException("Table cell border widths must be non-negative finite values.");
                     }
                 }

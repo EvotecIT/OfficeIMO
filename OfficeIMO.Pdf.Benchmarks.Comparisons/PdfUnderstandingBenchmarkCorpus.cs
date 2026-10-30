@@ -165,9 +165,9 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
         return PdfDocument.Create(pdf => pdf.Content(content => content.Table(rows, style: new PdfTableStyle {
                 HeaderRowCount = 1,
                 RepeatHeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 82, 82, 82, 82 },
-                CellPaddingX = 3,
-                CellPaddingY = 2
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(82), global::OfficeIMO.OfficeLength.Points(82), global::OfficeIMO.OfficeLength.Points(82), global::OfficeIMO.OfficeLength.Points(82) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(3),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(2)
             })), new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(420),
                 PageHeight = global::OfficeIMO.OfficeLength.Points(260),

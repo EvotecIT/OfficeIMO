@@ -10,8 +10,8 @@ internal static class DispatchNote {
         var tableStyle = new PdfTableStyle {
             HeaderFill = navy, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderRowCount = 1,
             RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(241, 245, 249),
-            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225), BorderWidth = 0.5,
-            CellPaddingX = 8, CellPaddingY = 9, SpacingBefore = 10, SpacingAfter = 18
+            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225), BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(8), CellPaddingY = global::OfficeIMO.OfficeLength.Points(9), SpacingBefore = global::OfficeIMO.OfficeLength.Points(10), SpacingAfter = global::OfficeIMO.OfficeLength.Points(18)
         };
         string[][] items = {
             new[] { "Item", "Reference", "Quantity", "Package" },

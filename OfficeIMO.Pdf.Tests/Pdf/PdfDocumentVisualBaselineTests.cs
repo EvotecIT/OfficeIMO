@@ -374,9 +374,9 @@ public class PdfDocumentVisualBaselineTests {
             TextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
             RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
             BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 218, 226),
-            BorderWidth = 0.5,
-            CellPaddingX = 6,
-            CellPaddingY = 5,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
             AutoFitColumns = true
         };
     }

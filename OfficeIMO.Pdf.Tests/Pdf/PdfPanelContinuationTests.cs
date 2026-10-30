@@ -135,8 +135,8 @@ public class PdfPanelContinuationTests {
                 else content.Section("Content", Wrapped, new PdfSectionOptions { IncludeHeading = false, StartOnNewPage = false });
             }
             else if (child == "table") content.Table(markers.Select(marker => new[] { marker }), style: new PdfTableStyle {
-                HeaderRowCount = 0, FixedRowHeights = Enumerable.Repeat<double?>(26, 6).ToList(),
-                CellPaddingX = 0, CellPaddingY = 0, BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 6,
+                HeaderRowCount = 0, FixedRowHeights = (Enumerable.Repeat<double?>(26, 6).ToList()) is { } lengths12378 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths12378, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null,
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(6),
                 MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0
             });
             else if (child == "list") content.Bullets(markers, style: new PdfListStyle {

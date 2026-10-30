@@ -53,11 +53,11 @@ public sealed class PdfTableParagraphSpacingTests {
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.FontSize = 10;
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         style.LineHeight = 1.2;
-        style.FixedRowHeights = new List<double?> { 16, 16 };
-        style.CellPaddingX = 0; style.CellPaddingY = 0;
-        style.CellSpacing = 0; style.SpacingBefore = 0; style.SpacingAfter = 0;
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(16) };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellSpacing = global::OfficeIMO.OfficeLength.Points(0); style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         return mode switch {
             "flow" => PdfDocument.Create(options).Table(cells, style: style).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             "column" => PdfDocument.Create(options).Compose(compose => compose.Page(page => page.Content(content =>

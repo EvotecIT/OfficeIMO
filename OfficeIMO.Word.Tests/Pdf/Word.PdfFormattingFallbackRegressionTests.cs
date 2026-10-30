@@ -75,8 +75,8 @@ public sealed class WordPdfFormattingFallbackRegressionTests {
         }
         var options = Options();
         options.PdfOptions!.DefaultTableStyle = new PdfTableStyle {
-            FontSize = 12.5, LineHeight = 1.4, HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0,
-            BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 0
+            FontSize = global::OfficeIMO.OfficeLength.Points(12.5), LineHeight = 1.4, HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0),
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
         using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value is "A" or "B" or "C").ToArray();
@@ -130,7 +130,7 @@ public sealed class WordPdfFormattingFallbackRegressionTests {
         sourceRun.RunProperties ??= new W.RunProperties();
         sourceRun.RunProperties.FontSize = authored ? new W.FontSize { Val = "36" } : null;
         var options = Options();
-        options.PdfOptions!.DefaultTableStyle = new PdfTableStyle { FontSize = 12.5, HeaderRowCount = 0 };
+        options.PdfOptions!.DefaultTableStyle = new PdfTableStyle { FontSize = global::OfficeIMO.OfficeLength.Points(12.5), HeaderRowCount = 0 };
         using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var body = pdf.GetPage(1).Letters.First(letter => letter.Value == "B");
         Assert.Equal(12.5D, body.PointSize, precision: 3);

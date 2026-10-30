@@ -56,7 +56,7 @@ public partial class PdfDocumentReadResultTests {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "P-100", "Paragraph table text", "2" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 50, 100, 30 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(30) },
                 HeaderRowCount = 1
             })
             .ToBytes();

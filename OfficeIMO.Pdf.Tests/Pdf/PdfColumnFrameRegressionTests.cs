@@ -157,9 +157,9 @@ public sealed class PdfColumnFrameRegressionTests {
         string text = string.Join("\n", Enumerable.Range(1, 20).Select(i => $"LongMarker{i:D2}UnwrappedSuffix"));
         var cell = (explicitSize ? new PdfTableCell(new[] { new PdfTextRun(text, fontSize: 12) }) : new PdfTableCell(text)).WithNoWrap();
         byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.Table(new[] { new[] { cell } },
-            style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0,
-                FontSize = 12, LineHeight = 20D / 12D, ShrinkTextToFit = true, MinimumShrinkFontSize = 4,
-                BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 0 }), Unequal()).ToBytes();
+            style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0),
+                FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 20D / 12D, ShrinkTextToFit = true, MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(4),
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }), Unequal()).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         var continued = pdf.GetPage(1).Letters.Where(letter => letter.StartBaseLine.X >= 339.9).ToArray();
         Assert.NotEmpty(continued);
@@ -181,9 +181,9 @@ public sealed class PdfColumnFrameRegressionTests {
             ? new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs) })
             : new PdfTableCell(runs)).WithNoWrap().WithShrinkTextToFit();
         byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.Table(new[] { new[] { cell } },
-            style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0,
-                FontSize = 12, LineHeight = 20D / 12D, ShrinkTextToFit = false, MinimumShrinkFontSize = 4,
-                BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 0 }), Unequal()).ToBytes();
+            style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0),
+                FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 20D / 12D, ShrinkTextToFit = false, MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(4),
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }), Unequal()).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         var continued = pdf.GetPage(1).Letters.Where(letter => letter.StartBaseLine.X >= 339.9).ToArray();
         Assert.NotEmpty(continued);
@@ -243,8 +243,8 @@ public sealed class PdfColumnFrameRegressionTests {
             content.Paragraph(p => p.Text("Preceding"), style: Paragraph());
             content.Paragraph(p => p.Text("KeptLeader"), style: before);
             content.Table(new[] { new[] { new PdfTableCell("TableLine1\nTableLine2") } }, style: new PdfTableStyle {
-                KeepWithNext = true, HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0, FontSize = 12,
-                LineHeight = 20D / 12D, SpacingBefore = 0, SpacingAfter = 0, BorderWidth = 0,
+                KeepWithNext = true, HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12),
+                LineHeight = 20D / 12D, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), BorderWidth = global::OfficeIMO.OfficeLength.Points(0),
                 MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0
             });
             content.Paragraph(p => p.Text("Following"), style: Paragraph());

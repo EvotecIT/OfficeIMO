@@ -53,11 +53,11 @@ namespace OfficeIMO.Word.Pdf {
                 // row rules govern pagination unless a PDF table policy is configured.
                 style.MinimumBodyRowsOnFirstPage = 0;
                 style.MinimumBodyRowsOnLastPage = 0;
-                style.FontSize ??= nativeDefaults.FontSize;
+                style.FontSize ??= global::OfficeIMO.OfficeLength.Points(nativeDefaults.FontSize);
                 double? tableParagraphLineHeight = ShouldApplyNativeTableStyleParagraphLineHeight(table)
                     ? ResolveNativeTableStyleParagraphLineHeight(
                         tableStyleDefaults,
-                        style.FontSize ?? nativeDefaults.FontSize,
+                        style.FontSize?.ToPoints() ?? nativeDefaults.FontSize,
                         nativeDefaults.FontFamily,
                         nativeFontMap)
                     : null;
@@ -73,13 +73,13 @@ namespace OfficeIMO.Word.Pdf {
                 style.MinimumBodyRowsOnFirstPage = 1;
             }
             if (repeatedHeaderRowCount > 0) {
-                style.PageContinuationSpacingBefore = Math.Max(style.PageContinuationSpacingBefore, NativeTablePageContinuationSpacingBefore);
+                style.PageContinuationSpacingBefore = global::OfficeIMO.OfficeLength.Points(Math.Max(style.PageContinuationSpacingBefore.ToPoints(), NativeTablePageContinuationSpacingBefore));
             }
 
             if (options?.DefaultTableBorders == true && style.BorderColor == null) {
                 style.BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.9D, 0.9D);
-                if (style.BorderWidth <= 0D) {
-                    style.BorderWidth = 0.5D;
+                if (style.BorderWidth.ToPoints() <= 0D) {
+                    style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5D);
                 }
             }
 
@@ -99,13 +99,13 @@ namespace OfficeIMO.Word.Pdf {
             ApplyNativeTableConditionalBorders(table, layout, tableStyleDefaults, style);
             ApplyNativeTableConditionalPaddings(table, layout, tableStyleDefaults, style);
             ApplyNativeTableLayoutOptions(table, layout, style, contentWidth, tableStyleDefaults);
-            style.CellVerticalPaddingFromBorderInterior = !usesConfiguredDefaultStyle && style.CellSpacing <= 0D;
+            style.CellVerticalPaddingFromBorderInterior = !usesConfiguredDefaultStyle && style.CellSpacing.ToPoints() <= 0D;
             if (style.CellVerticalPaddingFromBorderInterior && style.Position == null && style.ConsumesVerticalFlow &&
                 nativeDefaults.RunningContentContext == null) {
                 style.BorderFrame = new PdfCore.PdfTableBorderFrame { ReserveCellBorderOutsets = true };
                 // Container continuation already reserves the border's actual
                 // outward paint and repeats source headers without a synthetic gap.
-                style.PageContinuationSpacingBefore = 0D;
+                style.PageContinuationSpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
             }
             ApplyNativeTableRowOptions(table, style);
             SuppressNativeTableRoleBoundariesCrossedByRowSpans(style, layout);
@@ -139,7 +139,7 @@ namespace OfficeIMO.Word.Pdf {
 
             return new PdfCore.PdfTableStyle {
                 BorderColor = null,
-                BorderWidth = 0D,
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(0D),
                 HeaderFill = null,
                 FooterFill = null,
                 HeaderBold = false,
@@ -240,7 +240,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (conditionalStyle.FontSize.HasValue) {
-                style.HeaderFontSize = conditionalStyle.FontSize.Value;
+                style.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(conditionalStyle.FontSize.Value);
             }
 
             if (conditionalStyle.Bold.HasValue) {
@@ -258,7 +258,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (conditionalStyle.FontSize.HasValue) {
-                style.FooterFontSize = conditionalStyle.FontSize.Value;
+                style.FooterFontSize = global::OfficeIMO.OfficeLength.Points(conditionalStyle.FontSize.Value);
             }
 
             if (conditionalStyle.Bold.HasValue) {
@@ -476,7 +476,7 @@ namespace OfficeIMO.Word.Pdf {
                 : GetNativeUniformTableBorder(tableBorders);
             if (border != null) {
                 style.BorderColor = border.Value.Color;
-                style.BorderWidth = border.Value.Width;
+                style.BorderWidth = global::OfficeIMO.OfficeLength.Points(border.Value.Width);
                 return;
             }
 
@@ -484,14 +484,14 @@ namespace OfficeIMO.Word.Pdf {
             if (cellBorders == null) {
                 if (directBorders != null) {
                     style.BorderColor = null;
-                    style.BorderWidth = 0D;
+                    style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0D);
                     style.CellBorders = null;
                 }
                 return;
             }
 
             style.BorderColor = null;
-            style.BorderWidth = 0D;
+            style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0D);
             style.CellBorders = cellBorders;
         }
 
@@ -625,7 +625,7 @@ namespace OfficeIMO.Word.Pdf {
 
             return new PdfCore.PdfCellBorder {
                 Color = null,
-                Width = 0D,
+                Width = global::OfficeIMO.OfficeLength.Points(0D),
                 TopBorder = CreateNativeCellBorderSide(top),
                 RightBorder = CreateNativeCellBorderSide(right),
                 BottomBorder = CreateNativeCellBorderSide(bottom),

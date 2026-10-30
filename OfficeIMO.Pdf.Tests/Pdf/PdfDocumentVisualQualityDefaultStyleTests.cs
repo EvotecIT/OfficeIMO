@@ -71,54 +71,54 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Options_SnapshotDefaultTableStyle() {
         var style = PdfTableStyles.Minimal();
-        style.BorderWidth = 0.8;
-        style.CellPaddingX = 12;
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0.8);
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(12);
         style.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33);
-        style.RowSeparatorWidth = 0.7;
+        style.RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.7);
         style.FooterSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.21, 0.32, 0.43);
-        style.FooterSeparatorWidth = 0.9;
+        style.FooterSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.9);
         style.Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Right };
-        style.MaxWidth = 180;
-        style.LeftIndent = 24;
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(180);
+        style.LeftIndent = global::OfficeIMO.OfficeLength.Points(24);
         style.KeepWithNext = true;
         var options = new PdfCreateOptions {
             DefaultTableStyle = style
         };
 
-        style.BorderWidth = 2;
-        style.CellPaddingX = 30;
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(2);
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(30);
         style.RowSeparatorColor = global::OfficeIMO.OfficeColor.Black;
-        style.RowSeparatorWidth = 1.5;
+        style.RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(1.5);
         style.FooterSeparatorColor = global::OfficeIMO.OfficeColor.White;
-        style.FooterSeparatorWidth = 2.1;
+        style.FooterSeparatorWidth = global::OfficeIMO.OfficeLength.Points(2.1);
         style.Alignments[0] = PdfColumnAlign.Left;
-        style.MaxWidth = 260;
-        style.LeftIndent = 36;
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(260);
+        style.LeftIndent = global::OfficeIMO.OfficeLength.Points(36);
         style.KeepWithNext = false;
 
         PdfTableStyle readback = options.DefaultTableStyle!;
-        readback.CellPaddingX = 44;
+        readback.CellPaddingX = global::OfficeIMO.OfficeLength.Points(44);
         readback.Alignments![0] = PdfColumnAlign.Center;
 
         PdfCreateOptions clone = options.Clone();
 
         Assert.True(options.HasExplicitDefaultTableStyle);
-        Assert.Equal(0.8, options.DefaultTableStyle!.BorderWidth);
-        Assert.Equal(12, options.DefaultTableStyle.CellPaddingX);
+        Assert.Equal(0.8, options.DefaultTableStyle!.BorderWidth.ToPoints());
+        Assert.Equal(12, options.DefaultTableStyle.CellPaddingX.ToPoints());
         Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33), options.DefaultTableStyle.RowSeparatorColor);
-        Assert.Equal(0.7, options.DefaultTableStyle.RowSeparatorWidth);
+        Assert.Equal(0.7, options.DefaultTableStyle.RowSeparatorWidth.ToPoints());
         Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.21, 0.32, 0.43), options.DefaultTableStyle.FooterSeparatorColor);
-        Assert.Equal(0.9, options.DefaultTableStyle.FooterSeparatorWidth);
+        Assert.Equal(0.9, options.DefaultTableStyle.FooterSeparatorWidth.ToPoints());
         Assert.Equal(PdfColumnAlign.Right, options.DefaultTableStyle.Alignments![0]);
-        Assert.Equal(180, options.DefaultTableStyle.MaxWidth);
-        Assert.Equal(24, options.DefaultTableStyle.LeftIndent);
+        Assert.Equal(180, options.DefaultTableStyle.MaxWidth?.ToPoints());
+        Assert.Equal(24, options.DefaultTableStyle.LeftIndent.ToPoints());
         Assert.True(options.DefaultTableStyle.KeepWithNext);
-        Assert.Equal(12, clone.DefaultTableStyle!.CellPaddingX);
+        Assert.Equal(12, clone.DefaultTableStyle!.CellPaddingX.ToPoints());
         Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.21, 0.32, 0.43), clone.DefaultTableStyle.FooterSeparatorColor);
-        Assert.Equal(0.9, clone.DefaultTableStyle.FooterSeparatorWidth);
+        Assert.Equal(0.9, clone.DefaultTableStyle.FooterSeparatorWidth.ToPoints());
         Assert.Equal(PdfColumnAlign.Right, clone.DefaultTableStyle.Alignments![0]);
-        Assert.Equal(180, clone.DefaultTableStyle.MaxWidth);
-        Assert.Equal(24, clone.DefaultTableStyle.LeftIndent);
+        Assert.Equal(180, clone.DefaultTableStyle.MaxWidth?.ToPoints());
+        Assert.Equal(24, clone.DefaultTableStyle.LeftIndent.ToPoints());
         Assert.True(clone.DefaultTableStyle.KeepWithNext);
         Assert.True(clone.HasExplicitDefaultTableStyle);
         Assert.False(new PdfCreateOptions().HasExplicitDefaultTableStyle);
@@ -320,7 +320,7 @@ public partial class PdfDocumentVisualQualityTests {
             SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
         var tableStyle = PdfTableStyles.Minimal();
-        tableStyle.CellPaddingX = 22;
+        tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(22);
         tableStyle.KeepWithNext = true;
         var headingStyle = new PdfHeadingStyle {
             FontSize = 19,
@@ -370,7 +370,7 @@ public partial class PdfDocumentVisualQualityTests {
         textStyle.FontSize = 8;
         textStyle.Color = global::OfficeIMO.OfficeColor.Black;
         paragraphStyle.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(0);
-        tableStyle.CellPaddingX = 0;
+        tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
         tableStyle.KeepWithNext = false;
         headingStyle.FontSize = 8;
         listStyle.FontSize = 8;
@@ -397,7 +397,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(16, options.DefaultFontSize.ToPoints());
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30), options.DefaultTextColor);
         Assert.Equal(24, options.DefaultParagraphStyle!.FirstLineIndent.ToPoints());
-        Assert.Equal(22, options.DefaultTableStyle!.CellPaddingX);
+        Assert.Equal(22, options.DefaultTableStyle!.CellPaddingX.ToPoints());
         Assert.True(options.DefaultTableStyle.KeepWithNext);
         Assert.Equal(19, options.DefaultHeadingStyles!.Level1!.FontSize);
         Assert.Equal(14, options.DefaultHeadingStyles.Level1.SpacingAfter);
@@ -419,7 +419,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(options.DefaultRowStyle.KeepWithNext);
         Assert.Equal(16, clone.DefaultFontSize.ToPoints());
         Assert.Equal(24, clone.DefaultParagraphStyle!.FirstLineIndent.ToPoints());
-        Assert.Equal(22, clone.DefaultTableStyle!.CellPaddingX);
+        Assert.Equal(22, clone.DefaultTableStyle!.CellPaddingX.ToPoints());
         Assert.True(clone.DefaultTableStyle.KeepWithNext);
         Assert.Equal(19, clone.DefaultHeadingStyles!.Level1!.FontSize);
         Assert.Equal(13, clone.DefaultListStyle!.FontSize);

@@ -126,7 +126,7 @@ internal static partial class PdfWriter {
         if (sideStyle.LineStyle == PdfCellBorderLineStyle.TwoLine) {
             DrawRoundedPairedCellBorderSide(sb, sideStyle, side, x, y, w, h, radius, tl, tr, br, bl, startSide, endSide, artifact);
         } else {
-            DrawRoundedSideStrokeCore(sb, sideStyle.Color!.Value, sideStyle.Width, outerBorderWidth, sideStyle.DashStyle, side, x, y, w, h, radius, tl, tr, br, bl, additionalInset: 0D, artifact);
+            DrawRoundedSideStrokeCore(sb, sideStyle.Color!.Value, sideStyle.Width.ToPoints(), outerBorderWidth, sideStyle.DashStyle, side, x, y, w, h, radius, tl, tr, br, bl, additionalInset: 0D, artifact);
         }
     }
 

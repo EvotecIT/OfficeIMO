@@ -25,10 +25,10 @@ public sealed partial class PdfReadLayoutSmokeTests {
                 new[] { "A-100", "Alpha,Inc", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new System.Collections.Generic.List<double?> { 70, 170, 60 },
+                ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
 
@@ -125,7 +125,7 @@ public sealed partial class PdfReadLayoutSmokeTests {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "P-100", "Paragraph table text", "2" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new System.Collections.Generic.List<double?> { 50, 100, 30 },
+                ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(30) },
                 HeaderRowCount = 1
             })
             .ToBytes();

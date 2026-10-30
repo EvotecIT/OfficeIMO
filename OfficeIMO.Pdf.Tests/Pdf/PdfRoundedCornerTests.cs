@@ -24,12 +24,12 @@ public class PdfRoundedCornerTests {
     private static PdfTableStyle CalloutStyle(double radius) => new() {
         HeaderRowCount = 0,
         BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.85, 0.85, 0.85),
-        BorderWidth = 1,
-        RowSeparatorWidth = 0,
-        CornerRadius = radius,
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(1),
+        RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0),
+        CornerRadius = global::OfficeIMO.OfficeLength.Points(radius),
         CellFills = new Dictionary<(int, int), global::OfficeIMO.OfficeColor> { [(0, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.95, 0.97, 0.99) },
         CellBorders = new Dictionary<(int, int), PdfCellBorder> {
-            [(0, 0)] = new PdfCellBorder { LeftBorder = new PdfCellBorderSide { Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.13, 0.47, 0.71), Width = 4 } },
+            [(0, 0)] = new PdfCellBorder { LeftBorder = new PdfCellBorderSide { Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.13, 0.47, 0.71), Width = global::OfficeIMO.OfficeLength.Points(4) } },
         },
     };
 
@@ -100,7 +100,7 @@ public class PdfRoundedCornerTests {
     public void DeferredTableCornerRadius_UsesLogicalEdgesRegardlessOfBatchSize() {
         PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CornerRadius = 7;
+        style.CornerRadius = global::OfficeIMO.OfficeLength.Points(7);
 
         byte[] oneRowBatches = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .TableDeferred(CreateRows, batchSize: 1, style: style)
@@ -123,11 +123,11 @@ public class PdfRoundedCornerTests {
         PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
-        style.CornerRadius = 8;
+        style.CornerRadius = global::OfficeIMO.OfficeLength.Points(8);
         style.CellBorders = new Dictionary<(int, int), PdfCellBorder> {
             [(0, 0)] = new PdfCellBorder {
                 Color = global::OfficeIMO.OfficeColor.FromRgb(68, 85, 102),
-                Width = 1,
+                Width = global::OfficeIMO.OfficeLength.Points(1),
                 DashStyle = OfficeStrokeDashStyle.Dash,
                 LineStyle = PdfCellBorderLineStyle.TwoLine,
                 DiagonalUp = true,
@@ -152,9 +152,9 @@ public class PdfRoundedCornerTests {
         style.HeaderFill = null;
         style.FooterFill = null;
         style.RowStripeFill = null;
-        style.CornerRadius = 8;
+        style.CornerRadius = global::OfficeIMO.OfficeLength.Points(8);
         style.CellBorders = new Dictionary<(int, int), PdfCellBorder> {
-            [(0, 1)] = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.FromRgb(68, 85, 102), Width = 1 }
+            [(0, 1)] = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.FromRgb(68, 85, 102), Width = global::OfficeIMO.OfficeLength.Points(1) }
         };
 
         string raw = PdfTestContentText.ReadDecoded(PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
@@ -177,11 +177,11 @@ public class PdfRoundedCornerTests {
         PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
-        style.CornerRadius = 10;
-        style.CellPaddingX = 0;
-        style.CellPaddingY = 0;
-        style.ColumnWidthPoints = new List<double?> { 60, 60 };
-        style.FixedRowHeights = new List<double?> { 30, 30 };
+        style.CornerRadius = global::OfficeIMO.OfficeLength.Points(10);
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(60) };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30) };
         style.CellFills = new Dictionary<(int, int), global::OfficeIMO.OfficeColor> { [(0, 0)] = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0) };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -226,15 +226,15 @@ public class PdfRoundedCornerTests {
             PdfTableStyle style = PdfTableStyles.Minimal();
             style.HeaderRowCount = 0;
             style.BorderColor = global::OfficeIMO.OfficeColor.FromRgb(68, 85, 102);
-            style.BorderWidth = 1;
-            style.CornerRadius = radius;
-            style.CellPaddingX = 0;
-            style.CellPaddingY = 0;
-            style.ColumnWidthPoints = new List<double?> { 60, 60 };
-            style.FixedRowHeights = new List<double?> { 20, 40 };
+            style.BorderWidth = global::OfficeIMO.OfficeLength.Points(1);
+            style.CornerRadius = global::OfficeIMO.OfficeLength.Points(radius);
+            style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
+            style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+            style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(60) };
+            style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40) };
             style.CellFills = new Dictionary<(int, int), global::OfficeIMO.OfficeColor> { [(0, 0)] = global::OfficeIMO.OfficeColor.FromRgb(220, 235, 250) };
             style.CellBorders = new Dictionary<(int, int), PdfCellBorder> {
-                [(0, 0)] = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.FromRgb(24, 119, 181), Width = 3 }
+                [(0, 0)] = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.FromRgb(24, 119, 181), Width = global::OfficeIMO.OfficeLength.Points(3) }
             };
             return style;
         }
@@ -242,11 +242,9 @@ public class PdfRoundedCornerTests {
 
     [Fact]
     public void CornerRadius_ClonesAndRejectsNegative() {
-        PdfTableStyle table = new() { CornerRadius = 6 };
-        Assert.Equal(6, table.Clone().CornerRadius);
-        Assert.Throws<ArgumentException>(() => new PdfTableStyle { CornerRadius = -1 });
-        Assert.Throws<ArgumentException>(() => new PdfTableStyle { CornerRadius = double.NaN });
-        Assert.Throws<ArgumentException>(() => new PdfTableStyle { CornerRadius = double.PositiveInfinity });
+        PdfTableStyle table = new() { CornerRadius = global::OfficeIMO.OfficeLength.Points(6) };
+        Assert.Equal(6, table.Clone().CornerRadius.ToPoints());
+        Assert.Throws<ArgumentException>(() => new PdfTableStyle { CornerRadius = global::OfficeIMO.OfficeLength.Points(-1) });
 
         PdfPanelStyle panel = new() { CornerRadius = 8 };
         Assert.Equal(8, panel.Clone().CornerRadius);

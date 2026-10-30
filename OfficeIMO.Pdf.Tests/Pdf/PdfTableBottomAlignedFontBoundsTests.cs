@@ -21,12 +21,12 @@ public sealed class PdfTableBottomAlignedFontBoundsTests {
         options.ReportDiagnosticsTo(report);
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.FontSize = 11; style.LineHeight = 1;
-        style.FixedRowHeights = new List<double?> { 24 };
-        style.ColumnWidthPoints = new List<double?> { 100 };
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(11); style.LineHeight = 1;
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(24) };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) };
         style.VerticalAlignments = new List<PdfCellVerticalAlign> { PdfCellVerticalAlign.Bottom };
-        style.CellPaddingX = 0; style.CellPaddingY = 0;
-        style.SpacingBefore = 0; style.SpacingAfter = 0;
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         var cells = new[] { new[] { new PdfTableCell(new[] {
             new PdfTextRun("A", fontFamily: family, linkUri: linked ? "https://example.org/" : null)
         }) } };

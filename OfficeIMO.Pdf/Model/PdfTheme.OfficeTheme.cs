@@ -75,24 +75,24 @@ public sealed partial class PdfTheme {
             RowStripeFill = theme.TableStyle.Banding ? Resolve(theme.TableStyle.BandFill, theme) : null,
             // Horizontal hairlines only, with the theme's rule under the header row.
             BorderColor = null,
-            BorderWidth = 0D,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0D),
             RowSeparatorColor = border,
-            RowSeparatorWidth = theme.TableStyle.BorderWidth.ToPoints(),
+            RowSeparatorWidth = theme.TableStyle.BorderWidth,
             HeaderSeparatorColor = headerRule.IsVisible ? Resolve(headerRule.Color, theme) : null,
-            HeaderSeparatorWidth = headerRule.IsVisible ? headerRule.Width.ToPoints() : 0D,
+            HeaderSeparatorWidth = headerRule.IsVisible ? headerRule.Width : global::OfficeIMO.OfficeLength.Zero,
             FooterSeparatorColor = text,
-            FooterSeparatorWidth = headerRule.IsVisible ? headerRule.Width.ToPoints() : theme.TableStyle.BorderWidth.ToPoints(),
-            CellPaddingTop = padding,
-            CellPaddingBottom = padding,
-            CellPaddingX = padding * 1.4D,
-            FontSize = System.Math.Max(1D, theme.TypeScale.Body.ToPoints() - 1D),
-            HeaderFontSize = System.Math.Max(1D, theme.TypeScale.Body.ToPoints() - 1D),
-            SpacingBefore = theme.Spacing.ParagraphBefore.ToPoints(),
-            SpacingAfter = spacingAfter,
+            FooterSeparatorWidth = headerRule.IsVisible ? headerRule.Width : theme.TableStyle.BorderWidth,
+            CellPaddingTop = theme.TableStyle.CellPadding,
+            CellPaddingBottom = theme.TableStyle.CellPadding,
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(padding * 1.4D),
+            FontSize = global::OfficeIMO.OfficeLength.Points(System.Math.Max(1D, theme.TypeScale.Body.ToPoints() - 1D)),
+            HeaderFontSize = global::OfficeIMO.OfficeLength.Points(System.Math.Max(1D, theme.TypeScale.Body.ToPoints() - 1D)),
+            SpacingBefore = theme.Spacing.ParagraphBefore,
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter),
             AutoFitColumns = true,
             RightAlignNumeric = true,
             CaptionColor = Resolve(theme.Palette.TextMuted, theme),
-            CaptionFontSize = theme.TypeScale.Caption.ToPoints()
+            CaptionFontSize = theme.TypeScale.Caption
         };
     }
 

@@ -16,10 +16,10 @@ public partial class PdfDocumentVisualQualityTests {
     private static byte[] CreateTableCellSpacingProbe(PdfCreateOptions options, double cellSpacing, bool useRowColumnFlow) {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = 1;
-        style.CellPaddingY = 1;
-        style.CellSpacing = cellSpacing;
-        style.ColumnWidthPoints = new List<double?> { 90, 90 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(1);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(1);
+        style.CellSpacing = global::OfficeIMO.OfficeLength.Points(cellSpacing);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(90) };
 
         var rows = new[] {
             new[] { "SpacingA1", "SpacingB1" },
@@ -44,14 +44,14 @@ public partial class PdfDocumentVisualQualityTests {
     private static byte[] CreateTablePaddingProbe(PdfCreateOptions options, bool useRowColumnFlow, bool useSidePadding) {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = 0;
-        style.CellPaddingY = 0;
-        style.ColumnWidthPoints = new List<double?> { 90 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(90) };
         if (useSidePadding) {
-            style.CellPaddingLeft = 18;
-            style.CellPaddingRight = 3;
-            style.CellPaddingTop = 16;
-            style.CellPaddingBottom = 4;
+            style.CellPaddingLeft = global::OfficeIMO.OfficeLength.Points(18);
+            style.CellPaddingRight = global::OfficeIMO.OfficeLength.Points(3);
+            style.CellPaddingTop = global::OfficeIMO.OfficeLength.Points(16);
+            style.CellPaddingBottom = global::OfficeIMO.OfficeLength.Points(4);
         }
 
         var rows = new[] {
@@ -76,16 +76,16 @@ public partial class PdfDocumentVisualQualityTests {
     private static byte[] CreateTablePerCellPaddingProbe(PdfCreateOptions options, bool useRowColumnFlow, bool useCellPadding) {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = 0;
-        style.CellPaddingY = 0;
-        style.ColumnWidthPoints = new List<double?> { 110 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(110) };
         if (useCellPadding) {
             style.CellPaddings = new Dictionary<(int Row, int Column), PdfCellPadding> {
                 [(0, 0)] = new PdfCellPadding {
-                    Left = 22,
-                    Right = 3,
-                    Top = 16,
-                    Bottom = 4
+                    Left = global::OfficeIMO.OfficeLength.Points(22),
+                    Right = global::OfficeIMO.OfficeLength.Points(3),
+                    Top = global::OfficeIMO.OfficeLength.Points(16),
+                    Bottom = global::OfficeIMO.OfficeLength.Points(4)
                 }
             };
         }
@@ -112,10 +112,10 @@ public partial class PdfDocumentVisualQualityTests {
     private static byte[] CreateTablePerCellAlignmentProbe(PdfCreateOptions options, bool useRowColumnFlow, bool useCellAlignment) {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = 2;
-        style.CellPaddingY = 2;
-        style.MinRowHeight = 72;
-        style.ColumnWidthPoints = new List<double?> { 130 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(2);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(72);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(130) };
         if (useCellAlignment) {
             style.CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
                 [(0, 0)] = PdfColumnAlign.Right
@@ -147,9 +147,9 @@ public partial class PdfDocumentVisualQualityTests {
     private static byte[] CreateTableLineHeightProbe(PdfCreateOptions options, double? lineHeight, bool useRowColumnFlow) {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.FontSize = 10;
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         style.LineHeight = lineHeight;
-        style.ColumnWidthPoints = new List<double?> { 72 };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(72) };
 
         var rows = new[] {
             new[] { "FirstLine SecondLine" }
@@ -173,8 +173,8 @@ public partial class PdfDocumentVisualQualityTests {
     private static byte[] CreateTableSpacingProbe(PdfCreateOptions options, double spacingBefore, double spacingAfter) {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.SpacingBefore = spacingBefore;
-        style.SpacingAfter = spacingAfter;
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter);
 
         return PdfDocument.Create(options)
             .Paragraph(p => p.Text("BeforeMarker"))

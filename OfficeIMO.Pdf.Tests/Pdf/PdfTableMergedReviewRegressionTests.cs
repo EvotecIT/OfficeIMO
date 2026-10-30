@@ -12,7 +12,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void TableMovedBeforeItsFirstRowDoesNotLeaveAnEmptyTaggedTable() {
         PdfTableStyle style = Style();
         style.MinimumBodyRowsOnFirstPage = 0;
-        style.RowMinHeights = new() { 60, null };
+        style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), null };
         PdfDocument document = PdfDocument.Create(Options(140)).TaggedPdfCatalogMarkers();
         document.Compose(builder => builder.Page(page => page.Content(content => {
             content.Paragraph(p => p.Text("Intro1\nIntro2\nIntro3"), style: new PdfParagraphStyle {
@@ -35,8 +35,8 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(true)]
     public void MergedCellFillDoesNotCoverTheDefaultGrid(bool inRow) {
         PdfTableStyle style = Style();
-        style.MinRowHeight = 30;
-        style.BorderWidth = 2;
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(30);
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(2);
         style.BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.61, .21, .11);
         style.CellFills = new() { [(0, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.31, .41, .51) };
         PdfDocument document = PdfDocument.Create(Options(200));
@@ -57,10 +57,10 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(true, true)]
     public void LaterMergedFillPreservesEarlierExplicitNeighborBorder(bool inRow, bool mergedNeighbor) {
         PdfTableStyle style = Style();
-        style.MinRowHeight = 30;
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(30);
         style.BorderColor = null;
         style.CellBorders = new() { [(0, 0)] = new PdfCellBorder {
-            Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.61, .21, .11), Width = 4,
+            Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.61, .21, .11), Width = global::OfficeIMO.OfficeLength.Points(4),
             Top = false, Bottom = false, Left = false, Right = true
         } };
         style.CellFills = new() { [(0, 1)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.71, .81, .61) };
@@ -107,8 +107,8 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTableStyle style = Style();
         style.HeaderRowCount = 1;
         style.RepeatHeaderRowCount = 1;
-        style.RowMinHeights = new() { 20, null, null, null };
-        style.PageContinuationSpacingBefore = 60;
+        style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(20), null, null, null };
+        style.PageContinuationSpacingBefore = global::OfficeIMO.OfficeLength.Points(60);
         PdfDocument document = PdfDocument.Create(Options(140));
         AddTable(document, new[] {
             new[] { PdfTableCell.TextCell("Header"), PdfTableCell.TextCell("Value") },
@@ -140,8 +140,8 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTableStyle style = Style();
         style.HeaderRowCount = 1;
         style.RepeatHeaderRowCount = 1;
-        style.RowMinHeights = new() { 20, null, null, null };
-        style.PageContinuationSpacingBefore = 60;
+        style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(20), null, null, null };
+        style.PageContinuationSpacingBefore = global::OfficeIMO.OfficeLength.Points(60);
         PdfDocument document = PdfDocument.Create(Options(140));
         PdfTableCell[][] rows = {
             new[] { PdfTableCell.TextCell("Header"), PdfTableCell.TextCell("Value") },

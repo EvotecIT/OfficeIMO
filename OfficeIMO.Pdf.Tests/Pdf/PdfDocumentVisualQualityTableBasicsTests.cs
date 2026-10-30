@@ -45,10 +45,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void TableStyle_CanControlGenericHeaderBodyAndFooterTypography() {
         var style = PdfTableStyles.Minimal();
-        style.FontSize = 8;
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(8);
         style.LineHeight = 1.1;
-        style.HeaderFontSize = 12;
-        style.FooterFontSize = 10;
+        style.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(12);
+        style.FooterFontSize = global::OfficeIMO.OfficeLength.Points(10);
         style.FooterRowCount = 1;
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {

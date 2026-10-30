@@ -20,7 +20,7 @@ internal static class NavigableHandbook {
                     new[] { "Demonstration", "20", "Show one complete workflow" },
                     new[] { "Practice", "35", "Let participants apply the technique" },
                     new[] { "Review", "10", "Capture questions and next steps" }
-                }, style: new PdfTableStyle { HeaderFill = navy, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderRowCount = 1, CellPaddingX = 8, CellPaddingY = 8 }))
+                }, style: new PdfTableStyle { HeaderFill = navy, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderRowCount = 1, CellPaddingX = global::OfficeIMO.OfficeLength.Points(8), CellPaddingY = global::OfficeIMO.OfficeLength.Points(8) }))
             .PageBreak()
             .Section("Close and follow up", section => section
                 .Paragraph(p => p.Text("Finish with an outcome participants can keep: an example file, a checklist or a clear next action."))

@@ -27,7 +27,7 @@ internal static class LinkedResourceGuide {
             .H2("Keep these references close", PdfAlign.Left, navy)
             .TableWithLinks(rows, links, style: new PdfTableStyle {
                 HeaderFill = navy, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderRowCount = 1,
-                RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(241, 245, 249), CellPaddingX = 9, CellPaddingY = 11
+                RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(241, 245, 249), CellPaddingX = global::OfficeIMO.OfficeLength.Points(9), CellPaddingY = global::OfficeIMO.OfficeLength.Points(11)
             })
             .H2("When reporting a problem", PdfAlign.Left, navy)
             .Bullets(new[] {

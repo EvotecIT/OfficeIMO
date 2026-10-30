@@ -190,10 +190,10 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var tableStyle = PdfTableStyles.Minimal();
         tableStyle.HeaderRowCount = 0;
-        tableStyle.CellPaddingX = 6;
-        tableStyle.CellPaddingY = 4;
-        tableStyle.SpacingBefore = 2;
-        tableStyle.SpacingAfter = 10;
+        tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(6);
+        tableStyle.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        tableStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(2);
+        tableStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(10);
         var imageStyle = new PdfImageStyle {
             SpacingBefore = 4,
             SpacingAfter = 10
@@ -292,15 +292,15 @@ public partial class PdfDocumentVisualQualityTests {
         const double margin = 56;
         var style = PdfTableStyles.ListTable1Light();
         style.RightAlignNumeric = true;
-        style.CellPaddingX = 5;
-        style.CellPaddingY = 5.5;
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(5);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(5.5);
         style.ColumnWidthWeights = new List<double> { 0.45, 4.2, 1.15, 0.8, 1.2 };
-        style.ColumnMinWidthPoints = new List<double?> { 22, 185, 62, 34, 68 };
+        style.ColumnMinWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(22), global::OfficeIMO.OfficeLength.Points(185), global::OfficeIMO.OfficeLength.Points(62), global::OfficeIMO.OfficeLength.Points(34), global::OfficeIMO.OfficeLength.Points(68) };
         style.FooterRowCount = 1;
         style.FooterSeparatorColor = global::OfficeIMO.OfficeColor.Black;
-        style.FooterSeparatorWidth = 0.9;
-        style.SpacingBefore = 8;
-        style.SpacingAfter = 10;
+        style.FooterSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.9);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(8);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(10);
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(pageWidth),

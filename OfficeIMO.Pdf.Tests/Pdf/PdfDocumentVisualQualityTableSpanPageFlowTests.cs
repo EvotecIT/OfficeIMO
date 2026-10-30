@@ -13,9 +13,9 @@ public partial class PdfDocumentVisualQualityTests {
     public void Table_MergedTailSurvivesTheLastNeighbourRowSplitting(bool inRowColumn, double cellSpacing) {
         PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = style.CellPaddingY = 0;
-        style.MinRowHeight = 0;
-        style.CellSpacing = cellSpacing;
+        style.CellPaddingX = style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellSpacing = global::OfficeIMO.OfficeLength.Points(cellSpacing);
         const int tokenCount = 40;
         PdfTableCell[][] rows = {
             new[] { PdfTableCell.Merge(string.Join("\n", Enumerable.Range(1, tokenCount).Select(n => $"Span{n}")), rowSpan: 3), PdfTableCell.TextCell("Neighbour0") },
@@ -54,11 +54,11 @@ public partial class PdfDocumentVisualQualityTests {
     public void Table_MergedTextAndPaintContinueWithinEachPage(bool inRowColumn, int tokenCount) {
         PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = style.CellPaddingY = 0;
-        style.MinRowHeight = 0;
+        style.CellPaddingX = style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(0);
         style.BorderColor = style.RowSeparatorColor = style.RowStripeFill = null;
         style.CellFills = new() { [(0, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.31, .41, .51) };
-        style.CellBorders = new() { [(0, 0)] = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.61, .21, .11), Width = .5 } };
+        style.CellBorders = new() { [(0, 0)] = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.61, .21, .11), Width = global::OfficeIMO.OfficeLength.Points(.5) } };
         PdfTableCell[][] rows = {
             new[] { PdfTableCell.Merge(string.Join("\n", Enumerable.Range(1, tokenCount).Select(n => $"Token{n}")), rowSpan: 3), PdfTableCell.TextCell("Neighbour0") },
             new[] { PdfTableCell.TextCell("Neighbour1") },

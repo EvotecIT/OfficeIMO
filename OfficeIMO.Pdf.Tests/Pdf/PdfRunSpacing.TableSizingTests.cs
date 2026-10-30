@@ -20,8 +20,8 @@ public sealed class PdfRunSpacingTableSizingTests {
         byte[] Render(bool shrink) => PdfDocument.Create(options).Table(new[] {
             new[] { PdfTableCell.RichTextCell(runs) }
         }, style: new PdfTableStyle {
-            FontSize = 12D, ShrinkTextToFit = shrink, HeaderRowCount = 0,
-            ColumnWidthPoints = new() { 100D }, CellPaddingX = 0D, CellPaddingY = 0D
+            FontSize = global::OfficeIMO.OfficeLength.Points(12D), ShrinkTextToFit = shrink, HeaderRowCount = 0,
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100D) }, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D)
         }).ToBytes();
         using var natural = PdfPigDocument.Open(Render(false));
         using var shrunk = PdfPigDocument.Open(Render(true));
@@ -50,8 +50,8 @@ public sealed class PdfRunSpacingTableSizingTests {
         byte[] bytes = PdfDocument.Create(options).Table(new[] {
             new[] { PdfTableCell.RichTextCell(new[] { run }) }
         }, style: new PdfTableStyle {
-            FontSize = 30D, MinimumShrinkFontSize = 1D, ShrinkTextToFit = true,
-            ColumnWidthPoints = new() { 100D }, CellPaddingX = 0D, CellPaddingY = 0D, HeaderRowCount = 0
+            FontSize = global::OfficeIMO.OfficeLength.Points(30D), MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(1D), ShrinkTextToFit = true,
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100D) }, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D), HeaderRowCount = 0
         }).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         var letters = pdf.GetPage(1).Letters;

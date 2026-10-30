@@ -70,8 +70,8 @@ internal static partial class PdfWriter {
                         PdfTableStyle tableStyle = PreparePairedTableBorders(table,
                             table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light());
                         PreparedTableGeometry geometry = PrepareTableGeometry(table, tableStyle, frameWidth);
-                        double tableHeight = tableStyle.SpacingBefore + GetTableRowsHeight(geometry.Rows.Heights,
-                            0, table.Rows.Count, geometry.Gap) + tableStyle.SpacingAfter;
+                        double tableHeight = tableStyle.SpacingBefore.ToPoints() + GetTableRowsHeight(geometry.Rows.Heights,
+                            0, table.Rows.Count, geometry.Gap) + tableStyle.SpacingAfter.ToPoints();
                         units.Add(new FootnoteUnit { Block = table, Table = geometry, Advance = tableHeight,
                             FrameX = frameX, FrameWidth = frameWidth, Panels = panels });
                         keepWithNext = tableStyle.KeepWithNext;

@@ -33,7 +33,7 @@ public sealed class PdfLogicalTableValueAnalysisTests {
                 new[] { "False", "100%", "2026-08-19", "17:45", "3", "Grace" }
             }, style: new PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 80, 100, 110, 100, 90, 100 }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(110), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(100) }
             })
             .ToBytes();
 

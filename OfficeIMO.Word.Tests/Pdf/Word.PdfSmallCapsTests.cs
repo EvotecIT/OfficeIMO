@@ -39,7 +39,7 @@ public sealed class WordPdfSmallCapsTests {
         }
         WordPdfExportOptions options = Options();
         options.PdfOptions = new PdfCreateOptions {
-            DefaultTableStyle = new PdfTableStyle { FontSize = 18D, HeaderRowCount = 0 }
+            DefaultTableStyle = new PdfTableStyle { FontSize = global::OfficeIMO.OfficeLength.Points(18D), HeaderRowCount = 0 }
         };
         using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal("AB", pdf.GetPage(1).Text);

@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                     new[] { "Pilot access incomplete", "High", "Medium", "Verify accounts before day one / Platform" },
                     new[] { "Recovery untested", "Low", "High", "Complete restore exercise / Engineering" },
                     new[] { "Success measure unclear", "Medium", "High", "Agree baseline and metric / Product" }
-                }, style: new PdfTableStyle { HeaderFill = navy, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderRowCount = 1, CellPaddingX = 8, CellPaddingY = 10, RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(241, 245, 249) })
+                }, style: new PdfTableStyle { HeaderFill = navy, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderRowCount = 1, CellPaddingX = global::OfficeIMO.OfficeLength.Points(8), CellPaddingY = global::OfficeIMO.OfficeLength.Points(10), RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(241, 245, 249) })
                 .H2("Decision before expansion", PdfAlign.Left, navy)
                 .PanelParagraph(p => p.Bold("Hold the next group until access and recovery are verified.").Text("\nThe sponsor records the acceptance decision; a low score alone is not approval."),
                     new PdfPanelStyle { Background = global::OfficeIMO.OfficeColor.FromRgb(255, 244, 214), PaddingX = 12, PaddingY = 12 })

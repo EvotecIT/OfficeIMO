@@ -55,7 +55,7 @@ namespace OfficeIMO.Word.Pdf {
                     ? inherited.Clone()
                     : new PdfCore.PdfCellBorder {
                         Color = null,
-                        Width = 0D,
+                        Width = global::OfficeIMO.OfficeLength.Points(0D),
                         Top = false,
                         Right = false,
                         Bottom = false,
@@ -93,10 +93,10 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static PdfCore.PdfCellBorderSide NativeHiddenCellBorderSide() =>
-            new PdfCore.PdfCellBorderSide { Color = null, Width = 0D };
+            new PdfCore.PdfCellBorderSide { Color = null, Width = global::OfficeIMO.OfficeLength.Points(0D) };
 
         private static bool IsNativeHiddenCellBorderSide(PdfCore.PdfCellBorderSide? side) =>
-            side != null && !side.Color.HasValue && side.Width <= 0D;
+            side != null && !side.Color.HasValue && side.Width.ToPoints() <= 0D;
 
         private static void ReconcileNativeHiddenSharedBorders(
             WordTable table,
@@ -309,7 +309,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfTableStyle style,
             TableLayout layout,
             Dictionary<(int Row, int Column), PdfCore.PdfCellBorder> effective) {
-            if (!style.BorderColor.HasValue || style.BorderWidth <= 0D) {
+            if (!style.BorderColor.HasValue || style.BorderWidth.ToPoints() <= 0D) {
                 return;
             }
 
@@ -330,7 +330,7 @@ namespace OfficeIMO.Word.Pdf {
                         if (effective.TryGetValue(key, out PdfCore.PdfCellBorder? existing)) {
                             // A configured cell border is a full cell override. Conditional
                             // Word borders use side overrides and only replace those sides.
-                            inherited = (existing.Color.HasValue && existing.Width > 0D) ||
+                            inherited = (existing.Color.HasValue && existing.Width.ToPoints() > 0D) ||
                                 (!existing.Top && !existing.Right && !existing.Bottom && !existing.Left &&
                                  !existing.DiagonalUp && !existing.DiagonalDown)
                                 ? existing.Clone()
@@ -342,7 +342,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
             style.BorderColor = null;
-            style.BorderWidth = 0D;
+            style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0D);
         }
     }
 }

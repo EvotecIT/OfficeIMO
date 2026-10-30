@@ -21,11 +21,11 @@ public class PdfImportedColumnPreferenceTests {
         var style = new PdfTableStyle {
             HeaderRowCount = 0, AutoFitColumns = true, AutoFitWidthUsesContentMinimum = true,
             PreserveWidth = true, ClipTextToCellBounds = true,
-            AllowWidthBeyondFrame = explicitMaximum, PreferredWidth = explicitMaximum ? 200D : 79D,
-            MaxWidth = explicitMaximum ? 79D : null,
+            AllowWidthBeyondFrame = explicitMaximum, PreferredWidth = global::OfficeIMO.OfficeLength.Points(explicitMaximum ? 200D : 79D),
+            MaxWidth = explicitMaximum ? global::OfficeIMO.OfficeLength.Points(79D) : null,
             AutoFitColumnPreferredWidthPoints = new List<double?> {
                 automaticColumn == 1 ? null : 60D, automaticColumn == 2 ? null : 140D },
-            CellPaddingX = 2D, CellPaddingY = 0D, FontSize = 10D, BorderColor = null
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(2D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D), FontSize = global::OfficeIMO.OfficeLength.Points(10D), BorderColor = null
         };
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
             .Table(new[] { new[] { leftText, rightText } }, style: style).ToBytes());
@@ -46,10 +46,10 @@ public class PdfImportedColumnPreferenceTests {
         };
         var style = new PdfTableStyle {
             HeaderRowCount = 0, AutoFitColumns = true, AutoFitWidthUsesContentMinimum = true,
-            AllowWidthBeyondFrame = true, PreferredWidth = 300D, MaxWidth = maximum, PreserveWidth = true,
+            AllowWidthBeyondFrame = true, PreferredWidth = global::OfficeIMO.OfficeLength.Points(300D), MaxWidth = global::OfficeIMO.OfficeLength.Points(maximum), PreserveWidth = true,
             AutoFitColumnPreferredWidthPoints = new List<double?> { 60D, 140D },
-            ColumnMinWidthPoints = new List<double?> { 20D, 40D },
-            CellPaddingX = 0D, CellPaddingY = 0D, FontSize = 10D, BorderColor = null
+            ColumnMinWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(40D) },
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D), FontSize = global::OfficeIMO.OfficeLength.Points(10D), BorderColor = null
         };
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
             .Table(new[] { new[] { "A", "B" } }, style: style).ToBytes());
@@ -77,12 +77,12 @@ public class PdfImportedColumnPreferenceTests {
         };
         var style = new PdfTableStyle {
             HeaderRowCount = 0, AutoFitColumns = true, AutoFitWidthUsesContentMinimum = true,
-            AllowWidthBeyondFrame = true, PreferredWidth = preferredWidth, PreserveWidth = true,
+            AllowWidthBeyondFrame = true, PreferredWidth = global::OfficeIMO.OfficeLength.Points(preferredWidth), PreserveWidth = true,
             AutoFitColumnPreferredWidthPoints = new List<double?> {
                 automaticColumn == 1 ? null : 60D, automaticColumn == 2 ? null : 140D },
-            ColumnMinWidthPoints = new List<double?> { 20D, 40D },
-            ColumnMaxWidthPoints = firstMaximum > 0D ? new List<double?> { firstMaximum, null } : null,
-            CellPaddingX = 0D, CellPaddingY = 0D, FontSize = 10D, BorderColor = null
+            ColumnMinWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(40D) },
+            ColumnMaxWidths = (firstMaximum > 0D ? new List<double?> { firstMaximum, null } : null) is { } lengths5269 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths5269, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null,
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D), FontSize = global::OfficeIMO.OfficeLength.Points(10D), BorderColor = null
         };
         byte[] bytes = PdfDocument.Create(options).Table(new[] { new[] { "A", "B" } }, style: style).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
@@ -113,9 +113,9 @@ public class PdfImportedColumnPreferenceTests {
         nested.Style.AutoFitColumnPreferredWidthPoints![0] = 105D;
         nested.Style.AutoFitCellPreferredWidthPoints![(0, 0)] = 105D;
         var outer = new PdfTableStyle {
-            HeaderRowCount = 0, MaxWidth = 216D, PreserveWidth = true,
-            ColumnWidthPoints = new List<double?> { 216D }, CellPaddingX = 9D, CellPaddingY = 0D,
-            BorderColor = null, FontSize = 10D
+            HeaderRowCount = 0, MaxWidth = global::OfficeIMO.OfficeLength.Points(216D), PreserveWidth = true,
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(216D) }, CellPaddingX = global::OfficeIMO.OfficeLength.Points(9D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D),
+            BorderColor = null, FontSize = global::OfficeIMO.OfficeLength.Points(10D)
         };
         var document = PdfDocument.Create(ConstrainedImportedPreferenceOptions());
         document.Content.Table(new[] { new[] { captured } }, style: outer);
@@ -191,7 +191,7 @@ public class PdfImportedColumnPreferenceTests {
 
     private static double MeasureConstrainedAutomaticRow(bool preserveAuthored) {
         var style = ConstrainedImportedPreferenceStyle();
-        style.PreferredWidth = style.MaxWidth = 200D;
+        style.PreferredWidth = style.MaxWidth = global::OfficeIMO.OfficeLength.Points(200D);
         style.PreserveAuthoredPreferencesAtWidthLimit = preserveAuthored;
         var document = PdfDocument.Create(ConstrainedImportedPreferenceOptions());
         // Row zero captures the source preferences. Row one has no absolute
@@ -212,11 +212,11 @@ public class PdfImportedColumnPreferenceTests {
         HeaderRowCount = 0, AutoFitColumns = true, AutoFitWidthUsesContentMinimum = true,
         PreserveAuthoredPreferencesAtWidthLimit = true,
         PreserveWidth = true, AllowWidthBeyondFrame = true, ClipTextToCellBounds = true,
-        PreferredWidth = 150D, MaxWidth = 98.5D,
+        PreferredWidth = global::OfficeIMO.OfficeLength.Points(150D), MaxWidth = global::OfficeIMO.OfficeLength.Points(98.5D),
         AutoFitColumnPreferredWidthPoints = new List<double?> { 45D, 105D },
         AutoFitCellPreferredWidthPoints = new Dictionary<(int Row, int Column), double> { [(0, 0)] = 45D, [(0, 1)] = 105D },
-        ColumnMinWidthPoints = new List<double?> { 5D, 5D },
-        CellPaddingX = 2D, CellPaddingY = 0D, FontSize = 10D, BorderColor = global::OfficeIMO.OfficeColor.Black, BorderWidth = .5D
+        ColumnMinWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(5D), global::OfficeIMO.OfficeLength.Points(5D) },
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(2D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D), FontSize = global::OfficeIMO.OfficeLength.Points(10D), BorderColor = global::OfficeIMO.OfficeColor.Black, BorderWidth = global::OfficeIMO.OfficeLength.Points(.5D)
     };
 
     private static PdfCreateOptions ConstrainedImportedPreferenceOptions() => new() {

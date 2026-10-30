@@ -256,16 +256,16 @@ namespace OfficeIMO.Excel.Pdf {
         private static PdfCore.PdfTableStyle CreateChartLegendStyle(int colorCount, OfficeChartStyle? chartStyle) {
             var style = new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                FontSize = 8.5D,
-                HeaderFontSize = 8.5D,
-                CellPaddingX = 4D,
-                CellPaddingY = 2D,
+                FontSize = global::OfficeIMO.OfficeLength.Points(8.5D),
+                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8.5D),
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(4D),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(2D),
                 BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
                 HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255),
                 ColumnWidthWeights = new List<double> { 0.7D, 1.3D },
                 AutoFitColumns = false,
-                MaxWidth = 300D,
-                SpacingAfter = 6D
+                MaxWidth = global::OfficeIMO.OfficeLength.Points(300D),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(6D)
             };
 
             var fills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();

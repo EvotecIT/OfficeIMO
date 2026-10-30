@@ -36,7 +36,7 @@ internal static partial class PdfWriter {
             }
             double contentTop = content.Top - padTop - verticalOffset;
             double baseline = contentTop - (sourceStartLine == 0 ? lines.TopSpacing : 0D) -
-                GetAscenderForOptions(GetTableRowFont(currentOpts, rowUsesBold), rowSize, currentOpts) + style.RowBaselineOffset;
+                GetAscenderForOptions(GetTableRowFont(currentOpts, rowUsesBold), rowSize, currentOpts) + style.RowBaselineOffset.ToPoints();
             return new FlowTableCellTextFrame(content, visibleCount, innerWidth, verticalOffset,
                 visibleTextHeight, contentTop, baseline);
         }

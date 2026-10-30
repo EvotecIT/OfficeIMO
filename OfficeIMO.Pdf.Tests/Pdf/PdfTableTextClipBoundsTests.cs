@@ -19,10 +19,10 @@ public sealed class PdfTableTextClipBoundsTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.ClipTextToCellBounds = containText;
-        style.ColumnWidthPoints = new List<double?> { 100 };
-        style.FixedRowHeights = new List<double?> { 24 };
-        style.CellPaddingX = 0; style.CellPaddingY = 0; style.CellSpacing = 0;
-        style.SpacingBefore = 0; style.SpacingAfter = 0;
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(24) };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0); style.CellSpacing = global::OfficeIMO.OfficeLength.Points(0);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         var runs = new[] { new PdfTextRun("A") };
         var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs,
             leftIndent: -30, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(6))) });

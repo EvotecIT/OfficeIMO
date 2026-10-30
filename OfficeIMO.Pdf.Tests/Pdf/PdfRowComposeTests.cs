@@ -597,7 +597,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             Assert.NotNull(table.Style);
             Assert.Equal(style.BorderColor, table.Style!.BorderColor);
-            Assert.Equal(style.CellPaddingX, table.Style.CellPaddingX);
+            Assert.Equal(style.CellPaddingX.ToPoints(), table.Style.CellPaddingX.ToPoints());
             Assert.Equal(2, table.Rows.Count);
             Assert.Equal(new[] { "Metric", "Value" }, table.Rows[0]);
             Assert.Equal(new[] { "Score", "98" }, table.Rows[1]);

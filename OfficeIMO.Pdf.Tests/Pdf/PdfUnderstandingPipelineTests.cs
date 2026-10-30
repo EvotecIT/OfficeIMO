@@ -132,10 +132,10 @@ public partial class PdfUnderstandingPipelineTests {
                 new[] { "2025", "North", "1250" },
                 new[] { "2024", "West", "980" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 120, 90 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(90) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
 
@@ -2722,7 +2722,7 @@ public partial class PdfUnderstandingPipelineTests {
             }, style: new PdfTableStyle {
                 HeaderBold = false,
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 220D, 220D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(220D) }
             })
             .ToBytes();
 

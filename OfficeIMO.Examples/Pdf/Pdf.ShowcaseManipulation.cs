@@ -99,10 +99,10 @@ namespace OfficeIMO.Examples.Pdf {
                 HeaderTextColor = global::OfficeIMO.OfficeColor.White,
                 RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                 BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
-                BorderWidth = 0.5,
-                CellPaddingX = 7,
-                CellPaddingY = 5,
-                FontSize = 9.5,
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(7),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
+                FontSize = global::OfficeIMO.OfficeLength.Points(9.5),
                 LineHeight = 1.18,
                 AutoFitColumns = true
             };

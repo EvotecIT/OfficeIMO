@@ -37,9 +37,9 @@ public class PdfDeferredTableRowGroupingTests {
         var style = new PdfTableStyle {
             HeaderRowCount = roles ? 1 : 0, FooterRowCount = roles ? 1 : 0,
             HeaderFill = null, FooterFill = null, BorderColor = null, RowStripeFill = null,
-            CellPaddingX = 0, CellPaddingY = 0, FontSize = 12, LineHeight = 1,
-            FixedRowHeights = Enumerable.Repeat<double?>(20, rows.Count).ToList(),
-            ColumnWidthPoints = new List<double?> { 100 }, PreferredWidth = 100,
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 1,
+            FixedRowHeights = (Enumerable.Repeat<double?>(20, rows.Count).ToList()) is { } lengths1984 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths1984, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null,
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) }, PreferredWidth = global::OfficeIMO.OfficeLength.Points(100),
             MinimumBodyRowsOnFirstPage = mode == "last" ? 0 : 2,
             MinimumBodyRowsOnLastPage = mode == "first" ? 0 : 2
         };

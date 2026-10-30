@@ -26,7 +26,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         var style = PdfTableStyles.Minimal();
-        style.ColumnWidthPoints = new List<double?> { 70, null };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), null };
 
         string longValue = string.Join(" ", Enumerable.Range(1, 60).Select(i => "segment" + i.ToString("00")));
 
@@ -68,7 +68,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         var style = PdfTableStyles.Minimal();
-        style.ColumnWidthPoints = new List<double?> { 70, null };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), null };
 
         var richRuns = new[] {
             PdfTextRun.Normal(string.Join(" ", Enumerable.Range(1, 30).Select(i => "large" + i.ToString("00", CultureInfo.InvariantCulture))), fontSize: 22)
@@ -109,7 +109,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         var style = PdfTableStyles.Minimal();
-        style.ColumnWidthPoints = new List<double?> { 70, null };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), null };
 
         var richRuns = new[] {
             PdfTextRun.Normal(string.Join(" ", Enumerable.Range(1, 30).Select(i => "large" + i.ToString("00", CultureInfo.InvariantCulture))), fontSize: 22)
@@ -155,7 +155,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         var style = PdfTableStyles.Minimal();
-        style.ColumnWidthPoints = new List<double?> { 70, null };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), null };
 
         string longValue = string.Join(" ", Enumerable.Range(1, 60).Select(i => "segment" + i.ToString("00")));
 
@@ -222,10 +222,10 @@ public partial class PdfDocumentVisualQualityTests {
         }
 
         var normalStyle = PdfTableStyles.Minimal();
-        normalStyle.ColumnWidthPoints = new List<double?> { 70, null };
+        normalStyle.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), null };
 
         var spacedStyle = normalStyle.Clone();
-        spacedStyle.PageContinuationSpacingBefore = 18D;
+        spacedStyle.PageContinuationSpacingBefore = global::OfficeIMO.OfficeLength.Points(18D);
 
         byte[] normalBytes = PdfDocument.Create(options)
             .Table(rows, style: normalStyle)
@@ -260,8 +260,8 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.RepeatHeaderRowCount = 1;
-        style.MinRowHeight = 18D;
-        style.ColumnWidthPoints = new List<double?> { 70, null };
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(18D);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), null };
 
         byte[] bytes = PdfDocument.Create(options)
             .Spacer(88)
@@ -300,8 +300,8 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.RepeatHeaderRowCount = 1;
-        style.MinRowHeight = 18D;
-        style.ColumnWidthPoints = new List<double?> { 70, null };
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(18D);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), null };
 
         byte[] bytes = PdfDocument.Create(options)
             .Compose(document =>
@@ -351,7 +351,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void Table_DisallowRowBreakRejectsSingleTallRows() {
         var style = PdfTableStyles.Minimal();
         style.AllowRowBreakAcrossPages = false;
-        style.ColumnWidthPoints = new List<double?> { 70, null };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), null };
 
         string longValue = string.Join(" ", Enumerable.Range(1, 60).Select(i => "segment" + i.ToString("00")));
 
@@ -390,7 +390,7 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.AllowRowBreakAcrossPages = false;
         style.RowAllowBreakAcrossPages = new List<bool?> { null, true };
-        style.ColumnWidthPoints = new List<double?> { 70, null };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), null };
 
         string longValue = string.Join(" ", Enumerable.Range(1, 60).Select(i => "segment" + i.ToString("00")));
 
@@ -412,7 +412,7 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.AllowRowBreakAcrossPages = true;
         style.RowAllowBreakAcrossPages = new List<bool?> { null, false };
-        style.ColumnWidthPoints = new List<double?> { 70, null };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), null };
 
         string longValue = string.Join(" ", Enumerable.Range(1, 60).Select(i => "segment" + i.ToString("00")));
 
@@ -451,7 +451,7 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.AllowRowBreakAcrossPages = false;
         style.RowAllowBreakAcrossPages = new List<bool?> { null, true };
-        style.ColumnWidthPoints = new List<double?> { 70, null };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), null };
 
         string longValue = string.Join(" ", Enumerable.Range(1, 60).Select(i => "segment" + i.ToString("00")));
 
@@ -477,7 +477,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void RowColumnTable_DisallowRowBreakRejectsSingleTallRows() {
         var style = PdfTableStyles.Minimal();
         style.AllowRowBreakAcrossPages = false;
-        style.ColumnWidthPoints = new List<double?> { 70, null };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), null };
 
         string longValue = string.Join(" ", Enumerable.Range(1, 60).Select(i => "segment" + i.ToString("00")));
 
@@ -511,7 +511,7 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.AllowRowBreakAcrossPages = true;
         style.RowAllowBreakAcrossPages = new List<bool?> { null, false };
-        style.ColumnWidthPoints = new List<double?> { 70, null };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), null };
 
         string longValue = string.Join(" ", Enumerable.Range(1, 60).Select(i => "segment" + i.ToString("00")));
 
@@ -556,7 +556,7 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.RepeatHeaderRowCount = 1;
-        style.ColumnWidthPoints = new List<double?> { 70, null };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), null };
         return style;
     }
 

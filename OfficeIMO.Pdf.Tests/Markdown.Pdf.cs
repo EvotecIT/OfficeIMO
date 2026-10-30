@@ -626,9 +626,9 @@ _Figure 1. Embedded from a relative Markdown path._
         Assert.Equal(1, pdfTheme.LinkColor!.Value.ToNormalizedRgb().R, 3);
         Assert.Equal(0, pdfTheme.LinkColor!.Value.ToNormalizedRgb().G, 3);
         Assert.Equal(0, pdfTheme.LinkColor!.Value.ToNormalizedRgb().B, 3);
-        Assert.Equal(1.25, pdfTheme.TableStyle!.BorderWidth);
-        Assert.Equal(11, pdfTheme.TableStyle.CellPaddingX);
-        Assert.Equal(7, pdfTheme.TableStyle.CellPaddingY);
+        Assert.Equal(1.25, pdfTheme.TableStyle!.BorderWidth.ToPoints());
+        Assert.Equal(11, pdfTheme.TableStyle.CellPaddingX.ToPoints());
+        Assert.Equal(7, pdfTheme.TableStyle.CellPaddingY.ToPoints());
         Assert.Equal(1, pdfTheme.TableStyle.HeaderFill!.Value.ToNormalizedRgb().R, 3);
         Assert.Equal(1, pdfTheme.TableStyle.HeaderFill!.Value.ToNormalizedRgb().G, 3);
         Assert.Equal(0, pdfTheme.TableStyle.HeaderFill!.Value.ToNormalizedRgb().B, 3);
@@ -924,10 +924,10 @@ Validation notes.
         PdfCore.PdfTableStyle frontMatterStyle = theme.FrontMatterTableStyle!;
 
         Assert.True(tableStyle.AutoFitColumns);
-        Assert.True(tableStyle.SpacingAfter >= 8);
+        Assert.True(tableStyle.SpacingAfter.ToPoints() >= 8);
         Assert.True(tableStyle.LineHeight >= 1.18);
         Assert.True(frontMatterStyle.AutoFitColumns);
-        Assert.True(frontMatterStyle.SpacingAfter >= 8);
+        Assert.True(frontMatterStyle.SpacingAfter.ToPoints() >= 8);
         Assert.Equal(PdfCore.PdfCellVerticalAlign.Top, theme.ChecklistTableStyle!.VerticalAlignments![0]);
         Assert.Equal(PdfCore.PdfCellVerticalAlign.Top, theme.ChecklistTableStyle.VerticalAlignments![1]);
     }

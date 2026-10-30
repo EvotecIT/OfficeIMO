@@ -12,7 +12,7 @@ public class PdfFloatingTablePaginationRegressionTests {
     [InlineData(true)]
     public void MinimumHeightClearanceIncludesOffsetFloatAndDynamicContent(bool dynamicContent) {
         var table = Floating(320, 50);
-        table.Position = new PdfTablePosition(verticalOffset: 80);
+        table.Position = new PdfTablePosition(verticalOffset: global::OfficeIMO.OfficeLength.Points(80));
         using var pdf = Pig.Open(PdfDocument.Create(Options(240))
             .Table(new[] { new[] { "floating" } }, style: table)
             .Flow(flow => {
@@ -76,7 +76,7 @@ public class PdfFloatingTablePaginationRegressionTests {
 
     [Fact]
     public void ReplayedConstrainedFlowClearsLowerFloatWithNewHeight() {
-        var lower = Floating(320, 30); lower.Position = new PdfTablePosition(verticalOffset: 70);
+        var lower = Floating(320, 30); lower.Position = new PdfTablePosition(verticalOffset: global::OfficeIMO.OfficeLength.Points(70));
         using var pdf = Pig.Open(PdfDocument.Create(Options(240))
             .Table(new[] { new[] { "top" } }, style: Floating(320, 30))
             .Table(new[] { new[] { "lower" } }, style: lower)
@@ -146,7 +146,7 @@ public class PdfFloatingTablePaginationRegressionTests {
         PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(height), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40), MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40)
     };
     private static PdfTableStyle Floating(double width = 120, double height = 80) => new() {
-        HeaderRowCount = 0, ColumnWidthPoints = new List<double?> { width }, MinRowHeight = height,
+        HeaderRowCount = 0, ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(width) }, MinRowHeight = global::OfficeIMO.OfficeLength.Points(height),
         Position = new PdfTablePosition()
     };
 
@@ -185,7 +185,7 @@ public class PdfFloatingTablePaginationRegressionTests {
 
     [Fact]
     public void EntirePanelAvoidsOffsetFloat() {
-        var style = Floating(); style.Position = new PdfTablePosition(verticalOffset: 25);
+        var style = Floating(); style.Position = new PdfTablePosition(verticalOffset: global::OfficeIMO.OfficeLength.Points(25));
         using var pdf = Pig.Open(PdfDocument.Create(Options()).Table(new[] { new[] { "floating" } }, style: style)
             .Panel(panel => panel.Paragraph(p => p.Text("one\ntwo\nthree\nfour\nfive")),
                 new PdfPanelStyle { Background = global::OfficeIMO.OfficeColor.Black, KeepTogether = false }).ToBytes());

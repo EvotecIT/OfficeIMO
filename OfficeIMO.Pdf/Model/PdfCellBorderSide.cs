@@ -4,16 +4,16 @@ namespace OfficeIMO.Pdf;
 /// Describes one side of a table cell border.
 /// </summary>
 public sealed class PdfCellBorderSide {
-    private double _width = 0.5;
+    private global::OfficeIMO.OfficeLength _width = global::OfficeIMO.OfficeLength.Points(0.5);
 
     /// <summary>Border color. Set to null for no border on this side.</summary>
     public global::OfficeIMO.OfficeColor? Color { get; set; }
 
-    /// <summary>Border stroke width in points.</summary>
-    public double Width {
+    /// <summary>Border stroke width as a physical length.</summary>
+    public global::OfficeIMO.OfficeLength Width {
         get => _width;
         set {
-            if (value < 0 || double.IsNaN(value) || double.IsInfinity(value)) {
+            if (value.ToPoints() < 0 || double.IsNaN(value.ToPoints()) || double.IsInfinity(value.ToPoints())) {
                 throw new System.ArgumentException("Table cell border widths must be non-negative finite values.", nameof(Width));
             }
 
@@ -30,8 +30,8 @@ public sealed class PdfCellBorderSide {
     // Layout metadata belongs to the prepared table snapshot, not authored style.
     internal bool CenteredPair { get; set; }
 
-    internal double PaintThickness => Color.HasValue && Width > 0D
-        ? Width + (LineStyle == PdfCellBorderLineStyle.TwoLine ? DoubleTrackGap(Width) : 0D) : 0D;
+    internal double PaintThickness => Color.HasValue && Width.ToPoints() > 0D
+        ? Width.ToPoints() + (LineStyle == PdfCellBorderLineStyle.TwoLine ? DoubleTrackGap(Width.ToPoints()) : 0D) : 0D;
 
     internal static double DoubleTrackGap(double width) => Math.Max(width * 2D, 1D);
 

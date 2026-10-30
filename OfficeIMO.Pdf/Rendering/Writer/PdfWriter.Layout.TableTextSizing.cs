@@ -70,7 +70,7 @@ internal static partial class PdfWriter {
             return new TableRowTextSizing(rowFontSize, 1D);
         }
 
-        double minimumFontSize = style.MinimumShrinkFontSize ?? 6D;
+        double minimumFontSize = style.MinimumShrinkFontSize?.ToPoints() ?? 6D;
         PdfCreateOptions effectiveOptions = options ?? new PdfCreateOptions();
         PdfStandardFont rowFont = GetTableRowFont(effectiveOptions, rowUsesBold);
         var cells = GetTableCellLayouts(table, rowIndex, columnCount);

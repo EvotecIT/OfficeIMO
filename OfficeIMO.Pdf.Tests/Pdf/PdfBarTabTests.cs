@@ -89,8 +89,8 @@ public sealed class PdfBarTabTests {
             };
             var cell = new PdfTableCell(runs.Concat(next), paragraphs, linkUri: "https://example.com/cell");
             var table = new PdfTableStyle {
-                HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0, BorderWidth = 0,
-                FontSize = 12, SpacingBefore = 0, SpacingAfter = 0
+                HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), BorderWidth = global::OfficeIMO.OfficeLength.Points(0),
+                FontSize = global::OfficeIMO.OfficeLength.Points(12), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             };
             PdfTableCell[][] rows = { new[] { cell } };
             return PdfDocument.Create(builder => builder.Content(content => {
@@ -122,9 +122,9 @@ public sealed class PdfBarTabTests {
             lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12)), tabStops: new[] { new PdfTabStop(global::OfficeIMO.OfficeLength.Points(36), PdfTabAlignment.Bar) });
         PdfTableCell[][] rows = { new[] { new PdfTableCell(runs, new[] { paragraph }) }, new[] { new PdfTableCell("B") } };
         var table = new PdfTableStyle {
-            HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0, BorderWidth = 0,
-            FontSize = 10, SpacingBefore = 0, SpacingAfter = 0,
-            FixedRowHeights = new System.Collections.Generic.List<double?> { 16, 16 }
+            HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), BorderWidth = global::OfficeIMO.OfficeLength.Points(0),
+            FontSize = global::OfficeIMO.OfficeLength.Points(10), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
+            FixedRowHeights = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(16) }
         };
         byte[] bytes = PdfDocument.Create(builder => builder.Content(content => {
             if (route == "flow") content.Table(rows, style: table);
@@ -206,9 +206,9 @@ public sealed class PdfBarTabTests {
             if (bar) style.AddTabStop(global::OfficeIMO.OfficeLength.Points(72), PdfTabAlignment.Bar);
             return PdfDocument.Create(builder => builder.Content(content => content
                 .Table(new[] { new[] { "T" } }, style: new PdfTableStyle {
-                    HeaderRowCount = 0, FontSize = 2, CellPaddingX = 0, CellPaddingY = 0,
-                    ColumnWidthPoints = new System.Collections.Generic.List<double?> { 100 },
-                    MinRowHeight = 145, BorderColor = null, Position = new PdfTablePosition()
+                    HeaderRowCount = 0, FontSize = global::OfficeIMO.OfficeLength.Points(2), CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0),
+                    ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) },
+                    MinRowHeight = global::OfficeIMO.OfficeLength.Points(145), BorderColor = null, Position = new PdfTablePosition()
                 })
                 .Paragraph(paragraph => paragraph.Text(string.Join("\n", Enumerable.Range(0, 12)
                     .Select(index => "Line" + index.ToString("D2")))), style: style)), options).ToBytes();
@@ -386,10 +386,10 @@ public sealed class PdfBarTabTests {
     }
 
     private static PdfTableStyle BarOnlyCellStyle(double width, double height) => new() {
-        HeaderRowCount = 0, FontSize = 12, CellPaddingX = 0, CellPaddingY = 0,
-        BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 0, MaxWidth = width, PreserveWidth = true,
-        ColumnWidthPoints = new System.Collections.Generic.List<double?> { width },
-        FixedRowHeights = new System.Collections.Generic.List<double?> { height }
+        HeaderRowCount = 0, FontSize = global::OfficeIMO.OfficeLength.Points(12), CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0),
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), MaxWidth = global::OfficeIMO.OfficeLength.Points(width), PreserveWidth = true,
+        ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(width) },
+        FixedRowHeights = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(height) }
     };
 
     private static PdfCreateOptions Options() => new() {

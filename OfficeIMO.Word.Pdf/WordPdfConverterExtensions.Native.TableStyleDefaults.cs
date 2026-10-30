@@ -212,10 +212,10 @@ namespace OfficeIMO.Word.Pdf {
 
             PdfCore.PdfCellPadding? cellPadding = marginTop.HasValue || marginBottom.HasValue || marginLeft.HasValue || marginRight.HasValue
                 ? new PdfCore.PdfCellPadding {
-                    Top = marginTop,
-                    Bottom = marginBottom,
-                    Left = marginLeft,
-                    Right = marginRight
+                    Top = (marginTop) is { } points17760 ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(points17760) : null,
+                    Bottom = (marginBottom) is { } points17800 ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(points17800) : null,
+                    Left = (marginLeft) is { } points17841 ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(points17841) : null,
+                    Right = (marginRight) is { } points17881 ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(points17881) : null
                 }
                 : null;
 
@@ -400,10 +400,10 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return new PdfCore.PdfCellPadding {
-                Top = top,
-                Bottom = bottom,
-                Left = left,
-                Right = right
+                Top = (top) is { } points29644 ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(points29644) : null,
+                Bottom = (bottom) is { } points29674 ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(points29674) : null,
+                Left = (left) is { } points29705 ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(points29705) : null,
+                Right = (right) is { } points29735 ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(points29735) : null
             };
         }
 

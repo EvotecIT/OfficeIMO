@@ -28,12 +28,12 @@ public partial class PdfDocumentVisualQualityTests {
         var invalidStyle = PdfTableStyles.Minimal();
 
         var invalidException = Assert.Throws<ArgumentException>(() =>
-            invalidStyle.ColumnWidthPoints = new List<double?> { 1, -5 });
+            invalidStyle.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(1), global::OfficeIMO.OfficeLength.Points(-5) });
 
         Assert.Contains("Table fixed column widths must be positive finite values.", invalidException.Message, StringComparison.Ordinal);
 
         var tooWideStyle = PdfTableStyles.Minimal();
-        tooWideStyle.ColumnWidthPoints = new List<double?> { 400, 400 };
+        tooWideStyle.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(400) };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 // The 800-point authored grid must compress into this 468-point content frame.
@@ -58,13 +58,13 @@ public partial class PdfDocumentVisualQualityTests {
         var invalidMinimum = PdfTableStyles.Minimal();
 
         var invalidMinimumException = Assert.Throws<ArgumentException>(() =>
-            invalidMinimum.ColumnMinWidthPoints = new List<double?> { 0 });
+            invalidMinimum.ColumnMinWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(0) });
 
         Assert.Contains("Table minimum column widths must be positive finite values.", invalidMinimumException.Message, StringComparison.Ordinal);
 
         var invertedRange = PdfTableStyles.Minimal();
-        invertedRange.ColumnMinWidthPoints = new List<double?> { 90 };
-        invertedRange.ColumnMaxWidthPoints = new List<double?> { 60 };
+        invertedRange.ColumnMinWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(90) };
+        invertedRange.ColumnMaxWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60) };
 
         Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
@@ -98,35 +98,35 @@ public partial class PdfDocumentVisualQualityTests {
         var invalidMinimumRowHeight = PdfTableStyles.Minimal();
 
         var invalidMinimumRowHeightException = Assert.Throws<ArgumentException>(() =>
-            invalidMinimumRowHeight.MinRowHeight = -1);
+            invalidMinimumRowHeight.MinRowHeight = global::OfficeIMO.OfficeLength.Points(-1));
 
         Assert.Contains("Table minimum row height must be a non-negative finite value.", invalidMinimumRowHeightException.Message, StringComparison.Ordinal);
 
         var invalidPreferredWidth = PdfTableStyles.Minimal();
 
         var invalidPreferredWidthException = Assert.Throws<ArgumentException>(() =>
-            invalidPreferredWidth.PreferredWidth = double.PositiveInfinity);
+            invalidPreferredWidth.PreferredWidth = global::OfficeIMO.OfficeLength.Points(0));
 
         Assert.Contains("Table preferred width must be a positive finite value.", invalidPreferredWidthException.Message, StringComparison.Ordinal);
 
         var invalidRowMinimumHeights = PdfTableStyles.Minimal();
 
         var invalidRowMinimumHeightsException = Assert.Throws<ArgumentException>(() =>
-            invalidRowMinimumHeights.RowMinHeights = new List<double?> { 18, double.NaN });
+            invalidRowMinimumHeights.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(-1) });
 
         Assert.Contains("Table row minimum heights must be non-negative finite values.", invalidRowMinimumHeightsException.Message, StringComparison.Ordinal);
 
         var invalidSpacingBefore = PdfTableStyles.Minimal();
 
         var invalidSpacingBeforeException = Assert.Throws<ArgumentException>(() =>
-            invalidSpacingBefore.SpacingBefore = -1);
+            invalidSpacingBefore.SpacingBefore = global::OfficeIMO.OfficeLength.Points(-1));
 
         Assert.Contains("Table spacing before must be a non-negative finite value.", invalidSpacingBeforeException.Message, StringComparison.Ordinal);
 
         var invalidSpacingAfter = PdfTableStyles.Minimal();
 
         var invalidSpacingAfterException = Assert.Throws<ArgumentException>(() =>
-            invalidSpacingAfter.SpacingAfter = double.PositiveInfinity);
+            invalidSpacingAfter.SpacingAfter = global::OfficeIMO.OfficeLength.Points(-1));
 
         Assert.Contains("Table spacing after must be a non-negative finite value.", invalidSpacingAfterException.Message, StringComparison.Ordinal);
 
@@ -134,14 +134,14 @@ public partial class PdfDocumentVisualQualityTests {
         invalidCaptionFontSize.Caption = "Caption";
 
         var invalidCaptionFontSizeException = Assert.Throws<ArgumentException>(() =>
-            invalidCaptionFontSize.CaptionFontSize = 0);
+            invalidCaptionFontSize.CaptionFontSize = global::OfficeIMO.OfficeLength.Points(0));
 
         Assert.Contains("Table caption font size must be a positive finite value.", invalidCaptionFontSizeException.Message, StringComparison.Ordinal);
 
         var invalidBodyFontSize = PdfTableStyles.Minimal();
 
         var invalidBodyFontSizeException = Assert.Throws<ArgumentException>(() =>
-            invalidBodyFontSize.FontSize = 0);
+            invalidBodyFontSize.FontSize = global::OfficeIMO.OfficeLength.Points(0));
 
         Assert.Contains("Table body font size must be a positive finite value.", invalidBodyFontSizeException.Message, StringComparison.Ordinal);
 
@@ -155,14 +155,14 @@ public partial class PdfDocumentVisualQualityTests {
         var invalidHeaderFontSize = PdfTableStyles.Minimal();
 
         var invalidHeaderFontSizeException = Assert.Throws<ArgumentException>(() =>
-            invalidHeaderFontSize.HeaderFontSize = double.NaN);
+            invalidHeaderFontSize.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(0));
 
         Assert.Contains("Table header font size must be a positive finite value.", invalidHeaderFontSizeException.Message, StringComparison.Ordinal);
 
         var invalidFooterFontSize = PdfTableStyles.Minimal();
 
         var invalidFooterFontSizeException = Assert.Throws<ArgumentException>(() =>
-            invalidFooterFontSize.FooterFontSize = double.PositiveInfinity);
+            invalidFooterFontSize.FooterFontSize = global::OfficeIMO.OfficeLength.Points(0));
 
         Assert.Contains("Table footer font size must be a positive finite value.", invalidFooterFontSizeException.Message, StringComparison.Ordinal);
 
@@ -183,7 +183,7 @@ public partial class PdfDocumentVisualQualityTests {
         invalidCaptionSpacing.Caption = "Caption";
 
         var invalidCaptionSpacingException = Assert.Throws<ArgumentException>(() =>
-            invalidCaptionSpacing.CaptionSpacingAfter = -1);
+            invalidCaptionSpacing.CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(-1));
 
         Assert.Contains("Table caption spacing after must be a non-negative finite value.", invalidCaptionSpacingException.Message, StringComparison.Ordinal);
 
@@ -192,7 +192,7 @@ public partial class PdfDocumentVisualQualityTests {
         var invalidCellBorderException = Assert.Throws<ArgumentException>(() =>
             invalidCellBorder.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
                 [(1, 1)] = new PdfCellBorder {
-                    Width = -0.5
+                    Width = global::OfficeIMO.OfficeLength.Points(-0.5)
                 }
             });
 
@@ -201,13 +201,11 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Theory]
     [InlineData(-0.1)]
-    [InlineData(double.NaN)]
-    [InlineData(double.PositiveInfinity)]
     public void CellBorder_RejectsInvalidWidthOnAssignment(double width) {
         var border = new PdfCellBorder();
 
         var exception = Assert.Throws<ArgumentException>(() =>
-            border.Width = width);
+            border.Width = global::OfficeIMO.OfficeLength.Points(width));
 
         Assert.Equal("Width", exception.ParamName);
         Assert.Contains("Table cell border widths must be non-negative finite values.", exception.Message, StringComparison.Ordinal);

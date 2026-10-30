@@ -458,7 +458,7 @@ public partial class PdfDocumentVisualQualityTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11),
                 // Font registration is measured at eleven points in both table routes.
-                DefaultTableStyle = new PdfTableStyle { FontSize = 11, HeaderFontSize = 11 }
+                DefaultTableStyle = new PdfTableStyle { FontSize = global::OfficeIMO.OfficeLength.Points(11), HeaderFontSize = global::OfficeIMO.OfficeLength.Points(11) }
             })
             .Table(new[] {
                 new[] {

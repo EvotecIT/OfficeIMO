@@ -117,8 +117,8 @@ public sealed class PdfNestedColumnBalancingTests {
 
     [Fact]
     public void Columns_BalancesRowFragmentsInsideAPaddedSemanticContainer() {
-        var style = new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0, FontSize = 12,
-            LineHeight = 20D / 12D, BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 0,
+        var style = new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12),
+            LineHeight = 20D / 12D, BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
             MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0 };
         byte[] bytes = PdfDocument.Create(Options()).Columns(columns => columns.Semantic(PdfSemanticRole.Section,
             section => section.Panel(panel => panel.Table(new[] { new[] { new PdfTableCell(string.Join("\n",
@@ -138,8 +138,8 @@ public sealed class PdfNestedColumnBalancingTests {
             lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), widowControl: false, keepTogether: true) });
         var panel = PanelStyle(); panel.PaddingY = 20;
         byte[] bytes = PdfDocument.Create(Options()).Columns(columns => columns.Panel(content => content.Table(new[] { new[] { cell } },
-            style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0, FontSize = 12, LineHeight = 20D / 12D,
-                BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 0, MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0 }), panel),
+            style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 20D / 12D,
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0 }), panel),
             new PdfMultiColumnOptions { Gap = 20, BalanceLastPage = true, BalanceTableRowLines = true }).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(1, pdf.NumberOfPages);
@@ -155,8 +155,8 @@ public sealed class PdfNestedColumnBalancingTests {
             LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), ItemSpacing = 0, SpacingBefore = 0, SpacingAfter = 0
         });
         else content.Table(markers.Select(marker => new[] { new PdfTableCell(marker) }), style: new PdfTableStyle {
-            HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0, FontSize = 12, LineHeight = 20D / 12D,
-            BorderWidth = 0, RowSeparatorWidth = 0, SpacingBefore = 0, SpacingAfter = 0,
+            HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 20D / 12D,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0), RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
             MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0
         });
     }

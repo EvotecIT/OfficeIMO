@@ -208,9 +208,9 @@ public sealed class PdfInlineRuleTests {
         };
         var document = Create(100D);
         document.Table(new[] { new[] { PdfTableCell.RichTextCell(tableRuns) } }, style: new PdfTableStyle {
-            FontSize = 10D, HeaderRowCount = 0, HeaderBold = false, AutoFitColumns = true,
-            MaxWidth = 100D, CellPaddingX = 0D, CellPaddingY = 0D, BorderColor = null,
-            ShrinkTextToFit = true, MinimumShrinkFontSize = 10D, AutoFitWidthUsesContentMinimum = importedGrid
+            FontSize = global::OfficeIMO.OfficeLength.Points(10D), HeaderRowCount = 0, HeaderBold = false, AutoFitColumns = true,
+            MaxWidth = global::OfficeIMO.OfficeLength.Points(100D), CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D), BorderColor = null,
+            ShrinkTextToFit = true, MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(10D), AutoFitWidthUsesContentMinimum = importedGrid
         });
         document.Content.Row(row => row
             .AutoColumn(column => column.Paragraph(p => p.Runs(new[] {
@@ -239,8 +239,8 @@ public sealed class PdfInlineRuleTests {
             ? new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: 10D) })
             : PdfTableCell.RichTextCell(runs)).WithNoWrap();
         byte[] bytes = Create(100D).Table(new[] { new[] { cell } }, style: new PdfTableStyle {
-            FontSize = 10D, HeaderRowCount = 0, HeaderBold = false, CellPaddingX = 0D, CellPaddingY = 0D,
-            ColumnWidthPoints = new() { 60D }, MaxWidth = 60D, PreserveWidth = true, BorderColor = null
+            FontSize = global::OfficeIMO.OfficeLength.Points(10D), HeaderRowCount = 0, HeaderBold = false, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D),
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60D) }, MaxWidth = global::OfficeIMO.OfficeLength.Points(60D), PreserveWidth = true, BorderColor = null
         }).ToBytes();
         var band = Assert.Single(ReadBands(bytes));
         Assert.Equal(26D, band.X, 3);
@@ -340,7 +340,7 @@ public sealed class PdfInlineRuleTests {
         if (frame == "flow") document.Paragraph(p => p.Runs(runs), style: style);
         else if (frame == "column") document.Content.Row(row => row.RelativeColumn(column => column.Paragraph(p => p.Runs(runs), style: style)));
         else document.Table(new[] { new[] { new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: 8D, lineSpacing: style.LineSpacing) }) } },
-            style: new PdfTableStyle { FontSize = 8D, HeaderRowCount = 0, CellPaddingX = 0D, CellPaddingY = 0D, BorderColor = null });
+            style: new PdfTableStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8D), HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D), BorderColor = null });
         return document.ToBytes();
     }
 

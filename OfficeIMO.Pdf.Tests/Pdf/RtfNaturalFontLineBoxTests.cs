@@ -319,7 +319,7 @@ public sealed class RtfNaturalFontLineBoxTests {
         RtfToPdfOptions options = Options();
         PdfCreateOptions configured = Assert.IsType<PdfCreateOptions>(options.PdfOptions);
         configured.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(40D);
-        configured.DefaultTableStyle = new PdfTableStyle { FontSize = 9D };
+        configured.DefaultTableStyle = new PdfTableStyle { FontSize = global::OfficeIMO.OfficeLength.Points(9D) };
 
         using PdfPigDocument pdf = PdfPigDocument.Open((source.ToPdf(options)).ToBytes());
         Letter[] letters = Markers(pdf, "A", "B");
@@ -327,7 +327,7 @@ public sealed class RtfNaturalFontLineBoxTests {
         Assert.Equal(4D, letters[0].FontSize, 3);
         Assert.Equal(9D, letters[1].FontSize, 3);
         Assert.Equal(40D, configured.DefaultFontSize.ToPoints());
-        Assert.Equal(9D, Assert.IsType<PdfTableStyle>(configured.DefaultTableStyle).FontSize);
+        Assert.Equal(9D, Assert.IsType<PdfTableStyle>(configured.DefaultTableStyle).FontSize?.ToPoints());
     }
 
     [Fact]

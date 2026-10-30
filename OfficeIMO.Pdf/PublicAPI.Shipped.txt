@@ -767,7 +767,7 @@ OfficeIMO.Pdf.PdfCellBorder.Top.get -> bool
 OfficeIMO.Pdf.PdfCellBorder.Top.set -> void
 OfficeIMO.Pdf.PdfCellBorder.TopBorder.get -> OfficeIMO.Pdf.PdfCellBorderSide?
 OfficeIMO.Pdf.PdfCellBorder.TopBorder.set -> void
-OfficeIMO.Pdf.PdfCellBorder.Width.get -> double
+OfficeIMO.Pdf.PdfCellBorder.Width.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfCellBorder.Width.set -> void
 OfficeIMO.Pdf.PdfCellBorderLineStyle
 OfficeIMO.Pdf.PdfCellBorderLineStyle.Standard = 0 -> OfficeIMO.Pdf.PdfCellBorderLineStyle
@@ -781,7 +781,7 @@ OfficeIMO.Pdf.PdfCellBorderSide.DashStyle.set -> void
 OfficeIMO.Pdf.PdfCellBorderSide.LineStyle.get -> OfficeIMO.Pdf.PdfCellBorderLineStyle
 OfficeIMO.Pdf.PdfCellBorderSide.LineStyle.set -> void
 OfficeIMO.Pdf.PdfCellBorderSide.PdfCellBorderSide() -> void
-OfficeIMO.Pdf.PdfCellBorderSide.Width.get -> double
+OfficeIMO.Pdf.PdfCellBorderSide.Width.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfCellBorderSide.Width.set -> void
 OfficeIMO.Pdf.PdfCellDataBar
 OfficeIMO.Pdf.PdfCellDataBar.Clone() -> OfficeIMO.Pdf.PdfCellDataBar!
@@ -800,12 +800,12 @@ OfficeIMO.Pdf.PdfCellIcon.HorizontalAlignment.get -> OfficeIMO.Pdf.PdfColumnAlig
 OfficeIMO.Pdf.PdfCellIcon.HorizontalAlignment.set -> void
 OfficeIMO.Pdf.PdfCellIcon.Kind.get -> OfficeIMO.Pdf.PdfCellIconKind
 OfficeIMO.Pdf.PdfCellIcon.Kind.set -> void
-OfficeIMO.Pdf.PdfCellIcon.OffsetX.get -> double
+OfficeIMO.Pdf.PdfCellIcon.OffsetX.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfCellIcon.OffsetX.set -> void
-OfficeIMO.Pdf.PdfCellIcon.OffsetY.get -> double
+OfficeIMO.Pdf.PdfCellIcon.OffsetY.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfCellIcon.OffsetY.set -> void
 OfficeIMO.Pdf.PdfCellIcon.PdfCellIcon() -> void
-OfficeIMO.Pdf.PdfCellIcon.Size.get -> double
+OfficeIMO.Pdf.PdfCellIcon.Size.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfCellIcon.Size.set -> void
 OfficeIMO.Pdf.PdfCellIconKind
 OfficeIMO.Pdf.PdfCellIconKind.CheckBoxChecked = 7 -> OfficeIMO.Pdf.PdfCellIconKind
@@ -817,15 +817,15 @@ OfficeIMO.Pdf.PdfCellIconKind.TriangleDown = 5 -> OfficeIMO.Pdf.PdfCellIconKind
 OfficeIMO.Pdf.PdfCellIconKind.TriangleRight = 4 -> OfficeIMO.Pdf.PdfCellIconKind
 OfficeIMO.Pdf.PdfCellIconKind.TriangleUp = 3 -> OfficeIMO.Pdf.PdfCellIconKind
 OfficeIMO.Pdf.PdfCellPadding
-OfficeIMO.Pdf.PdfCellPadding.Bottom.get -> double?
+OfficeIMO.Pdf.PdfCellPadding.Bottom.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Pdf.PdfCellPadding.Bottom.set -> void
 OfficeIMO.Pdf.PdfCellPadding.Clone() -> OfficeIMO.Pdf.PdfCellPadding!
-OfficeIMO.Pdf.PdfCellPadding.Left.get -> double?
+OfficeIMO.Pdf.PdfCellPadding.Left.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Pdf.PdfCellPadding.Left.set -> void
 OfficeIMO.Pdf.PdfCellPadding.PdfCellPadding() -> void
-OfficeIMO.Pdf.PdfCellPadding.Right.get -> double?
+OfficeIMO.Pdf.PdfCellPadding.Right.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Pdf.PdfCellPadding.Right.set -> void
-OfficeIMO.Pdf.PdfCellPadding.Top.get -> double?
+OfficeIMO.Pdf.PdfCellPadding.Top.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Pdf.PdfCellPadding.Top.set -> void
 OfficeIMO.Pdf.PdfCellVerticalAlign
 OfficeIMO.Pdf.PdfCellVerticalAlign.Bottom = 2 -> OfficeIMO.Pdf.PdfCellVerticalAlign
@@ -7649,18 +7649,18 @@ OfficeIMO.Pdf.PdfTableOptions.Style.get -> OfficeIMO.Pdf.PdfTableStyle?
 OfficeIMO.Pdf.PdfTableOptions.Style.set -> void
 OfficeIMO.Pdf.PdfTablePosition
 OfficeIMO.Pdf.PdfTablePosition.AllowOverlap.get -> bool
-OfficeIMO.Pdf.PdfTablePosition.DistanceBottom.get -> double
-OfficeIMO.Pdf.PdfTablePosition.DistanceLeft.get -> double
-OfficeIMO.Pdf.PdfTablePosition.DistanceRight.get -> double
-OfficeIMO.Pdf.PdfTablePosition.DistanceTop.get -> double
+OfficeIMO.Pdf.PdfTablePosition.DistanceBottom.get -> OfficeIMO.OfficeLength
+OfficeIMO.Pdf.PdfTablePosition.DistanceLeft.get -> OfficeIMO.OfficeLength
+OfficeIMO.Pdf.PdfTablePosition.DistanceRight.get -> OfficeIMO.OfficeLength
+OfficeIMO.Pdf.PdfTablePosition.DistanceTop.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTablePosition.HorizontalAlignment.get -> OfficeIMO.Pdf.PdfAlign
 OfficeIMO.Pdf.PdfTablePosition.HorizontalAnchor.get -> OfficeIMO.Pdf.PdfTableAnchor
-OfficeIMO.Pdf.PdfTablePosition.HorizontalOffset.get -> double
+OfficeIMO.Pdf.PdfTablePosition.HorizontalOffset.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTablePosition.MirrorHorizontalOnEvenPages.get -> bool
-OfficeIMO.Pdf.PdfTablePosition.PdfTablePosition(OfficeIMO.Pdf.PdfTableAnchor horizontalAnchor = OfficeIMO.Pdf.PdfTableAnchor.Margin, OfficeIMO.Pdf.PdfTableAnchor verticalAnchor = OfficeIMO.Pdf.PdfTableAnchor.Flow, OfficeIMO.Pdf.PdfAlign horizontalAlignment = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfTableVerticalAlignment verticalAlignment = OfficeIMO.Pdf.PdfTableVerticalAlignment.Top, double horizontalOffset = 0, double verticalOffset = 0, double distanceLeft = 0, double distanceRight = 0, double distanceTop = 0, double distanceBottom = 0, bool mirrorHorizontalOnEvenPages = false, bool allowOverlap = true) -> void
+OfficeIMO.Pdf.PdfTablePosition.PdfTablePosition(OfficeIMO.Pdf.PdfTableAnchor horizontalAnchor = OfficeIMO.Pdf.PdfTableAnchor.Margin, OfficeIMO.Pdf.PdfTableAnchor verticalAnchor = OfficeIMO.Pdf.PdfTableAnchor.Flow, OfficeIMO.Pdf.PdfAlign horizontalAlignment = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfTableVerticalAlignment verticalAlignment = OfficeIMO.Pdf.PdfTableVerticalAlignment.Top, OfficeIMO.OfficeLength horizontalOffset = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength verticalOffset = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength distanceLeft = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength distanceRight = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength distanceTop = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength distanceBottom = default(OfficeIMO.OfficeLength), bool mirrorHorizontalOnEvenPages = false, bool allowOverlap = true) -> void
 OfficeIMO.Pdf.PdfTablePosition.VerticalAlignment.get -> OfficeIMO.Pdf.PdfTableVerticalAlignment
 OfficeIMO.Pdf.PdfTablePosition.VerticalAnchor.get -> OfficeIMO.Pdf.PdfTableAnchor
-OfficeIMO.Pdf.PdfTablePosition.VerticalOffset.get -> double
+OfficeIMO.Pdf.PdfTablePosition.VerticalOffset.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTableStyle
 OfficeIMO.Pdf.PdfTableStyle.Alignments.get -> System.Collections.Generic.List<OfficeIMO.Pdf.PdfColumnAlign>?
 OfficeIMO.Pdf.PdfTableStyle.Alignments.set -> void
@@ -7674,7 +7674,7 @@ OfficeIMO.Pdf.PdfTableStyle.BodyColumnFills.get -> System.Collections.Generic.Li
 OfficeIMO.Pdf.PdfTableStyle.BodyColumnFills.set -> void
 OfficeIMO.Pdf.PdfTableStyle.BorderColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.BorderColor.set -> void
-OfficeIMO.Pdf.PdfTableStyle.BorderWidth.get -> double
+OfficeIMO.Pdf.PdfTableStyle.BorderWidth.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTableStyle.BorderWidth.set -> void
 OfficeIMO.Pdf.PdfTableStyle.Caption.get -> string?
 OfficeIMO.Pdf.PdfTableStyle.Caption.set -> void
@@ -7682,9 +7682,9 @@ OfficeIMO.Pdf.PdfTableStyle.CaptionAlign.get -> OfficeIMO.Pdf.PdfAlign
 OfficeIMO.Pdf.PdfTableStyle.CaptionAlign.set -> void
 OfficeIMO.Pdf.PdfTableStyle.CaptionColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.CaptionColor.set -> void
-OfficeIMO.Pdf.PdfTableStyle.CaptionFontSize.get -> double?
+OfficeIMO.Pdf.PdfTableStyle.CaptionFontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Pdf.PdfTableStyle.CaptionFontSize.set -> void
-OfficeIMO.Pdf.PdfTableStyle.CaptionSpacingAfter.get -> double
+OfficeIMO.Pdf.PdfTableStyle.CaptionSpacingAfter.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTableStyle.CaptionSpacingAfter.set -> void
 OfficeIMO.Pdf.PdfTableStyle.CellAlignments.get -> System.Collections.Generic.Dictionary<(int Row, int Column), OfficeIMO.Pdf.PdfColumnAlign>?
 OfficeIMO.Pdf.PdfTableStyle.CellAlignments.set -> void
@@ -7696,52 +7696,52 @@ OfficeIMO.Pdf.PdfTableStyle.CellFills.get -> System.Collections.Generic.Dictiona
 OfficeIMO.Pdf.PdfTableStyle.CellFills.set -> void
 OfficeIMO.Pdf.PdfTableStyle.CellIcons.get -> System.Collections.Generic.Dictionary<(int Row, int Column), OfficeIMO.Pdf.PdfCellIcon!>?
 OfficeIMO.Pdf.PdfTableStyle.CellIcons.set -> void
-OfficeIMO.Pdf.PdfTableStyle.CellPaddingBottom.get -> double?
+OfficeIMO.Pdf.PdfTableStyle.CellPaddingBottom.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Pdf.PdfTableStyle.CellPaddingBottom.set -> void
-OfficeIMO.Pdf.PdfTableStyle.CellPaddingLeft.get -> double?
+OfficeIMO.Pdf.PdfTableStyle.CellPaddingLeft.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Pdf.PdfTableStyle.CellPaddingLeft.set -> void
-OfficeIMO.Pdf.PdfTableStyle.CellPaddingRight.get -> double?
+OfficeIMO.Pdf.PdfTableStyle.CellPaddingRight.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Pdf.PdfTableStyle.CellPaddingRight.set -> void
-OfficeIMO.Pdf.PdfTableStyle.CellPaddingTop.get -> double?
+OfficeIMO.Pdf.PdfTableStyle.CellPaddingTop.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Pdf.PdfTableStyle.CellPaddingTop.set -> void
-OfficeIMO.Pdf.PdfTableStyle.CellPaddingX.get -> double
+OfficeIMO.Pdf.PdfTableStyle.CellPaddingX.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTableStyle.CellPaddingX.set -> void
-OfficeIMO.Pdf.PdfTableStyle.CellPaddingY.get -> double
+OfficeIMO.Pdf.PdfTableStyle.CellPaddingY.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTableStyle.CellPaddingY.set -> void
 OfficeIMO.Pdf.PdfTableStyle.CellPaddings.get -> System.Collections.Generic.Dictionary<(int Row, int Column), OfficeIMO.Pdf.PdfCellPadding!>?
 OfficeIMO.Pdf.PdfTableStyle.CellPaddings.set -> void
-OfficeIMO.Pdf.PdfTableStyle.CellSpacing.get -> double
+OfficeIMO.Pdf.PdfTableStyle.CellSpacing.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTableStyle.CellSpacing.set -> void
 OfficeIMO.Pdf.PdfTableStyle.CellVerticalAlignments.get -> System.Collections.Generic.Dictionary<(int Row, int Column), OfficeIMO.Pdf.PdfCellVerticalAlign>?
 OfficeIMO.Pdf.PdfTableStyle.CellVerticalAlignments.set -> void
 OfficeIMO.Pdf.PdfTableStyle.Clone() -> OfficeIMO.Pdf.PdfTableStyle!
-OfficeIMO.Pdf.PdfTableStyle.ColumnMaxWidthPoints.get -> System.Collections.Generic.List<double?>?
-OfficeIMO.Pdf.PdfTableStyle.ColumnMaxWidthPoints.set -> void
-OfficeIMO.Pdf.PdfTableStyle.ColumnMinWidthPoints.get -> System.Collections.Generic.List<double?>?
-OfficeIMO.Pdf.PdfTableStyle.ColumnMinWidthPoints.set -> void
-OfficeIMO.Pdf.PdfTableStyle.ColumnWidthPoints.get -> System.Collections.Generic.List<double?>?
-OfficeIMO.Pdf.PdfTableStyle.ColumnWidthPoints.set -> void
+OfficeIMO.Pdf.PdfTableStyle.ColumnMaxWidths.get -> System.Collections.Generic.List<OfficeIMO.OfficeLength?>?
+OfficeIMO.Pdf.PdfTableStyle.ColumnMaxWidths.set -> void
+OfficeIMO.Pdf.PdfTableStyle.ColumnMinWidths.get -> System.Collections.Generic.List<OfficeIMO.OfficeLength?>?
+OfficeIMO.Pdf.PdfTableStyle.ColumnMinWidths.set -> void
 OfficeIMO.Pdf.PdfTableStyle.ColumnWidthWeights.get -> System.Collections.Generic.List<double>?
 OfficeIMO.Pdf.PdfTableStyle.ColumnWidthWeights.set -> void
+OfficeIMO.Pdf.PdfTableStyle.ColumnWidths.get -> System.Collections.Generic.List<OfficeIMO.OfficeLength?>?
+OfficeIMO.Pdf.PdfTableStyle.ColumnWidths.set -> void
 OfficeIMO.Pdf.PdfTableStyle.ConsumesVerticalFlow.get -> bool
 OfficeIMO.Pdf.PdfTableStyle.ConsumesVerticalFlow.set -> void
-OfficeIMO.Pdf.PdfTableStyle.CornerRadius.get -> double
+OfficeIMO.Pdf.PdfTableStyle.CornerRadius.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTableStyle.CornerRadius.set -> void
-OfficeIMO.Pdf.PdfTableStyle.FixedRowHeights.get -> System.Collections.Generic.List<double?>?
+OfficeIMO.Pdf.PdfTableStyle.FixedRowHeights.get -> System.Collections.Generic.List<OfficeIMO.OfficeLength?>?
 OfficeIMO.Pdf.PdfTableStyle.FixedRowHeights.set -> void
-OfficeIMO.Pdf.PdfTableStyle.FontSize.get -> double?
+OfficeIMO.Pdf.PdfTableStyle.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Pdf.PdfTableStyle.FontSize.set -> void
 OfficeIMO.Pdf.PdfTableStyle.FooterBold.get -> bool
 OfficeIMO.Pdf.PdfTableStyle.FooterBold.set -> void
 OfficeIMO.Pdf.PdfTableStyle.FooterFill.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.FooterFill.set -> void
-OfficeIMO.Pdf.PdfTableStyle.FooterFontSize.get -> double?
+OfficeIMO.Pdf.PdfTableStyle.FooterFontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Pdf.PdfTableStyle.FooterFontSize.set -> void
 OfficeIMO.Pdf.PdfTableStyle.FooterRowCount.get -> int
 OfficeIMO.Pdf.PdfTableStyle.FooterRowCount.set -> void
 OfficeIMO.Pdf.PdfTableStyle.FooterSeparatorColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.FooterSeparatorColor.set -> void
-OfficeIMO.Pdf.PdfTableStyle.FooterSeparatorWidth.get -> double
+OfficeIMO.Pdf.PdfTableStyle.FooterSeparatorWidth.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTableStyle.FooterSeparatorWidth.set -> void
 OfficeIMO.Pdf.PdfTableStyle.FooterTextColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.FooterTextColor.set -> void
@@ -7749,42 +7749,42 @@ OfficeIMO.Pdf.PdfTableStyle.HeaderBold.get -> bool
 OfficeIMO.Pdf.PdfTableStyle.HeaderBold.set -> void
 OfficeIMO.Pdf.PdfTableStyle.HeaderFill.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.HeaderFill.set -> void
-OfficeIMO.Pdf.PdfTableStyle.HeaderFontSize.get -> double?
+OfficeIMO.Pdf.PdfTableStyle.HeaderFontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Pdf.PdfTableStyle.HeaderFontSize.set -> void
 OfficeIMO.Pdf.PdfTableStyle.HeaderRowCount.get -> int
 OfficeIMO.Pdf.PdfTableStyle.HeaderRowCount.set -> void
 OfficeIMO.Pdf.PdfTableStyle.HeaderSeparatorColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.HeaderSeparatorColor.set -> void
-OfficeIMO.Pdf.PdfTableStyle.HeaderSeparatorWidth.get -> double
+OfficeIMO.Pdf.PdfTableStyle.HeaderSeparatorWidth.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTableStyle.HeaderSeparatorWidth.set -> void
 OfficeIMO.Pdf.PdfTableStyle.HeaderTextColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.HeaderTextColor.set -> void
-OfficeIMO.Pdf.PdfTableStyle.HorizontalOffset.get -> double
+OfficeIMO.Pdf.PdfTableStyle.HorizontalOffset.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTableStyle.HorizontalOffset.set -> void
 OfficeIMO.Pdf.PdfTableStyle.KeepTogether.get -> bool
 OfficeIMO.Pdf.PdfTableStyle.KeepTogether.set -> void
 OfficeIMO.Pdf.PdfTableStyle.KeepWithNext.get -> bool
 OfficeIMO.Pdf.PdfTableStyle.KeepWithNext.set -> void
-OfficeIMO.Pdf.PdfTableStyle.LeftIndent.get -> double
+OfficeIMO.Pdf.PdfTableStyle.LeftIndent.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTableStyle.LeftIndent.set -> void
 OfficeIMO.Pdf.PdfTableStyle.LineHeight.get -> double?
 OfficeIMO.Pdf.PdfTableStyle.LineHeight.set -> void
-OfficeIMO.Pdf.PdfTableStyle.MaxWidth.get -> double?
+OfficeIMO.Pdf.PdfTableStyle.MaxWidth.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Pdf.PdfTableStyle.MaxWidth.set -> void
-OfficeIMO.Pdf.PdfTableStyle.MinRowHeight.get -> double
+OfficeIMO.Pdf.PdfTableStyle.MinRowHeight.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTableStyle.MinRowHeight.set -> void
 OfficeIMO.Pdf.PdfTableStyle.MinimumBodyRowsOnFirstPage.get -> int
 OfficeIMO.Pdf.PdfTableStyle.MinimumBodyRowsOnFirstPage.set -> void
 OfficeIMO.Pdf.PdfTableStyle.MinimumBodyRowsOnLastPage.get -> int
 OfficeIMO.Pdf.PdfTableStyle.MinimumBodyRowsOnLastPage.set -> void
-OfficeIMO.Pdf.PdfTableStyle.MinimumShrinkFontSize.get -> double?
+OfficeIMO.Pdf.PdfTableStyle.MinimumShrinkFontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Pdf.PdfTableStyle.MinimumShrinkFontSize.set -> void
-OfficeIMO.Pdf.PdfTableStyle.PageContinuationSpacingBefore.get -> double
+OfficeIMO.Pdf.PdfTableStyle.PageContinuationSpacingBefore.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTableStyle.PageContinuationSpacingBefore.set -> void
 OfficeIMO.Pdf.PdfTableStyle.PdfTableStyle() -> void
 OfficeIMO.Pdf.PdfTableStyle.Position.get -> OfficeIMO.Pdf.PdfTablePosition?
 OfficeIMO.Pdf.PdfTableStyle.Position.set -> void
-OfficeIMO.Pdf.PdfTableStyle.PreferredWidth.get -> double?
+OfficeIMO.Pdf.PdfTableStyle.PreferredWidth.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Pdf.PdfTableStyle.PreferredWidth.set -> void
 OfficeIMO.Pdf.PdfTableStyle.PreserveWidth.get -> bool
 OfficeIMO.Pdf.PdfTableStyle.PreserveWidth.set -> void
@@ -7794,21 +7794,21 @@ OfficeIMO.Pdf.PdfTableStyle.RightAlignNumeric.get -> bool
 OfficeIMO.Pdf.PdfTableStyle.RightAlignNumeric.set -> void
 OfficeIMO.Pdf.PdfTableStyle.RowAllowBreakAcrossPages.get -> System.Collections.Generic.List<bool?>?
 OfficeIMO.Pdf.PdfTableStyle.RowAllowBreakAcrossPages.set -> void
-OfficeIMO.Pdf.PdfTableStyle.RowBaselineOffset.get -> double
+OfficeIMO.Pdf.PdfTableStyle.RowBaselineOffset.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTableStyle.RowBaselineOffset.set -> void
-OfficeIMO.Pdf.PdfTableStyle.RowMinHeights.get -> System.Collections.Generic.List<double?>?
+OfficeIMO.Pdf.PdfTableStyle.RowMinHeights.get -> System.Collections.Generic.List<OfficeIMO.OfficeLength?>?
 OfficeIMO.Pdf.PdfTableStyle.RowMinHeights.set -> void
 OfficeIMO.Pdf.PdfTableStyle.RowSeparatorColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.RowSeparatorColor.set -> void
-OfficeIMO.Pdf.PdfTableStyle.RowSeparatorWidth.get -> double
+OfficeIMO.Pdf.PdfTableStyle.RowSeparatorWidth.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTableStyle.RowSeparatorWidth.set -> void
 OfficeIMO.Pdf.PdfTableStyle.RowStripeFill.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.RowStripeFill.set -> void
 OfficeIMO.Pdf.PdfTableStyle.ShrinkTextToFit.get -> bool
 OfficeIMO.Pdf.PdfTableStyle.ShrinkTextToFit.set -> void
-OfficeIMO.Pdf.PdfTableStyle.SpacingAfter.get -> double
+OfficeIMO.Pdf.PdfTableStyle.SpacingAfter.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTableStyle.SpacingAfter.set -> void
-OfficeIMO.Pdf.PdfTableStyle.SpacingBefore.get -> double
+OfficeIMO.Pdf.PdfTableStyle.SpacingBefore.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTableStyle.SpacingBefore.set -> void
 OfficeIMO.Pdf.PdfTableStyle.TextColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.TextColor.set -> void

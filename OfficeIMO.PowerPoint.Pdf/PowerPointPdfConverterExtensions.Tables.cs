@@ -20,12 +20,12 @@ public static partial class PowerPointPdfConverterExtensions {
             ? ResolveTableDefaultFontFamily(table)
             : null;
         PdfCore.PdfTableStyle style = CreateTableStyle(table, options);
-        double bodyFontSize = style.FontSize ?? (options.PdfOptions ?? new PdfCore.PdfCreateOptions()).DefaultFontSize.ToPoints();
+        double bodyFontSize = style.FontSize?.ToPoints() ?? (options.PdfOptions ?? new PdfCore.PdfCreateOptions()).DefaultFontSize.ToPoints();
         var rowCells = Enumerable.Range(0, table.Rows).Select(_ => new List<PdfCore.PdfTableCell>()).ToArray();
         foreach (var anchor in table.EnumerateAnchorCells()) {
             int rowIndex = anchor.Row;
-            double fallbackFontSize = rowIndex < style.HeaderRowCount ? style.HeaderFontSize ?? bodyFontSize
-                : rowIndex >= table.Rows - style.FooterRowCount ? style.FooterFontSize ?? bodyFontSize : bodyFontSize;
+            double fallbackFontSize = rowIndex < style.HeaderRowCount ? style.HeaderFontSize?.ToPoints() ?? bodyFontSize
+                : rowIndex >= table.Rows - style.FooterRowCount ? style.FooterFontSize?.ToPoints() ?? bodyFontSize : bodyFontSize;
             IReadOnlyList<A.TextCharacterPropertiesType> tableDefaults = options.PdfOptions?.HasExplicitDefaultTableStyle == true
                 ? Array.Empty<A.TextCharacterPropertiesType>()
                 : CreateTableTextDefaults(table, rowIndex, anchor.Column);
@@ -154,8 +154,8 @@ public static partial class PowerPointPdfConverterExtensions {
         style.RepeatHeaderRowCount = style.HeaderRowCount == 0 ? 0 : style.HeaderRowCount;
         style.FooterRowCount = table.LastRow ? 1 : 0;
         style.RowStripeFill = table.BandedRows ? style.RowStripeFill : null;
-        style.ColumnWidthPoints = CreateColumnWidths(table, table.Width.ToPoints());
-        style.RowMinHeights = CreateRowHeights(table, table.Height.ToPoints());
+        style.ColumnWidths = (CreateColumnWidths(table, table.Width.ToPoints())) is { } lengths8013 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths8013, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
+        style.RowMinHeights = (CreateRowHeights(table, table.Height.ToPoints())) is { } lengths8094 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths8094, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
         Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>? cellFills = CreateTableCellFills(table, includePresentationTableStyle);
         if (cellFills != null) {
             style.CellFills = MergeTableCellMap(style.CellFills, cellFills);
@@ -204,11 +204,11 @@ public static partial class PowerPointPdfConverterExtensions {
         // Every anchor cell receives its resolved presentation borders. A PDF
         // preset grid would paint over them and restore explicitly hidden edges.
         style.BorderColor = null;
-        style.FontSize = PptCore.PowerPointTextDefaults.DefaultFontSizePoints;
-        style.HeaderFontSize = PptCore.PowerPointTextDefaults.DefaultFontSizePoints;
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(PptCore.PowerPointTextDefaults.DefaultFontSizePoints);
+        style.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(PptCore.PowerPointTextDefaults.DefaultFontSizePoints);
         // DrawingML tcPr defaults: 0.1in on each side and 0.05in above/below.
-        style.CellPaddingX = 7.2D;
-        style.CellPaddingY = 3.6D;
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(7.2D);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(3.6D);
         return style;
     }
 
@@ -271,10 +271,10 @@ public static partial class PowerPointPdfConverterExtensions {
         ForEachTableAnchorCell(table, (row, column, cell) => {
             if (cell.PaddingLeft.HasValue || cell.PaddingRight.HasValue || cell.PaddingTop.HasValue || cell.PaddingBottom.HasValue) {
                 paddings[(row, column)] = new PdfCore.PdfCellPadding {
-                    Left = cell.PaddingLeft?.ToPoints(),
-                    Right = cell.PaddingRight?.ToPoints(),
-                    Top = cell.PaddingTop?.ToPoints(),
-                    Bottom = cell.PaddingBottom?.ToPoints()
+                    Left = cell.PaddingLeft,
+                    Right = cell.PaddingRight,
+                    Top = cell.PaddingTop,
+                    Bottom = cell.PaddingBottom
                 };
             }
         });
@@ -319,7 +319,7 @@ public static partial class PowerPointPdfConverterExtensions {
             if (directBorder.HasValue) {
                 borders[(row, column)] = new PdfCore.PdfCellBorder {
                     Color = directBorder.Value,
-                    Width = 0.75D
+                    Width = global::OfficeIMO.OfficeLength.Points(0.75D)
                 };
             }
         });
@@ -330,7 +330,7 @@ public static partial class PowerPointPdfConverterExtensions {
     private static PdfCore.PdfCellBorder CreatePdfTableCellBorder(OfficeBorderBox border) {
         return new PdfCore.PdfCellBorder {
             Color = null,
-            Width = 0D,
+            Width = global::OfficeIMO.OfficeLength.Points(0D),
             LeftBorder = CreatePdfTableCellBorderSide(border.Left),
             TopBorder = CreatePdfTableCellBorderSide(border.Top),
             RightBorder = CreatePdfTableCellBorderSide(border.Right),
@@ -350,7 +350,7 @@ public static partial class PowerPointPdfConverterExtensions {
         OfficeBorderSide value = side.Value;
         return new PdfCore.PdfCellBorderSide {
             Color = value.IsVisible ? value.Color : null,
-            Width = value.Width,
+            Width = global::OfficeIMO.OfficeLength.Points(value.Width),
             DashStyle = value.DashStyle,
             LineStyle = value.LineKind == OfficeBorderLineKind.Double
                 ? PdfCore.PdfCellBorderLineStyle.TwoLine

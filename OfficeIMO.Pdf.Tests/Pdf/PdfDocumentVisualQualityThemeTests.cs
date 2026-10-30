@@ -553,7 +553,7 @@ public partial class PdfDocumentVisualQualityTests {
             SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
         var tableStyle = PdfTableStyles.Minimal();
-        tableStyle.CellPaddingX = 22;
+        tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(22);
         var theme = new PdfTheme {
             TextStyle = textStyle,
             ParagraphStyle = paragraphStyle,
@@ -581,7 +581,7 @@ public partial class PdfDocumentVisualQualityTests {
         textStyle.FontSize = 8;
         textStyle.Color = global::OfficeIMO.OfficeColor.Black;
         paragraphStyle.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(0);
-        tableStyle.CellPaddingX = 0;
+        tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
         theme.TextStyle = new PdfTextStyle {
             Font = PdfStandardFont.Helvetica,
             FontSize = 8,
@@ -638,8 +638,8 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(18, options.DefaultListStyle!.LeftIndent);
         Assert.Equal(6, options.DefaultListStyle.MarkerGap);
         Assert.Equal(8, options.DefaultListStyle.SpacingAfter);
-        Assert.Equal(5, options.DefaultTableStyle!.CellPaddingX);
-        Assert.Equal(5, options.DefaultTableStyle.CellPaddingY);
+        Assert.Equal(5, options.DefaultTableStyle!.CellPaddingX.ToPoints());
+        Assert.Equal(5, options.DefaultTableStyle.CellPaddingY.ToPoints());
         Assert.Equal(8, options.DefaultPanelStyle!.PaddingX);
         Assert.Equal(8, options.DefaultPanelStyle.SpacingAfter);
         Assert.Equal(0.7, options.DefaultHorizontalRuleStyle!.Thickness);
@@ -659,7 +659,7 @@ public partial class PdfDocumentVisualQualityTests {
         PdfCreateOptions report = new PdfCreateOptions().ApplyTheme(PdfTheme.Report());
 
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42), technical.DefaultTableStyle!.HeaderFill);
-        Assert.Equal(9.75, technical.DefaultTableStyle.FontSize);
+        Assert.Equal(9.75, technical.DefaultTableStyle.FontSize?.ToPoints());
         Assert.Equal(1.2, technical.DefaultTableStyle.LineHeight);
         Assert.True(technical.DefaultTableStyle.AutoFitColumns);
         Assert.Equal(9, technical.DefaultPanelStyle!.SpacingAfter);
@@ -668,12 +668,12 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(10, compact.DefaultFontSize.ToPoints());
         Assert.Equal(1.08, compact.DefaultParagraphStyle!.LineHeight);
         Assert.Equal(4, (compact.DefaultParagraphStyle.SpacingAfter?.ToPoints()));
-        Assert.Equal(9, compact.DefaultTableStyle!.FontSize);
+        Assert.Equal(9, compact.DefaultTableStyle!.FontSize?.ToPoints());
         Assert.Equal(14, compact.DefaultRowStyle!.Gap);
 
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175), report.DefaultTableStyle!.HeaderFill);
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255), report.DefaultTableStyle.RowStripeFill);
-        Assert.Equal(9.25, report.DefaultTableStyle.FontSize);
+        Assert.Equal(9.25, report.DefaultTableStyle.FontSize?.ToPoints());
         Assert.Equal(21, report.DefaultHeadingStyles!.Level1!.FontSize);
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175), report.DefaultHeadingStyles.Level2!.Color);
         Assert.Equal(10, report.DefaultPanelStyle!.SpacingAfter);
@@ -765,7 +765,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void PdfDocument_OptionsAppliedThemeRendersReusableDefaults() {
         var tableStyle = PdfTableStyles.Minimal();
-        tableStyle.CellPaddingX = 22;
+        tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(22);
         var options = new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(360),
                 PageHeight = global::OfficeIMO.OfficeLength.Points(260),

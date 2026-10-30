@@ -40,8 +40,8 @@ internal static partial class PdfWriter {
                     int cellConsumed = mergedCursor ? spanConsumed : consumedLines;
                     TableCellTextLayout lines = continueCell
                         ? ContinueTableCellTextLayout(cell, previous!.Lines[row][cell.Column], cellConsumed, innerWidth, font, size, leading,
-                            currentOpts, continuationScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum)
-                        : textLayouts.Create(cell, innerWidth, font, size, leading, runScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum);
+                            currentOpts, continuationScale, style.MinimumShrinkFontSize?.ToPoints() ?? 6D, style.AutoFitWidthUsesContentMinimum)
+                        : textLayouts.Create(cell, innerWidth, font, size, leading, runScale, style.MinimumShrinkFontSize?.ToPoints() ?? 6D, style.AutoFitWidthUsesContentMinimum);
                     result.Lines[row][cell.Column] = lines;
                     if (cell.RowSpan <= 1 && cell.Viewport == null) {
                         maxLines = Math.Max(maxLines, cell.TextRotation == 0 ? lines.LineCount : 1);

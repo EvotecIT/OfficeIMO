@@ -165,7 +165,7 @@ public static partial class MarkdownPdfConverterExtensions {
             }
 
             if (hasFixedWidths) {
-                style.ColumnWidthPoints = fixedWidths;
+                style.ColumnWidths = (fixedWidths) is { } lengths7091 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths7091, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
             }
         }
 

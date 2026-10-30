@@ -160,7 +160,7 @@ public sealed class PdfCreationOfficeThemeReviewRegressions {
     }
 
     private static PdfTableStyle TableStyle(double size) => new PdfTableStyle {
-        FontSize = size, HeaderFontSize = size, SpacingAfter = 3
+        FontSize = global::OfficeIMO.OfficeLength.Points(size), HeaderFontSize = global::OfficeIMO.OfficeLength.Points(size), SpacingAfter = global::OfficeIMO.OfficeLength.Points(3)
     };
 
     private static void SetPageStyle(PdfPageBuilder page, double size, bool pageTheme) {

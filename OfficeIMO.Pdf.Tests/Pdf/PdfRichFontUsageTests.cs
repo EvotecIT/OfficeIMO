@@ -25,7 +25,7 @@ public class PdfRichFontUsageTests {
         var style = new PdfTableStyle {
             HeaderRowCount = 1,
             HeaderBold = true,
-            ColumnWidthPoints = new List<double?> { 180D }
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(180D) }
         };
         IReadOnlyList<PdfTableCell[]> rows = new[] {
             new[] {
@@ -67,7 +67,7 @@ public class PdfRichFontUsageTests {
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D) };
         var style = new PdfTableStyle {
             HeaderRowCount = 1, HeaderBold = true,
-            ColumnWidthPoints = new List<double?> { 180D }
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(180D) }
         };
         IReadOnlyList<PdfTableCell[]> rows = new[] {
             new[] { PdfTableCell.RichTextCell(new[] { new PdfTextRun("ExplicitFace", font: font) }) }

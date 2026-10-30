@@ -45,7 +45,7 @@ public sealed class PdfWhitespaceFlowTests {
             : new[] { PdfTextRun.Normal("ALPHA BETA") };
         var document = PdfDocument.Create(options);
         if (table) document.Table(new[] { new[] { PdfTableCell.RichTextCell(runs) } },
-            style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0, FontSize = 12D });
+            style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
         else document.Paragraph(paragraph => paragraph.Runs(runs));
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
@@ -63,7 +63,7 @@ public sealed class PdfWhitespaceFlowTests {
         PdfDocument document = PdfDocument.Create(options);
         var runs = new[] { PdfTextRun.Normal("  ALPHA "), PdfTextRun.Normal("  BETA") };
         if (table) document.Table(new[] { new[] { PdfTableCell.RichTextCell(runs) } },
-            style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0 });
+            style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0) });
         else document.Paragraph(p => p.Runs(runs));
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         var letters = pdf.GetPage(1).Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToArray();
@@ -367,8 +367,8 @@ public sealed class PdfWhitespaceFlowTests {
     private static byte[] RenderCell(PdfCreateOptions options, PdfTextRun[] runs, bool columns, double secondColumnWidth = 128D) {
         var cells = new[] { new[] { new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs,
             fontSize: 12D, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(14.4D)), widowControl: false) }) } };
-        var style = new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0,
-            BorderWidth = 0, RowSeparatorWidth = 0, FontSize = 12D, SpacingBefore = 0, SpacingAfter = 0 };
+        var style = new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0),
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0), RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
         PdfDocument document = PdfDocument.Create(options);
         if (columns) document.Columns(content => content.Table(cells, style: style), new PdfMultiColumnOptions {
             BalanceLastPage = false, ColumnDefinitions = new[] {

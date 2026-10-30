@@ -38,10 +38,10 @@ public sealed partial class PdfReadLayoutSmokeTests {
 
     private static PdfTableStyle TableStyle() {
         return new PdfTableStyle {
-            ColumnWidthPoints = new System.Collections.Generic.List<double?> { 70, 170, 60 },
+            ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
             HeaderRowCount = 1,
-            CellPaddingX = 6,
-            CellPaddingY = 4
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
         };
     }
 

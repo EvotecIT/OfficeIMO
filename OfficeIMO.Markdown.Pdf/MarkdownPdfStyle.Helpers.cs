@@ -10,8 +10,8 @@ public sealed partial class MarkdownPdfStyle {
         style.RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252);
         style.BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225);
         style.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(226, 232, 240);
-        style.BorderWidth = 0.45;
-        style.HeaderSeparatorWidth = 0.75;
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0.45);
+        style.HeaderSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.75);
         return style;
     }
 
@@ -22,7 +22,7 @@ public sealed partial class MarkdownPdfStyle {
         style.TextColor = global::OfficeIMO.OfficeColor.FromRgb(36, 41, 47);
         style.RowStripeFill = null;
         style.BorderColor = global::OfficeIMO.OfficeColor.FromRgb(208, 215, 222);
-        style.BorderWidth = 0.5;
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5);
         return style;
     }
 
@@ -38,7 +38,7 @@ public sealed partial class MarkdownPdfStyle {
         style.HeaderTextColor = global::OfficeIMO.OfficeColor.White;
         style.RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255);
         style.BorderColor = global::OfficeIMO.OfficeColor.FromRgb(191, 219, 254);
-        style.BorderWidth = 0.45;
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0.45);
         return style;
     }
 
@@ -52,13 +52,13 @@ public sealed partial class MarkdownPdfStyle {
     }
 
     private static PdfCore.PdfTableStyle MarkdownTable(PdfCore.PdfTableStyle style, double fontSize, double headerFontSize, double lineHeight, double paddingX, double paddingY, double spacingBefore, double spacingAfter) {
-        style.FontSize = fontSize;
-        style.HeaderFontSize = headerFontSize;
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
+        style.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(headerFontSize);
         style.LineHeight = lineHeight;
-        style.CellPaddingX = paddingX;
-        style.CellPaddingY = paddingY;
-        style.SpacingBefore = spacingBefore;
-        style.SpacingAfter = spacingAfter;
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(paddingX);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(paddingY);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter);
         style.AutoFitColumns = true;
         return style;
     }
@@ -66,12 +66,12 @@ public sealed partial class MarkdownPdfStyle {
     private static PdfCore.PdfTableStyle DefinitionTable(int borderR, int borderG, int borderB, double borderWidth, double paddingX, double paddingY) {
         PdfCore.PdfTableStyle style = PdfCore.PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = paddingX;
-        style.CellPaddingY = paddingY;
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(paddingX);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(paddingY);
         style.BorderColor = Color(borderR, borderG, borderB);
-        style.BorderWidth = borderWidth;
-        style.SpacingBefore = 3;
-        style.SpacingAfter = 8;
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(borderWidth);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(3);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(8);
         return style;
     }
 
@@ -80,20 +80,20 @@ public sealed partial class MarkdownPdfStyle {
         style.HeaderRowCount = 0;
         style.RepeatHeaderRowCount = 0;
         style.BorderColor = null;
-        style.BorderWidth = 0;
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0);
         style.RowStripeFill = null;
         style.RowSeparatorColor = Color(borderR, borderG, borderB);
-        style.RowSeparatorWidth = 0.35;
+        style.RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.35);
         style.TextColor = Color(textR, textG, textB);
-        style.FontSize = fontSize;
-        style.CellPaddingX = 3;
-        style.CellPaddingY = paddingY;
-        style.ColumnWidthPoints = new System.Collections.Generic.List<double?> { 20D, null };
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(3);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(paddingY);
+        style.ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(20D), null };
         style.Alignments = new System.Collections.Generic.List<PdfCore.PdfColumnAlign> { PdfCore.PdfColumnAlign.Center, PdfCore.PdfColumnAlign.Left };
         style.VerticalAlignments = new System.Collections.Generic.List<PdfCore.PdfCellVerticalAlign> { PdfCore.PdfCellVerticalAlign.Top, PdfCore.PdfCellVerticalAlign.Top };
         style.BodyColumnFills = new System.Collections.Generic.List<global::OfficeIMO.OfficeColor?> { null, null };
-        style.SpacingBefore = 3;
-        style.SpacingAfter = 8;
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(3);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(8);
         return style;
     }
 

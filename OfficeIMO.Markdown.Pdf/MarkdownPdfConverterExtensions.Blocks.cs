@@ -212,7 +212,7 @@ public static partial class MarkdownPdfConverterExtensions {
         var icons = new Dictionary<(int Row, int Column), PdfCore.PdfCellIcon>();
         var fills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
         PdfCore.PdfTableStyle style = visualTheme.ChecklistTableStyleSnapshot;
-        double fontSize = style.FontSize ?? 10D;
+        double fontSize = style.FontSize?.ToPoints() ?? 10D;
         double iconSize = Math.Max(8.5D, Math.Min(10.5D, fontSize));
         double opticalBaselineOffset = (iconSize / 2D) - (fontSize * 0.4625D);
         for (int i = 0; i < taskItems.Count; i++) {
@@ -225,8 +225,8 @@ public static partial class MarkdownPdfConverterExtensions {
             icons[(i, 0)] = new PdfCore.PdfCellIcon {
                 Kind = item.Checked ? PdfCore.PdfCellIconKind.CheckBoxChecked : PdfCore.PdfCellIconKind.CheckBoxUnchecked,
                 Color = iconColor,
-                Size = iconSize,
-                OffsetY = opticalBaselineOffset
+                Size = global::OfficeIMO.OfficeLength.Points(iconSize),
+                OffsetY = global::OfficeIMO.OfficeLength.Points(opticalBaselineOffset)
             };
             if (fillColor != null) {
                 fills[(i, 0)] = fillColor.Value;

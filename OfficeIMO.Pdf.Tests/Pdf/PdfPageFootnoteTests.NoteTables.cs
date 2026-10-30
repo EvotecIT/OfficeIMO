@@ -150,7 +150,7 @@ public partial class PdfPageFootnoteTests {
         } }, style: NoteGridStyle())));
 
         PdfTableStyle style = NoteGridStyle();
-        style.FixedRowHeights = new List<double?> { 100D };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100D) };
         style.RowAllowBreakAcrossPages = new List<bool?> { false };
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.Table(new[] {
             new[] { "CannotFit" }
@@ -250,7 +250,7 @@ public partial class PdfPageFootnoteTests {
 
     private static PdfTableStyle NoteGridStyle() => new() {
         HeaderRowCount = 0, RepeatHeaderRowCount = 0, MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0,
-        FontSize = 8, LineHeight = 1.25D, CellPaddingX = 2, CellPaddingY = 1,
-        BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2D, .2D, .2D), BorderWidth = .5D, SpacingBefore = 0, SpacingAfter = 0
+        FontSize = global::OfficeIMO.OfficeLength.Points(8), LineHeight = 1.25D, CellPaddingX = global::OfficeIMO.OfficeLength.Points(2), CellPaddingY = global::OfficeIMO.OfficeLength.Points(1),
+        BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2D, .2D, .2D), BorderWidth = global::OfficeIMO.OfficeLength.Points(.5D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
     };
 }

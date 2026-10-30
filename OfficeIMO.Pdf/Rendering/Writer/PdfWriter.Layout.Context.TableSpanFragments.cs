@@ -59,20 +59,20 @@ internal static partial class PdfWriter {
                 if (style.CellFills?.ContainsKey((row, cell.Column)) == true) {
                     // The opaque fill covered the earlier row grid. Restore its perimeter
                     // after all fills, before text and any explicit cell-border overrides.
-                    if (style.BorderColor.HasValue && style.BorderWidth > 0D) {
+                    if (style.BorderColor.HasValue && style.BorderWidth.ToPoints() > 0D) {
                         var grid = new PdfCellBorder { Color = style.BorderColor, Width = style.BorderWidth };
                         if (rounded) DrawRoundedCellBorder(sb, grid, x, bottom, width, span.Height, cornerRadius,
-                            style.BorderWidth, topLeft, topRight, bottomRight, bottomLeft, emitGeneratedStructure);
+                            style.BorderWidth.ToPoints(), topLeft, topRight, bottomRight, bottomLeft, emitGeneratedStructure);
                         else DrawCellBorder(sb, grid, x, bottom, width, span.Height, emitGeneratedStructure);
                     }
                     if (span.FirstFragmentRow == row && row > 0) {
                         bool headerBefore = row - 1 < style.HeaderRowCount;
                         global::OfficeIMO.OfficeColor? separator = headerBefore ? style.HeaderSeparatorColor ?? style.RowSeparatorColor : style.RowSeparatorColor;
-                        double separatorWidth = headerBefore && style.HeaderSeparatorWidth > 0D ? style.HeaderSeparatorWidth : style.RowSeparatorWidth;
+                        double separatorWidth = headerBefore && style.HeaderSeparatorWidth.ToPoints() > 0D ? style.HeaderSeparatorWidth.ToPoints() : style.RowSeparatorWidth.ToPoints();
                         if (separator.HasValue && separatorWidth > 0D) DrawHLine(sb, separator.Value, separatorWidth, x, x + width, span.Top, emitGeneratedStructure);
                     }
-                    if (!continues && style.RowSeparatorColor.HasValue && style.RowSeparatorWidth > 0D)
-                        DrawHLine(sb, style.RowSeparatorColor.Value, style.RowSeparatorWidth, x, x + width, bottom, emitGeneratedStructure);
+                    if (!continues && style.RowSeparatorColor.HasValue && style.RowSeparatorWidth.ToPoints() > 0D)
+                        DrawHLine(sb, style.RowSeparatorColor.Value, style.RowSeparatorWidth.ToPoints(), x, x + width, bottom, emitGeneratedStructure);
                 }
                 int take = RenderFlowTableCellContent(table, style, cell, lines, row, span.ConsumedLines,
                     admittedLines, x, span.Top, width, span.Height,
@@ -92,14 +92,14 @@ internal static partial class PdfWriter {
                         ? pairedBorders ??= new StringBuilder() : sb;
                     if (rounded && !border.HasHiddenSegments)
                         DrawRoundedCellBorder(output, border, x, bottom, width, span.Height, cornerRadius,
-                            style.BorderColor.HasValue ? style.BorderWidth : 0D, topLeft, topRight, bottomRight, bottomLeft,
+                            style.BorderColor.HasValue ? style.BorderWidth.ToPoints() : 0D, topLeft, topRight, bottomRight, bottomLeft,
                             emitGeneratedStructure, GetTableCellDiagonalFrame(cell, x, bottom, width, span.Height));
                     else
                         DrawCellBorder(output, border, x, bottom, width, span.Height, emitGeneratedStructure,
                             span.FragmentRowHeights.ToArray(),
                             GetCellBorderSegmentLengths(columnWidths, cell.Column, cell.ColumnSpan, columnGap),
                             GetTableCellDiagonalFrame(cell, x, bottom, width, span.Height));
-                } else if (!hasBorderOverride && style.BorderColor.HasValue && style.BorderWidth > 0D && (continuation || continues)) {
+                } else if (!hasBorderOverride && style.BorderColor.HasValue && style.BorderWidth.ToPoints() > 0D && (continuation || continues)) {
                     // The ordinary row grid omits horizontal edges inside a span.
                     // Close that grid only where this span crosses a physical frame.
                     DrawCellBorder(sb, new PdfCellBorder {

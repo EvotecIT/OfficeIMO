@@ -20,9 +20,9 @@ public class PdfLogicalTableTextExportTests {
                 PdfKeyValueRow.Text("Customer", "Evotec"),
                 PdfKeyValueRow.Text("Due", "2026-06-30")
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 120, 170 },
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(170) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .PageBreak()
             .Paragraph(p => p.Text("No table on this page."))
@@ -74,10 +74,10 @@ public class PdfLogicalTableTextExportTests {
                 new[] { "A&B", "<Alpha>", "125.50" },
                 new[] { "B|C", "Beta", "14" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
 
@@ -117,9 +117,9 @@ public class PdfLogicalTableTextExportTests {
                 PdfKeyValueRow.Text("Norge", "Oslo"),
                 PdfKeyValueRow.Text("Suomi", "Helsinki")
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 120, 170 },
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(170) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
 
@@ -152,7 +152,7 @@ public class PdfLogicalTableTextExportTests {
                 new[] { "A|B", "# literal" },
                 new[] { "2)", "<tag>" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 110, 170 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(110), global::OfficeIMO.OfficeLength.Points(170) },
                 HeaderRowCount = 1
             })
             .ToBytes();

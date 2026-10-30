@@ -28,16 +28,16 @@ internal static partial class PdfWriter {
             // including distributed span minima. Retain the same grid floor after
             // converting a source perimeter width into the enclosed cell grid.
             double minimumWidth = (!style.AutoFitColumns || style.PreserveAuthoredPreferencesAtWidthLimit) &&
-                style.ColumnMinWidthPoints is { } minimums
-                ? minimums.Sum(width => width ?? 0D) + Math.Max(0, minimums.Count - 1) * style.CellSpacing
+                style.ColumnMinWidths?.ConvertAll(static length => length?.ToPoints()) is { } minimums
+                ? minimums.Sum(width => width ?? 0D) + Math.Max(0, minimums.Count - 1) * style.CellSpacing.ToPoints()
                 : 0D;
             double Resolve(double fraction) {
                 if (!(fraction > 0D) || (double.IsNaN(fraction) || double.IsInfinity(fraction))) throw new ArgumentException("A table's relative width must be positive and finite.");
                 double width = referenceWidth * fraction + style.ResolvedWidthAdjustment;
                 return Math.Max(minimumWidth, width);
             }
-            if (style.PreferredWidthFraction.HasValue) resolved.PreferredWidth = Resolve(style.PreferredWidthFraction.Value);
-            if (style.MaxWidthFraction.HasValue) resolved.MaxWidth = Resolve(style.MaxWidthFraction.Value);
+            if (style.PreferredWidthFraction.HasValue) resolved.PreferredWidth = global::OfficeIMO.OfficeLength.Points(Resolve(style.PreferredWidthFraction.Value));
+            if (style.MaxWidthFraction.HasValue) resolved.MaxWidth = global::OfficeIMO.OfficeLength.Points(Resolve(style.MaxWidthFraction.Value));
             resolved.PreferredWidthFraction = null; resolved.MaxWidthFraction = null;
             return resolved;
         }

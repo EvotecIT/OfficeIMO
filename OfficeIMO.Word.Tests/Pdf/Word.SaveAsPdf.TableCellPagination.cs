@@ -104,7 +104,7 @@ public partial class Word {
             WordPdfExportOptions options = CellPaginationOptions();
             options.PdfOptions = new PdfCore.PdfCreateOptions { DefaultTableStyle = new PdfCore.PdfTableStyle {
                 MinimumBodyRowsOnFirstPage = minimumRows, MinimumBodyRowsOnLastPage = minimumRows,
-                HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0, SpacingBefore = 0, SpacingAfter = 0
+                HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             } };
             document.SaveAsPdf(target, options);
         }

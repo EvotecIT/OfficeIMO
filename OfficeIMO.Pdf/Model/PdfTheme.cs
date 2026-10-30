@@ -86,12 +86,12 @@ public sealed partial class PdfTheme {
         var tableStyle = PdfTableStyles.ListTable1Light();
         tableStyle.TextColor = bodyText;
         tableStyle.HeaderTextColor = headingText;
-        tableStyle.CellPaddingX = 5;
-        tableStyle.CellPaddingY = 5;
+        tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(5);
+        tableStyle.CellPaddingY = global::OfficeIMO.OfficeLength.Points(5);
         tableStyle.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(226, 232, 240);
         tableStyle.HeaderSeparatorColor = headingText;
         tableStyle.FooterSeparatorColor = headingText;
-        tableStyle.FooterSeparatorWidth = 0.8;
+        tableStyle.FooterSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.8);
 
         return new PdfTheme {
             TextStyle = new PdfTextStyle {

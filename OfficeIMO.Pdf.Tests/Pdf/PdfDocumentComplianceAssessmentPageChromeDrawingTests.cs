@@ -159,16 +159,16 @@ public partial class PdfDocumentComplianceAssessmentTests {
         tableStyle.HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(229, 231, 235);
         tableStyle.RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252);
         tableStyle.BorderColor = global::OfficeIMO.OfficeColor.FromRgb(148, 163, 184);
-        tableStyle.BorderWidth = 0.7;
+        tableStyle.BorderWidth = global::OfficeIMO.OfficeLength.Points(0.7);
         tableStyle.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225);
-        tableStyle.RowSeparatorWidth = 0.5;
+        tableStyle.RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.5);
         tableStyle.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
             [(1, 1)] = global::OfficeIMO.OfficeColor.FromRgb(220, 252, 231)
         };
         tableStyle.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(1, 1)] = new PdfCellBorder {
                 Color = global::OfficeIMO.OfficeColor.FromRgb(22, 163, 74),
-                Width = 0.8
+                Width = global::OfficeIMO.OfficeLength.Points(0.8)
             }
         };
 

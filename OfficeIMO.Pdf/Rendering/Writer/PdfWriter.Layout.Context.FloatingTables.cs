@@ -58,7 +58,7 @@ internal static partial class PdfWriter {
                 horizontal = horizontal == PdfAlign.Left ? PdfAlign.Right : horizontal == PdfAlign.Right ? PdfAlign.Left : horizontal;
             double alignment = horizontal == PdfAlign.Right ? available - tableWidth
                 : horizontal == PdfAlign.Center ? (available - tableWidth) / 2 : 0;
-            return left + alignment + position.HorizontalOffset;
+            return left + alignment + position.HorizontalOffset.ToPoints();
         }
 
         private double PositionTableY(PdfTablePosition position, double tableHeight) {
@@ -72,7 +72,7 @@ internal static partial class PdfWriter {
             else if (vertical == PdfTableVerticalAlignment.Outside) vertical = evenPage ? PdfTableVerticalAlignment.Top : PdfTableVerticalAlignment.Bottom;
             double alignment = vertical == PdfTableVerticalAlignment.Bottom ? top - bottom - tableHeight
                 : vertical == PdfTableVerticalAlignment.Center ? (top - bottom - tableHeight) / 2 : 0;
-            return top - alignment - position.VerticalOffset;
+            return top - alignment - position.VerticalOffset.ToPoints();
         }
 
         private void AvoidFloatingTable(PdfTablePosition position, double left, double tableWidth, double height) {
@@ -82,7 +82,7 @@ internal static partial class PdfWriter {
                 foreach (var region in floatingTables) {
                     if ((position.AllowOverlap && region.AllowOverlap) || !ReferenceEquals(region.Page, currentPage) || left + tableWidth <= region.Left || left >= region.Right ||
                         y - height >= region.Top || y <= region.Bottom) continue;
-                    y = region.Bottom - position.DistanceTop;
+                    y = region.Bottom - position.DistanceTop.ToPoints();
                     moved = true;
                 }
             } while (moved);
@@ -92,9 +92,9 @@ internal static partial class PdfWriter {
             foreach (var capture in activeFloatingFlowCaptures)
                 capture.PaintedRegions.Add(new PdfLayoutRegion(pages.Count + 1, left, top - height, tableWidth, height));
             floatingTables.RemoveAll(region => !ReferenceEquals(region.Page, currentPage));
-            floatingTables.Add((currentPage, left - position.DistanceLeft,
-                left + tableWidth + position.DistanceRight, top + position.DistanceTop,
-                top - height - position.DistanceBottom, position.AllowOverlap));
+            floatingTables.Add((currentPage, left - position.DistanceLeft.ToPoints(),
+                left + tableWidth + position.DistanceRight.ToPoints(), top + position.DistanceTop.ToPoints(),
+                top - height - position.DistanceBottom.ToPoints(), position.AllowOverlap));
         }
 
         private bool HasFloatingTables => floatingTables.Any(region => ReferenceEquals(region.Page, currentPage));

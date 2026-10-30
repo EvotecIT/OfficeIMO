@@ -37,7 +37,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellBorders![(0, 0)] = MixedPairedBorder(right: true);
         style.CellBorders[(0, 1)] = new PdfCellBorder {
             Color = null, Top = false, Right = false, Bottom = false, Left = narrower,
-            LeftBorder = new PdfCellBorderSide { Color = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255), Width = .25 }
+            LeftBorder = new PdfCellBorderSide { Color = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255), Width = global::OfficeIMO.OfficeLength.Points(.25) }
         };
         using var pdf = PdfPigDocument.Open(RenderMixedPairedTable("flow", style));
         var word = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "gypB");
@@ -50,7 +50,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(10)]
     public void TablePairedBorders_RowSpanReservesBothNeighboursWithCellSpacing(double spacing) {
         var style = MixedPairedBorderStyle();
-        style.CellSpacing = spacing;
+        style.CellSpacing = global::OfficeIMO.OfficeLength.Points(spacing);
         style.CellBorders![(0, 0)] = MixedPairedBorder(right: true);
         PdfTableCell[][] rows = {
             new[] { new PdfTableCell("gypA", rowSpan: 2), new PdfTableCell("gypB") },
@@ -90,10 +90,10 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(2.5)]
     public void TablePairedBorders_SmallRadiusKeepsInnerTrackAlignedAndUnclipped(double radius) {
         var style = MixedPairedBorderStyle();
-        style.CornerRadius = radius;
-        style.PreferredWidth = 300;
-        style.ColumnWidthPoints = new List<double?> { 100, 100, 100 };
-        style.FixedRowHeights = new List<double?> { 20 };
+        style.CornerRadius = global::OfficeIMO.OfficeLength.Points(radius);
+        style.PreferredWidth = global::OfficeIMO.OfficeLength.Points(300);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100) };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(20) };
         for (int column = 0; column < 3; column++) style.CellBorders![(0, column)] = MixedPairedBorder(top: true);
         byte[] bytes = RenderMixedPairedTable("flow", style,
             new[] { new[] { new PdfTableCell("gypA"), new PdfTableCell("gypB"), new PdfTableCell("gypC") } });
@@ -106,17 +106,17 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     private static PdfCellBorder MixedPairedBorder(bool top = false, bool right = false, bool bottom = false) => new() {
-        Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), Width = 2, LineStyle = PdfCellBorderLineStyle.TwoLine,
+        Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), Width = global::OfficeIMO.OfficeLength.Points(2), LineStyle = PdfCellBorderLineStyle.TwoLine,
         Top = top, Right = right, Bottom = bottom, Left = false
     };
 
     [Fact]
     public void TablePairedBorders_RoundedEdgeJoinsStraightNeighbourWithoutInteriorStubs() {
         var style = MixedPairedBorderStyle();
-        style.CornerRadius = 10;
+        style.CornerRadius = global::OfficeIMO.OfficeLength.Points(10);
         for (int row = 0; row < 2; row++)
             for (int column = 0; column < 2; column++) style.CellBorders![(row, column)] = new PdfCellBorder {
-                Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), Width = 2, LineStyle = PdfCellBorderLineStyle.TwoLine
+                Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), Width = global::OfficeIMO.OfficeLength.Points(2), LineStyle = PdfCellBorderLineStyle.TwoLine
             };
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(RenderMixedPairedTable("flow", style)));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(126, 34));
@@ -127,8 +127,8 @@ public partial class PdfDocumentVisualQualityTests {
 
     private static PdfTableStyle MixedPairedBorderStyle() => new() {
         HeaderRowCount = 0, BorderColor = null, HeaderFill = null, RowStripeFill = null,
-        CellPaddingX = 0, CellPaddingY = 0, FontSize = 12, LineHeight = 1, PreferredWidth = 200,
-        ColumnWidthPoints = new List<double?> { 100, 100 }, FixedRowHeights = new List<double?> { 20, 20 },
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 1, PreferredWidth = global::OfficeIMO.OfficeLength.Points(200),
+        ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100) }, FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20) },
         CellBorders = new Dictionary<(int, int), PdfCellBorder>()
     };
 

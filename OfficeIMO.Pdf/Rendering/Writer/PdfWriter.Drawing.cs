@@ -770,7 +770,7 @@ internal static partial class PdfWriter {
         }
 
         if (border.Color.HasValue &&
-            border.Width > 0 &&
+            border.Width.ToPoints() > 0 &&
             border.DashStyle == OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid &&
             border.LineStyle == PdfCellBorderLineStyle.Standard &&
             border.TopBorderSnapshot == null &&
@@ -786,7 +786,7 @@ internal static partial class PdfWriter {
             !border.DiagonalUp &&
             !border.DiagonalDown &&
             !border.HasHiddenSegments) {
-            DrawRowRect(sb, border.Color.Value, border.Width, x, y, w, h, artifact);
+            DrawRowRect(sb, border.Color.Value, border.Width.ToPoints(), x, y, w, h, artifact);
             return;
         }
 
@@ -805,7 +805,7 @@ internal static partial class PdfWriter {
 
     private static bool HasRenderableCellBorder(PdfCellBorder? border) =>
         border != null &&
-        ((border.Color.HasValue && border.Width > 0) ||
+        ((border.Color.HasValue && border.Width.ToPoints() > 0) ||
          IsRenderableCellBorderSide(border.TopBorderSnapshot) ||
          IsRenderableCellBorderSide(border.RightBorderSnapshot) ||
          IsRenderableCellBorderSide(border.BottomBorderSnapshot) ||
@@ -814,7 +814,7 @@ internal static partial class PdfWriter {
          (border.DiagonalDown && IsRenderableCellBorderSide(ResolveCellBorderSide(border.DiagonalDownBorderSnapshot, border))));
 
     private static bool IsRenderableCellBorderSide(PdfCellBorderSide? border) =>
-        border?.Color != null && border.Width > 0;
+        border?.Color != null && border.Width.ToPoints() > 0;
 
     private static double[]? GetCellBorderSegmentLengths(double[] lengths, int start, int span, double gap) {
         if (span <= 1 || start < 0 || start > lengths.Length - span) {
@@ -869,7 +869,7 @@ internal static partial class PdfWriter {
             return sideBorder;
         }
 
-        if (!border.Color.HasValue || border.Width <= 0) {
+        if (!border.Color.HasValue || border.Width.ToPoints() <= 0) {
             return null;
         }
 
@@ -882,37 +882,37 @@ internal static partial class PdfWriter {
     }
 
     private static void DrawCellHBorder(StringBuilder sb, PdfCellBorderSide? border, double x1, double x2, double y, double doubleLineDirection, bool artifact = false, PdfCellBorderSide? leftSide = null, PdfCellBorderSide? rightSide = null) {
-        if (border?.Color == null || border.Width <= 0) {
+        if (border?.Color == null || border.Width.ToPoints() <= 0) {
             return;
         }
 
-        DrawStyledHLine(sb, border.Color.Value, border.Width, border.DashStyle,
+        DrawStyledHLine(sb, border.Color.Value, border.Width.ToPoints(), border.DashStyle,
             x1 - GetCellBorderPairOutset(leftSide), x2 + GetCellBorderPairOutset(rightSide),
             y - doubleLineDirection * GetCellBorderPairOutset(border), artifact);
         if (border.LineStyle == PdfCellBorderLineStyle.TwoLine) {
-            DrawStyledHLine(sb, border.Color.Value, border.Width, border.DashStyle,
+            DrawStyledHLine(sb, border.Color.Value, border.Width.ToPoints(), border.DashStyle,
                 x1 + GetCellBorderPairInset(leftSide), x2 - GetCellBorderPairInset(rightSide),
                 y + doubleLineDirection * GetCellBorderPairInset(border), artifact);
         }
     }
 
     private static void DrawCellVBorder(StringBuilder sb, PdfCellBorderSide? border, double x, double yTop, double yBottom, double doubleLineDirection, bool artifact = false, PdfCellBorderSide? topSide = null, PdfCellBorderSide? bottomSide = null) {
-        if (border?.Color == null || border.Width <= 0) {
+        if (border?.Color == null || border.Width.ToPoints() <= 0) {
             return;
         }
 
-        DrawStyledVLine(sb, border.Color.Value, border.Width, border.DashStyle,
+        DrawStyledVLine(sb, border.Color.Value, border.Width.ToPoints(), border.DashStyle,
             x - doubleLineDirection * GetCellBorderPairOutset(border),
             yTop + GetCellBorderPairOutset(topSide), yBottom - GetCellBorderPairOutset(bottomSide), artifact);
         if (border.LineStyle == PdfCellBorderLineStyle.TwoLine) {
-            DrawStyledVLine(sb, border.Color.Value, border.Width, border.DashStyle,
+            DrawStyledVLine(sb, border.Color.Value, border.Width.ToPoints(), border.DashStyle,
                 x + doubleLineDirection * GetCellBorderPairInset(border),
                 yTop - GetCellBorderPairInset(topSide), yBottom + GetCellBorderPairInset(bottomSide), artifact);
         }
     }
 
     private static void DrawCellDiagonalBorder(StringBuilder sb, PdfCellBorderSide? border, double x1, double y1, double x2, double y2, bool diagonalUp, bool artifact = false) {
-        if (border?.Color == null || border.Width <= 0) {
+        if (border?.Color == null || border.Width.ToPoints() <= 0) {
             return;
         }
 
@@ -920,15 +920,15 @@ internal static partial class PdfWriter {
         double startY = diagonalUp ? y1 : y2;
         double endX = x2;
         double endY = diagonalUp ? y2 : y1;
-        DrawStyledLine(sb, border.Color.Value, border.Width, border.DashStyle, startX, startY, endX, endY, artifact);
+        DrawStyledLine(sb, border.Color.Value, border.Width.ToPoints(), border.DashStyle, startX, startY, endX, endY, artifact);
 
         if (border.LineStyle == PdfCellBorderLineStyle.TwoLine) {
             double length = Math.Sqrt(Math.Pow(endX - startX, 2D) + Math.Pow(endY - startY, 2D));
             if (length > 0D) {
-                double gap = GetDoubleBorderGap(border.Width);
+                double gap = GetDoubleBorderGap(border.Width.ToPoints());
                 double offsetX = -(endY - startY) / length * gap;
                 double offsetY = (endX - startX) / length * gap;
-                DrawStyledLine(sb, border.Color.Value, border.Width, border.DashStyle, startX + offsetX, startY + offsetY, endX + offsetX, endY + offsetY, artifact);
+                DrawStyledLine(sb, border.Color.Value, border.Width.ToPoints(), border.DashStyle, startX + offsetX, startY + offsetY, endX + offsetX, endY + offsetY, artifact);
             }
         }
     }

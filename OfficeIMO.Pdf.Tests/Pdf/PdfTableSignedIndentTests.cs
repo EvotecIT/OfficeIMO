@@ -14,11 +14,11 @@ public class PdfTableSignedIndentTests {
             MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         var style = new PdfTableStyle {
-            LeftIndent = -12, MaxWidth = 120, PreserveWidth = true,
+            LeftIndent = global::OfficeIMO.OfficeLength.Points(-12), MaxWidth = global::OfficeIMO.OfficeLength.Points(120), PreserveWidth = true,
             ColumnWidthWeights = new List<double> { 1, 1 }, HeaderRowCount = 0,
             MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0,
-            CellPaddingX = 0, CellPaddingY = 0, MinRowHeight = 50, FontSize = 9,
-            BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 0
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), MinRowHeight = global::OfficeIMO.OfficeLength.Points(50), FontSize = global::OfficeIMO.OfficeLength.Points(9),
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
         string[][] rows = Enumerable.Range(1, 7).Select(index =>
             new[] { "Left" + index, "Right" + index }).ToArray();

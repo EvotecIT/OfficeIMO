@@ -244,8 +244,8 @@ public partial class Word {
                 PdfOptions = new PdfCore.PdfCreateOptions {
                     DefaultTableStyle = new PdfCore.PdfTableStyle {
                         KeepWithNext = true,
-                        CellPaddingX = 4,
-                        CellPaddingY = 3
+                        CellPaddingX = global::OfficeIMO.OfficeLength.Points(4),
+                        CellPaddingY = global::OfficeIMO.OfficeLength.Points(3)
                     }
                 }
             });

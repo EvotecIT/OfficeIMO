@@ -101,7 +101,7 @@ public sealed class PowerPointNumberingResetRenderingTests {
         paragraph.SetNumbered(PowerPointNumberingScheme.ArabicPeriod, 7);
         paragraph.SetBulletSizePercent(50);
         var options = new PowerPointPdfExportOptions { PdfOptions = new PdfCore.PdfCreateOptions {
-            DefaultTableStyle = new PdfCore.PdfTableStyle { FontSize = 20, HeaderFontSize = 24, FooterFontSize = 28 }
+            DefaultTableStyle = new PdfCore.PdfTableStyle { FontSize = global::OfficeIMO.OfficeLength.Points(20), HeaderFontSize = global::OfficeIMO.OfficeLength.Points(24), FooterFontSize = global::OfficeIMO.OfficeLength.Points(28) }
         }};
         byte[] bytes = presentation.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         var spans = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(bytes)).Pages[0].GetTextSpans();

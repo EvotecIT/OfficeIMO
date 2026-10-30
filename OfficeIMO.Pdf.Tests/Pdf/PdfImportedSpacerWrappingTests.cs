@@ -22,8 +22,8 @@ public class PdfImportedSpacerWrappingTests {
             MarginLeft = global::OfficeIMO.OfficeLength.Points(40D), MarginRight = global::OfficeIMO.OfficeLength.Points(40D), MarginTop = global::OfficeIMO.OfficeLength.Points(40D), MarginBottom = global::OfficeIMO.OfficeLength.Points(40D)
         };
         var style = new PdfTableStyle {
-            HeaderRowCount = 0, ColumnWidthPoints = new List<double?> { 5D },
-            CellPaddingX = 0D, CellPaddingY = 0D, FontSize = 1D
+            HeaderRowCount = 0, ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(5D) },
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D), FontSize = global::OfficeIMO.OfficeLength.Points(1D)
         };
         byte[] bytes = PdfDocument.Create(options).Table(new[] { new[] { cell } }, style: style).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);

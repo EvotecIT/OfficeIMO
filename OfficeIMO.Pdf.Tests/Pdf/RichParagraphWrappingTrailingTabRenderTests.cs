@@ -296,9 +296,9 @@ public partial class RichParagraphWrappingTests {
             options.MarginLeft = options.MarginRight = options.MarginTop = options.MarginBottom = global::OfficeIMO.OfficeLength.Points(40D);
             var document = PdfDocument.Create(options);
             if (floating) document.Table(new[] { new[] { "T" } }, style: new PdfTableStyle {
-                HeaderRowCount = 0, FontSize = 2D, CellPaddingX = 0D, CellPaddingY = 0D,
-                ColumnWidthPoints = new System.Collections.Generic.List<double?> { 100D },
-                MinRowHeight = 145D, BorderColor = null, Position = new PdfTablePosition()
+                HeaderRowCount = 0, FontSize = global::OfficeIMO.OfficeLength.Points(2D), CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D),
+                ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100D) },
+                MinRowHeight = global::OfficeIMO.OfficeLength.Points(145D), BorderColor = null, Position = new PdfTablePosition()
             });
             var style = new PdfParagraphStyle {
                 FontSize = global::OfficeIMO.OfficeLength.Points(12D), LineHeight = 1.2D, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D),

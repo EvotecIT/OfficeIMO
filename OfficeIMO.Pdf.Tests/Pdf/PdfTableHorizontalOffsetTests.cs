@@ -31,9 +31,9 @@ public sealed class PdfTableHorizontalOffsetTests {
     [Fact]
     public void FloatingTranslationMovesTextReservationWithTheTable() {
         var style = new PdfTableStyle {
-            HeaderRowCount = 0, MaxWidth = 120, PreserveWidth = true,
-            CellPaddingX = 0, CellPaddingY = 0, MinRowHeight = 80,
-            HorizontalOffset = 30, Position = new PdfTablePosition()
+            HeaderRowCount = 0, MaxWidth = global::OfficeIMO.OfficeLength.Points(120), PreserveWidth = true,
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), MinRowHeight = global::OfficeIMO.OfficeLength.Points(80),
+            HorizontalOffset = global::OfficeIMO.OfficeLength.Points(30), Position = new PdfTablePosition()
         };
         using var read = PdfPigDocument.Open(PdfDocument.Create(new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40),
@@ -49,11 +49,11 @@ public sealed class PdfTableHorizontalOffsetTests {
 
     private static byte[] Render(string frame, PdfAlign alignment, double offset) {
         var style = new PdfTableStyle {
-            LeftIndent = 6, HorizontalOffset = offset, MaxWidth = 120, PreserveWidth = true,
+            LeftIndent = global::OfficeIMO.OfficeLength.Points(6), HorizontalOffset = global::OfficeIMO.OfficeLength.Points(offset), MaxWidth = global::OfficeIMO.OfficeLength.Points(120), PreserveWidth = true,
             ColumnWidthWeights = new List<double> { 1, 1 }, HeaderRowCount = 0,
             MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0,
-            CellPaddingX = 0, CellPaddingY = 0, MinRowHeight = 50, FontSize = 9,
-            BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 0
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), MinRowHeight = global::OfficeIMO.OfficeLength.Points(50), FontSize = global::OfficeIMO.OfficeLength.Points(9),
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
         var document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(360), PageHeight = global::OfficeIMO.OfficeLength.Points(240), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),

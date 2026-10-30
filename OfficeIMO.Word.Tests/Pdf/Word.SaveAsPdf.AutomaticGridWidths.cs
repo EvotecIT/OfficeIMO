@@ -140,6 +140,39 @@ public partial class Word {
     }
 
     [Theory]
+    [InlineData(-1)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void SaveAsPdf_AutomaticNoWrapSpanRetainsConfiguredMinimumUpdates(int minimumCount) {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = CreateAutomaticWidthControl(document, 1600, 3200);
+        table._tableProperties!.TableStyle?.Remove();
+        table.Rows[0].Cells[0].Paragraphs[0].Text = "Span0";
+        table.Rows[0].Cells[1].Paragraphs[0].Text = "Span1";
+        WordTableRow row = table.AddRow();
+        row.Cells[0].MergeHorizontally(1);
+        WordTableCell spanningCell = row.Cells[0];
+        spanningCell.Width = WordTableWidth.Length(OfficeLength.Points(300));
+        spanningCell.WrapText = false;
+        spanningCell.Paragraphs[0].Text = "Merged";
+        var style = new OfficeIMO.Pdf.PdfTableStyle {
+            HeaderRowCount = 0,
+            BorderColor = null,
+            ColumnMinWidths = minimumCount < 0 ? null
+                : Enumerable.Repeat<OfficeLength?>(OfficeLength.Points(10), minimumCount).ToList()
+        };
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
+            IncludePageNumbers = false,
+            PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions { DefaultTableStyle = style }
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        var words = Assert.Single(pdf.GetPages()).GetWords().ToList();
+        double gap = Assert.Single(words, word => word.Text == "Span1").BoundingBox.Left
+            - Assert.Single(words, word => word.Text == "Span0").BoundingBox.Left;
+        Assert.InRange(gap, 99.75D, 100.25D);
+        Assert.Contains(words, word => word.Text == "Merged");
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void SaveAsPdf_AutomaticGridKeepsFallbackFontLinesInsideCellBorders(bool minimumSpacing) {
