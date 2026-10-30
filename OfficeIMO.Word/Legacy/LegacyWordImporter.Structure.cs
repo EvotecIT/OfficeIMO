@@ -8,6 +8,42 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word.Legacy;
 
 public static partial class LegacyWordImporter {
+    private static void ValidateProjectedRunningStories(LegacyWordModel model, OfficeLegacyImportLimits limits,
+        int bodyTextCharacters, CancellationToken cancellation) {
+        long projectedCharacters = bodyTextCharacters;
+        long projectedItems = 0;
+        long projectedResourceBytes = 0;
+        var costs = new Dictionary<LegacyWordHeaderFooter, (long Characters, long Items, long ResourceBytes)>();
+        foreach (LegacyWordSection section in Sections(model)) {
+            cancellation.ThrowIfCancellationRequested();
+            foreach (LegacyWordHeaderFooter story in section.HeadersAndFooters) {
+                cancellation.ThrowIfCancellationRequested();
+                if (!costs.TryGetValue(story, out var cost)) {
+                    long characters = 0, items = 1, resources = 0;
+                    foreach (LegacyWordParagraph paragraph in story.Paragraphs) {
+                        cancellation.ThrowIfCancellationRequested();
+                        items += 1 + paragraph.Runs.Count;
+                        foreach (LegacyWordRun run in paragraph.Runs) {
+                            characters += run.TextLength;
+                            resources += run.Image?.PngBytes.Length ?? 0;
+                        }
+                    }
+                    cost = (characters, items, resources);
+                    costs.Add(story, cost);
+                }
+                if (cost.Characters > limits.MaxTextCharacters - projectedCharacters)
+                    throw new InvalidDataException("Legacy word running-story projection exceeds the configured text-character limit.");
+                if (cost.Items > limits.MaxItems - projectedItems)
+                    throw new InvalidDataException("Legacy word running-story projection exceeds the configured item limit.");
+                if (cost.ResourceBytes > limits.MaxResourceBytes - projectedResourceBytes)
+                    throw new InvalidDataException("Legacy word running-story projection exceeds the configured resource-byte limit.");
+                projectedCharacters += cost.Characters;
+                projectedItems += cost.Items;
+                projectedResourceBytes += cost.ResourceBytes;
+            }
+        }
+    }
+
     private static IReadOnlyList<LegacyWordSection> Sections(LegacyWordModel model) {
         if (model.Sections.Count > 0) return model.Sections;
         var section = new LegacyWordSection();
