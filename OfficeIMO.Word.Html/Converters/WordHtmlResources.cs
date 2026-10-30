@@ -25,8 +25,9 @@ namespace OfficeIMO.Word.Html {
             + global::OfficeIMO.Internal.OfficeThemeCssTokens.ResolveReferences(DefaultRules, OfficeTheme.Default);
 
         internal static string GetDefaultCss(OfficeIMO.Drawing.OfficeVisualThemeKind theme, bool useSharedDocumentShell) =>
-            useSharedDocumentShell
+            (useSharedDocumentShell
                 ? OfficeIMO.Html.OfficeHtmlDocumentShell.GetThemeCss(theme)
-                : DefaultCss;
+                : DefaultCss)
+            + "li p{margin:0}";
     }
 }

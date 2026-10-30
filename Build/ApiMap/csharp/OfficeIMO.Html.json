@@ -6,7 +6,7 @@
       "kind": "behavior",
       "action": "change",
       "new": "HTML p elements: margin-top 1em; margin-bottom 1em",
-      "reason": "The HTML engine follows browser paragraph defaults, including adjacent margin collapse. Explicit CSS overrides these defaults; use p { margin-top: 0 } to retain the previous top spacing.",
+      "reason": "HTML to PDF and image rendering use browser paragraph defaults: one em above and below each p element, including Document mode. Adjacent block margins still collapse into one gap. A bottom margin at the end of a page is dropped rather than opening an empty page when the content fits. HTML that relied on no paragraph top margin gains space above paragraphs; set p { margin-top: 0 } to keep the previous layout.",
       "file": "OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs",
       "category": "conversion",
       "phase": "M6",
