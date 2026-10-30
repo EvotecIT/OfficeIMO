@@ -3689,13 +3689,14 @@
       "old": "Modern PDF numeric tables can merge adjacent headers or omit an aligned final row during geometric readback.",
       "new": "PDF reading refines compact numeric columns using retained glyphs, a strong header and bounded row evidence.",
       "reason": "Modern authoring defaults must retain the saved table data used by PDF-to-Excel reconstruction. This reader correction is outside the original API rename map.",
-      "note": "Three- and four-column saved-PDF regressions retain every header, label, numeric value, boolean and final row. The existing reading/understanding/theme closure passes 258 cases on net10.0. Current PDF builds pass on net8.0, netstandard2.0 and isolated net472; PSWriteOffice Pester passes 935 cases with four skips. Windows runtime qualification remains separate.",
+      "note": "Five saved-PDF cases retain complete final cells and compact tables before/after another table. The reading/understanding/theme closure passes261 cases on net10.0. PDF builds pass without warnings/errors on10/8/std2/isolated472; PSWriteOffice Pester passes935 with4skips. Two Excel reconstruction/reading controls also pass. The full PDF suite passes12414 with41 separately tracked existing default/theme fixture failures; this is not full-phase qualification. Windows runtime qualification remains separate.",
       "files": [
         "OfficeIMO.Pdf/Reading/Layout/TableDetector.cs",
         "OfficeIMO.Pdf/Reading/Layout/TableDetector.PositionedCells.cs",
         "OfficeIMO.Pdf/Reading/Layout/TableDetector.ColumnRefinement.cs",
         "OfficeIMO.Pdf.Tests/Pdf/PdfModernTableReadbackTests.cs"
-      ]
+      ],
+      "extraNote": "Recovery retains complete intersecting source fragments and verifies every anchor run before accepting a finer partition. Two-row recovery excludes claimed body fragments and reconciles only an exactly matching trailing header row consumed by a coarse band, then repeats refinement. Ordinary positioned detection keeps its previous header-evidence rule; unwrapped headers are opt-in within recovery. Existing scan/cell/work/cancellation bounds remain."
     },
     {
       "phase": "B",

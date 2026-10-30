@@ -86,7 +86,8 @@ internal static partial class TableDetector {
         List<TextLayoutEngine.TextLine> lines,
         Action<long>? consumeWork,
         Action? cancellationCheck,
-        bool allowSingleBodyRow = false) {
+        bool allowSingleBodyRow = false,
+        bool allowUnwrappedHeader = false) {
         cancellationCheck?.Invoke();
         if (anchors.Count < 2 ||
             anchors.Any(candidate => candidate.Row.Cells.Count != anchors[0].Row.Cells.Count)) return;
@@ -143,8 +144,9 @@ internal static partial class TableDetector {
             }
         }
         bool firstAnchorIsHeader = (anchors.Count >= 3 || allowSingleBodyRow) &&
+            (hasWrappedBodyEvidence || allowUnwrappedHeader) &&
             LooksLikeHeaderRow(firstAnchorCells) &&
-            (HasEmphasizedText(anchors[0].Line) || hasWrappedBodyEvidence && !firstAnchorCells.Any(IsTabularValue));
+            (HasEmphasizedText(anchors[0].Line) || !firstAnchorCells.Any(IsTabularValue));
         double headerBottom;
         List<TextLayoutEngine.TextLine> headerLines;
         int firstBodyAnchorIndex;
