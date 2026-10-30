@@ -16,7 +16,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
-$solutionProjects = @(dotnet sln OfficeIMO.sln list | Where-Object { $_ -match '\.csproj$' } | ForEach-Object {
+$solutionProjects = @(dotnet sln OfficeIMO.slnx list | Where-Object { $_ -match '\.csproj$' } | ForEach-Object {
     $_.Replace('\', '/')
 })
 $projects = @($ProjectsJson | ConvertFrom-Json | Where-Object {

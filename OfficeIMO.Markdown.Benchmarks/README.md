@@ -2,7 +2,7 @@
 
 `OfficeIMO.Markdown.Benchmarks` contains benchmark and comparison workloads for the Markdown builder, reader, renderer, and related conversion paths. It is not a NuGet-facing runtime package.
 
-This opt-in project is intentionally outside `OfficeIMO.sln`. Markdig and
+This opt-in project is intentionally outside `OfficeIMO.slnx`. Markdig and
 ReverseMarkdown remain comparison-only dependencies and do not enter normal
 solution restore, build, or runtime packages.
 

@@ -121,7 +121,7 @@ internal static class PdfInvoiceEvidenceRunner {
         foreach (string seed in new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory() }) {
             string? current = Path.GetFullPath(seed);
             while (!string.IsNullOrWhiteSpace(current)) {
-                if (File.Exists(Path.Combine(current, "OfficeIMO.sln"))) return current;
+                if (File.Exists(Path.Combine(current, "OfficeIMO.slnx"))) return current;
                 current = Directory.GetParent(current)?.FullName;
             }
         }

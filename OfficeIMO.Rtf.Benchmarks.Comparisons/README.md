@@ -6,7 +6,7 @@ parsing and HTML generation, and must preserve the expected text and table
 structure before timing begins.
 
 RtfPipe remains a benchmark-only dependency. This project is intentionally not
-part of `OfficeIMO.sln`, so normal restore, build, test, and package operations
+part of `OfficeIMO.slnx`, so normal restore, build, test, and package operations
 do not acquire it.
 
 ## Validate output and size

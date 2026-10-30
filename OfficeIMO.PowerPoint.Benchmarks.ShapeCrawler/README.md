@@ -6,7 +6,7 @@ that OfficeIMO and ShapeCrawler can perform with equivalent editable output:
 - create and save a presentation;
 - open, edit, and save an existing presentation.
 
-It is deliberately excluded from `OfficeIMO.sln`. Running it restores
+It is deliberately excluded from `OfficeIMO.slnx`. Running it restores
 ShapeCrawler and its transitive dependencies, but normal OfficeIMO restore,
 build, test, package, and benchmark paths remain unchanged.
 

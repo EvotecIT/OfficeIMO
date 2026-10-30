@@ -233,7 +233,7 @@ internal static class HtmlMhtmlEvidenceRunner {
     private static string FindRepositoryRoot() {
         string? current = Directory.GetCurrentDirectory();
         while (current != null) {
-            if (File.Exists(Path.Combine(current, "OfficeIMO.sln"))) return current;
+            if (File.Exists(Path.Combine(current, "OfficeIMO.slnx"))) return current;
             current = Directory.GetParent(current)?.FullName;
         }
         throw new DirectoryNotFoundException("Could not locate the OfficeIMO repository root.");
