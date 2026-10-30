@@ -50,8 +50,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.FontSizeComplexScript?.ToPoints() == 20);
 
                 // those are default values
-                Assert.True(document.Settings.FontFamily == null);
-                Assert.True(document.Settings.FontFamilyHighAnsi == null);
+                Assert.Equal(OfficeTheme.Default.Fonts.Body.Family, document.Settings.FontFamily);
+                Assert.Equal(OfficeTheme.Default.Fonts.Body.Family, document.Settings.FontFamilyHighAnsi);
 
                 document.Settings.FontFamily = "Courier New";
 

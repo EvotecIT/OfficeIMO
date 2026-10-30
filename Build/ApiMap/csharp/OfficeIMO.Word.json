@@ -7067,6 +7067,35 @@
       ],
       "applied": "phase-b-applied",
       "note": "Atomic native widths distinguish physical lengths, human percentages, Auto, Nil and absence. Native lexical/partial/unknown declarations remain intact. Save-time normalization preserves an existing physical grid after clearing the preferred width. Twenty-five new saved/reloaded native cases and net10.0 Word/PDF/HTML library builds pass; six further Word import/export adapters compile. Broader table coverage exposed separate Modern-default fixture and stale-consumer failures; full framework, module and phase qualification remains open."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "Conversion/native DOC fixtures implicitly select historical table styling, Calibri metrics, palette colors or empty creation defaults.",
+      "new": "Fixtures select their measured typography, palette, table style and native empty-formatting input explicitly.",
+      "reason": "Modern creation defaults remain the public authoring contract; inheritance, geometry and native-format validation tests must isolate the formatting behavior they measure.",
+      "note": "All 145 cases selected from the remaining full Word failures pass on net10.0 after fixture qualification. The comparison serializer now expects no limitation when complete creation themes resolve the effective formatting. The explicit null native spacing assertion reads the nullable XML value. This focused pass is not the final full-suite gate.",
+      "files": [
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfDocumentDefaultRunStyleTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfNumberingLineMetricsTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfPositionalTabs.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfRunFontInheritance.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfRunSpacingReviewTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfRunningTextBoxFillAlpha.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfSmallCapsTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.ParagraphFormatting.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.RunStyleTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.ShapeGroups.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.Shapes.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.StructuredBlocks.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.TableStyleMapping.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.Whitespace.cs",
+        "OfficeIMO.Word.Tests/Word.CleanupOptions.cs",
+        "OfficeIMO.Word.Tests/Word.CompareDocuments.StructuredReports.cs",
+        "OfficeIMO.Word.Tests/Word.LegacyDoc.InheritedLineSpacing.cs",
+        "OfficeIMO.Word.Tests/Word.Settings.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

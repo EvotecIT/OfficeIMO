@@ -29,7 +29,7 @@ public sealed class WordPdfSmallCapsTests {
     [InlineData(true)]
     public void OriginalSmallCapsCapitalsRetainConfiguredTableFontSize(bool hyperlink) {
         using WordDocument document = CreateDocument();
-        WordTable table = document.AddTable(1, 1);
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         table._tableProperties!.TableStyle?.Remove();
         WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         if (hyperlink) paragraph.AddHyperLink("AB", new Uri("https://example.com/caps")).Paragraph.CapsStyle = WordCapsStyle.SmallCaps;
@@ -98,7 +98,7 @@ public sealed class WordPdfSmallCapsTests {
     public void SmallCapsInheritanceAndExplicitResetReachEveryStory(string route, string source) {
         using WordDocument document = CreateDocument();
         W.Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
-        WordTable? table = route == "cell" ? document.AddTable(1, 1) : null;
+        WordTable? table = route == "cell" ? document.AddTable(1, 1, WordTableStyle.TableGrid) : null;
         WordParagraph paragraph = route switch {
             "cell" => table!.Rows[0].Cells[0].Paragraphs[0],
             "header" => document.HeaderDefaultOrCreate.AddParagraph(),
@@ -161,7 +161,7 @@ public sealed class WordPdfSmallCapsTests {
         styles.Append(new W.Style(new W.StyleRunProperties(new W.Caps())) {
             Type = W.StyleValues.Paragraph, StyleId = "AllCapsParagraph"
         });
-        WordParagraph paragraph = table ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : document.AddParagraph();
+        WordParagraph paragraph = table ? document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0] : document.AddParagraph();
         paragraph.SetStyleId("AllCapsParagraph");
         WordParagraph run = paragraph.AddText("Aa");
         (run._run.RunProperties ??= new W.RunProperties()).SmallCaps = new W.SmallCaps { Val = false };

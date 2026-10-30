@@ -240,7 +240,9 @@ public sealed class PdfShapeGroupTests {
     [Fact]
     public void BehindTextGroupDoesNotCoverEarlierParagraphsAndRespectsGroupZOrder() {
         using WordDocument word = WordDocument.Create();
-        word.AddParagraph("FIRST TEXT").FontSize = global::OfficeIMO.OfficeLength.Points(18);
+        WordParagraph first = word.AddParagraph("FIRST TEXT");
+        first.FontSize = OfficeLength.Points(18);
+        first.Color = OfficeColor.Black;
         foreach (var item in new[] { (Color: "00FF00", Z: 20U), (Color: "FF0000", Z: 10U) }) {
             var paragraph = word.AddParagraph("Anchor");
             paragraph.AddShapeGroup(new[] {
@@ -389,7 +391,7 @@ public sealed class PdfShapeGroupTests {
     [InlineData(1400, 200)]
     public void ParagraphGroupFollowsTextClearedBelowFloatingTable(int tableOffset, int pageHeight) {
         using WordDocument word = WordDocument.Create();
-        var table = word.AddTable(1, 1);
+        var table = word.AddTable(1, 1, WordTableStyle.TableGrid);
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(6400) * 635)));
         table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(45D);

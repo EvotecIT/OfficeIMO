@@ -46,7 +46,7 @@ public partial class Word {
             list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
             target = list.AddItem("Inherited");
         } else if (route.StartsWith("table", StringComparison.Ordinal)) {
-            var table = source.AddTable(1, 1);
+            var table = source.AddTable(1, 1, WordTableStyle.TableGrid);
             table._tableProperties!.TableStyle = null;
             target = table.Rows[0].Cells[0].Paragraphs[0];
             target.Text = "Inherited";
@@ -96,7 +96,7 @@ public partial class Word {
                 target.NativeLineSpacingValue = 360; target.NativeLineSpacingValue = null;
                 Assert.Null(target.NativeLineSpacingValue);
                 Assert.Equal(WordLineSpacingRule.AtLeast, target.NativeLineSpacingRule);
-                Assert.Null(target._paragraph.ParagraphProperties!.SpacingBetweenLines!.Line);
+                Assert.Null(target._paragraph.ParagraphProperties!.SpacingBetweenLines!.Line?.Value);
             }
         }
         target.FontSize = global::OfficeIMO.OfficeLength.Points(32);

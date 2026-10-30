@@ -213,7 +213,7 @@ namespace OfficeIMO.Tests {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingSchemeShape.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingSchemeShape.pdf");
 
-            using (WordDocument document = WordDocument.Create(docPath)) {
+            using (WordDocument document = WordDocument.Create(docPath, new WordCreateOptions { Theme = OfficeTheme.Modern.WithPalette(OfficeTheme.Modern.Palette.With(accent1: OfficeColor.FromRgb(68, 114, 196), accent2: OfficeColor.FromRgb(237, 125, 49))) })) {
                 document.AddParagraph("Before scheme shape");
                 document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(96), OfficeIMO.OfficeLength.Points(44));
                 document.AddParagraph("After scheme shape");
@@ -261,7 +261,7 @@ namespace OfficeIMO.Tests {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingGradientShape.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingGradientShape.pdf");
 
-            using (WordDocument document = WordDocument.Create(docPath)) {
+            using (WordDocument document = WordDocument.Create(docPath, new WordCreateOptions { Theme = OfficeTheme.Modern.WithPalette(OfficeTheme.Modern.Palette.With(accent1: OfficeColor.FromRgb(68, 114, 196), accent2: OfficeColor.FromRgb(237, 125, 49))) })) {
                 document.AddParagraph("Before gradient shape");
                 document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(112), OfficeIMO.OfficeLength.Points(48));
                 document.AddParagraph("After gradient shape");
@@ -342,7 +342,7 @@ namespace OfficeIMO.Tests {
         public void SaveAsPdf_OfficeIMOEngine_Renders_DrawingML_Solid_Fill_Alpha_Once() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingSolidAlphaShape.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingSolidAlphaShape.pdf");
-            using (WordDocument document = WordDocument.Create(docPath)) {
+            using (WordDocument document = WordDocument.Create(docPath, new WordCreateOptions { Theme = OfficeTheme.Modern.WithPalette(OfficeTheme.Modern.Palette.With(accent1: OfficeColor.FromRgb(68, 114, 196), accent2: OfficeColor.FromRgb(237, 125, 49))) })) {
                 document.AddParagraph("Before solid alpha shape");
                 document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(112), OfficeIMO.OfficeLength.Points(48));
                 document.AddParagraph("After solid alpha shape");

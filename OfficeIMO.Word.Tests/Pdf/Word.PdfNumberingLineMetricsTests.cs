@@ -260,7 +260,7 @@ public partial class Word {
         }
         if (table) {
             WordParagraph[] paragraphs = source.Paragraphs.ToArray();
-            TableCell cell = source.AddTable(1, 1).Rows[0].Cells[0]._tableCell;
+            TableCell cell = source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0]._tableCell;
             cell.RemoveAllChildren<Paragraph>();
             foreach (WordParagraph paragraph in paragraphs) { paragraph._paragraph.Remove(); cell.Append(paragraph._paragraph); }
         }

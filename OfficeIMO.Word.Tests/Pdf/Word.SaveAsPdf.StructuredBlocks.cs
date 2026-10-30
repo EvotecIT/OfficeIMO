@@ -1939,7 +1939,7 @@ public partial class Word {
             IncludePageNumbers = false
         };
 
-        using (WordDocument document = WordDocument.Create(docPath)) {
+        using (WordDocument document = WordDocument.Create(docPath, new WordCreateOptions { Theme = OfficeTheme.Modern.WithPalette(OfficeTheme.Modern.Palette.With(accent1: OfficeColor.FromRgb(68, 114, 196))) })) {
             WordChart chart = document.AddChart("Word PDF Scheme Colors",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
             chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
             chart.AddBar("EMEA", new[] { 10, 12, 14 }, OfficeColor.Black);

@@ -18,7 +18,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph;
         if (storyKind == "table") {
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             ConfigureNativeInputTable(table, 6400);
             paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         } else paragraph = storyKind == "footer" ? document.FooterDefaultOrCreate.AddParagraph() : document.AddParagraph();
@@ -68,7 +68,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph;
         if (storyKind == "table") {
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             ConfigureNativeInputTable(table, 6400);
             paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         } else {
@@ -120,7 +120,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph;
         if (storyKind == "table") {
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             ConfigureNativeInputTable(table, 6400);
             paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         } else paragraph = storyKind == "footer" ? document.FooterDefaultOrCreate.AddParagraph() : document.AddParagraph();

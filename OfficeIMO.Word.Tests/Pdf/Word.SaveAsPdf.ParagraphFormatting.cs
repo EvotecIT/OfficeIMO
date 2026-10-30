@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = document.AddParagraph("NativeSoftFirst");
                 paragraph.AddBreak();
                 paragraph.AddText("NativeSoftSecond");
-                WordTable table = document.AddTable(1, 1);
+                WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                 WordParagraph cellParagraph = table.Rows[0].Cells[0].Paragraphs[0];
                 cellParagraph.Text = string.Empty;
                 cellParagraph.AddText("CellSoftFirst");
@@ -243,7 +243,7 @@ namespace OfficeIMO.Tests {
                         new Run(new Text("BodyBefore")),
                         new Run(new Break(), new Text("BodyAfterSameRun"))));
 
-                WordTable table = document.AddTable(1, 1);
+                WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                 table.Rows[0].Cells[0]._tableCell.RemoveAllChildren<Paragraph>();
                 table.Rows[0].Cells[0]._tableCell.Append(
                     new Paragraph(
@@ -736,6 +736,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_Paragraph_Pagination_And_Tab_Style() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyle.docx"));
+            document.Settings.FontFamily = "Calibri";
             WordParagraph paragraph = document.AddParagraph("Native style flags");
             paragraph.KeepLinesTogether = true;
             paragraph.KeepWithNext = true;
@@ -1588,6 +1589,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_Explicit_Paragraph_Line_Spacing() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeExplicitParagraphStyle.docx"));
+            document.Settings.FontFamily = "Calibri";
             WordParagraph exactParagraph = document.AddParagraph("Native exact line spacing");
             exactParagraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             exactParagraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(24));
@@ -1745,6 +1747,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_AtLeast_Paragraph_Line_Spacing() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeAtLeastParagraphStyle.docx"));
+            document.Settings.FontFamily = "Calibri";
             WordParagraph directParagraph = document.AddParagraph("Native at least line spacing");
             directParagraph.FontSize = global::OfficeIMO.OfficeLength.Points(24);
             directParagraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(6));
@@ -1950,6 +1953,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Lets_Derived_Paragraph_Style_Auto_Line_Spacing_Override_Exact() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyleAutoOverridesExactLineSpacing.docx"));
+            document.Settings.FontFamily = "Calibri";
             const string baseStyleId = "BaseExactLineSpacingStyle";
             const string derivedStyleId = "DerivedAutoLineSpacingStyle";
             Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
