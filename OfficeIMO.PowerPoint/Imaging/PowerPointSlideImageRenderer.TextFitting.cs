@@ -18,7 +18,7 @@ namespace OfficeIMO.PowerPoint {
             cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrEmpty(ResolvePowerPointDisplayText(textBox))) return new OfficeDrawing(width, height);
 
-            ReportCharacterSpacing(textBox, diagnostics);
+            ReportCharacterSpacing(textBox, diagnostics, cancellationToken);
             AddSmallCapsApproximationDiagnosticIfNeeded(textBox, diagnostics);
             AddWavyDoubleUnderlineApproximationDiagnosticIfNeeded(textBox, diagnostics);
             AddBaselineApproximationDiagnosticIfNeeded(textBox, diagnostics);
