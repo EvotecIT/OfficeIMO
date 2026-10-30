@@ -524,7 +524,7 @@ Clears generated PDF page background shapes.
 Closes a native database without implicitly saving it.
 
 ### [Close-OfficeExcel](Close-OfficeExcel.md)
-Closes an Excel workbook and optionally saves it.
+Closes a live Excel workbook without saving pending changes.
 
 ### [Close-OfficePowerPoint](Close-OfficePowerPoint.md)
 Closes a live presentation without saving it.
@@ -1246,6 +1246,9 @@ Creates Excel/OpenDocument conversion settings.
 ### [New-OfficeExcelPdfOptions](New-OfficeExcelPdfOptions.md)
 Creates discoverable Excel-to-PDF conversion options for Export-OfficeDocumentPdf.
 
+### [New-OfficeExcelSaveOptions](New-OfficeExcelSaveOptions.md)
+Creates native workbook save settings.
+
 ### [New-OfficeExcelWorkbookImageOptions](New-OfficeExcelWorkbookImageOptions.md)
 Creates discoverable sheet selection and rendering settings for Export-OfficeExcelImage.
 
@@ -1442,7 +1445,7 @@ Saves a native mbox mailbox with output diagnostics.
 Writes a validated EPUB package with explicit conflict and loss policies.
 
 ### [Save-OfficeExcel](Save-OfficeExcel.md)
-Saves an Excel workbook without disposing it.
+Saves a live Excel workbook without closing it.
 
 ### [Save-OfficeLatex](Save-OfficeLatex.md)
 Saves an OfficeIMO LaTeX document.
