@@ -129,7 +129,10 @@ public sealed class ExcelSpreadsheetXmlTests {
     public void Xml_export_preserves_source_part_limit_for_unused_shared_strings() {
         using var source = ExcelDocument.Create();
         source.AddWorksheet("Data").CellValue(1, 1, "safe");
-        using var package = new MemoryStream(source.ToBytes());
+        using var package = new MemoryStream();
+        byte[] sourceBytes = source.ToBytes();
+        package.Write(sourceBytes, 0, sourceBytes.Length);
+        package.Position = 0;
         using (var archive = new ZipArchive(package, ZipArchiveMode.Update, leaveOpen: true)) {
             ZipArchiveEntry original = Assert.IsType<ZipArchiveEntry>(archive.GetEntry("xl/sharedStrings.xml"));
             original.Delete();

@@ -268,13 +268,7 @@ public partial class DrawingTests {
                 1,
                 OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White)));
 
-            bool windows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows);
-            if (!windows) {
-                OfficeImageExportResult saved = result.Save(path, conflictPolicy);
-                Assert.Equal(Path.GetFullPath(path), saved.SavedPath);
-                Assert.True(File.Exists(path));
-                Assert.False(File.Exists(staleClaimPath));
-            } else if (conflictPolicy == OfficeImageExportFileConflictPolicy.CreateUnique) {
+            if (conflictPolicy == OfficeImageExportFileConflictPolicy.CreateUnique) {
                 OfficeImageExportResult saved = result.Save(path, conflictPolicy);
                 Assert.Equal(Path.GetFullPath(Path.Combine(folder, "preview-2.png")), saved.SavedPath);
                 Assert.True(File.Exists(saved.SavedPath));
@@ -282,7 +276,7 @@ public partial class DrawingTests {
                 Assert.Throws<IOException>(() => result.Save(path, conflictPolicy));
                 Assert.False(File.Exists(path));
             }
-            if (windows) Assert.Equal("orphaned", File.ReadAllText(staleClaimPath));
+            Assert.Equal("orphaned", File.ReadAllText(staleClaimPath));
         } finally {
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
@@ -317,15 +311,9 @@ public partial class DrawingTests {
                 Assert.False(File.Exists(path));
             }
 
-            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)) {
-                Assert.Throws<IOException>(() => result.Save(path));
-                Assert.False(File.Exists(path));
-                Assert.True(File.Exists(claimPath));
-            } else {
-                Assert.Equal(Path.GetFullPath(path), result.Save(path).SavedPath);
-                Assert.True(File.Exists(path));
-                Assert.False(File.Exists(claimPath));
-            }
+            Assert.Throws<IOException>(() => result.Save(path));
+            Assert.False(File.Exists(path));
+            Assert.True(File.Exists(claimPath));
         } finally {
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
