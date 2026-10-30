@@ -7682,6 +7682,17 @@
         "OfficeIMO.Word.Tests/Word.Security.AllSeverityBatch21.cs",
         "OfficeIMO.Markup.Tests/OfficeMarkupWordChartTests.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "The package README still advertises WordDocument.Convert and a removed save LossPolicy property.",
+      "new": "Use OfficeConverter.Convert from the front-door package with FailOnLoss, and WordSaveOptions.AllowLoss only for reviewed direct-save loss.",
+      "reason": "Current package documentation must point to the public lifecycle and conversion policy instead of internal kernels or removed option names.",
+      "files": [
+        "OfficeIMO.Word/README.md"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
