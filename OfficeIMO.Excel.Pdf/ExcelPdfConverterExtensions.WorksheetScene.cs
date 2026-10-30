@@ -284,15 +284,26 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static double GetWorksheetRowHeightPoints(WorksheetGeometryData geometry, int sourceRow) {
-            for (int index = geometry.Rows.Count - 1; index >= 0; index--) {
-                ExcelRowSnapshot definition = geometry.Rows[index];
-                if (definition.Index != sourceRow) {
-                    continue;
-                }
-                return GetWorksheetDefinedRowHeightPoints(geometry, definition);
-            }
+            return geometry.RowsByIndex.TryGetValue(sourceRow, out ExcelRowSnapshot? definition)
+                ? GetWorksheetDefinedRowHeightPoints(geometry, definition)
+                : geometry.DefaultRowHeight;
+        }
 
-            return geometry.DefaultRowHeight;
+        private static double[] GetExportedRowHeightPrefix(WorksheetPdfExportPlan plan) {
+            if (plan.RowHeightPrefix != null) return plan.RowHeightPrefix;
+            var prefix = new double[plan.ExportedRows + 1];
+            for (int row = 0; row < plan.ExportedRows; row++)
+                prefix[row + 1] = prefix[row] + GetExportedRowHeightPoints(plan, row);
+            return plan.RowHeightPrefix = prefix;
+        }
+
+        private static double[] GetExportedColumnWidthPrefix(WorksheetPdfExportPlan plan) {
+            if (plan.ColumnWidthPrefix != null) return plan.ColumnWidthPrefix;
+            int count = plan.ExportData.Values.GetLength(1);
+            var prefix = new double[count + 1];
+            for (int column = 0; column < count; column++)
+                prefix[column + 1] = prefix[column] + GetExportedColumnWidthPoints(plan, column);
+            return plan.ColumnWidthPrefix = prefix;
         }
 
         private static double GetWorksheetDefinedRowHeightPoints(WorksheetGeometryData geometry, ExcelRowSnapshot definition) =>

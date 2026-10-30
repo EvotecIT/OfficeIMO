@@ -1,19 +1,30 @@
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
+        private const long MaximumWorksheetProjectedCells = 1_000_000;
+
         private static IReadOnlyList<TableChunk> CreateWorksheetSceneChunks(
             WorksheetPdfExportPlan plan, ExcelToPdfOptions options, int columns,
             double availableWidth, double availableHeight, double scale) {
             // A constrained fit axis controls its breaks; the unlimited axis retains manual breaks.
             IReadOnlyList<TableChunk> requested = CreateTableChunks(plan, options, columns,
-                honorRowBreaks: !IsFitToHeight(plan.PageSetup), honorColumnBreaks: !IsFitToWidth(plan.PageSetup));
+                honorRowBreaks: !IsFitToHeight(plan.PageSetup), honorColumnBreaks: !IsFitToWidth(plan.PageSetup),
+                maximumProjectedCells: MaximumWorksheetProjectedCells);
             var chunks = new List<TableChunk>();
+            long projectedCells = 0;
             foreach (TableChunk requestedChunk in requested) {
                 var columnSegments = SplitWorksheetColumns(plan, requestedChunk.StartColumn,
                     requestedChunk.ColumnCount, availableWidth / scale);
                 var rowSegments = SplitWorksheetRows(plan, requestedChunk.RowIndexes,
                     requestedChunk.HeaderRowCount, availableHeight / scale);
+                IReadOnlyList<int> titles = plan.ExportData.PrintTitleColumnIndexes;
+                int repeatedColumns = 0;
                 foreach ((int startColumn, int columnCount) in columnSegments) {
+                    while (repeatedColumns < titles.Count && titles[repeatedColumns] < startColumn) repeatedColumns++;
                     foreach (IReadOnlyList<int> rowIndexes in rowSegments) {
+                        long cells = (long)rowIndexes.Count * (columnCount + repeatedColumns);
+                        if (cells > MaximumWorksheetProjectedCells - projectedCells)
+                            throw new NotSupportedException("Worksheet page projection exceeds the supported cell budget.");
+                        projectedCells += cells;
                         chunks.Add(new TableChunk(rowIndexes, GetChunkHeaderRowCount(plan, rowIndexes),
                             startColumn, columnCount, CreateChunkColumnIndexes(plan, startColumn, columnCount)));
                     }
@@ -71,10 +82,13 @@ namespace OfficeIMO.Excel.Pdf {
             int segmentStart = startColumn;
             int segmentCount = 0;
             double segmentWidth = 0D;
+            IReadOnlyList<int> titles = plan.ExportData.PrintTitleColumnIndexes;
+            int titleIndex = 0;
+            double titleWidth = 0D;
             for (int column = startColumn; column < startColumn + columnCount; column++) {
+                while (titleIndex < titles.Count && titles[titleIndex] < segmentStart)
+                    titleWidth += GetExportedColumnWidthPoints(plan, titles[titleIndex++]);
                 double width = GetExportedColumnWidthPoints(plan, column);
-                double titleWidth = plan.ExportData.PrintTitleColumnIndexes.Where(title => title < segmentStart)
-                    .Sum(title => GetExportedColumnWidthPoints(plan, title));
                 if (segmentCount > 0 && segmentWidth + width + titleWidth > maximumWidth) {
                     result.Add((segmentStart, segmentCount));
                     segmentStart = column;
@@ -99,25 +113,38 @@ namespace OfficeIMO.Excel.Pdf {
             IReadOnlyList<int> headerIndexes = Array.Empty<int>();
             double bodyCapacity = maximumHeight;
             double currentHeight = 0D;
+            long projectedIndexes = 0;
+            int visitedTitleCount = 0;
+            IReadOnlyList<int> repeating = plan.ExportData.RepeatingRowIndexes;
             for (int index = headerRows; index < rowIndexes.Count; index++) {
                 int row = rowIndexes[index];
                 double height = GetExportedRowHeightPoints(plan, row);
                 if (currentBody.Count > 0 && currentHeight + height > bodyCapacity) {
+                    projectedIndexes += headerIndexes.Count + currentBody.Count;
+                    if (projectedIndexes > MaximumWorksheetProjectedCells)
+                        throw new NotSupportedException("Worksheet repeated rows exceed the supported page projection budget.");
                     result.Add(headerIndexes.Concat(currentBody).ToList());
                     currentBody.Clear();
                     currentHeight = 0D;
                 }
                 if (currentBody.Count == 0) {
+                    while (visitedTitleCount < repeating.Count && repeating[visitedTitleCount] < row) visitedTitleCount++;
+                    if (projectedIndexes + visitedTitleCount + initialHeaderIndexes.Length > MaximumWorksheetProjectedCells)
+                        throw new NotSupportedException("Worksheet repeated rows exceed the supported page projection budget.");
                     // Automatic page breaks can newly reach part or all of a middle title
                     // block, so repeat its visited rows and reserve their height on this page.
-                    headerIndexes = initialHeaderIndexes.Concat(plan.ExportData.RepeatingRowIndexes.Where(title => title < row))
+                    headerIndexes = initialHeaderIndexes.Concat(repeating.Take(visitedTitleCount))
                         .Distinct().OrderBy(title => title).ToArray();
                     bodyCapacity = Math.Max(1D, maximumHeight - headerIndexes.Sum(title => GetExportedRowHeightPoints(plan, title)));
                 }
                 currentBody.Add(row);
                 currentHeight += height;
             }
-            if (currentBody.Count > 0 || result.Count == 0) result.Add(headerIndexes.Concat(currentBody).ToList());
+            if (currentBody.Count > 0 || result.Count == 0) {
+                if (headerIndexes.Count + currentBody.Count > MaximumWorksheetProjectedCells - projectedIndexes)
+                    throw new NotSupportedException("Worksheet repeated rows exceed the supported page projection budget.");
+                result.Add(headerIndexes.Concat(currentBody).ToList());
+            }
             return result;
         }
     }

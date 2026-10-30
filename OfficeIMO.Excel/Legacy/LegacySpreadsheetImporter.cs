@@ -86,6 +86,7 @@ public static class LegacySpreadsheetImporter {
             foreach (LegacySpreadsheetSheet sourceSheet in model.Sheets) {
                 cancellationToken.ThrowIfCancellationRequested();
                 ExcelSheet target = document.AddWorksheet(sourceSheet.Name, model.PreserveSheetNames ? ExcelSheetNameValidationMode.Strict : ExcelSheetNameValidationMode.Sanitize);
+                var comments = new List<(int Row, int Column, string Text)>();
                 foreach (LegacySpreadsheetCell cell in sourceSheet.Cells) {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (!string.IsNullOrWhiteSpace(cell.Formula)) {
@@ -95,8 +96,10 @@ public static class LegacySpreadsheetImporter {
                     else target.CellAt(cell.Row, cell.Column);
                     if (cell.Alignment.HasValue) target.CellAlign(cell.Row, cell.Column, cell.Alignment.Value);
                     if (!string.IsNullOrWhiteSpace(cell.NumberFormat)) target.CellAt(cell.Row, cell.Column).SetNumberFormat(cell.NumberFormat!);
-                    if (!string.IsNullOrWhiteSpace(cell.Comment)) target.SetComment(cell.Row, cell.Column, cell.Comment!, "Legacy source");
+                    if (!string.IsNullOrWhiteSpace(cell.Comment)) comments.Add((cell.Row, cell.Column, cell.Comment!));
                 }
+                cancellationToken.ThrowIfCancellationRequested();
+                target.AddImportedComments(comments, "Legacy source");
             }
             foreach (LegacySpreadsheetName name in model.Names) {
                 cancellationToken.ThrowIfCancellationRequested();

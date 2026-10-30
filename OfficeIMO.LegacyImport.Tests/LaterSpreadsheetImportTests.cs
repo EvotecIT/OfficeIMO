@@ -101,6 +101,24 @@ public sealed class LaterSpreadsheetImportTests {
     }
 
     [Fact]
+    public void LotusDenseCommentsSurviveImportAndXlsxSave() {
+        byte[] header = new byte[26]; header[0] = 5; header[1] = 0x10;
+        var records = new List<byte[]> { Record(0, header) };
+        for (int row = 0; row < 400; row++)
+            records.Add(Record(0x26, Join(BitConverter.GetBytes((ushort)row), new byte[] { 0, 0 }, Encoding.ASCII.GetBytes("'Note\0"))));
+        records.Add(Record(1));
+
+        using var result = Import(Join(records.ToArray()));
+        Assert.Equal(400, result.Cells.Count(cell => cell.Comment == "Note"));
+        using var xlsx = new MemoryStream();
+        result.Value.Save(xlsx);
+        xlsx.Position = 0;
+        using var loaded = ExcelDocument.Load(xlsx);
+        Assert.Equal(400, loaded.Sheets[0].GetComments().Count);
+        Assert.True(loaded.Sheets[0].HasComment(400, 1));
+    }
+
+    [Fact]
     public void RejectsBrokenRecordsMissingEofDuplicatesAndResourceLimits() {
         byte[] label = Record(0xf, Join(new byte[] { 0, 0, 0, 0, 0, 0 }, Encoding.ASCII.GetBytes("Hello\0")));
         byte[] bof = Record(0xff, new byte[] { 4, 4 });
