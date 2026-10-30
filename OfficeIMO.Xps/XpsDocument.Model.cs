@@ -82,10 +82,11 @@ internal sealed partial class XpsDocumentModelProjection {
                 _budget.Charge(); int current = elementIndex++;
                 var description = XpsGraphicDescription.Read(element);
                 if (description == null) continue;
-                _budget.Text(description.CharacterCount);
+                string objectName = (string?)element.Attribute("Name") ?? current.ToString(CultureInfo.InvariantCulture);
+                _budget.Text(checked(description.CharacterCount + page.PartName.Length + 1 + objectName.Length));
                 var asset = new OfficeDocumentModelAsset { Id = "xps-graphic-" + pageIndex + "-" + current, Kind = "graphic-description",
                     Title = description.Name, AltText = description.AlternativeText,
-                    SourceObjectId = page.PartName + "#" + ((string?)element.Attribute("Name") ?? current.ToString(CultureInfo.InvariantCulture)),
+                    SourceObjectId = page.PartName + "#" + objectName,
                     Location = Location(pageIndex, null, element.Name.LocalName.ToLowerInvariant() + "-description") };
                 assets.Add(asset); pageAssets.Add(asset);
             }
