@@ -6,34 +6,92 @@ schema: 2.0.0
 ---
 # New-OfficeOcrOptions
 ## SYNOPSIS
-Creates optional OCR settings without starting a provider or downloading language data.
+Creates OCR settings without starting a provider or downloading language data.
 
 ## SYNTAX
-### __AllParameterSets
+### Tesseract (Default)
 ```powershell
-New-OfficeOcrOptions [-Provider <IOcrEngine>] [-ExecutionOptions <OfficeDocumentOcrExecutionOptions>] [-RecognitionOptions <PdfOcrMergeOptions>] [-MinimumConfidence <Double>] [-Options <TesseractOcrSessionOptions>] [-Language <TesseractOcrLanguage[]>] [-TesseractLanguageExpression <string>] [-TesseractPath <string>] [-TessdataDirectory <string>] [-NoLanguageDownload] [<CommonParameters>]
+New-OfficeOcrOptions [-Language <TesseractOcrLanguage[]>] [-LanguageExpression <string>] [-TesseractPath <string>] [-DataDirectory <string>] [-NoLanguageDownload] [-Dpi <Int32>] [-TimeoutSeconds <Int32>] [-SessionOptions <TesseractOcrSessionOptions>] [-ExecutionOptions <OfficeDocumentOcrExecutionOptions>] [-RecognitionOptions <PdfOcrMergeOptions>] [-MinimumConfidence <Double>] [<CommonParameters>]
+```
+
+### Process
+```powershell
+New-OfficeOcrOptions -ProcessOptions <ProcessOcrEngineOptions> [-ExecutionOptions <OfficeDocumentOcrExecutionOptions>] [-RecognitionOptions <PdfOcrMergeOptions>] [-MinimumConfidence <Double>] [<CommonParameters>]
+```
+
+### Engine
+```powershell
+New-OfficeOcrOptions -Engine <IOcrEngine> [-ExecutionOptions <OfficeDocumentOcrExecutionOptions>] [-RecognitionOptions <PdfOcrMergeOptions>] [-MinimumConfidence <Double>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates optional OCR settings without starting a provider or downloading language data.
+Flat Tesseract parameters override an independent snapshot of SessionOptions. ProcessOptions and Engine select an alternative provider.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-$ocr = New-OfficeOcrOptions -Language English,Polish -NoLanguageDownload
+$ocr = New-OfficeOcrOptions -Language English,Polish -Dpi 300 -NoLanguageDownload
 Read-OfficeDocument ./scan.png -As Text -OcrOptions $ocr
 ```
 
 
 ## PARAMETERS
 
+### -DataDirectory
+Local directory containing installed trained-data files.
+
+```yaml
+Type: String
+Parameter Sets: Tesseract
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Dpi
+Image resolution supplied to Tesseract.
+
+```yaml
+Type: Int32
+Parameter Sets: Tesseract
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Engine
+Caller-provided OCR engine, used only when recognition is requested.
+
+```yaml
+Type: IOcrEngine
+Parameter Sets: Engine
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -ExecutionOptions
 Bounded recognition and enrichment policy for document views.
 
 ```yaml
 Type: OfficeDocumentOcrExecutionOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Tesseract, Process, Engine
 Aliases: None
 Possible values:
 
@@ -45,11 +103,11 @@ Accept wildcard characters: False
 ```
 
 ### -Language
-Friendly OCR languages. Supply more than one value to recognize multilingual content.
+Friendly languages for the local Tesseract provider.
 
 ```yaml
 Type: TesseractOcrLanguage[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Tesseract
 Aliases: None
 Possible values: English, Polish, Arabic, ChineseSimplified, ChineseTraditional, Czech, Danish, Dutch, Finnish, French, German, Greek, Hebrew, Hindi, Hungarian, Italian, Japanese, Korean, Norwegian, Portuguese, Romanian, Russian, Slovak, Spanish, Swedish, Turkish, Ukrainian, Vietnamese
 
@@ -60,12 +118,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -LanguageExpression
+Raw Tesseract language expression for caller-installed trained data.
+
+```yaml
+Type: String
+Parameter Sets: Tesseract
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -MinimumConfidence
-Minimum confidence accepted into an editable OCR review.
+Minimum word confidence accepted into an editable OCR review.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Tesseract, Process, Engine
 Aliases: None
 Possible values:
 
@@ -77,11 +151,11 @@ Accept wildcard characters: False
 ```
 
 ### -NoLanguageDownload
-Do not download checksum-pinned curated language data when a requested language is missing.
+Disable downloading missing curated language data.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Tesseract
 Aliases: None
 Possible values:
 
@@ -92,32 +166,16 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Options
-Advanced OfficeIMO OCR options. Convenience parameters override matching values.
+### -ProcessOptions
+Settings for the native generic JSON file-protocol OCR provider.
 
 ```yaml
-Type: TesseractOcrSessionOptions
-Parameter Sets: __AllParameterSets
+Type: ProcessOcrEngineOptions
+Parameter Sets: Process
 Aliases: None
 Possible values:
 
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Provider
-Optional engine-neutral OCR provider.
-
-```yaml
-Type: IOcrEngine
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -125,11 +183,11 @@ Accept wildcard characters: False
 ```
 
 ### -RecognitionOptions
-Layout, confidence and resource policy for original image or PDF reviews.
+Layout, confidence and resource policy for image or PDF reviews.
 
 ```yaml
 Type: PdfOcrMergeOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Tesseract, Process, Engine
 Aliases: None
 Possible values:
 
@@ -140,28 +198,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -TessdataDirectory
-Explicit directory containing Tesseract trained-data files.
+### -SessionOptions
+Advanced Tesseract settings; flat parameters override matching values.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -TesseractLanguageExpression
-Advanced raw Tesseract expression for caller-installed custom trained-data models.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
+Type: TesseractOcrSessionOptions
+Parameter Sets: Tesseract
 Aliases: None
 Possible values:
 
@@ -173,11 +215,27 @@ Accept wildcard characters: False
 ```
 
 ### -TesseractPath
-Explicit Tesseract executable path. By default OfficeIMO securely discovers an installed runtime.
+Explicit local Tesseract executable path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Tesseract
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -TimeoutSeconds
+Maximum duration of a Tesseract process, in seconds.
+
+```yaml
+Type: Int32
+Parameter Sets: Tesseract
 Aliases: None
 Possible values:
 

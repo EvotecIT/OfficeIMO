@@ -160637,15 +160637,39 @@ document for Document input. Native merge options determine which content is imp
       <command:verb>New</command:verb>
       <command:noun>OfficeOcrOptions</command:noun>
       <maml:description>
-        <maml:para>Creates optional OCR settings without starting a provider or downloading language data.</maml:para>
+        <maml:para>Creates OCR settings without starting a provider or downloading language data.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Creates optional OCR settings without starting a provider or downloading language data.</maml:para>
+      <maml:para>Flat Tesseract parameters override an independent snapshot of SessionOptions. ProcessOptions and Engine select an alternative provider.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Tesseract">
         <maml:name>New-OfficeOcrOptions</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>DataDirectory</maml:name>
+          <maml:description>
+            <maml:para>Local directory containing installed trained-data files.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Dpi</maml:name>
+          <maml:description>
+            <maml:para>Image resolution supplied to Tesseract.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>ExecutionOptions</maml:name>
           <maml:description>
@@ -160661,7 +160685,7 @@ document for Document input. Native merge options determine which content is imp
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Language</maml:name>
           <maml:description>
-            <maml:para>Friendly OCR languages. Supply more than one value to recognize multilingual content.</maml:para>
+            <maml:para>Friendly languages for the local Tesseract provider.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">TesseractOcrLanguage[]</command:parameterValue>
           <command:parameterValueGroup>
@@ -160701,9 +160725,21 @@ document for Document input. Native merge options determine which content is imp
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>LanguageExpression</maml:name>
+          <maml:description>
+            <maml:para>Raw Tesseract language expression for caller-installed trained data.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>MinimumConfidence</maml:name>
           <maml:description>
-            <maml:para>Minimum confidence accepted into an editable OCR review.</maml:para>
+            <maml:para>Minimum word confidence accepted into an editable OCR review.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
           <dev:type>
@@ -160715,7 +160751,7 @@ document for Document input. Native merge options determine which content is imp
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>NoLanguageDownload</maml:name>
           <maml:description>
-            <maml:para>Do not download checksum-pinned curated language data when a requested language is missing.</maml:para>
+            <maml:para>Disable downloading missing curated language data.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -160725,33 +160761,9 @@ document for Document input. Native merge options determine which content is imp
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Options</maml:name>
-          <maml:description>
-            <maml:para>Advanced OfficeIMO OCR options. Convenience parameters override matching values.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">TesseractOcrSessionOptions</command:parameterValue>
-          <dev:type>
-            <maml:name>TesseractOcrSessionOptions</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Provider</maml:name>
-          <maml:description>
-            <maml:para>Optional engine-neutral OCR provider.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">IOcrEngine</command:parameterValue>
-          <dev:type>
-            <maml:name>IOcrEngine</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>RecognitionOptions</maml:name>
           <maml:description>
-            <maml:para>Layout, confidence and resource policy for original image or PDF reviews.</maml:para>
+            <maml:para>Layout, confidence and resource policy for image or PDF reviews.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">PdfOcrMergeOptions</command:parameterValue>
           <dev:type>
@@ -160761,25 +160773,13 @@ document for Document input. Native merge options determine which content is imp
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>TessdataDirectory</maml:name>
+          <maml:name>SessionOptions</maml:name>
           <maml:description>
-            <maml:para>Explicit directory containing Tesseract trained-data files.</maml:para>
+            <maml:para>Advanced Tesseract settings; flat parameters override matching values.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">TesseractOcrSessionOptions</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>TesseractLanguageExpression</maml:name>
-          <maml:description>
-            <maml:para>Advanced raw Tesseract expression for caller-installed custom trained-data models.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>TesseractOcrSessionOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -160787,7 +160787,7 @@ document for Document input. Native merge options determine which content is imp
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>TesseractPath</maml:name>
           <maml:description>
-            <maml:para>Explicit Tesseract executable path. By default OfficeIMO securely discovers an installed runtime.</maml:para>
+            <maml:para>Explicit local Tesseract executable path.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -160796,9 +160796,159 @@ document for Document input. Native merge options determine which content is imp
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>TimeoutSeconds</maml:name>
+          <maml:description>
+            <maml:para>Maximum duration of a Tesseract process, in seconds.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="Process">
+        <maml:name>New-OfficeOcrOptions</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ExecutionOptions</maml:name>
+          <maml:description>
+            <maml:para>Bounded recognition and enrichment policy for document views.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeDocumentOcrExecutionOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeDocumentOcrExecutionOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MinimumConfidence</maml:name>
+          <maml:description>
+            <maml:para>Minimum word confidence accepted into an editable OCR review.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <dev:type>
+            <maml:name>Double</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ProcessOptions</maml:name>
+          <maml:description>
+            <maml:para>Settings for the native generic JSON file-protocol OCR provider.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">ProcessOcrEngineOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>ProcessOcrEngineOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>RecognitionOptions</maml:name>
+          <maml:description>
+            <maml:para>Layout, confidence and resource policy for image or PDF reviews.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PdfOcrMergeOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>PdfOcrMergeOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="Engine">
+        <maml:name>New-OfficeOcrOptions</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Engine</maml:name>
+          <maml:description>
+            <maml:para>Caller-provided OCR engine, used only when recognition is requested.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">IOcrEngine</command:parameterValue>
+          <dev:type>
+            <maml:name>IOcrEngine</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ExecutionOptions</maml:name>
+          <maml:description>
+            <maml:para>Bounded recognition and enrichment policy for document views.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeDocumentOcrExecutionOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeDocumentOcrExecutionOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MinimumConfidence</maml:name>
+          <maml:description>
+            <maml:para>Minimum word confidence accepted into an editable OCR review.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <dev:type>
+            <maml:name>Double</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>RecognitionOptions</maml:name>
+          <maml:description>
+            <maml:para>Layout, confidence and resource policy for image or PDF reviews.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PdfOcrMergeOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>PdfOcrMergeOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>DataDirectory</maml:name>
+        <maml:description>
+          <maml:para>Local directory containing installed trained-data files.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Dpi</maml:name>
+        <maml:description>
+          <maml:para>Image resolution supplied to Tesseract.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Engine</maml:name>
+        <maml:description>
+          <maml:para>Caller-provided OCR engine, used only when recognition is requested.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">IOcrEngine</command:parameterValue>
+        <dev:type>
+          <maml:name>IOcrEngine</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>ExecutionOptions</maml:name>
         <maml:description>
@@ -160814,7 +160964,7 @@ document for Document input. Native merge options determine which content is imp
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Language</maml:name>
         <maml:description>
-          <maml:para>Friendly OCR languages. Supply more than one value to recognize multilingual content.</maml:para>
+          <maml:para>Friendly languages for the local Tesseract provider.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">TesseractOcrLanguage[]</command:parameterValue>
         <command:parameterValueGroup>
@@ -160854,9 +161004,21 @@ document for Document input. Native merge options determine which content is imp
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>LanguageExpression</maml:name>
+        <maml:description>
+          <maml:para>Raw Tesseract language expression for caller-installed trained data.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>MinimumConfidence</maml:name>
         <maml:description>
-          <maml:para>Minimum confidence accepted into an editable OCR review.</maml:para>
+          <maml:para>Minimum word confidence accepted into an editable OCR review.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
         <dev:type>
@@ -160868,7 +161030,7 @@ document for Document input. Native merge options determine which content is imp
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>NoLanguageDownload</maml:name>
         <maml:description>
-          <maml:para>Do not download checksum-pinned curated language data when a requested language is missing.</maml:para>
+          <maml:para>Disable downloading missing curated language data.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -160877,26 +161039,14 @@ document for Document input. Native merge options determine which content is imp
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Options</maml:name>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>ProcessOptions</maml:name>
         <maml:description>
-          <maml:para>Advanced OfficeIMO OCR options. Convenience parameters override matching values.</maml:para>
+          <maml:para>Settings for the native generic JSON file-protocol OCR provider.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">TesseractOcrSessionOptions</command:parameterValue>
+        <command:parameterValue required="true" variableLength="false">ProcessOcrEngineOptions</command:parameterValue>
         <dev:type>
-          <maml:name>TesseractOcrSessionOptions</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Provider</maml:name>
-        <maml:description>
-          <maml:para>Optional engine-neutral OCR provider.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">IOcrEngine</command:parameterValue>
-        <dev:type>
-          <maml:name>IOcrEngine</maml:name>
+          <maml:name>ProcessOcrEngineOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -160904,7 +161054,7 @@ document for Document input. Native merge options determine which content is imp
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>RecognitionOptions</maml:name>
         <maml:description>
-          <maml:para>Layout, confidence and resource policy for original image or PDF reviews.</maml:para>
+          <maml:para>Layout, confidence and resource policy for image or PDF reviews.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">PdfOcrMergeOptions</command:parameterValue>
         <dev:type>
@@ -160914,25 +161064,13 @@ document for Document input. Native merge options determine which content is imp
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>TessdataDirectory</maml:name>
+        <maml:name>SessionOptions</maml:name>
         <maml:description>
-          <maml:para>Explicit directory containing Tesseract trained-data files.</maml:para>
+          <maml:para>Advanced Tesseract settings; flat parameters override matching values.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">TesseractOcrSessionOptions</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>TesseractLanguageExpression</maml:name>
-        <maml:description>
-          <maml:para>Advanced raw Tesseract expression for caller-installed custom trained-data models.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>TesseractOcrSessionOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -160940,11 +161078,23 @@ document for Document input. Native merge options determine which content is imp
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>TesseractPath</maml:name>
         <maml:description>
-          <maml:para>Explicit Tesseract executable path. By default OfficeIMO securely discovers an installed runtime.</maml:para>
+          <maml:para>Explicit local Tesseract executable path.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
           <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>TimeoutSeconds</maml:name>
+        <maml:description>
+          <maml:para>Maximum duration of a Tesseract process, in seconds.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -160975,7 +161125,7 @@ document for Document input. Native merge options determine which content is imp
     <command:examples>
       <command:example>
         <maml:title>Read a scanned image with selected languages.</maml:title>
-        <dev:code>$ocr = New-OfficeOcrOptions -Language English,Polish -NoLanguageDownload
+        <dev:code>$ocr = New-OfficeOcrOptions -Language English,Polish -Dpi 300 -NoLanguageDownload
             Read-OfficeDocument ./scan.png -As Text -OcrOptions $ocr</dev:code>
         <dev:remarks>
           <maml:para></maml:para>

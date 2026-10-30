@@ -1265,7 +1265,7 @@ Creates a Markdown document using a DSL scriptblock.
 Creates discoverable Markdown-to-PDF conversion options for Export-OfficeDocumentPdf.
 
 ### [New-OfficeOcrOptions](New-OfficeOcrOptions.md)
-Creates optional OCR settings without starting a provider or downloading language data.
+Creates OCR settings without starting a provider or downloading language data.
 
 ### [New-OfficeOpenDocument](New-OfficeOpenDocument.md)
 Creates a native ODT, ODS, ODP, or ODG document.
