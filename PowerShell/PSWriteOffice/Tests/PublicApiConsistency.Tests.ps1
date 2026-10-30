@@ -30,7 +30,7 @@ Describe 'PSWriteOffice public API consistency' {
 
         @($lifecycle | Where-Object { $_.Parameters.ContainsKey('PdfPath') }).Name | Should -BeNullOrEmpty
         @($lifecycle | Where-Object { $_.Verb -eq 'New' -and $_.Parameters.ContainsKey('AutoSave') }).Name | Should -BeNullOrEmpty
-        (Get-Command Get-OfficeWord).Parameters.Keys | Should -Not -Contain 'AutoSave'
+        (Get-Command Open-OfficeWord).Parameters.Keys | Should -Not -Contain 'AutoSave'
         (Get-Command Get-OfficeExcel).Parameters.Keys | Should -Not -Contain 'AutoSave'
     }
 

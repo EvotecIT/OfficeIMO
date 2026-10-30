@@ -73,7 +73,7 @@ Describe 'Word Markdown conversions' {
         try {
             ConvertFrom-OfficeWordMarkdown -Markdown "![Remote image]($($server.Url))" -AllowRemoteImages -OutputPath $docPath | Out-Null
 
-            $document = Get-OfficeWord -Path $docPath -ReadOnly
+            $document = Open-OfficeWord -Path $docPath -ReadOnly
             try {
                 $document.Images.Count | Should -Be 1
             } finally {

@@ -38,7 +38,7 @@ Describe 'Object-style document composition' {
         }
 
         $path | Should -Exist
-        $readBack = Get-OfficeWord -Path $path -ReadOnly
+        $readBack = Open-OfficeWord -Path $path -ReadOnly
         try {
             ($readBack.Paragraphs.Text -join '') | Should -Match 'Service status — reviewed'
             $readBack.Tables.Count | Should -Be 1
@@ -58,7 +58,7 @@ Describe 'Object-style document composition' {
             $document | Close-OfficeWord
         }
 
-        $readBack = Get-OfficeWord -Path $path -ReadOnly
+        $readBack = Open-OfficeWord -Path $path -ReadOnly
         try {
             $readBack.Sections.Count | Should -BeGreaterThan 1
             ($readBack.Paragraphs.Text -join "`n") | Should -Match 'Second section'

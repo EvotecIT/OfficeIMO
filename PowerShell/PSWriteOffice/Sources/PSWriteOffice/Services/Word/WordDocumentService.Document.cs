@@ -33,14 +33,11 @@ public static partial class WordDocumentService
             throw new FileNotFoundException($"File {resolvedPath} doesn't exist.", resolvedPath);
         }
 
-        if (!string.IsNullOrEmpty(password))
-        {
-            var document = RegisterDocument(OfficeEncryptedPackageService.LoadWord(resolvedPath, password!, readOnly, autoSave));
-            UpdateSaveAssociation(document, resolvedPath, encrypted: true);
-            return document;
-        }
-
-        return RegisterDocument(WordDocument.Load(resolvedPath, CreateLoadOptions(readOnly, autoSave)));
+        var options = CreateLoadOptions(readOnly, autoSave);
+        options.Password = password;
+        var document = RegisterDocument(WordDocument.Load(resolvedPath, options));
+        UpdateSaveAssociation(document, resolvedPath, encrypted: password != null);
+        return document;
     }
 
     /// <summary>Creates a new Word document at the specified path.</summary>

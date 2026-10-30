@@ -187,7 +187,7 @@ Describe 'Office document PDF exports' {
             }
         }
 
-        $document = Get-OfficeWord -Path $docx
+        $document = Open-OfficeWord -Path $docx
         try {
             $document | Export-OfficeDocumentPdf -Path $pdf
         } finally {

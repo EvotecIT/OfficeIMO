@@ -526,7 +526,7 @@ Describe 'Shared tabular input contracts' {
             $reader.Dispose()
         }
 
-        $word = Get-OfficeWord -Path $wordPath -ReadOnly
+        $word = Open-OfficeWord -Path $wordPath -ReadOnly
         try {
             $word.Tables[0].Rows[1].Cells[0].Paragraphs[0].Text | Should -Be 'Alpha'
             $word.Tables[0].Rows[1].Cells[1].Paragraphs[0].Text | Should -Be 'One | Two'
@@ -654,7 +654,7 @@ Describe 'Shared tabular input contracts' {
         New-OfficeWord -Path $wordPath {
             Add-OfficeWordTable -InputObject $row -Style TableGrid -CollectionSeparator ' | '
         } | Out-Null
-        $word = Get-OfficeWord -Path $wordPath -ReadOnly
+        $word = Open-OfficeWord -Path $wordPath -ReadOnly
         try {
             $word.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text | Should -Be 'Name'
             $word.Tables[0].Rows[1].Cells[0].Paragraphs[0].Text | Should -Be 'Alpha'

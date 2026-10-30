@@ -7,7 +7,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Restyle callout shapes in an opened report.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Report.docx
+///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// $doc |
 ///     Get-OfficeWordShape |
 ///     Set-OfficeWordShape -FillColor '#fff7e6' -StrokeColor '#fa8c16' -StrokeWidth 1.25 -Description 'Highlighted callout'

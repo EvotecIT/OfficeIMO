@@ -8,7 +8,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Replace text in a cell after finding a table.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Handover.docx
+///   <code>$doc = Open-OfficeWord -Path .\Handover.docx
 /// $table = Find-OfficeWordTable -Document $doc -Text 'Risk marker' | Select-Object -First 1
 /// $table |
 ///     Get-OfficeWordTableCell -Row 2 -Column 2 |
@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Highlight a status column in the first report table.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Report.docx
+///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// $table = $doc | Get-OfficeWordTable | Select-Object -First 1
 /// $table |
 ///     Get-OfficeWordTableCell -Column 2 |
@@ -36,7 +36,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Merge a heading row across columns.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Report.docx
+///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// $table = $doc | Get-OfficeWordTable | Select-Object -First 1
 /// $table |
 ///     Get-OfficeWordTableCell -Row 0 -Column 0 |

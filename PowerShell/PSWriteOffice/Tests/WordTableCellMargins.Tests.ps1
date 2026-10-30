@@ -21,7 +21,7 @@ Describe 'Word table cell padding' {
             $table = WordTable -InputObject @([pscustomobject]@{ Site = 'Warsaw'; Status = 'Ready' }) -PassThru
             $table | Get-OfficeWordTableCell | Set-OfficeWordTableCell -MarginTopCentimeters 0.12 -MarginBottomCentimeters 0.14 -MarginLeftCentimeters 0.16 -MarginRightCentimeters 0.18
         }
-        $doc = Get-OfficeWord -Path $path
+        $doc = Open-OfficeWord -Path $path
         try {
             $cells = @($doc.Tables[0] | Get-OfficeWordTableCell)
             $cells.Count | Should -Be 4
@@ -44,7 +44,7 @@ Describe 'Word table cell padding' {
             $cell | Set-OfficeWordTableCell -MarginTopCentimeters 0.12 -MarginLeftCentimeters 0.16
             $cell | Set-OfficeWordTableCell -Text 'Dublin' -MarginTopCentimeters $null
         }
-        $doc = Get-OfficeWord -Path $path
+        $doc = Open-OfficeWord -Path $path
         try {
             $cell = $doc.Tables[0].Rows[1].Cells[0]
             $cell.MarginTopWidth | Should -BeNullOrEmpty

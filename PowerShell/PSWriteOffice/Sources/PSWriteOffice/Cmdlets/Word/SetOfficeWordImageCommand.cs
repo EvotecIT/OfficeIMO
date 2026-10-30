@@ -7,7 +7,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Resize and describe all report images.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Report.docx
+///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// $doc |
 ///     Get-OfficeWordImage |
 ///     Set-OfficeWordImage -Width 320 -Wrap Square -Title 'Report image' -Description 'Image used in the report'

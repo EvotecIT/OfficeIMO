@@ -1,101 +1,69 @@
-using System;
 using System.IO;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Word;
-using PSWriteOffice.Services;
-using PSWriteOffice.Services.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Word;
 
 namespace PSWriteOffice.Cmdlets.Word;
 
-/// <summary>Saves a Word document without disposing it.</summary>
-/// <para>Use <c>Close-OfficeWord -Save</c> when you want to save and dispose the document.</para>
-/// <example>
-///   <summary>Save the open document.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$doc | Save-OfficeWord</code>
-///   <para>Persists pending changes and keeps the document open.</para>
-/// </example>
+/// <summary>Saves a live Word document without closing it.</summary>
+/// <para>Uses the supplied path or associated destination. Omitted Password preserves loaded encryption. PassThru returns the saved FileInfo. The document must use explicit persistence.</para>
+/// <example><summary>Save and retain the live document for further editing.</summary>
+/// <code>Save-OfficeWord -Document $document -Path ./Report.docx -PassThru
+/// Close-OfficeWord -Document $document</code></example>
+/// <example><summary>Save a loaded document with its existing encryption.</summary>
+/// <code>$document = Open-OfficeWord -Path ./Protected.docx -Password (Read-Host -AsSecureString)
+/// $document | Save-OfficeWord
+/// $document | Close-OfficeWord</code></example>
 [Cmdlet(VerbsData.Save, "OfficeWord", SupportsShouldProcess = true)]
-[OutputType(typeof(WordDocument))]
-public sealed class SaveOfficeWordCommand : PSCmdlet {
-    /// <summary>Document to save.</summary>
+[OutputType(typeof(FileInfo))]
+public sealed class SaveOfficeWordCommand : OfficeCmdlet {
+    /// <summary>Live Word document to save.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
+    [ValidateNotNull]
     public WordDocument Document { get; set; } = null!;
 
-    /// <summary>Optional save-as path.</summary>
+    /// <summary>Optional new destination; omission uses the associated path.</summary>
     [Parameter]
-    [Alias("FilePath")]
+    [ValidateNotNullOrEmpty]
     public string? Path { get; set; }
 
-    /// <summary>Open the document after saving.</summary>
+    /// <summary>Override the output password; omission preserves the document's loaded encryption.</summary>
     [Parameter]
-    [Alias("Show")]
-    public SwitchParameter Open { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
-    /// <summary>Password used to save the document as an encrypted package.</summary>
+    /// <summary>Explicitly accept reported native-save reductions.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    public SwitchParameter AllowLoss { get; set; }
 
-    /// <summary>Emit the document object for further processing.</summary>
+    /// <summary>Open the saved file in its registered default application.</summary>
+    [Parameter]
+    public SwitchParameter Show { get; set; }
+
+    /// <summary>Return the saved FileInfo.</summary>
     [Parameter]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        if (Document == null) {
+        WordDocumentService.EnsureExplicitPersistence(Document);
+        string? destination = Path ?? WordDocumentService.GetAssociatedPath(Document);
+        if (string.IsNullOrWhiteSpace(destination)) {
+            InvalidArgument(new PSArgumentException("Supply Path when the document has no associated destination."), Document);
             return;
         }
-
-        var associatedPath = WordDocumentService.GetAssociatedPath(Document);
-        if (string.IsNullOrWhiteSpace(Path) && string.IsNullOrWhiteSpace(associatedPath)) {
-            throw new PSInvalidOperationException("No file path provided. Use -Path or open the document from disk.");
-        }
-
-        string savedPath;
-        if (!string.IsNullOrWhiteSpace(Path)) {
-            var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
-            if (!PdfCommandUtilities.ShouldWrite(this, resolvedPath, "Save Word document")) {
-                return;
-            }
-
-            if (string.IsNullOrEmpty(Password) &&
-                WordDocumentService.IsEncryptedSource(Document) &&
-                string.Equals(System.IO.Path.GetFullPath(resolvedPath), System.IO.Path.GetFullPath(associatedPath!), StringComparison.OrdinalIgnoreCase)) {
-                throw new PSInvalidOperationException("Provide -Password when saving a document loaded from an encrypted package.");
-            }
-
-            if (!string.IsNullOrEmpty(Password)) {
-                OfficeEncryptedPackageService.SaveWord(Document, resolvedPath, Password!, false);
-            } else {
-                Document.Save(resolvedPath);
-            }
-            savedPath = resolvedPath;
-        } else {
-            if (!PdfCommandUtilities.ShouldWrite(this, associatedPath!, "Save Word document")) {
-                return;
-            }
-
-            if (!string.IsNullOrEmpty(Password)) {
-                OfficeEncryptedPackageService.SaveWord(Document, associatedPath!, Password!, false);
-            } else {
-                if (WordDocumentService.IsEncryptedSource(Document)) {
-                    throw new PSInvalidOperationException("Provide -Password when saving a document loaded from an encrypted package.");
-                }
-
-                Document.Save(associatedPath!);
-            }
-            savedPath = associatedPath!;
-        }
-
-        WordDocumentService.UpdateSaveAssociation(Document, savedPath, !string.IsNullOrEmpty(Password));
-        if (Open.IsPresent) {
-            FileOpenService.Open(savedPath);
-        }
-
-        if (PassThru.IsPresent) {
-            WriteObject(Document);
-        }
+        destination = ResolveOutputPath(destination!);
+        if (!ShouldProcess(destination, "Save Word document")) return;
+        try {
+            bool passwordBound = MyInvocation.BoundParameters.ContainsKey(nameof(Password));
+            Document.Save(destination, WordDocumentService.NativeSaveOptions(AllowLoss.IsPresent, Password, passwordBound));
+            bool encrypted = passwordBound ? Password != null : WordDocumentService.IsEncryptedSource(Document);
+            WordDocumentService.UpdateSaveAssociation(Document, destination, encrypted);
+            if (Show) OfficeShow.Open(destination);
+            if (PassThru) WriteObject(new FileInfo(destination));
+        } catch (PipelineStoppedException) { throw; }
+        catch (System.Exception error) { ItemError(error, "native-save-failed", destination); }
     }
-
 }

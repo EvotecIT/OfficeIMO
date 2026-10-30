@@ -1048,9 +1048,6 @@ Creates a deterministic inspection snapshot for a Visio document.
 ### [Get-OfficeVisioStencilCatalog](Get-OfficeVisioStencilCatalog.md)
 Gets built-in or package-backed OfficeIMO Visio stencil catalogs.
 
-### [Get-OfficeWord](Get-OfficeWord.md)
-Opens an existing Word document.
-
 ### [Get-OfficeWordBookmark](Get-OfficeWordBookmark.md)
 Gets bookmarks from a Word document.
 
@@ -1369,6 +1366,9 @@ Creates a reusable Word table cell definition for explicit table rows.
 ### [Open-OfficePowerPoint](Open-OfficePowerPoint.md)
 Opens a presentation for explicit editing, or atomically saves a completed content block.
 
+### [Open-OfficeWord](Open-OfficeWord.md)
+Opens a Word document for explicit editing, or saves and closes a completed content block.
+
 ### [Protect-OfficeDocument](Protect-OfficeDocument.md)
 Adds native password encryption or editing restrictions to a document.
 
@@ -1463,7 +1463,7 @@ Saves a project through the qualified native codec with loss protection.
 Saves an OfficeIMO.Visio document.
 
 ### [Save-OfficeWord](Save-OfficeWord.md)
-Saves a Word document without disposing it.
+Saves a live Word document without closing it.
 
 ### [Search-OfficeDocument](Search-OfficeDocument.md)
 Finds regular-expression or literal matches across supported files and folders.

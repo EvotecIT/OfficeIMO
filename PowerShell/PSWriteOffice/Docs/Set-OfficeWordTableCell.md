@@ -21,7 +21,7 @@ Updates OfficeIMO Word table-cell content, layout, and merge settings.
 
 ### EXAMPLE 1
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Handover.docx
+PS> $doc = Open-OfficeWord -Path .\Handover.docx
 $table = Find-OfficeWordTable -Document $doc -Text 'Risk marker' | Select-Object -First 1
 $table |
     Get-OfficeWordTableCell -Row 2 -Column 2 |
@@ -33,7 +33,7 @@ Finds an existing table by text, replaces a target cell value, applies shading, 
 
 ### EXAMPLE 2
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Report.docx
+PS> $doc = Open-OfficeWord -Path .\Report.docx
 $table = $doc | Get-OfficeWordTable | Select-Object -First 1
 $table |
     Get-OfficeWordTableCell -Column 2 |
@@ -52,7 +52,7 @@ Sets independent cell margins in centimeters. Omitted margins retain their value
 
 ### EXAMPLE 4
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Report.docx
+PS> $doc = Open-OfficeWord -Path .\Report.docx
 $table = $doc | Get-OfficeWordTable | Select-Object -First 1
 $table |
     Get-OfficeWordTableCell -Row 0 -Column 0 |
