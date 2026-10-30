@@ -36,7 +36,8 @@ internal static class OfficePathFlattener {
         FlattenCore(commands, offsetX, offsetY, scale, curveSegments, pixelsPerUnit, false, maximumPoints: maximumPoints);
 
     internal static IReadOnlyList<OfficeFlattenedPathContour> FlattenNativeStroke(IReadOnlyList<OfficePathCommand> commands,
-        double pixelsPerUnit) => FlattenCore(commands, 0D, 0D, 1D, 0, pixelsPerUnit, true);
+        double pixelsPerUnit, int maximumPoints = MaximumFlattenedPoints) =>
+        FlattenCore(commands, 0D, 0D, 1D, 0, pixelsPerUnit, true, maximumPoints: maximumPoints);
 
     /// <summary>Bounds adaptive curve expansion across a complete native stroke projection.</summary>
     internal static IReadOnlyList<OfficeFlattenedPathContour> FlattenStrokeProjection(
