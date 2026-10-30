@@ -28,12 +28,13 @@ feature band. These are dependency restores, without
 signing, native application launch or package publication. Projects and runtime
 variants outside those explicit sets are not claimed as restored coverage.
 
-For a transition from GitHub's generated automatic submission, keep the
-dependency graph and Dependabot enabled. First verify all three restore profiles
-and their default-branch snapshots, including Apple and browser dependencies.
-Then disable only automatic dependency submission in repository security settings
-so the generated job no longer duplicates the controlled route. Do not exclude
-platform projects merely to make the generated Ubuntu restore succeed.
+Keep GitHub's automatic dependency submission, dependency graph and Dependabot
+enabled. The controlled workflow adds explicit native-platform coverage alongside
+the generated route. Verify all three restore profiles and their default-branch
+snapshots, including Apple and browser dependencies. A successful controlled scan
+does not settle a failed generated `submit-nuget` check. Diagnose that job's
+restore environment separately; do not exclude platform projects or change their
+target frameworks to make its Ubuntu restore succeed.
 
 ## Current Shape
 
