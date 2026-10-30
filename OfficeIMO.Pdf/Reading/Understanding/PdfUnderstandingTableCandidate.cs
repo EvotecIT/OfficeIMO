@@ -9,6 +9,7 @@ public enum PdfTableCoordinateSpace {
 }
 
 /// <summary>Immutable column geometry recovered by a PDF table-detection stage.</summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfUnderstandingTableColumn {
     /// <summary>Creates one table column in the owning candidate's coordinate space.</summary>
     public PdfUnderstandingTableColumn(double from, double to) {
@@ -40,6 +41,7 @@ public sealed class PdfUnderstandingTableColumn {
 /// A table candidate recovered before general page segmentation. The candidate owns its
 /// source lines so later stages can treat the table as one structural object.
 /// </summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfUnderstandingTableCandidate {
     private readonly PdfLogicalVisualBounds? _visualBounds;
 

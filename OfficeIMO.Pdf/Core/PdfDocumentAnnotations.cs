@@ -3,6 +3,7 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Existing-document annotation creation, update, removal, and flattening operations.</summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfDocumentAnnotations {
     private readonly PdfDocument _document;
     internal PdfDocumentAnnotations(PdfDocument document) { _document = document; }

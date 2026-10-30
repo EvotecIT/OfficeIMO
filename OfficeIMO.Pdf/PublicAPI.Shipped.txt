@@ -490,11 +490,11 @@ OfficeIMO.Pdf.PdfBatesNumberingOptions.Color.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfBatesNumberingOptions.Color.set -> void
 OfficeIMO.Pdf.PdfBatesNumberingOptions.Font.get -> OfficeIMO.Pdf.PdfStandardFont
 OfficeIMO.Pdf.PdfBatesNumberingOptions.Font.set -> void
-OfficeIMO.Pdf.PdfBatesNumberingOptions.FontSize.get -> double
+OfficeIMO.Pdf.PdfBatesNumberingOptions.FontSize.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfBatesNumberingOptions.FontSize.set -> void
-OfficeIMO.Pdf.PdfBatesNumberingOptions.Height.get -> double
+OfficeIMO.Pdf.PdfBatesNumberingOptions.Height.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfBatesNumberingOptions.Height.set -> void
-OfficeIMO.Pdf.PdfBatesNumberingOptions.HorizontalMargin.get -> double
+OfficeIMO.Pdf.PdfBatesNumberingOptions.HorizontalMargin.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfBatesNumberingOptions.HorizontalMargin.set -> void
 OfficeIMO.Pdf.PdfBatesNumberingOptions.MinimumDigits.get -> int
 OfficeIMO.Pdf.PdfBatesNumberingOptions.MinimumDigits.set -> void
@@ -509,7 +509,7 @@ OfficeIMO.Pdf.PdfBatesNumberingOptions.Suffix.get -> string!
 OfficeIMO.Pdf.PdfBatesNumberingOptions.Suffix.set -> void
 OfficeIMO.Pdf.PdfBatesNumberingOptions.TargetPages.get -> OfficeIMO.Pdf.PdfPageSelector?
 OfficeIMO.Pdf.PdfBatesNumberingOptions.TargetPages.set -> void
-OfficeIMO.Pdf.PdfBatesNumberingOptions.VerticalMargin.get -> double
+OfficeIMO.Pdf.PdfBatesNumberingOptions.VerticalMargin.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfBatesNumberingOptions.VerticalMargin.set -> void
 OfficeIMO.Pdf.PdfBatesPosition
 OfficeIMO.Pdf.PdfBatesPosition.BottomCenter = 1 -> OfficeIMO.Pdf.PdfBatesPosition
@@ -525,9 +525,9 @@ OfficeIMO.Pdf.PdfBlackPreservationMode.PureBlack = 1 -> OfficeIMO.Pdf.PdfBlackPr
 OfficeIMO.Pdf.PdfBookletOptions
 OfficeIMO.Pdf.PdfBookletOptions.AllowSourceFeatureLoss.get -> bool
 OfficeIMO.Pdf.PdfBookletOptions.AllowSourceFeatureLoss.set -> void
-OfficeIMO.Pdf.PdfBookletOptions.Gutter.get -> double
+OfficeIMO.Pdf.PdfBookletOptions.Gutter.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfBookletOptions.Gutter.set -> void
-OfficeIMO.Pdf.PdfBookletOptions.Margin.get -> double
+OfficeIMO.Pdf.PdfBookletOptions.Margin.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfBookletOptions.Margin.set -> void
 OfficeIMO.Pdf.PdfBookletOptions.MaxOutputBytes.get -> long
 OfficeIMO.Pdf.PdfBookletOptions.MaxOutputBytes.set -> void
@@ -4882,9 +4882,9 @@ OfficeIMO.Pdf.PdfNUpOptions
 OfficeIMO.Pdf.PdfNUpOptions.AllowSourceFeatureLoss.get -> bool
 OfficeIMO.Pdf.PdfNUpOptions.AllowSourceFeatureLoss.set -> void
 OfficeIMO.Pdf.PdfNUpOptions.Columns.get -> int
-OfficeIMO.Pdf.PdfNUpOptions.HorizontalGutter.get -> double
+OfficeIMO.Pdf.PdfNUpOptions.HorizontalGutter.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfNUpOptions.HorizontalGutter.set -> void
-OfficeIMO.Pdf.PdfNUpOptions.Margin.get -> double
+OfficeIMO.Pdf.PdfNUpOptions.Margin.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfNUpOptions.Margin.set -> void
 OfficeIMO.Pdf.PdfNUpOptions.MaxOutputBytes.get -> long
 OfficeIMO.Pdf.PdfNUpOptions.MaxOutputBytes.set -> void
@@ -4897,7 +4897,7 @@ OfficeIMO.Pdf.PdfNUpOptions.Rows.get -> int
 OfficeIMO.Pdf.PdfNUpOptions.SheetSize.get -> OfficeIMO.Pdf.PdfPageSize
 OfficeIMO.Pdf.PdfNUpOptions.SignaturePolicy.get -> OfficeIMO.Pdf.PdfImpositionSignaturePolicy
 OfficeIMO.Pdf.PdfNUpOptions.SignaturePolicy.set -> void
-OfficeIMO.Pdf.PdfNUpOptions.VerticalGutter.get -> double
+OfficeIMO.Pdf.PdfNUpOptions.VerticalGutter.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfNUpOptions.VerticalGutter.set -> void
 OfficeIMO.Pdf.PdfNamedDestination
 OfficeIMO.Pdf.PdfNamedDestination.DestinationBottom.get -> double?
@@ -5604,7 +5604,7 @@ OfficeIMO.Pdf.PdfPageResizeMode.Stretch = 2 -> OfficeIMO.Pdf.PdfPageResizeMode
 OfficeIMO.Pdf.PdfPageResizeOptions
 OfficeIMO.Pdf.PdfPageResizeOptions.CancellationToken.get -> System.Threading.CancellationToken
 OfficeIMO.Pdf.PdfPageResizeOptions.CancellationToken.set -> void
-OfficeIMO.Pdf.PdfPageResizeOptions.Margin.get -> double
+OfficeIMO.Pdf.PdfPageResizeOptions.Margin.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfPageResizeOptions.Margin.set -> void
 OfficeIMO.Pdf.PdfPageResizeOptions.Mode.get -> OfficeIMO.Pdf.PdfPageResizeMode
 OfficeIMO.Pdf.PdfPageResizeOptions.Mode.set -> void

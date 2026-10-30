@@ -1,6 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Placement, appearance, and mutation policy for a stamp annotation added to an existing PDF page.</summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfStampAnnotationOptions {
     /// <summary>Cancels input reading, PDF processing, and output publication for this operation.</summary>
     public System.Threading.CancellationToken CancellationToken { get; set; }
@@ -9,16 +10,16 @@ public sealed class PdfStampAnnotationOptions {
     /// <summary>One-based target page number.</summary>
     public int PageNumber { get; set; } = 1;
 
-    /// <summary>Left edge in PDF points.</summary>
+    /// <summary>Left edge in page user-space units.</summary>
     public double X { get; set; } = 36D;
 
-    /// <summary>Bottom edge in PDF points.</summary>
+    /// <summary>Bottom edge in page user-space units.</summary>
     public double Y { get; set; } = 36D;
 
-    /// <summary>Annotation width in PDF points.</summary>
+    /// <summary>Annotation width in page user-space units.</summary>
     public double Width { get; set; } = 144D;
 
-    /// <summary>Annotation height in PDF points.</summary>
+    /// <summary>Annotation height in page user-space units.</summary>
     public double Height { get; set; } = 48D;
 
     /// <summary>Standard or custom PDF stamp name, for example Approved, Draft, or TopSecret.</summary>
@@ -42,7 +43,7 @@ public sealed class PdfStampAnnotationOptions {
     /// <summary>Optional appearance fill color.</summary>
     public global::OfficeIMO.OfficeColor? FillColor { get; set; }
 
-    /// <summary>Border width in PDF points.</summary>
+    /// <summary>Border width in page user-space units.</summary>
     public double BorderWidth { get; set; } = 2D;
 
     /// <summary>Optional PNG or JPEG appearance. When set, the stamp displays this image instead of its text label. This is a visual annotation, not a cryptographic signature.</summary>

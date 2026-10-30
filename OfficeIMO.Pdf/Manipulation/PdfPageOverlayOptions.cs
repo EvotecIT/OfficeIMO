@@ -3,6 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Controls placement of a source PDF page imported as a Form XObject onto target pages.</summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfPageOverlayOptions {
     /// <summary>Cancels input reading, PDF processing, and output publication for this operation.</summary>
     public System.Threading.CancellationToken CancellationToken { get; set; }
@@ -57,13 +58,13 @@ public sealed class PdfPageOverlayOptions {
             _verticalAlignment = value;
         }
     }
-    /// <summary>Optional target rectangle X coordinate in points.</summary>
+    /// <summary>Optional target rectangle X coordinate in page user-space units.</summary>
     public double? X { get => _x; set { ValidateOptionalFinite(value, nameof(X)); _x = value; } }
-    /// <summary>Optional target rectangle Y coordinate in points.</summary>
+    /// <summary>Optional target rectangle Y coordinate in page user-space units.</summary>
     public double? Y { get => _y; set { ValidateOptionalFinite(value, nameof(Y)); _y = value; } }
-    /// <summary>Optional target rectangle width in points.</summary>
+    /// <summary>Optional target rectangle width in page user-space units.</summary>
     public double? Width { get => _width; set { ValidateOptionalPositive(value, nameof(Width)); _width = value; } }
-    /// <summary>Optional target rectangle height in points.</summary>
+    /// <summary>Optional target rectangle height in page user-space units.</summary>
     public double? Height { get => _height; set { ValidateOptionalPositive(value, nameof(Height)); _height = value; } }
     /// <summary>Imported page opacity from 0 through 1.</summary>
     public double Opacity {

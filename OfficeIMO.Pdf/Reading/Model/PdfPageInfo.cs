@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Basic geometry and identity information for a page in a PDF document.
 /// </summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfPageInfo {
     internal PdfPageInfo(int pageNumber, double width, double height, int rotationDegrees = 0, PdfPageGeometry? geometry = null, IReadOnlyList<PdfLinkAnnotation>? linkAnnotations = null, IReadOnlyList<PdfFormWidget>? formWidgets = null, IReadOnlyList<PdfAnnotation>? annotations = null, IReadOnlyList<PdfPageAction>? pageActions = null) {
         PageNumber = pageNumber;
@@ -19,10 +20,10 @@ public sealed class PdfPageInfo {
     /// <summary>One-based page number in document order.</summary>
     public int PageNumber { get; }
 
-    /// <summary>Page width in PDF points.</summary>
+    /// <summary>Page width in page user-space units.</summary>
     public double Width { get; }
 
-    /// <summary>Page height in PDF points.</summary>
+    /// <summary>Page height in page user-space units.</summary>
     public double Height { get; }
 
     /// <summary>Inherited page rotation in degrees.</summary>
@@ -88,8 +89,8 @@ public sealed class PdfPageInfo {
     /// <summary>True when at least one simple AcroForm widget annotation was read on this page.</summary>
     public bool HasFormWidgets => FormWidgets.Count > 0;
 
-    /// <summary>Page size in PDF points.</summary>
-    public PdfPageSize Size => new PdfPageSize(OfficeIMO.OfficeLength.Points(Width),OfficeIMO.OfficeLength.Points(Height));
+    /// <summary>Physical page size after /UserUnit scaling, before rotation.</summary>
+    public PdfPageSize Size => new PdfPageSize(OfficeIMO.OfficeLength.Points(Width * (UserUnit ?? 1D)), OfficeIMO.OfficeLength.Points(Height * (UserUnit ?? 1D)));
 
     /// <summary>True when the page is wider than it is tall.</summary>
     public bool IsLandscape => Width > Height;

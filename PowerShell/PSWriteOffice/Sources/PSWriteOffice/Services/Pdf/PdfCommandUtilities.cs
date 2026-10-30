@@ -358,7 +358,7 @@ internal static class PdfCommandUtilities
 
         if (margin.HasValue)
         {
-            options.Margin = margin.Value;
+            options.Margin = OfficeIMO.OfficeLength.Points(margin.Value);
         }
 
         return options;

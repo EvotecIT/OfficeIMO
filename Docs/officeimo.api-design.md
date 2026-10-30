@@ -60,6 +60,7 @@ OfficeLength.Parse("2.5cm")        // invariant culture
 - Public methods never take raw EMUs, twips or half-points, and parameter names never carry a unit suffix (`Width`, not `WidthCm` or `HeightPixels`).
 - Word line spacing uses `WordLineSpacing`: `Multiple(double)` retains automatic line counts, while `Exact(OfficeLength)` and `AtLeast(OfficeLength)` carry physical heights. The rule and value are assigned together. Relative table widths also need a Word-owned value that distinguishes a physical length, a percentage, Auto and Nil; a standalone `OfficeLength` cannot represent them.
 - Excel column widths and row heights are the exception: Excel measures columns in characters of the default font. They take an `ExcelColumnWidth` (characters, or a length converted through the workbook's default font).
+- PDF native read/edit geometry deliberately remains numeric in the source page's default user space. One unit is `/UserUnit` physical points (1/72 inch each), defaulting to one point. This preserves source coordinates, matrices, form/annotation appearances and editing tolerances. Explicit visual projections also remain numeric and document their top-left physical-point coordinate system after crop, rotation and `/UserUnit` scaling. Physical authoring, stamps and output-sheet dimensions use `OfficeLength`.
 
 In PowerShell a length parameter accepts a number, meaning points, or a value with a unit. PowerShell passes unit values unquoted as strings, so `-Width 5cm`, `-SpacingBefore 12pt`, `-Margin 1in` and `-Width 140` all work as written.
 

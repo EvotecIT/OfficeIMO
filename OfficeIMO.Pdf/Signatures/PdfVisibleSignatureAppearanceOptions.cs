@@ -3,6 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Visible signature widget and dependency-free appearance-stream settings.</summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfVisibleSignatureAppearanceOptions {
     private int _pageNumber = 1;
     private double _width = 180;
@@ -18,19 +19,19 @@ public sealed class PdfVisibleSignatureAppearanceOptions {
         set => _pageNumber = value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(value), "Page number must be positive.");
     }
 
-    /// <summary>Left edge in PDF points.</summary>
+    /// <summary>Left edge in page user-space units.</summary>
     public double X { get; set; } = 36;
 
-    /// <summary>Bottom edge in PDF points.</summary>
+    /// <summary>Bottom edge in page user-space units.</summary>
     public double Y { get; set; } = 36;
 
-    /// <summary>Widget width in PDF points.</summary>
+    /// <summary>Widget width in page user-space units.</summary>
     public double Width {
         get => _width;
         set => _width = ValidatePositive(value, nameof(value));
     }
 
-    /// <summary>Widget height in PDF points.</summary>
+    /// <summary>Widget height in page user-space units.</summary>
     public double Height {
         get => _height;
         set => _height = ValidatePositive(value, nameof(value));
@@ -45,7 +46,7 @@ public sealed class PdfVisibleSignatureAppearanceOptions {
     /// <summary>Embedded TrueType font required when ShowText is true. Text appearances never use an unembedded fallback font.</summary>
     public PdfEmbeddedFont? Font { get; set; }
 
-    /// <summary>Appearance font size in points.</summary>
+    /// <summary>Appearance font size in page user-space units.</summary>
     public double FontSize {
         get => _fontSize;
         set => _fontSize = ValidatePositive(value, nameof(value));
@@ -91,7 +92,7 @@ public sealed class PdfVisibleSignatureAppearanceOptions {
     /// <summary>How the image is fitted into the padded signature rectangle.</summary>
     public OfficeImageFit ImageFit { get; set; } = OfficeImageFit.Contain;
 
-    /// <summary>Padding between the image and the signature rectangle edges, in PDF points.</summary>
+    /// <summary>Padding between the image and the signature rectangle edges, in page user-space units.</summary>
     public double ImagePadding {
         get => _imagePadding;
         set => _imagePadding = ValidateNonNegative(value, nameof(value));

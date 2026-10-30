@@ -502,6 +502,7 @@ public sealed class PdfFormFieldOption {
 /// <summary>
 /// Simple AcroForm widget annotation geometry read from a PDF document.
 /// </summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfFormWidget {
     private const int InvisibleFlag = 1;
     private const int HiddenFlag = 2;
@@ -539,22 +540,22 @@ public sealed class PdfFormWidget {
     /// <summary>One-based page number containing the widget annotation, when known.</summary>
     public int? PageNumber { get; }
 
-    /// <summary>Left edge of the widget rectangle in PDF points.</summary>
+    /// <summary>Left edge of the widget rectangle in page user-space units.</summary>
     public double X1 { get; }
 
-    /// <summary>Bottom edge of the widget rectangle in PDF points.</summary>
+    /// <summary>Bottom edge of the widget rectangle in page user-space units.</summary>
     public double Y1 { get; }
 
-    /// <summary>Right edge of the widget rectangle in PDF points.</summary>
+    /// <summary>Right edge of the widget rectangle in page user-space units.</summary>
     public double X2 { get; }
 
-    /// <summary>Top edge of the widget rectangle in PDF points.</summary>
+    /// <summary>Top edge of the widget rectangle in page user-space units.</summary>
     public double Y2 { get; }
 
-    /// <summary>Rectangle width in PDF points.</summary>
+    /// <summary>Rectangle width in page user-space units.</summary>
     public double Width => X2 - X1;
 
-    /// <summary>Rectangle height in PDF points.</summary>
+    /// <summary>Rectangle height in page user-space units.</summary>
     public double Height => Y2 - Y1;
 
     /// <summary>Current widget appearance state name from /AS, when present.</summary>

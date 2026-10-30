@@ -3,6 +3,7 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Options for adding a reply to an existing annotation.</summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfAnnotationReplyOptions {
     /// <summary>Cancels PDF processing and review-catalog construction.</summary>
     public CancellationToken CancellationToken { get; set; }

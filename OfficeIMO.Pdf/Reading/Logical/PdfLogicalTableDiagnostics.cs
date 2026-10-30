@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Diagnostic confidence and geometry signals for a normalized logical PDF table.
 /// </summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfLogicalTableDiagnostics {
     internal PdfLogicalTableDiagnostics(
         string detectionKind,
@@ -62,22 +63,22 @@ public sealed class PdfLogicalTableDiagnostics {
     /// <summary>Number of expected source cells that were empty or unavailable.</summary>
     public int MissingCellCount { get; }
 
-    /// <summary>Left edge of the detected table geometry in PDF points.</summary>
+    /// <summary>Left edge of the detected table geometry in page user-space units.</summary>
     public double XStart { get; }
 
-    /// <summary>Right edge of the detected table geometry in PDF points.</summary>
+    /// <summary>Right edge of the detected table geometry in page user-space units.</summary>
     public double XEnd { get; }
 
-    /// <summary>Top baseline coordinate of the detected table geometry in PDF points.</summary>
+    /// <summary>Top baseline coordinate of the detected table geometry in page user-space units.</summary>
     public double YTop { get; }
 
-    /// <summary>Bottom baseline coordinate of the detected table geometry in PDF points.</summary>
+    /// <summary>Bottom baseline coordinate of the detected table geometry in page user-space units.</summary>
     public double YBottom { get; }
 
-    /// <summary>Detected table width in PDF points.</summary>
+    /// <summary>Detected table width in page user-space units.</summary>
     public double Width => Math.Max(0D, XEnd - XStart);
 
-    /// <summary>Detected table height in PDF points.</summary>
+    /// <summary>Detected table height in page user-space units.</summary>
     public double Height => Math.Abs(YTop - YBottom);
 
     /// <summary>True when table and column coordinates were available.</summary>

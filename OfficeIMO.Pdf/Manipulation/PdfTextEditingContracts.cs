@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 namespace OfficeIMO.Pdf;
 
 /// <summary>A rectangular page region in PDF user space, measured from the page bottom-left.</summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfPageRegion {
     /// <summary>Creates a page region.</summary>
     public PdfPageRegion(int pageNumber, double x, double y, double width, double height) {
@@ -20,17 +21,17 @@ public sealed class PdfPageRegion {
 
     /// <summary>One-based page number.</summary>
     public int PageNumber { get; }
-    /// <summary>Left coordinate in PDF points.</summary>
+    /// <summary>Left coordinate in page user-space units.</summary>
     public double X { get; }
-    /// <summary>Bottom coordinate in PDF points.</summary>
+    /// <summary>Bottom coordinate in page user-space units.</summary>
     public double Y { get; }
-    /// <summary>Width in PDF points.</summary>
+    /// <summary>Width in page user-space units.</summary>
     public double Width { get; }
-    /// <summary>Height in PDF points.</summary>
+    /// <summary>Height in page user-space units.</summary>
     public double Height { get; }
-    /// <summary>Right coordinate in PDF points.</summary>
+    /// <summary>Right coordinate in page user-space units.</summary>
     public double Right => X + Width;
-    /// <summary>Top coordinate in PDF points.</summary>
+    /// <summary>Top coordinate in page user-space units.</summary>
     public double Top => Y + Height;
 
     internal PdfRedactionArea ToRedactionArea() => new PdfRedactionArea(PageNumber, X, Y, Width, Height);
@@ -55,6 +56,7 @@ public enum PdfTextRegionWidthPolicy {
 }
 
 /// <summary>Style and bounded-layout overrides for existing-page text editing. Null style values preserve detected style when possible.</summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfTextEditOptions {
     private PdfStandardFont? _font;
     private double? _fontSize;
@@ -75,7 +77,7 @@ public sealed class PdfTextEditOptions {
         }
     }
 
-    /// <summary>Font size in points. Null preserves the detected size or uses 12 points for new text.</summary>
+    /// <summary>Font size in page user-space units. Null preserves the detected size or uses 12 points for new text.</summary>
     public double? FontSize {
         get => _fontSize;
         set {
@@ -135,6 +137,7 @@ public sealed class PdfTextEditOptions {
 }
 
 /// <summary>Text and dominant style detected inside a page region.</summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfRegionText {
     internal PdfRegionText(string text, IReadOnlyList<PdfTextSpan> spans, PdfStandardFont suggestedFont, string? sourceFont, double fontSize, global::OfficeIMO.OfficeColor color, double rotationDegrees, double baselineX, double baselineY) {
         Text = text;
@@ -156,7 +159,7 @@ public sealed class PdfRegionText {
     public PdfStandardFont SuggestedFont { get; }
     /// <summary>Original PDF base-font name when available.</summary>
     public string? SourceFont { get; }
-    /// <summary>Dominant font size in points.</summary>
+    /// <summary>Dominant font size in page user-space units.</summary>
     public double FontSize { get; }
     /// <summary>Dominant text color.</summary>
     public global::OfficeIMO.OfficeColor Color { get; }
@@ -192,6 +195,7 @@ public sealed class PdfTextSearchOptions {
 }
 
 /// <summary>One located text occurrence in PDF user space.</summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfTextMatch {
     internal PdfTextMatch(int pageNumber, string text, double x, double y, double width, double height, double fontSize, PdfStandardFont suggestedFont, string? sourceFont, global::OfficeIMO.OfficeColor color, double rotationDegrees, PdfSelectionQuad visualBounds, bool usesTextRenderingMode3 = false, IReadOnlyList<PdfSelectionQuad>? visualLineBounds = null) {
         PageNumber = pageNumber; Text = text; X = x; Y = y; Width = width; Height = height; FontSize = fontSize; SuggestedFont = suggestedFont; SourceFont = sourceFont; Color = color; RotationDegrees = rotationDegrees;
@@ -204,13 +208,13 @@ public sealed class PdfTextMatch {
     public int PageNumber { get; }
     /// <summary>Matched text as searched: whitespace runs and line breaks read as single spaces, and a word hyphenated at a line end reads either joined or with its hyphen.</summary>
     public string Text { get; }
-    /// <summary>Left coordinate in PDF points. <see cref="X"/>, <see cref="Y"/>, <see cref="Width"/>, and <see cref="Height"/> bound the whole occurrence, including every line of a wrapped occurrence.</summary>
+    /// <summary>Left coordinate in page user-space units. <see cref="X"/>, <see cref="Y"/>, <see cref="Width"/>, and <see cref="Height"/> bound the whole occurrence, including every line of a wrapped occurrence.</summary>
     public double X { get; }
-    /// <summary>Bottom coordinate in PDF points.</summary>
+    /// <summary>Bottom coordinate in page user-space units.</summary>
     public double Y { get; }
-    /// <summary>Width in PDF points.</summary>
+    /// <summary>Width in page user-space units.</summary>
     public double Width { get; }
-    /// <summary>Height in PDF points.</summary>
+    /// <summary>Height in page user-space units.</summary>
     public double Height { get; }
     /// <summary>Source font size.</summary>
     public double FontSize { get; }

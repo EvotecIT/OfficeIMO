@@ -25,6 +25,7 @@ public enum PdfUnderstandingSemanticKind {
 }
 
 /// <summary>Page and option context shared by understanding stages.</summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfUnderstandingPageContext {
     private readonly PdfUnderstandingWorkBudget _workBudget;
 
@@ -47,9 +48,9 @@ public sealed class PdfUnderstandingPageContext {
     public PdfReadPage Page { get; }
     /// <summary>One-based source page number.</summary>
     public int PageNumber { get; }
-    /// <summary>Page width in PDF points.</summary>
+    /// <summary>Page width in page user-space units.</summary>
     public double Width { get; private set; }
-    /// <summary>Page height in PDF points.</summary>
+    /// <summary>Page height in page user-space units.</summary>
     public double Height { get; private set; }
     /// <summary>Layout options supplied to the pipeline.</summary>
     public PdfTextLayoutOptions LayoutOptions { get; }
@@ -95,6 +96,7 @@ public sealed class PdfUnderstandingPageContext {
 }
 
 /// <summary>One decoded word candidate with source-run traceability.</summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfUnderstandingWord {
     // Positioned OCR geometry describes selection boxes, rather than typographic baselines.
     internal bool IsSelectionBox { get; set; }
@@ -105,11 +107,11 @@ public sealed class PdfUnderstandingWord {
     }
     /// <summary>Decoded word text.</summary>
     public string Text { get; }
-    /// <summary>Left bound in PDF points.</summary>
+    /// <summary>Left bound in page user-space units.</summary>
     public double XStart { get; }
-    /// <summary>Right bound in PDF points.</summary>
+    /// <summary>Right bound in page user-space units.</summary>
     public double XEnd { get; }
-    /// <summary>Baseline Y in PDF points.</summary>
+    /// <summary>Baseline Y in page user-space units.</summary>
     public double BaselineY { get; }
     /// <summary>Representative font size.</summary>
     public double FontSize { get; }
@@ -130,6 +132,7 @@ public sealed class PdfUnderstandingWord {
 }
 
 /// <summary>One grouped text line.</summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfUnderstandingLine {
     /// <summary>Creates a line from words in local reading order.</summary>
     public PdfUnderstandingLine(IReadOnlyList<PdfUnderstandingWord> words, double? confidence = null, IEnumerable<PdfInferenceEvidence>? evidence = null)
@@ -204,6 +207,7 @@ public sealed class PdfUnderstandingLine {
 }
 
 /// <summary>One page-segmentation region containing related lines.</summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfUnderstandingRegion {
     /// <summary>Creates a segmented region from lines in local reading order.</summary>
     public PdfUnderstandingRegion(IReadOnlyList<PdfUnderstandingLine> lines, double? confidence = null, IEnumerable<PdfInferenceEvidence>? evidence = null) {

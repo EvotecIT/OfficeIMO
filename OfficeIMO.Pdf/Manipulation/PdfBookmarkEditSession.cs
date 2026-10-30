@@ -1,6 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Editable existing-document bookmark node.</summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfBookmarkNode {
     private readonly List<PdfBookmarkNode> _children = new List<PdfBookmarkNode>();
     internal PdfBookmarkNode(string id, string title, int pageNumber, double? top, bool expanded, PdfOpenActionDestinationMode? mode = null, double? left = null, double? bottom = null, double? right = null, double? zoom = null) { Id = id; Title = title; PageNumber = pageNumber; DestinationTop = top; IsExpanded = expanded; DestinationMode = mode ?? PdfOpenActionDestinationMode.Xyz; DestinationLeft = left; DestinationBottom = bottom; DestinationRight = right; DestinationZoom = zoom; }
@@ -30,6 +31,7 @@ public sealed class PdfBookmarkNode {
 }
 
 /// <summary>Transactional add/remove/rename/move/nest/retarget/rebuild surface for existing bookmarks.</summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfBookmarkEditSession {
     private readonly List<PdfBookmarkNode> _roots;
     private readonly PdfDocumentReadResult _logical;

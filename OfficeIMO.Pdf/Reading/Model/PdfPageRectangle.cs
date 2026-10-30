@@ -1,6 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Immutable rectangle in PDF default user-space coordinates measured from the page bottom-left.</summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfPageRectangle {
     /// <summary>Creates a normalized PDF page rectangle.</summary>
     public PdfPageRectangle(double left, double bottom, double right, double top) {

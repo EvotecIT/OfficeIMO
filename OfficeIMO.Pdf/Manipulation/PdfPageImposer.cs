@@ -157,8 +157,8 @@ internal static class PdfPageImposer {
             int slot = index % cellsPerSheet;
             int row = slot / options.Columns;
             int column = slot % options.Columns;
-            double x = options.Margin + column * (cellWidth + options.HorizontalGutter);
-            double y = options.SheetSize.Height.ToPoints() - options.Margin - (row + 1) * cellHeight - row * options.VerticalGutter;
+            double x = options.Margin.ToPoints() + column * (cellWidth + options.HorizontalGutter.ToPoints());
+            double y = options.SheetSize.Height.ToPoints() - options.Margin.ToPoints() - (row + 1) * cellHeight - row * options.VerticalGutter.ToPoints();
             var cell = new PdfPageRectangle(x, y, x + cellWidth, y + cellHeight);
             placements.Add(new PdfImpositionPlacement(sourcePage, sheet, row, column, cell));
             overlays.Add(new PdfPageOverlayOptions {

@@ -66,19 +66,19 @@ public sealed class PdfBatesNumberingOptions {
     public PdfBatesPosition Position { get; set; } = PdfBatesPosition.BottomRight;
 
     /// <summary>Horizontal distance from the selected page edge, in points.</summary>
-    public double HorizontalMargin { get; set; } = 36D;
+    public OfficeLength HorizontalMargin { get; set; } = OfficeIMO.OfficeLength.Points(36D);
 
     /// <summary>Vertical distance from the selected page edge, in points.</summary>
-    public double VerticalMargin { get; set; } = 24D;
+    public OfficeLength VerticalMargin { get; set; } = OfficeIMO.OfficeLength.Points(24D);
 
     /// <summary>Height reserved for the number, in points.</summary>
-    public double Height { get; set; } = 18D;
+    public OfficeLength Height { get; set; } = OfficeIMO.OfficeLength.Points(18D);
 
     /// <summary>Standard PDF font used by the number.</summary>
     public PdfStandardFont Font { get; set; } = PdfStandardFont.Helvetica;
 
     /// <summary>Font size in points.</summary>
-    public double FontSize { get; set; } = 10D;
+    public OfficeLength FontSize { get; set; } = OfficeIMO.OfficeLength.Points(10D);
 
     /// <summary>Text color.</summary>
     public global::OfficeIMO.OfficeColor Color { get; set; } = global::OfficeIMO.OfficeColor.Black;
@@ -244,24 +244,24 @@ public static class PdfBatesNumberer {
         options.Prefix + number.ToString("D" + options.MinimumDigits.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture) + options.Suffix;
 
     private static void AddNumber(PdfPageCanvas canvas, PdfStampPageContext context, string text, PdfBatesNumberingOptions options) {
-        double availableWidth = context.Width.ToPoints() - (2D * options.HorizontalMargin);
-        if (availableWidth <= 0D || options.VerticalMargin + options.Height > context.Height.ToPoints()) {
+        double availableWidth = context.Width.ToPoints() - (2D * options.HorizontalMargin.ToPoints());
+        if (availableWidth <= 0D || options.VerticalMargin.ToPoints() + options.Height.ToPoints() > context.Height.ToPoints()) {
             throw new InvalidOperationException("Bates-number margins leave no drawable page area.");
         }
         if (text.Contains('\r') || text.Contains('\n')) {
             throw new InvalidOperationException("Bates labels must fit on one line and cannot contain line breaks.");
         }
-        double requiredWidth = PdfWriter.EstimateSimpleTextWidth(text, options.Font, options.FontSize);
-        double requiredHeight = options.FontSize * 1.2D;
-        if (requiredWidth > availableWidth + 0.01D || requiredHeight > options.Height + 0.01D) {
+        double requiredWidth = PdfWriter.EstimateSimpleTextWidth(text, options.Font, options.FontSize.ToPoints());
+        double requiredHeight = options.FontSize.ToPoints() * 1.2D;
+        if (requiredWidth > availableWidth + 0.01D || requiredHeight > options.Height.ToPoints() + 0.01D) {
             throw new InvalidOperationException("Bates label does not fit the configured page rectangle.");
         }
         bool top = options.Position is PdfBatesPosition.TopLeft or PdfBatesPosition.TopCenter or PdfBatesPosition.TopRight;
         PdfAlign alignment = options.Position is PdfBatesPosition.BottomCenter or PdfBatesPosition.TopCenter
             ? PdfAlign.Center
             : options.Position is PdfBatesPosition.BottomRight or PdfBatesPosition.TopRight ? PdfAlign.Right : PdfAlign.Left;
-        double y = top ? options.VerticalMargin : context.Height.ToPoints() - options.VerticalMargin - options.Height;
-        canvas.Text(text, global::OfficeIMO.OfficeLength.Points(options.HorizontalMargin), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(availableWidth), global::OfficeIMO.OfficeLength.Points(options.Height), global::OfficeIMO.OfficeLength.Points(options.FontSize), options.Color, alignment, options.Font);
+        double y = top ? options.VerticalMargin.ToPoints() : context.Height.ToPoints() - options.VerticalMargin.ToPoints() - options.Height.ToPoints();
+        canvas.Text(text, options.HorizontalMargin, global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(availableWidth), options.Height, options.FontSize, options.Color, alignment, options.Font);
     }
 
     private static void ValidateOptions(PdfBatesNumberingOptions options) {
@@ -270,7 +270,7 @@ public static class PdfBatesNumberer {
         if (options.Prefix is null || options.Suffix is null) throw new ArgumentException("Bates prefix and suffix cannot be null.", nameof(options));
         if (options.Prefix.Length + options.Suffix.Length > 512) throw new ArgumentException("Bates prefix and suffix are too long.", nameof(options));
         if (options.Position < PdfBatesPosition.BottomLeft || options.Position > PdfBatesPosition.TopRight) throw new ArgumentOutOfRangeException(nameof(options), "Bates position must be a defined value.");
-        if (!IsPositiveFinite(options.HorizontalMargin) || !IsPositiveFinite(options.VerticalMargin) || !IsPositiveFinite(options.Height) || !IsPositiveFinite(options.FontSize)) {
+        if (!IsPositiveFinite(options.HorizontalMargin.ToPoints()) || !IsPositiveFinite(options.VerticalMargin.ToPoints()) || !IsPositiveFinite(options.Height.ToPoints()) || !IsPositiveFinite(options.FontSize.ToPoints())) {
             throw new ArgumentOutOfRangeException(nameof(options), "Bates geometry and font size must be positive finite values.");
         }
         Guard.StandardFont(options.Font, nameof(options), "Bates font must be a supported standard PDF font.");

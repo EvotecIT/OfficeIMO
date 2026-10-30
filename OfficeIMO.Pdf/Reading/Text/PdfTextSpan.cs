@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>
 /// A piece of text extracted from a PDF page with basic font and position info.
-/// Coordinates are in user space units (points) as emitted by content stream Tm/Td.
+/// Coordinates are in the page's native user-space units as emitted by content stream Tm/Td.
 /// </summary>
 public sealed partial class PdfTextSpan {
     /// <summary>Text content of the span.</summary>

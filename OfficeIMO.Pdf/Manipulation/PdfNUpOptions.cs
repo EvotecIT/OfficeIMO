@@ -16,11 +16,11 @@ public sealed class PdfNUpOptions {
     /// <summary>Number of rows, from one through eight.</summary>
     public int Rows { get; }
     /// <summary>Outer sheet margin in PDF points.</summary>
-    public double Margin { get; set; } = 18D;
+    public OfficeLength Margin { get; set; } = OfficeIMO.OfficeLength.Points(18D);
     /// <summary>Horizontal gap between cells in PDF points.</summary>
-    public double HorizontalGutter { get; set; } = 9D;
+    public OfficeLength HorizontalGutter { get; set; } = OfficeIMO.OfficeLength.Points(9D);
     /// <summary>Vertical gap between cells in PDF points.</summary>
-    public double VerticalGutter { get; set; } = 9D;
+    public OfficeLength VerticalGutter { get; set; } = OfficeIMO.OfficeLength.Points(9D);
     /// <summary>Maximum output sheets accepted by one operation.</summary>
     public int MaxSheets { get; set; } = 100;
     /// <summary>Maximum source pages imported by one operation.</summary>
@@ -43,11 +43,11 @@ public sealed class PdfNUpOptions {
         if (SheetSize.Width.ToPoints() <= 0D || SheetSize.Height.ToPoints() <= 0D ||
             double.IsNaN(SheetSize.Width.ToPoints()) || double.IsNaN(SheetSize.Height.ToPoints()) ||
             double.IsInfinity(SheetSize.Width.ToPoints()) || double.IsInfinity(SheetSize.Height.ToPoints())) throw new ArgumentOutOfRangeException(nameof(SheetSize));
-        ValidateNonNegative(Margin, nameof(Margin));
-        ValidateNonNegative(HorizontalGutter, nameof(HorizontalGutter));
-        ValidateNonNegative(VerticalGutter, nameof(VerticalGutter));
-        double width = (SheetSize.Width.ToPoints() - 2D * Margin - (Columns - 1) * HorizontalGutter) / Columns;
-        double height = (SheetSize.Height.ToPoints() - 2D * Margin - (Rows - 1) * VerticalGutter) / Rows;
+        ValidateNonNegative(Margin.ToPoints(), nameof(Margin));
+        ValidateNonNegative(HorizontalGutter.ToPoints(), nameof(HorizontalGutter));
+        ValidateNonNegative(VerticalGutter.ToPoints(), nameof(VerticalGutter));
+        double width = (SheetSize.Width.ToPoints() - 2D * Margin.ToPoints() - (Columns - 1) * HorizontalGutter.ToPoints()) / Columns;
+        double height = (SheetSize.Height.ToPoints() - 2D * Margin.ToPoints() - (Rows - 1) * VerticalGutter.ToPoints()) / Rows;
         if (width <= 0D || height <= 0D) throw new ArgumentException("Sheet margins and gutters leave no drawable cell area.");
         return (width, height);
     }

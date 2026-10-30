@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Simple link annotation read from a PDF page.
 /// </summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfLinkAnnotation {
     internal PdfLinkAnnotation(string uri, string? contents, double x1, double y1, double x2, double y2, int? pageNumber = null) {
         Guard.UriAction(uri, nameof(uri));
@@ -204,22 +205,22 @@ public sealed class PdfLinkAnnotation {
     /// <summary>Optional annotation contents metadata.</summary>
     public string? Contents { get; }
 
-    /// <summary>Left edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Left edge of the annotation rectangle in page user-space units.</summary>
     public double X1 { get; }
 
-    /// <summary>Bottom edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Bottom edge of the annotation rectangle in page user-space units.</summary>
     public double Y1 { get; }
 
-    /// <summary>Right edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Right edge of the annotation rectangle in page user-space units.</summary>
     public double X2 { get; }
 
-    /// <summary>Top edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Top edge of the annotation rectangle in page user-space units.</summary>
     public double Y2 { get; }
 
-    /// <summary>Rectangle width in PDF points.</summary>
+    /// <summary>Rectangle width in page user-space units.</summary>
     public double Width => X2 - X1;
 
-    /// <summary>Rectangle height in PDF points.</summary>
+    /// <summary>Rectangle height in page user-space units.</summary>
     public double Height => Y2 - Y1;
 
     internal PdfLinkAnnotation WithPageNumber(int pageNumber) =>

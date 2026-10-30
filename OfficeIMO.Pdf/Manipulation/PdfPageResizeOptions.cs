@@ -23,7 +23,7 @@ public sealed class PdfPageResizeOptions {
     public PdfPageSize PageSize { get; set; }
 
     /// <summary>Margin in PDF points kept around fitted content.</summary>
-    public double Margin { get; set; }
+    public OfficeLength Margin { get; set; }
 
     /// <summary>Scaling behavior used for the original page content.</summary>
     public PdfPageResizeMode Mode { get; set; } = PdfPageResizeMode.Fit;

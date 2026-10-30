@@ -1,6 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Generic page annotation metadata read from a PDF page.</summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfAnnotation {
     private const int InvisibleFlag = 1;
     private const int HiddenFlag = 2;
@@ -73,24 +74,24 @@ public sealed class PdfAnnotation {
     /// <summary>Optional annotation contents metadata from /Contents.</summary>
     public string? Contents { get; }
 
-    /// <summary>Left edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Left edge of the annotation rectangle in page user-space units.</summary>
     public double X1 { get; }
 
-    /// <summary>Bottom edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Bottom edge of the annotation rectangle in page user-space units.</summary>
     public double Y1 { get; }
 
-    /// <summary>Right edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Right edge of the annotation rectangle in page user-space units.</summary>
     public double X2 { get; }
 
-    /// <summary>Top edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Top edge of the annotation rectangle in page user-space units.</summary>
     public double Y2 { get; }
 
     internal bool HasReadableRectangle { get; }
 
-    /// <summary>Rectangle width in PDF points.</summary>
+    /// <summary>Rectangle width in page user-space units.</summary>
     public double Width => X2 - X1;
 
-    /// <summary>Rectangle height in PDF points.</summary>
+    /// <summary>Rectangle height in page user-space units.</summary>
     public double Height => Y2 - Y1;
 
     /// <summary>True when the annotation dictionary exposes a normal appearance stream through /AP /N.</summary>

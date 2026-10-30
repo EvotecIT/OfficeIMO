@@ -860,7 +860,7 @@ public class PdfITextInspiredCoverageTests {
 
         byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Fill,
-            Margin = 50
+            Margin = OfficeIMO.OfficeLength.Points(50)
         });
         string raw = PdfEncoding.Latin1GetString(resized);
 
@@ -878,7 +878,7 @@ public class PdfITextInspiredCoverageTests {
 
         byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Fill,
-            Margin = 50
+            Margin = OfficeIMO.OfficeLength.Points(50)
         });
         PdfDocumentInfo info = PdfInspector.Inspect(resized);
         string raw = PdfEncoding.Latin1GetString(resized);

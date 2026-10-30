@@ -1,6 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Rectangle requested for redaction planning, using PDF point coordinates from the page bottom-left.</summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfRedactionArea {
     /// <summary>Creates a redaction area.</summary>
     public PdfRedactionArea(int pageNumber, double x, double y, double width, double height, string? label = null)
@@ -61,16 +62,16 @@ public sealed class PdfRedactionArea {
     /// <summary>One-based page number.</summary>
     public int PageNumber { get; }
 
-    /// <summary>Left coordinate in PDF points.</summary>
+    /// <summary>Left coordinate in page user-space units.</summary>
     public double X { get; }
 
-    /// <summary>Bottom coordinate in PDF points.</summary>
+    /// <summary>Bottom coordinate in page user-space units.</summary>
     public double Y { get; }
 
-    /// <summary>Rectangle width in PDF points.</summary>
+    /// <summary>Rectangle width in page user-space units.</summary>
     public double Width { get; }
 
-    /// <summary>Rectangle height in PDF points.</summary>
+    /// <summary>Rectangle height in page user-space units.</summary>
     public double Height { get; }
 
     /// <summary>Optional caller label.</summary>
@@ -82,10 +83,10 @@ public sealed class PdfRedactionArea {
     /// <summary>Visible privacy-appearance policy for this reviewed area.</summary>
     public PdfRedactionAppearanceMode AppearanceMode { get; }
 
-    /// <summary>Right coordinate in PDF points.</summary>
+    /// <summary>Right coordinate in page user-space units.</summary>
     public double Right => X + Width;
 
-    /// <summary>Top coordinate in PDF points.</summary>
+    /// <summary>Top coordinate in page user-space units.</summary>
     public double Top => Y + Height;
 
     /// <summary>Returns this area with a different review label, preserving its geometry and removal policy.</summary>

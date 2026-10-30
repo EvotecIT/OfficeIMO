@@ -108,7 +108,7 @@ public class PdfMergerTests {
         byte[] merged = PdfMerger.Merge(
             new PdfMergeOptions {
                 ResizePages = new PdfPageResizeOptions(PdfPageSizes.A4) {
-                    Margin = 12,
+                    Margin = OfficeIMO.OfficeLength.Points(12),
                     Mode = PdfPageResizeMode.Fit
                 }
             },

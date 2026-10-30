@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Defines the initial destination a PDF viewer should open when displaying a generated document.
 /// </summary>
+/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
 public sealed class PdfOpenActionOptions {
     /// <summary>Creates a generated document open action targeting a one-based page number.</summary>
     public PdfOpenActionOptions(

@@ -151,6 +151,8 @@ public partial class PdfInspectorTests {
         Assert.Equal(230, page.ArtBox.Height);
         Assert.True(page.Geometry.HasNonDefaultBoundaryBoxes);
         Assert.Equal(2, page.UserUnit);
+        Assert.Equal(760D, page.Size.Width.ToPoints());
+        Assert.Equal(520D, page.Size.Height.ToPoints());
         Assert.Equal("S", page.TabOrder);
         Assert.Equal(5, page.DurationSeconds);
         Assert.True(page.Geometry.HasTransition);

@@ -838,7 +838,7 @@ internal static partial class PdfPageEditor {
     }
 
     private static PageResizeTransform CalculateResizeTransform(int pageObjectNumber, double sourceLeft, double sourceBottom, double sourceWidth, double sourceHeight, int rotationDegrees, PdfPageResizeOptions options) {
-        double margin = options.Margin;
+        double margin = options.Margin.ToPoints();
         double availableWidth = options.PageSize.Width.ToPoints() - margin * 2D;
         double availableHeight = options.PageSize.Height.ToPoints() - margin * 2D;
         double visualSourceWidth = rotationDegrees == 90 || rotationDegrees == 270 ? sourceHeight : sourceWidth;
@@ -948,11 +948,11 @@ internal static partial class PdfPageEditor {
     private static void ValidateResizeOptions(PdfPageResizeOptions options) {
         Guard.Positive(options.PageSize.Width.ToPoints(), nameof(options));
         Guard.Positive(options.PageSize.Height.ToPoints(), nameof(options));
-        if (!IsFinite(options.Margin) || options.Margin < 0D) {
+        if (!IsFinite(options.Margin.ToPoints()) || options.Margin.ToPoints() < 0D) {
             throw new ArgumentOutOfRangeException(nameof(options), "Resize margin must be a finite non-negative number.");
         }
 
-        if (options.Margin * 2D >= options.PageSize.Width.ToPoints() || options.Margin * 2D >= options.PageSize.Height.ToPoints()) {
+        if (options.Margin.ToPoints() * 2D >= options.PageSize.Width.ToPoints() || options.Margin.ToPoints() * 2D >= options.PageSize.Height.ToPoints()) {
             throw new ArgumentOutOfRangeException(nameof(options), "Resize margin must leave a positive content area.");
         }
     }
