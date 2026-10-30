@@ -25,9 +25,6 @@ permissions:
   contents: read
 
 env:
-  DOTNET_VERSION: |
-    8.0.x
-    10.0.x
   BUILD_CONFIGURATION: Release
 
 jobs:
@@ -46,7 +43,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
 
       - name: Cache NuGet packages
         uses: actions/cache@v6
@@ -88,7 +86,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
           global-json-file: ${{ hashFiles('global.json') != '' && 'global.json' || '' }}
       - name: Validate optional control revision
         if: inputs.control_source_ref != ''

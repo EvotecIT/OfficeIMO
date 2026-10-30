@@ -4,7 +4,7 @@ PowerForge owns Studio publishing, signing, checksums, portable archives, the ge
 
 Studio restores package versions from the project files without checked-in package locks. Normal development and release builds use the same restore policy, so SDK servicing updates do not require a lock refresh across the referenced libraries. NuGetAudit remains enabled; dependency updates are reviewed through the normal pull-request checks.
 
-`global.json` selects the latest installed stable .NET 10 feature band, with a `10.0.100` floor. CI installs `10.0.x`. Release checksums and signatures apply to the resulting artifacts. Rebuilding on a different SDK can produce different bytes.
+`global.json` selects the latest installed stable .NET 10 feature band, with a `10.0.100` floor. CI reads that policy through `actions/setup-dotnet`; website jobs pass `10.0.x` to the shared PowerForge workflow. Release checksums and signatures apply to the resulting artifacts. Rebuilding on a different SDK can produce different bytes.
 
 CI checks the configured six-runtime, self-contained, single-file restore graph on Windows and Ubuntu. Avalonia's separate telemetry build package is excluded from Studio.
 

@@ -55,9 +55,6 @@ permissions:
   contents: read
 
 env:
-  DOTNET_VERSION: |
-    8.0.x
-    10.0.x
   NODE_VERSION: 24.x
   NPM_AUDIT_LEVEL: moderate
 
@@ -131,7 +128,8 @@ jobs:
         if: ${{ inputs.release_tag == '' }}
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
 
       - name: Setup Node.js
         if: ${{ inputs.release_tag == '' }}

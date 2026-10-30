@@ -16,9 +16,6 @@ on:
   workflow_dispatch:
 
 env:
-  DOTNET_VERSION: |
-    8.0.x
-    10.0.x
   BUILD_CONFIGURATION: 'Debug'
 
 defaults:
@@ -51,7 +48,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Install PowerShell modules
@@ -81,7 +79,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Install PowerShell modules
@@ -121,7 +120,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Install PowerShell modules
@@ -174,7 +174,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Install PowerShell modules
@@ -204,7 +205,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Install PowerShell modules
