@@ -10,6 +10,26 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LegacyDoc_RejectsDeepNoteReferenceStyleChains(bool endnote) {
+        using var document = WordDocument.Create();
+        WordParagraph paragraph = document.AddParagraph("Note marker");
+        if (endnote) paragraph.AddEndNote("Note body"); else paragraph.AddFootNote("Note body");
+        Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        Style reference = styles.Elements<Style>().Single(style => style.StyleId == (endnote ? "EndnoteReference" : "FootnoteReference"));
+        reference.BasedOn = new BasedOn { Val = "DeepNote255" };
+        for (int index = 0; index < 256; index++) {
+            var style = new Style { Type = StyleValues.Character, StyleId = "DeepNote" + index };
+            if (index > 0) style.BasedOn = new BasedOn { Val = "DeepNote" + (index - 1) };
+            styles.Append(style);
+        }
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.ToBytes(WordFileFormat.Doc));
+        Assert.Contains("note reference style chains", exception.Message);
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
     [InlineData(true, false)]
