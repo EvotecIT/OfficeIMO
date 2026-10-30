@@ -93,10 +93,36 @@ internal sealed class PublisherEscherReader {
         if (id != 0) {
             if (!_shapeIds.Add(id)) throw new InvalidDataException("Duplicate Publisher OfficeArt object identifier.");
             if (_result.Shapes.Count >= _context.Options.Limits.MaxItems) throw new InvalidDataException("Publisher drawing object limit exceeded.");
+            shape.NativeBinding = Binding(record, fsp, client!, anchor, children, id);
             _result.Shapes.Add(shape);
         }
         // The root group leader may define a coordinate system without a publication object ID.
         return shape;
+    }
+    private PublisherNativeShapeBinding Binding(PublisherEscherRecord container, PublisherEscherRecord fsp,
+        PublisherEscherRecord client, PublisherEscherRecord? anchor, IReadOnlyList<PublisherEscherRecord> children, uint id) {
+        PublisherNativeValueSlot ClientSlot(PublisherEscherRecord record, ushort key) {
+            for (int position = record.Offset + 4; position < record.End; position += 6)
+                if (_data.U16(position) == key) return new PublisherNativeValueSlot(position + 2, _data.U32(position + 2));
+            throw new InvalidDataException("Publisher native binding has no required client property.");
+        }
+        var coordinates = new List<PublisherNativeValueSlot>();
+        if (anchor != null) {
+            // ClientValues already validated this record while decoding placement.
+            ushort[] keys = { 0x2001, 0x2002, 0x2003, 0x2004 };
+            if (keys.All(key => Enumerable.Range(0, (anchor.Length - 4) / 6).Any(index => _data.U16(anchor.Offset + 4 + index * 6) == key)))
+                foreach (ushort key in keys) coordinates.Add(ClientSlot(anchor, key));
+        }
+        var slots = new List<PublisherNativePropertySlot>();
+        foreach (PublisherEscherRecord table in children.Where(item => item.Kind is 0xF00B or 0xF122))
+            for (int index = 0; index < (table.Initial >> 4); index++) {
+                int position = table.Offset + index * 6;
+                ushort operation = _data.U16(position), property = (ushort)(operation & 0x3FFF);
+                if (property is 0x0181 or 0x0182 or 0x01C0 or 0x01C1 or 0x01CB)
+                    slots.Add(new PublisherNativePropertySlot(operation, new PublisherNativeValueSlot(position + 2, _data.U32(position + 2))));
+            }
+        return new PublisherNativeShapeBinding(id, _data.U32(fsp.Offset), container.Offset, container.Length, fsp.Offset,
+            ClientSlot(client, 0x6801), coordinates.ToArray(), slots);
     }
     private IReadOnlyList<OfficeArtProperty> ReadProperties(IReadOnlyList<PublisherEscherRecord> children) {
         var result = new List<OfficeArtProperty>();
@@ -219,6 +245,7 @@ internal sealed class PublisherEscherShape {
     internal uint Id { get; }
     internal int Type { get; }
     internal uint Flags { get; }
+    internal PublisherNativeShapeBinding? NativeBinding { get; set; }
     internal bool IsGroup => (Flags & 1) != 0;
     internal bool HasParentDrawingSpace { get; }
     internal bool HasPublicationGroupParent { get; set; }

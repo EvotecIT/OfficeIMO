@@ -1,4 +1,3 @@
-using OfficeIMO.Core.Internal;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.Internal;
@@ -14,8 +13,8 @@ internal sealed partial class PublisherModelState {
     internal PublisherModelState(PublisherContents contents, PublisherQuillText text, PublisherEscherData artwork,
         PublisherParseContext decoded, PublisherNativeSource nativeSource, PublisherReadReport? sourceReport = null,
         PublisherPublicationState? publication = null) {
-        _imported = new PublisherImportedResidue(contents, artwork, nativeSource); _decoded = decoded;
         _publication = publication ?? PublisherModelImporter.Import(contents, text, artwork, decoded);
+        _imported = new PublisherImportedResidue(contents, artwork, nativeSource, _publication); _decoded = decoded;
         _sourceReport = sourceReport ?? new PublisherReadReport(decoded.Diagnostics, contents.Shapes.Count, 0,
             text.Stories.Count, artwork.Images.Count, decoded.Records);
     }
@@ -30,6 +29,9 @@ internal sealed partial class PublisherModelState {
             new PublisherReadReport(Array.Empty<OfficeConversionFidelityDiagnostic>(), 0, 0, 0, 0, 0));
 
     private int SourceObjectCount => _imported?.Contents.Shapes.Count ?? 0;
+
+    internal PublisherNativePreparation PrepareNativeBytes(long maximumBytes, CancellationToken token) =>
+        PublisherNativeWriter.Prepare(_publication, _imported, _decoded.Options.Limits, maximumBytes, token);
 
     internal PublisherDocument Project(CancellationToken token) {
         token.ThrowIfCancellationRequested();
@@ -65,14 +67,4 @@ internal sealed partial class PublisherModelState {
 
     private PublisherModelState WithPublication(PublisherPublicationState publication) =>
         new(publication, _decoded, _sourceReport, _imported);
-}
-
-// Owned source storage is private to the model. Retention is not a native-save
-// or unknown-record preservation claim; those operations need separate proof.
-internal sealed class PublisherNativeSource {
-    private readonly byte[] _bytes;
-    private readonly OfficeCompoundFile _compound;
-    internal PublisherNativeSource(byte[] bytes, OfficeCompoundFile compound) { _bytes = (byte[])bytes.Clone(); _compound = compound; }
-    internal int ByteLength => _bytes.Length;
-    internal int StreamCount => _compound.Streams.Count;
 }

@@ -1,0 +1,144 @@
+using OfficeIMO.Drawing;
+
+namespace OfficeIMO.Publisher.Internal;
+
+internal sealed partial class PublisherNativeWriter {
+    private void Compare() {
+        if (!PagesEqual() || !MapEqual(_baseline.ObjectOwners, _current.ObjectOwners, (a, b) => a == b)
+            || !SameKeys(_baseline.Text.Frames, _current.Text.Frames) || !SameKeys(_baseline.Shapes, _current.Shapes)
+            || !SameKeys(_baseline.Pictures, _current.Pictures) || !SameKeys(_baseline.Tables, _current.Tables)) {
+            Reject("Contents", "Page/master topology, object ownership, order or object identities changed. Authored objects have no native records in this operation."); return;
+        }
+        if (!MapEqual(_baseline.Text.Stories, _current.Text.Stories, StoryEqual)
+            || !MapEqual(_baseline.Text.Chains, _current.Text.Chains, (a, b) => a.SequenceEqual(b))
+            || !MapEqual(_baseline.Text.TableStories, _current.Text.TableStories, (a, b) => ReferenceEquals(a, b)
+                || a.Segments.Count == b.Segments.Count && a.Segments.Zip(b.Segments, StoryEqual).All(value => value))
+            || !MapEqual(_baseline.TableStoryReferences, _current.TableStoryReferences, (a, b) => a == b))
+            Reject("Quill", "Stories, formatting, terminator conventions, frame chains or table story ownership changed. Quill rewriting is unavailable.");
+        if (!MapEqual(_baseline.Text.WrapInfo, _current.Text.WrapInfo, (a, b) => Equals(a, b))
+            || !MapEqual(_baseline.Text.ImportedObstacles, _current.Text.ImportedObstacles, (a, b) => Equals(a, b)))
+            Reject("Contents", "Native wrap intent or unsupported artwork placement changed.");
+        if (!MapEqual(_baseline.Images, _current.Images, (a, b) => ReferenceEquals(a, b)
+            || a.Id == b.Id && a.ContentType == b.ContentType && a.Bytes.SequenceEqual(b.Bytes)))
+            Reject("Escher/images", "Embedded asset identities or bytes changed. Image-store rewriting is unavailable.");
+        foreach (var entry in _baseline.Tables) {
+            _token.ThrowIfCancellationRequested();
+            if (!TableEqual(entry.Value, _current.Tables[entry.Key]))
+                Reject("Contents/object/" + entry.Key, "Table placement, tracks, cells or paint changed. Native table rewriting is unavailable.");
+        }
+        foreach (var entry in _baseline.Text.Frames) CompareFrame(entry.Value, _current.Text.Frames[entry.Key]);
+        foreach (var entry in _baseline.Pictures) ComparePicture(entry.Value, _current.Pictures[entry.Key]);
+        foreach (var entry in _baseline.Shapes) CompareShape(entry.Value, _current.Shapes[entry.Key]);
+    }
+
+    private bool PagesEqual() => _baseline.Pages.Count == _current.Pages.Count
+        && _baseline.Pages.Zip(_current.Pages, (a, b) => ReferenceEquals(a, b)
+            || a.Id == b.Id && a.Name == b.Name && a.IsMaster == b.IsMaster && a.HasNativeOrigin == b.HasNativeOrigin
+            && a.Width == b.Width && a.Height == b.Height && a.MasterPageId == b.MasterPageId
+            && a.RegistrationX == b.RegistrationX && a.RegistrationY == b.RegistrationY
+            && a.SupportsPlacementEditing == b.SupportsPlacementEditing && a.HasUnassessedBackground == b.HasUnassessedBackground
+            && a.FrameEditRange == b.FrameEditRange && a.ObjectIds.SequenceEqual(b.ObjectIds)).All(value => value);
+
+    private void CompareFrame(PublisherFrameState a, PublisherFrameState b) {
+        _token.ThrowIfCancellationRequested();
+        if (ReferenceEquals(a, b)) return;
+        if (a.Id != b.Id || a.StoryId != b.StoryId || a.PageId != b.PageId || a.HasAnchor != b.HasAnchor
+            || a.TransformAvailable != b.TransformAvailable || a.Hidden != b.Hidden || a.Drawable != b.Drawable
+            || a.CanEditBounds != b.CanEditBounds || a.SupportsContinuation != b.SupportsContinuation || a.IsAuthored != b.IsAuthored
+            || a.ColumnCount != b.ColumnCount || a.ColumnSpacing != b.ColumnSpacing || !a.Padding.Equals(b.Padding)
+            || a.VerticalAlignment != b.VerticalAlignment || a.EditRange != b.EditRange || !a.WrapObjectIds.SequenceEqual(b.WrapObjectIds)) {
+            Reject("Contents/object/" + a.Id, "A frame input other than its bounds changed."); return;
+        }
+        if (SameBounds(a.X, a.Y, a.Width, a.Height, b.X, b.Y, b.Width, b.Height) && a.PageTransform == b.PageTransform) return;
+        if (!a.CanEditBounds || b.PageTransform != OfficeTransform.Translate(b.X, b.Y)) {
+            Reject("Contents/object/" + a.Id, "The frame has no qualified untransformed native bounds edit."); return;
+        }
+        Bounds(a.Id, a.PageId, b.X, b.Y, b.Width, b.Height);
+    }
+
+    private void ComparePicture(PublisherPicture a, PublisherPicture b) {
+        _token.ThrowIfCancellationRequested();
+        if (ReferenceEquals(a, b)) return;
+        if (a.Id != b.Id || a.PageId != b.PageId || a.ImageId != b.ImageId || !a.Crop.Equals(b.Crop)
+            || a.HasPlacement != b.HasPlacement || a.CanEdit != b.CanEdit || a.EditLimitation != b.EditLimitation || a.IsAuthored != b.IsAuthored
+            || !a.CanEdit || !ShapeEqual(PublisherShapeGeometry.Resize(a.CreatePaint(), b.Width, b.Height), b.CreatePaint())) {
+            Reject("Contents/object/" + a.Id, "Picture asset binding, crop, paint or unsupported placement changed."); return;
+        }
+        if (SameBounds(a.X, a.Y, a.Width, a.Height, b.X, b.Y, b.Width, b.Height) && a.PageTransform == b.PageTransform) return;
+        if (b.PageTransform != OfficeTransform.Translate(b.X, b.Y)) {
+            Reject("Contents/object/" + a.Id, "The picture has no qualified untransformed native bounds edit."); return;
+        }
+        Bounds(a.Id, a.PageId, b.X, b.Y, b.Width, b.Height);
+    }
+
+    private void CompareShape(PublisherShape a, PublisherShape b) {
+        _token.ThrowIfCancellationRequested();
+        if (ReferenceEquals(a, b)) return;
+        if (a.Id != b.Id || a.PageId != b.PageId || a.HasPlacement != b.HasPlacement || a.EditLimitation != b.EditLimitation
+            || a.IsAuthored != b.IsAuthored || !a.CanEdit || !b.CanEdit) {
+            Reject("Contents/object/" + a.Id, "An unsupported vector-artwork input changed."); return;
+        }
+        // A text-capable shape's canonical geometry belongs to its frame.
+        PublisherShape before = _baseline.CurrentShape(a.Id), after = _current.CurrentShape(b.Id);
+        OfficeShape prior = before.CreateShape(), current = after.CreateShape();
+        if (!GeometryEqual(PublisherShapeGeometry.Resize(prior, after.Width, after.Height), current)) {
+            Reject("Contents/object/" + a.Id, "Vector geometry or effects changed beyond the fixed solid-paint slice."); return;
+        }
+        if (!SameBounds(before.X, before.Y, before.Width, before.Height, after.X, after.Y, after.Width, after.Height)
+            || before.PageTransform != after.PageTransform) {
+            if (after.PageTransform != OfficeTransform.Translate(after.X, after.Y)) {
+                Reject("Contents/object/" + a.Id, "The vector artwork has no qualified untransformed native bounds edit."); return;
+            }
+            Bounds(a.Id, a.PageId, after.X, after.Y, after.Width, after.Height);
+        }
+        if (!PaintEqual(prior, current)) Paint(a.Id, prior, current);
+    }
+
+    private static bool TableEqual(PublisherTableState a, PublisherTableState b) => ReferenceEquals(a, b)
+        || a.Id == b.Id && a.StoryId == b.StoryId && a.PageId == b.PageId && a.X == b.X && a.Y == b.Y
+        && a.Width == b.Width && a.Height == b.Height && a.PageTransform == b.PageTransform && a.HasPlacement == b.HasPlacement
+        && a.Hidden == b.Hidden && a.Padding.Equals(b.Padding) && a.BoundsEditLimitation == b.BoundsEditLimitation && a.IsAuthored == b.IsAuthored
+        && a.Columns.SequenceEqual(b.Columns) && a.Rows.SequenceEqual(b.Rows) && a.Cells.SequenceEqual(b.Cells)
+        && ShapeEqual(a.CreatePaint(), b.CreatePaint());
+
+    private static bool SameBounds(double ax, double ay, double aw, double ah, double bx, double by, double bw, double bh) =>
+        ax == bx && ay == by && aw == bw && ah == bh;
+    private static bool SameKeys<TKey, TValue>(IReadOnlyDictionary<TKey, TValue> a, IReadOnlyDictionary<TKey, TValue> b) where TKey : notnull =>
+        a.Count == b.Count && a.Keys.All(b.ContainsKey);
+    private static bool MapEqual<TKey, TValue>(IReadOnlyDictionary<TKey, TValue> a, IReadOnlyDictionary<TKey, TValue> b,
+        Func<TValue, TValue, bool> equal) where TKey : notnull => ReferenceEquals(a, b)
+        || SameKeys(a, b) && a.All(item => equal(item.Value, b[item.Key]));
+
+    private static bool PaintEqual(OfficeShape a, OfficeShape b) => a.FillColor == b.FillColor && a.StrokeColor == b.StrokeColor
+        && a.StrokeWidth == b.StrokeWidth && (a.FillOpacity ?? 1) == (b.FillOpacity ?? 1) && (a.StrokeOpacity ?? 1) == (b.StrokeOpacity ?? 1);
+    private static bool ShapeEqual(OfficeShape? a, OfficeShape? b) => a == null || b == null ? a == b : GeometryEqual(a, b) && PaintEqual(a, b);
+    private static bool GeometryEqual(OfficeShape a, OfficeShape b) => a.Kind == b.Kind && a.Width == b.Width && a.Height == b.Height
+        && a.CornerRadius == b.CornerRadius && a.Points.SequenceEqual(b.Points) && a.PathCommands.SequenceEqual(b.PathCommands)
+        && a.StrokeDashStyle == b.StrokeDashStyle && a.StrokeDashOffset == b.StrokeDashOffset && a.StrokeDashArray.SequenceEqual(b.StrokeDashArray)
+        && a.StrokeLineCap == b.StrokeLineCap && a.StrokeLineJoin == b.StrokeLineJoin && a.StrokeMiterLimit == b.StrokeMiterLimit
+        && a.StrokeHairline == b.StrokeHairline && a.CrispEdges == b.CrispEdges && a.FillRule == b.FillRule && a.Transform == b.Transform
+        && a.FillGradient == null && b.FillGradient == null && a.FillRadialGradient == null && b.FillRadialGradient == null
+        && a.StrokeGradient == null && b.StrokeGradient == null && a.StrokeRadialGradient == null && b.StrokeRadialGradient == null
+        && a.Shadow == null && b.Shadow == null && a.Glow == null && b.Glow == null && a.ClipPath == null && b.ClipPath == null
+        && a.StrokeStartMarker == null && b.StrokeStartMarker == null && a.StrokeEndMarker == null && b.StrokeEndMarker == null;
+
+    private static bool StoryEqual(PublisherTextStory a, PublisherTextStory b) => ReferenceEquals(a, b)
+        || a.Id == b.Id && a.Text == b.Text && a.HasFinalParagraphTerminator == b.HasFinalParagraphTerminator
+        && a.Paragraphs.Count == b.Paragraphs.Count && a.Paragraphs.Zip(b.Paragraphs, ParagraphEqual).All(value => value);
+    private static bool ParagraphEqual(OfficeRichTextParagraph a, OfficeRichTextParagraph b) => ReferenceEquals(a, b)
+        || a.Alignment == b.Alignment && a.LineHeight == b.LineHeight && a.LineHeightFactor == b.LineHeightFactor
+        && a.Margins.Equals(b.Margins) && a.Indent == b.Indent && LabelEqual(a.Label, b.Label) && TabsEqual(a.TabStops, b.TabStops)
+        && a.Runs.Count == b.Runs.Count && a.Runs.Zip(b.Runs, RunEqual).All(value => value);
+    private static bool RunEqual(OfficeRichTextRun a, OfficeRichTextRun b) => a.Text == b.Text && a.FontSize == b.FontSize
+        && a.Color == b.Color && a.FontFamily == b.FontFamily && a.Bold == b.Bold && a.Italic == b.Italic
+        && a.UnderlineStyle == b.UnderlineStyle && a.StrikethroughStyle == b.StrikethroughStyle && a.Baseline == b.Baseline
+        && a.BackgroundColor == b.BackgroundColor && a.ParagraphIndent == b.ParagraphIndent
+        && a.LinkUri == b.LinkUri && a.LinkDestinationName == b.LinkDestinationName;
+    private static bool LabelEqual(OfficeTextParagraphLabel? a, OfficeTextParagraphLabel? b) => ReferenceEquals(a, b)
+        || a != null && b != null && a.Position == b.Position && a.Alignment == b.Alignment && a.MinimumWidth == b.MinimumWidth
+        && a.MinimumDistance == b.MinimumDistance && a.FollowedBy == b.FollowedBy && a.TextPosition == b.TextPosition && RunEqual(a.Run, b.Run);
+    private static bool TabsEqual(OfficeTextTabStops? a, OfficeTextTabStops? b) => ReferenceEquals(a, b)
+        || a != null && b != null && a.DefaultInterval == b.DefaultInterval && a.Origin == b.Origin && a.AlignWithParagraph == b.AlignWithParagraph
+        && a.Stops.Count == b.Stops.Count && a.Stops.Zip(b.Stops, (x, y) => x.Position == y.Position && x.Alignment == y.Alignment
+            && x.Character == y.Character && x.LeaderText == y.LeaderText && Equals(x.LineLeader, y.LineLeader) && Equals(x.LeaderStyle, y.LeaderStyle)).All(value => value);
+}

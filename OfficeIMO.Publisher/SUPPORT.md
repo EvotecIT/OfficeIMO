@@ -87,8 +87,15 @@ Every successful edit replaces the current projection and its `ReadReport`.
 `SourceReadReport` remains the immutable decode-only evidence from the initial
 load. Validation, cancellation and projection failures leave the current model
 unchanged. Native bytes and compound metadata are retained privately and remain
-inert; their retention is not a qualified unknown-record preservation or save
-operation. `PublisherPage.CreateDrawing()` returns a detached scene for callers
+inert. The import-time semantic baseline and exact source OfficeArt bindings
+support an internal contributor preparation path: unchanged content copies the
+original bytes; bounded existing anchor and solid-scalar edits replace only the
+OfficeArt stream and retain other logical streams and directory metadata.
+Unsupported semantic changes refuse output. This path does not establish
+repair-free opening, native edit acceptance or opaque semantic preservation and
+does not expose public native saving. The [writer probe](../Build/Publisher/WriterProbe/README.md#loaded-source-candidates)
+owns its use and qualification limits.
+`PublisherPage.CreateDrawing()` returns a detached scene for callers
 that need render-only annotations. Document SVG/PDF exports use the canonical
 publication state, and the Reader extension projects its current stories,
 tables, physical pages and assets without serializing or reopening it.

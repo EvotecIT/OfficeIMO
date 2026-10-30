@@ -43,7 +43,7 @@ namespace OfficeIMO.Core.Internal {
         /// <summary>Depth-first directory traversal order from the source compound file.</summary>
         internal int DirectoryOrder { get; }
 
-        /// <summary>True when the entry is a synthetic unqualified lookup for an otherwise unreachable directory item.</summary>
+        /// <summary>True for a synthetic unqualified compatibility lookup. It may alias a reachable entry or expose an unreachable one; this flag does not establish directory-tree validity.</summary>
         internal bool IsFallback { get; }
 
         internal bool IsStorage => ObjectType == 1 || ObjectType == 5;

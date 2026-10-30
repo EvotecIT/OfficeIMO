@@ -1,4 +1,7 @@
 using System.Text.Json;
+using System.Globalization;
+using OfficeIMO.Drawing;
+using OfficeIMO.Publisher.Internal;
 
 namespace OfficeIMO.Publisher.WriterProbe;
 
@@ -10,6 +13,8 @@ internal static class Program {
 
     public static int Main(string[] args) {
         try {
+            if ((args.Length == 3 && args[0] == "preserve") || (args.Length is 8 or 9 && args[0] == "edit"))
+                return PrepareLoaded(args);
             if (args.Length is >= 2 and <= 3 && args[0] == "inventory") {
                 string json = JsonSerializer.Serialize(NativeInventory.Read(args[1]), JsonOptions);
                 if (args.Length == 3) WriteNew(args[2], System.Text.Encoding.UTF8.GetBytes(json));
@@ -51,12 +56,48 @@ internal static class Program {
                 else Console.WriteLine(json);
                 return 0;
             }
-            Console.Error.WriteLine("inventory <input.pub> [report.json]\ndiff <left.pub> <right.pub> [report.json]\ncreate <blank|text|styled-text|shape|image|combined> <candidate.pub> [text-or-image-path]\nrender <input.pub> <unused-output-directory>");
+            Console.Error.WriteLine("inventory <input.pub> [report.json]\ndiff <left.pub> <right.pub> [report.json]\ncreate <blank|text|styled-text|shape|image|combined> <candidate.pub> [text-or-image-path]\npreserve <input.pub> <candidate.pub>\nedit <input.pub> <candidate.pub> <object-id> <x> <y> <width> <height> [RRGGBB]\nrender <input.pub> <unused-output-directory>");
             return 2;
         } catch (Exception exception) {
             Console.Error.WriteLine(exception.GetType().Name + ": " + exception.Message);
             return 1;
         }
+    }
+
+    private static int PrepareLoaded(string[] args) {
+        PublisherDocument document = PublisherDocument.Load(args[1]);
+        if (args[0] == "edit") {
+            uint id = uint.Parse(args[3], NumberStyles.None, CultureInfo.InvariantCulture);
+            double Number(int index) => double.Parse(args[index], NumberStyles.Float, CultureInfo.InvariantCulture);
+            double x = Number(4), y = Number(5), width = Number(6), height = Number(7);
+            PublisherPage[] pages = document.Pages.Concat(document.MasterPages).ToArray();
+            if (pages.SelectMany(page => page.TextFrames).Any(frame => frame.Id == id)) document.SetTextFrameBounds(id, x, y, width, height);
+            else if (pages.SelectMany(page => page.Pictures).Any(picture => picture.Id == id)) document.SetPictureBounds(id, x, y, width, height);
+            else if (pages.SelectMany(page => page.Shapes).Any(shape => shape.Id == id)) document.SetShapeBounds(id, x, y, width, height);
+            else if (pages.SelectMany(page => page.Tables).Any(table => table.Id == id)) document.SetTableBounds(id, x, y, width, height);
+            else throw new ArgumentException("The source has no placed object with that publication identifier.");
+            if (args.Length == 9) {
+                if (args[8].Length != 6) throw new ArgumentException("A fill requires exactly six RGB hexadecimal digits.");
+                uint rgb = uint.Parse(args[8], NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+                PublisherShape shape = document.Pages.Concat(document.MasterPages).SelectMany(page => page.Shapes).Single(item => item.Id == id);
+                OfficeShape prior = shape.CreateShape();
+                document.SetShapePaint(id, OfficeColor.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb),
+                    prior.StrokeColor, prior.StrokeWidth, prior.FillOpacity ?? 1, prior.StrokeOpacity ?? 1);
+            }
+        }
+        PublisherNativePreparation prepared = document.PrepareNativeBytes(64L * 1024 * 1024);
+        byte[]? bytes = prepared.IsPrepared ? prepared.CopyBytes() : null;
+        if (bytes != null) WriteNew(args[2], bytes);
+        Console.WriteLine(JsonSerializer.Serialize(new {
+            schema = "officeimo.publisher.writer-probe.source-edit.v1",
+            operation = args[0], prepared = prepared.IsPrepared,
+            output = bytes == null ? null : Path.GetFullPath(args[2]),
+            bytes = prepared.ByteLength, sha256 = bytes == null ? null : NativeInventory.Hash(bytes),
+            diagnostics = prepared.FidelityDiagnostics,
+            nativeAcceptance = "unassessed",
+            repairFreeOpening = "unassessed"
+        }, JsonOptions));
+        return prepared.IsPrepared ? 0 : 1;
     }
 
     private static void WriteNew(string path, byte[] bytes) {

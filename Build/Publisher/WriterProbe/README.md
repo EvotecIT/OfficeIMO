@@ -4,7 +4,7 @@ This opt-in contributor tool inventories native publications and synthesizes
 small, template-free PUB files. It stays outside the normal solution and does
 not expose a public Publisher creation or save API. It references the existing
 Publisher, PDF and shared binary codecs without adding runtime dependencies.
-No source publication supplies stream bytes or a directory template.
+Template-free creation never reads a source publication or directory template.
 
 Build with the repository's pinned SDK:
 
@@ -31,6 +31,8 @@ dotnet $probe create shape ./candidate-shape.pub
 dotnet $probe create image ./candidate-image.pub ./picture.png
 dotnet $probe create combined ./candidate-combined.pub ./picture.png
 dotnet $probe render ./reference.pub ./managed-comparison
+dotnet $probe preserve ./reference.pub ./exact-copy.pub
+dotnet $probe edit ./reference.pub ./edited.pub 293 36 48 120 84 0000FF
 ```
 
 Output parent directories must exist. Existing outputs are never overwritten.
@@ -50,6 +52,34 @@ equivalence for opaque payloads.
 diagnostics and artifact hashes. The PDF header is checked. These are managed
 comparison artifacts; their reports leave native acceptance and visual fidelity
 unassessed.
+
+## Loaded-source candidates
+
+`preserve` uses the internal preparation path to copy an unchanged imported
+publication byte-for-byte. A semantic no-op retains the original native encoding.
+`edit` takes a publication object identifier, page-local point bounds and an
+optional six-digit RGB fill. It uses ordinary model mutations, then prepares a
+separate candidate. Unsupported changes return diagnostics without creating the
+output. Both commands leave the source and the model's native baseline unchanged.
+
+The bounded editor guards the original FSP SPID and publication-ID binding,
+patches complete existing F010 anchors with exact signed EMUs, and preserves
+native endpoint direction and imported page/master registration. Existing local
+solid RGB, opacity and line-width slots can change only when their source
+representation is unambiguous and requires no new property. Paint visibility,
+alpha, inherited-only properties and duplicate scalar slots are refused.
+Only `Escher/EscherStm` is replaced through the shared compound writer; other
+logical streams and directory metadata are retained. Physical CFB allocation can
+change. Invalid or unreachable directory trees, noncanonical roots and nonempty
+active-content, signature or protected streams are outside edited-source support.
+
+Stories and formatting, tables, image replacement, page/master relationships,
+new objects and source-free publications have no writer in this path. Every
+current semantic family is compared with the import baseline before output;
+source-byte retention does not permit dropping unsupported edits. Prepared edit
+candidates report native acceptance, repair-free opening and opaque semantic
+preservation as unassessed. Managed reopening and stream comparisons are
+structural evidence, not Microsoft Publisher qualification.
 
 ## Creation cases
 
