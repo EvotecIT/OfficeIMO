@@ -29,6 +29,12 @@ public sealed class PublisherAuthoringTests {
         PublisherPage second = document.AddPage(master.Id);
         PublisherTextFrame continuation = document.AddLinkedTextFrame(first.Id, second.Id, 36, 84, 720, 350);
         PublisherTable table = document.AddTable(second.Id, 36, 480, new[] { 120D, 160D }, new[] { 28D });
+        byte[] suppliedPicture = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/Image/native-image.png"));
+        byte[] expectedPicture = (byte[])suppliedPicture.Clone();
+        PublisherPicture illustration = document.AddPicture(originalPage.Id, suppliedPicture, 360, 84, 96, 96);
+        Array.Clear(suppliedPicture, 0, suppliedPicture.Length);
+        byte[] jpeg = OfficeJpegCodec.Encode(new OfficeRasterImage(4, 3, OfficeColor.FromRgb(20, 130, 40)));
+        PublisherPicture logo = document.AddPicture(master.Id, jpeg, 720, 12, 32, 32);
         document.ReplaceTableCellParagraphs(table.Id, 0, 0, Paragraphs("Table left"));
         document.ReplaceTableCellParagraphs(table.Id, 0, 1, Paragraphs("Table right"));
 
@@ -39,32 +45,41 @@ public sealed class PublisherAuthoringTests {
         Assert.False(body.Text.EndsWith("\n", StringComparison.Ordinal));
         Assert.True(body.Paragraphs[0].Runs[0].Bold); Assert.True(body.Paragraphs[1].Runs[0].Italic);
         Assert.Single(document.MasterPages[0].TextFrames); Assert.Single(document.MasterPages[0].Shapes);
+        Assert.Equal(logo.Id, Assert.Single(document.MasterPages[0].Pictures).Id);
+        Assert.Equal(expectedPicture, document.Images.Single(image => image.Id == illustration.ImageId).GetBytes());
+        Assert.Equal("image/jpeg", document.Images.Single(image => image.Id == logo.ImageId).ContentType);
         Assert.All(document.Pages, page => {
             Assert.Equal(master.Id, page.MasterPageId); Assert.False(page.HasNativeOrigin);
             Assert.Equal(792, page.Width); Assert.Equal(612, page.Height);
             Assert.DoesNotContain(page.TextFrames, frame => frame.Id == heading.Id);
             Assert.DoesNotContain(page.Shapes, shape => shape.Id == rule.Id);
+            Assert.DoesNotContain(page.Pictures, picture => picture.Id == logo.Id);
             Assert.Contains("Weekly publication", PaintedText(page));
         });
         uint[] identities = document.Pages.Select(page => page.Id).Concat(document.MasterPages.Select(page => page.Id))
             .Concat(document.TextStories.Select(story => story.Id)).Concat(document.Pages.Concat(document.MasterPages).SelectMany(page => page.TextFrames).Select(frame => frame.Id))
             .Concat(document.Pages.Concat(document.MasterPages).SelectMany(page => page.Shapes).Select(shape => shape.Id))
+            .Concat(document.Pages.Concat(document.MasterPages).SelectMany(page => page.Pictures).Select(picture => picture.Id))
             .Concat(document.Pages.SelectMany(page => page.Tables).Select(item => item.Id)).ToArray();
         Assert.Equal(identities.Length, identities.Distinct().Count());
         Assert.Equal(first.Id + 1, first.StoryId); Assert.Equal(table.Id + 1, table.StoryId);
         Assert.Same(source, document.SourceReadReport); Assert.Equal(0, source.SourceObjectCount);
         Assert.Equal(0, source.TextStoryCount); Assert.Equal(0, source.InspectedRecordCount);
         Assert.Equal(0, document.ReadReport.SourceObjectCount); Assert.Equal(0, document.ReadReport.InspectedRecordCount);
-        Assert.Equal(5, document.ReadReport.CurrentObjectCount); Assert.Equal(5, document.ReadReport.ProjectedObjectCount);
+        Assert.Equal(7, document.ReadReport.CurrentObjectCount); Assert.Equal(7, document.ReadReport.ProjectedObjectCount); Assert.Equal(2, document.ReadReport.ImageCount);
         Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_FIELDS_UNASSESSED");
         Assert.Null(originalPage.MasterPageId); Assert.Empty(originalPage.TextFrames);
         Assert.True(Assert.Single(firstSnapshot.TextFrames).HasOverflow); Assert.Null(Assert.Single(firstSnapshot.TextFrames).NextFrameId);
         Assert.Empty(second.TextFrames); Assert.Empty(second.Tables);
         Assert.Contains("Independent styled story", document.ToSvg()); Assert.Contains("Table right", document.ToSvg(1));
+        Assert.Contains(Convert.ToBase64String(expectedPicture), document.ToSvg()); Assert.Contains(Convert.ToBase64String(jpeg), document.ToSvg(1));
         PdfReadDocument pdf = PdfReadDocument.Open(document.ToPdfBytes());
         Assert.Equal(2, pdf.Pages.Count);
         Assert.All(pdf.Pages, page => { Assert.Equal(792, page.GetPageSize().Width); Assert.Equal(612, page.GetPageSize().Height); Assert.Contains("Weekly publication", page.ExtractText()); });
         Assert.Contains("Continued body content", pdf.Pages[1].ExtractText()); Assert.Contains("Table left", pdf.Pages[1].ExtractText());
+        Assert.Equal(new[] { 2, 1 }, pdf.Pages.Select(page => page.GetImagePlacements().Count));
+        PdfImagePlacement physicalPicture = Assert.Single(pdf.Pages[0].GetImagePlacements(), image => Math.Abs(image.X - 360) < .01);
+        Assert.Equal(96, physicalPicture.Width, 4); Assert.Equal(96, physicalPicture.Height, 4);
     }
 
     [Fact]

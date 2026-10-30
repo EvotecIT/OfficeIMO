@@ -17,7 +17,7 @@ internal sealed partial class PublisherPageProjector {
         TagSourceElements(local, new[] { "publisher-object-" + picture.Id });
         if (picture.X < 0 || picture.Y < 0 || picture.X + picture.Width > page.Width || picture.Y + picture.Height > page.Height)
             _context.Add("PUB_PAGE_BLEED_CLIPPED", "Artwork outside the publication page remains in the scene but is clipped to the printable page in exports.",
-                OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(picture.Id));
+                OfficeConversionLossKind.Approximation, picture.IsAuthored ? "publication/picture/" + picture.Id : PublisherEscherReader.ShapeLocation(picture.Id));
         _context.AccountProjection(local);
         page.AddDrawingForClippedRendering(local, picture.X, picture.Y,
             new OfficeImageFrameTransform(0, picture.X + picture.Width / 2, picture.Y + picture.Height / 2, false, false));

@@ -13,13 +13,13 @@ public sealed class PublisherReadReport : IOfficeConversionReport {
     public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
     /// <summary>Number of publication shape, group, and table records identified in the native directory.</summary>
     public int SourceObjectCount { get; }
-    /// <summary>Number of current publication objects, including retained imported objects, authored tables, shapes and ordinary/continuation frames. Page/master definitions and story identifiers are counted separately by their collections.</summary>
+    /// <summary>Number of current publication objects, including retained imported objects, authored pictures, tables, shapes and ordinary/continuation frames. Page/master definitions and story identifiers are counted separately by their collections.</summary>
     public int CurrentObjectCount { get; }
-    /// <summary>Number of distinct current objects represented on a document or master page, including authored tables, shapes and frames. Repeated master use counts once.</summary>
+    /// <summary>Number of distinct current objects represented on a document or master page, including authored pictures, tables, shapes and frames. Repeated master use counts once.</summary>
     public int ProjectedObjectCount { get; }
     /// <summary>Number of current complete text stories, including authored ordinary/table stories and stories not placed on a page.</summary>
     public int TextStoryCount { get; }
-    /// <summary>Number of current embedded assets, including recovered unplaced images and assets retained by supported picture edits.</summary>
+    /// <summary>Number of current embedded assets, including recovered unplaced images, authored pictures and assets retained by supported picture edits.</summary>
     public int ImageCount { get; }
     /// <summary>Number of inspected native records across all source streams.</summary>
     public int InspectedRecordCount { get; }

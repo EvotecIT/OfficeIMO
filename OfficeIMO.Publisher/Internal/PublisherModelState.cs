@@ -63,36 +63,6 @@ internal sealed partial class PublisherModelState {
         return WithPublication(_publication.AddLinkedTextFrame(previousFrameId, pageId, x, y, width, height, out frameId));
     }
 
-    internal PublisherModelState SetPictureBounds(uint pictureId, double x, double y, double width, double height) {
-        PublisherPicture picture = _publication.EditablePicture(pictureId);
-        return WithPublication(_publication.SetBounds(picture, x, y, width, height));
-    }
-
-    internal PublisherModelState ReplacePictureImage(uint pictureId, byte[] bytes, CancellationToken token) {
-        PublisherPicture picture = _publication.EditablePicture(pictureId);
-        if (bytes.Length == 0 || bytes.Length > _decoded.Options.MaximumImageBytes)
-            throw new ArgumentException("Replacement image bytes must fit the configured per-image limit.", nameof(bytes));
-        byte[] owned = (byte[])bytes.Clone();
-        if (!OfficeImageReader.TryIdentifyByContent(owned, null, token, out OfficeImageInfo info)
-            || info.Format is not (OfficeImageFormat.Png or OfficeImageFormat.Jpeg))
-            throw new ArgumentException("Replacement pictures require PNG or JPEG content.", nameof(bytes));
-        if (info.Width <= 0 || info.Height <= 0 || (long)info.Width * info.Height > _decoded.Options.MaximumRasterPixels)
-            throw new ArgumentException("Replacement image dimensions exceed the configured pixel limit.", nameof(bytes));
-        var options = new OfficeRasterDecodeOptions {
-            MaximumEncodedBytes = Math.Min(_decoded.Options.MaximumImageBytes, 128 * 1024 * 1024),
-            MaximumDecodedPixels = Math.Min(_decoded.Options.MaximumRasterPixels, 50_000_000),
-            MaximumInspectionWorkPixels = Math.Min(_decoded.Options.MaximumImageProcessingPixels, 50_000_000),
-            CancellationToken = token
-        };
-        if (!OfficeRasterImageDecoder.TryDecode(owned, options, out OfficeRasterImage? raster, out _) || raster == null)
-            throw new ArgumentException("Replacement picture content is invalid or exceeds the configured decoding bounds.", nameof(bytes));
-        token.ThrowIfCancellationRequested();
-        PublisherPublicationState candidate = _publication.ReplaceImage(picture, owned, info.MimeType);
-        if (candidate.AdditionalImageBytes > _decoded.Options.MaximumTotalImageBytes - _decoded.ImageBytes)
-            throw new ArgumentException("Replacement image exceeds the configured publication image byte limit.", nameof(bytes));
-        return WithPublication(candidate);
-    }
-
     private PublisherModelState WithPublication(PublisherPublicationState publication) =>
         new(publication, _decoded, _sourceReport, _imported);
 }

@@ -35,7 +35,8 @@ internal sealed partial class PublisherPublicationState {
     internal IReadOnlyDictionary<uint, PublisherTableState> Tables { get; }
     /// <summary>Current table-to-story ownership, including imported occurrences whose grid or page cannot be resolved. Admission must account for these even when no placed table snapshot can be produced.</summary>
     internal IReadOnlyDictionary<uint, uint?> TableStoryReferences { get; }
-    internal int AuthoredObjectCount => Text.AuthoredFrameCount + Shapes.Values.Count(shape => shape.IsAuthored) + Tables.Values.Count(table => table.IsAuthored);
+    internal int AuthoredObjectCount => Text.AuthoredFrameCount + Shapes.Values.Count(shape => shape.IsAuthored)
+        + Tables.Values.Count(table => table.IsAuthored) + Pictures.Values.Count(picture => picture.IsAuthored);
     internal int NextImageId { get; }
     internal uint NextObjectId { get; }
     internal long AdditionalImageBytes => Images.Values.Where(image => !_sourceImageIds.Contains(image.Id)).Sum(image => (long)image.ByteCount);

@@ -3,7 +3,7 @@
 Read Microsoft Publisher publications into positioned pages, styled text
 stories and embedded image assets, edit supported stories, frames, tables, pictures and
 vector artwork, or create an in-memory publication with pages, masters, styled
-text, tables and primitive shapes. Render the same current model to SVG or PDF.
+text, embedded pictures, tables and primitive shapes. Render the same current model to SVG or PDF.
 The managed reader handles the Publisher
 2002-and-later compound-document generation without installing Publisher.
 [The support contract](SUPPORT.md) identifies the qualified fixtures and rendering
@@ -96,6 +96,30 @@ source-free creation. `PublisherPage.HasNativeOrigin` identifies imported page
 definitions even after content or master-assignment edits; added pages and masters
 have no native origin. A source-free document has zero native source/record counts.
 This is in-memory authoring and rendering; native PUB saving is not provided.
+
+Add an embedded picture to a qualified document or master page:
+
+```csharp
+var illustration = newsletter.AddPicture(firstPage.Id,
+    File.ReadAllBytes("illustration.png"), 360, 84, 144, 96);
+newsletter.SetPictureBounds(illustration.Id, 360, 84, 120, 80);
+```
+
+`AddPicture` accepts a static PNG or JPEG with normal encoded orientation,
+validated through the shared managed image decoder. Animated PNGs, non-normal
+EXIF orientations, other formats and invalid payloads are rejected. The supplied
+point rectangle controls placement and size; image DPI does not choose the frame.
+The new picture has no crop, fill, outline, effects, story or wrap references and
+is appended in drawing order. Pictures added to a master stay owned once and
+render on every assigned page. Creation does not add text-wrap exclusions.
+
+Input bytes are copied and retained in their original encoding. Each call creates
+one placement and a separate asset, even for identical input. Object and image IDs
+are reserved together and neither is consumed on failure. Existing image replacement
+and movement operations remain available; replacement retains its existing PNG/JPEG
+contract. Per-image, current-object, image-store, retained-byte and cumulative scene
+budgets apply, including repeated master use. `GetBytes()` and old page/picture/asset
+references remain detached from later edits.
 
 ## Edit publication content
 
