@@ -1193,31 +1193,13 @@ namespace OfficeIMO.Word.Html {
                         if (isHeaderRow) {
                             SetOutputAttribute(cellElement, "scope", "col", "TableCell:scope");
                         }
-                        int colSpan = 1;
-                        int rowSpan = 1;
-                        if (cell.HorizontalMerge == WordCellMerge.Restart) {
-                            int cc = c + 1;
-                            while (cc < row.Cells.Count && row.Cells[cc].HorizontalMerge == WordCellMerge.Continue) {
-                                colSpan++;
-                                cc++;
-                            }
-                            if (colSpan > 1) {
-                                SetOutputAttribute(cellElement, "colspan", colSpan.ToString(CultureInfo.InvariantCulture), "TableCell:colspan");
-                            }
-                        } else if (cell.ColumnSpan > 1) {
-                            // gridSpan: one cell covering several grid columns.
-                            colSpan = cell.ColumnSpan;
+                        int colSpan = cell.ColumnSpan;
+                        int rowSpan = cell.RowSpan;
+                        if (colSpan > 1) {
                             SetOutputAttribute(cellElement, "colspan", colSpan.ToString(CultureInfo.InvariantCulture), "TableCell:colspan");
                         }
-                        if (cell.VerticalMerge == WordCellMerge.Restart) {
-                            int rr = r + 1;
-                            while (rr < table.Rows.Count && table.Rows[rr].Cells[c].VerticalMerge == WordCellMerge.Continue) {
-                                rowSpan++;
-                                rr++;
-                            }
-                            if (rowSpan > 1) {
-                                SetOutputAttribute(cellElement, "rowspan", rowSpan.ToString(CultureInfo.InvariantCulture), "TableCell:rowspan");
-                            }
+                        if (rowSpan > 1) {
+                            SetOutputAttribute(cellElement, "rowspan", rowSpan.ToString(CultureInfo.InvariantCulture), "TableCell:rowspan");
                         }
 
                         var cellStyles = new List<string>();

@@ -1,3 +1,5 @@
+using AngleSharp.Html.Parser;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -32,6 +34,31 @@ namespace OfficeIMO.Tests {
             string html = doc.ToHtml();
             Assert.Contains("rowspan=\"2\"", html);
             Assert.Contains("colspan=\"2\"", html);
+        }
+
+        [Fact]
+        public void WordToHtmlConverter_ResolvesRowSpanByLogicalGridColumn() {
+            using var stream = new MemoryStream();
+            using (var package = WordprocessingDocument.Create(stream, DocumentFormat.OpenXml.WordprocessingDocumentType.Document, true)) {
+                var main = package.AddMainDocumentPart();
+                main.Document = new Document(new Body(new Table(
+                    new TableGrid(new GridColumn(), new GridColumn(), new GridColumn()),
+                    new TableRow(
+                        new TableCell(new TableCellProperties(new GridSpan { Val = 2 }), new Paragraph(new Run(new Text("Wide")))),
+                        new TableCell(new TableCellProperties(new VerticalMerge { Val = MergedCellValues.Restart }), new Paragraph(new Run(new Text("Group"))))),
+                    new TableRow(
+                        new TableCell(new Paragraph(new Run(new Text("Left")))),
+                        new TableCell(new Paragraph(new Run(new Text("Middle")))),
+                        new TableCell(new TableCellProperties(new VerticalMerge()), new Paragraph())))));
+                main.Document.Save();
+            }
+            stream.Position = 0;
+            using WordDocument document = WordDocument.Load(stream);
+            var html = new HtmlParser().ParseDocument(document.ToHtml());
+            var group = Assert.Single(html.QuerySelectorAll("td,th"), cell => cell.TextContent == "Group");
+            Assert.Equal("2", group.GetAttribute("rowspan"));
+            var wide = Assert.Single(html.QuerySelectorAll("td,th"), cell => cell.TextContent == "Wide");
+            Assert.Equal("2", wide.GetAttribute("colspan"));
         }
 
         [Fact]
