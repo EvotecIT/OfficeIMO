@@ -62,7 +62,7 @@ public partial class Word {
 
     private static WordDocument CreatePatternedTableDocument(WordBorderStyle borderStyle, bool inherited) {
         WordDocument document = WordDocument.Create();
-        WordTable table = document.AddTable(2, 2);
+        WordTable table = document.AddTable(2, 2, WordTableStyle.TableGrid);
         if (inherited) {
             BorderValues style = borderStyle switch {
                 WordBorderStyle.Dashed => BorderValues.Dashed,

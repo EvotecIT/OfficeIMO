@@ -643,7 +643,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
         list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
         list.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
-        WordTable table = document.AddTable(1, 1);
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
         table.ColumnWidth = new List<int> { 3600 }.Select(value => (WordTableWidth?)WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(value) * 635)))).ToList();
         WordTableCell cell = table.Rows[0].Cells[0];

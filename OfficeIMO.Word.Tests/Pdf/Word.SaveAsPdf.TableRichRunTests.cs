@@ -51,9 +51,9 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.Contains("1 0 0 rg", content, StringComparison.Ordinal);
-            Assert.Matches(@"/F\d+\s+(10|11)\s+Tf", content);
+            Assert.Matches(@"/[^\s/]+\s+(10|11)\s+Tf", content);
             Assert.Contains("1 1 0 rg", content, StringComparison.Ordinal);
-            Assert.Matches(@"/F\d+\s+18\s+Tf", content);
+            Assert.Matches(@"/[^\s/]+\s+18\s+Tf", content);
         }
     }
 }

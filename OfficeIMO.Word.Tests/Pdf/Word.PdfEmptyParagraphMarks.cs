@@ -49,8 +49,8 @@ public partial class Word {
             StyleName = new W.StyleName { Val = "Hidden Blank" }, BasedOn = new W.BasedOn { Val = "Normal" },
             StyleRunProperties = new W.StyleRunProperties(new W.Vanish())
         });
-        WordTableCell? cell = table ? source.AddTable(1, 1).Rows[0].Cells[0] : null;
-        if (followingTable) source.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("A", removeExistingParagraphs: true);
+        WordTableCell? cell = table ? source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0] : null;
+        if (followingTable) source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].AddParagraph("A", removeExistingParagraphs: true);
         else if (cell == null) source.AddParagraph("A"); else cell.AddParagraph("A", removeExistingParagraphs: true);
         if (kind != "none") {
             WordParagraph blank = cell == null ? source.AddParagraph() : cell.AddParagraph();

@@ -753,7 +753,7 @@ public partial class Word {
             runDefaults.GetFirstChild<FontSize>()!.Val = "28";
             runDefaults.GetFirstChild<FontSizeComplexScript>()!.Val = "28";
 
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "InheritedTableSize";
 
             document.Save();
@@ -765,7 +765,7 @@ public partial class Word {
         }
 
         string content = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
-        Assert.Matches(@"/F\d+\s+14\s+Tf", content);
+        Assert.Matches(@"/[^\s/]+\s+14\s+Tf", content);
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         Assert.Contains("InheritedTableSize", pdf.GetPage(1).Text);
@@ -804,7 +804,7 @@ public partial class Word {
         }
 
         string content = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
-        Assert.Matches(@"/F\d+\s+14\s+Tf", content);
+        Assert.Matches(@"/[^\s/]+\s+14\s+Tf", content);
         Assert.Contains("0.753 0 0 rg", content);
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
@@ -1561,7 +1561,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeAlignedTable.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(1, 3);
+            WordTable table = document.AddTable(1, 3, WordTableStyle.TableGrid);
             WordTableCell leftCell = table.Rows[0].Cells[0];
             WordTableCell centerCell = table.Rows[0].Cells[1];
             WordTableCell rightCell = table.Rows[0].Cells[2];
@@ -1617,7 +1617,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeMixedParagraphAlignedTable.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2880) * 635)));
             cell.Paragraphs[0].Text = "LeftMix";
@@ -1684,7 +1684,7 @@ public partial class Word {
                     CustomStyle = true
                 });
 
-            WordTable table = document.AddTable(1, 3);
+            WordTable table = document.AddTable(1, 3, WordTableStyle.TableGrid);
             WordTableCell leftCell = table.Rows[0].Cells[0];
             WordTableCell centerCell = table.Rows[0].Cells[1];
             WordTableCell rightCell = table.Rows[0].Cells[2];

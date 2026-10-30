@@ -56,7 +56,7 @@ public sealed partial class IWorkBoundaryTests {
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal(400, Assert.Single(table.RowHeight));
-        Assert.Equal(800, Assert.Single(table.ColumnWidth));
+        Assert.Equal<WordTableWidth?>(WordTableWidth.Length(OfficeLength.Points(40)), Assert.Single(table.ColumnWidth));
     }
 
     [Fact]

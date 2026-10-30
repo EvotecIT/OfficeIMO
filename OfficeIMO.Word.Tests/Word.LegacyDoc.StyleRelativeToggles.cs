@@ -79,7 +79,7 @@ public partial class Word {
         using (var document = WordDocument.Create()) {
             WordParagraph body = document.AddParagraph("BodyToggleMarker");
             Seed(body);
-            Seed(document.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("TableToggleMarker", removeExistingParagraphs: true));
+            Seed(document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].AddParagraph("TableToggleMarker", removeExistingParagraphs: true));
             document.AddHeadersAndFooters();
             Seed(document.Sections[0].Header.Default!.AddParagraph("HeaderToggleMarker"));
             Seed(document.Sections[0].Footer.Default!.AddParagraph("FooterToggleMarker"));

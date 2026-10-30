@@ -119,7 +119,10 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_TableMixedRunPreservesMultiplePicturesAndTheirLimit() {
         using WordDocument document = WordDocument.Create();
-        WordParagraph paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
+        WordTable table = document.AddTable(1, 1);
+        table.GridColumnWidth = new List<OfficeLength> { OfficeLength.Points(120) };
+        table.Rows[0].Cells[0].Width = WordTableWidth.Length(OfficeLength.Points(120));
+        WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         paragraph.Text = "Before";
         paragraph.FontFamily = "Arial";
         paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);

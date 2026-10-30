@@ -122,7 +122,7 @@ public partial class Word {
     public void RunKerningThresholdPreservesTablesAndSeparateStories(bool nativeDoc) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Body");
-        document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].AddText("Cell")
+        document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0].AddText("Cell")
             .KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(0D);
         document.HeaderDefaultOrCreate.AddParagraph("Header").KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(1.5D);
         document.FooterDefaultOrCreate.AddParagraph("Footer").KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(13D);

@@ -129,7 +129,7 @@ public partial class Word {
     }
 
     private static WordTable AddNativeInputTable(WordDocument document, string marker) {
-        WordTable table = document.AddTable(1, 1);
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         ConfigureNativeInputTable(table, 2000);
         table.Rows[0].Cells[0].Paragraphs[0].Text = marker;
         return table;

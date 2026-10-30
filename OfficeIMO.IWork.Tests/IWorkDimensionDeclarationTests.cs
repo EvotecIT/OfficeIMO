@@ -214,7 +214,7 @@ public sealed partial class IWorkBoundaryTests {
             using WordDocument reopened = WordDocument.Load(saved);
             WordTable table = Assert.Single(reopened.Tables);
             Assert.Equal(new[] { 200, 200, unknownIndex ? 200 : 600 }, table.RowHeight);
-            Assert.Equal(new[] { 810, 400 }, table.ColumnWidth);
+            Assert.Equal(new[] { 810, 400 }.Select(value => (WordTableWidth?)WordTableWidth.Length(OfficeLength.Emus((long)value * 635))), table.ColumnWidth);
         } else if (kind == IWorkDocumentKind.Numbers) {
             using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);

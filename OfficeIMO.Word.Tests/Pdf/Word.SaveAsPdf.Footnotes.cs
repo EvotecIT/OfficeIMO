@@ -206,7 +206,10 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Later outer note2", allText);
                 var nested = AssertPdfFootnoteAssociation(pdf, "Nested table note", "Nested table footnote", "1");
                 var outer = AssertPdfFootnoteAssociation(pdf, "Later outer note", "Later outer footnote", "2");
-                AssertPdfFootnoteSourceOrder(nested, outer);
+                // Side-by-side cells can place a nested reference lower than a later source reference.
+                // The labels and footnote bodies retain source order regardless of those baselines.
+                Assert.True(PdfFootnoteGlyphPrecedes(nested.NotePage, nested.NoteLabel, outer.NotePage, outer.NoteLabel),
+                    "Footnote bodies must retain their source order.");
                 Assert.DoesNotContain("Later outer note1", allText);
             }
         }

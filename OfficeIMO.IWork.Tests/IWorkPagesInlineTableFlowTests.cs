@@ -105,7 +105,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(WordTableWidthKind.Length, table.Width?.Kind);
         Assert.Equal(1210, table.Width?.LengthValue?.ToTwips());
         Assert.Equal(new[] { 810, 400 }, table.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList());
-        Assert.Equal(new[] { 810, 400 }, table.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList());
+        Assert.Equal(new[] { 810, 400 }, table.ColumnWidth.Select(width => checked((int)width!.Value.LengthValue!.Value.ToTwips())).ToList());
         Assert.Empty(reopened.ValidateDocument());
     }
 

@@ -17,10 +17,10 @@ public partial class Word {
     public void SaveAsPdf_PreservesSignedTableIndentInBodyAndColumns(bool nativeDoc, bool columns) {
         using WordDocument source = WordDocument.Create();
         if (columns) source.Sections[0].ColumnCount = 2;
-        WordTable baseline = source.AddTable(1, 1);
+        WordTable baseline = source.AddTable(1, 1, WordTableStyle.TableGrid);
         Configure(baseline, "MarkerDefault");
         source.AddParagraph("Gap");
-        WordTable indented = source.AddTable(1, 1);
+        WordTable indented = source.AddTable(1, 1, WordTableStyle.TableGrid);
         Configure(indented, "MarkerNegative");
         indented.StyleDetails!.TableIndentationWidth = -108;
         using WordDocument reopened = WordDocument.Load(new MemoryStream(nativeDoc

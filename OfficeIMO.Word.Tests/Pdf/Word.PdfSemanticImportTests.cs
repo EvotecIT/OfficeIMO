@@ -274,7 +274,7 @@ public partial class Word {
 
     [Fact]
     public void PdfSemanticImport_PureDetectedTableBordersAreRepresentedSemantics() {
-        byte[] pdf = PdfCore.PdfDocument.Create()
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions { BackgroundColor = null })
             .Table(new[] {
                 new[] { "Code", "Value" },
                 new[] { "A", "1" },
@@ -300,7 +300,7 @@ public partial class Word {
 
     [Fact]
     public void PdfSemanticImport_RotatedPureTableBordersAreRepresentedSemantics() {
-        byte[] source = PdfCore.PdfDocument.Create()
+        byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions { BackgroundColor = null })
             .Table(new[] {
                 new[] { "Code", "Value" },
                 new[] { "A", "1" },

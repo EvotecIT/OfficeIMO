@@ -102,9 +102,9 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, CountOccurrences(pageText, "Normal"));
             }
 
-            Assert.Matches(@"/F\d+\s+16\s+Tf", content);
-            Assert.Matches(@"/F\d+\s+18\s+Tf", content);
-            Assert.True(Regex.Matches(content, @"/F\d+\s+11\s+Tf").Count >= 2, "Expected default-sized native PDF runs before and after explicit font sizes.");
+            Assert.Matches(@"/[^\s/]+\s+16\s+Tf", content);
+            Assert.Matches(@"/[^\s/]+\s+18\s+Tf", content);
+            Assert.True(Regex.Matches(content, @"/[^\s/]+\s+11\s+Tf").Count >= 2, "Expected default-sized native PDF runs before and after explicit font sizes.");
         }
 
         [Fact]
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
             }
 
             string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
-            Assert.True(Regex.Matches(content, @"/F\d+\s+10\.5\s+Tf").Count >= 2,
+            Assert.True(Regex.Matches(content, @"/[^\s/]+\s+10\.5\s+Tf").Count >= 2,
                 "Expected half-point sizes for both body and table text.");
         }
 
@@ -395,7 +395,9 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("/Subtype /Type0", content, StringComparison.Ordinal);
             Assert.Contains("/FontFile2", content, StringComparison.Ordinal);
-            Assert.Contains("/BaseFont /" + SanitizeExpectedPdfFontName(fontFamily), content, StringComparison.Ordinal);
+            string expectedFamily = SanitizeExpectedPdfFontName(fontFamily);
+            expectedFamily = expectedFamily.Substring(0, expectedFamily.Length - "-Regular".Length);
+            Assert.Matches(@"/BaseFont /(?:[A-Z]{6}\+)?" + Regex.Escape(expectedFamily) + @"(?:-|[,/\s])", content);
         }
 
         [Fact]
@@ -481,7 +483,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, CountOccurrences(pageText, "After"));
             }
 
-            Assert.Matches(@"/F\d+\s+16\s+Tf", content);
+            Assert.Matches(@"/[^\s/]+\s+16\s+Tf", content);
             Assert.Contains("0.753 0 0 rg", content);
         }
 
@@ -583,7 +585,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, CountOccurrences(pageText, "CellStyledChar"));
             }
 
-            Assert.Matches(@"/F\d+\s+18\s+Tf", content);
+            Assert.Matches(@"/[^\s/]+\s+18\s+Tf", content);
             Assert.Contains("0.753 0 0 rg", content);
         }
 

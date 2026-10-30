@@ -68,7 +68,7 @@ public partial class Word {
     public void NativeDocCharacterScalePreservesTablesLinksAndSeparateStories() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Body").CharacterScale = 75;
-        source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].AddText("Cell").CharacterScale = 100;
+        source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0].AddText("Cell").CharacterScale = 100;
         source.HeaderDefaultOrCreate.AddParagraph("Header").CharacterScale = 125;
         source.FooterDefaultOrCreate.AddParagraph("Footer").CharacterScale = 150;
         source.AddParagraph("Reference").AddFootNote("Footnote").Paragraph.FootNote!.Paragraphs!
