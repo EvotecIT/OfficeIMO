@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.OpenDocument;
 
 // One counter walk per text story. Unsupported labels do not discard the item's editable body.
@@ -23,6 +25,8 @@ internal sealed class OdfDrawingListResolver {
     private readonly Dictionary<(XElement, int), Counter> _previous = new Dictionary<(XElement, int), Counter>();
     private readonly XElement?[] _activeLevels = new XElement?[129];
     private int _visited;
+    private int _remainingLabelCharacters = OfficeTextLayoutEngine.MaximumLayoutTextCharacters;
+    private int _paragraphCount;
 
     internal OdfDrawingListResolver(OdgShape shape, HashSet<string> losses) {
         _shape = shape; _losses = losses;
@@ -114,6 +118,13 @@ internal sealed class OdfDrawingListResolver {
             }
             bool first = true;
             foreach (XElement p in item.Elements().Where(OdfTextTraversal.IsParagraph)) {
+                if (++_paragraphCount > OfficeTextLayoutEngine.MaximumLayoutLines)
+                    throw new NotSupportedException("List paragraphs exceed the shared text layout limit.");
+                if (first && isItem && validItem && label != null) {
+                    if (label.Length > _remainingLabelCharacters)
+                        throw new NotSupportedException("List labels exceed the shared text layout limit.");
+                    _remainingLabelCharacters -= label.Length;
+                }
                 if (levelStyle != null) _entries[p] = new Entry(levelStyle, first && isItem && validItem ? label : null);
                 first = false;
             }
