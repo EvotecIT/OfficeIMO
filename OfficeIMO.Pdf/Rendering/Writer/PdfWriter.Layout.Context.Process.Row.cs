@@ -51,6 +51,7 @@ internal static partial class PdfWriter {
 
             var colStates = CreateRowColumnStates(ncols);
             var colItems = BuildRowColumnItems(rb, colWs);
+            var closingColumnPaddings = colItems.Select(BuildClosingColumnGroupPaddings).ToArray();
             var columnGroups = Enumerable.Range(0, ncols).Select(_ => new List<ColumnGroup>()).ToArray();
             var columnListStructureElementIndexes = new int?[ncols];
             var columnListStructurePages = new LayoutResult.Page?[ncols];
@@ -154,8 +155,9 @@ internal static partial class PdfWriter {
                     List<ColumnGroup> activeGroups = columnGroups[ci];
                     ResumeColumnGroups(activeGroups, colXs[ci], ref yCol, ref remain, ref consumed);
                     while (idx < items.Count && (remain > 0.1 || items[idx] is ColGroupEnd)) {
+                        if ((idx & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
                         var it = items[idx];
-                        double closingPadding = GetClosingColumnGroupPadding(items, idx);
+                        double closingPadding = closingColumnPaddings[ci][idx + 1];
                         double remainingForFinalItem = remain - closingPadding;
                         xCol = colXs[ci] + it.ColumnXOffset;
                         wCol = it.ColumnWidth;
@@ -269,7 +271,7 @@ internal static partial class PdfWriter {
                             WriteRichParagraph(sb, pblock, sliceLines, sliceHeights, currentOpts, FirstTextBaselineFromTop(paragraphFont, size, yCol), size, leading, currentPage!.Annotations, xCol + par.XOffset, par.TextWidth, start == 0 ? xCol + par.FirstLineXOffset : null, start == 0 ? par.FirstLineTextWidth : null, "P", markedContentId, currentPage,
                                 hasFollowingParagraphLines: start + take < lines.Count,
                                 paragraphSpacingAfter: start + take == lines.Count && spacingAfter <= remain - hsum ? spacingAfter : 0D,
-                                paragraphSpacingBefore: spacingBefore);
+                                paragraphSpacingBefore: spacingBefore, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
                             MarkRichFonts(pblock.Runs);
                             yCol -= hsum; remain -= hsum; consumed += hsum; line += take;
                             if (line >= lines.Count) { double space = spacingAfter; if (space <= remain) { yCol -= space; remain -= space; consumed += space; } idx++; line = 0; }
@@ -331,7 +333,7 @@ internal static partial class PdfWriter {
                             RecordFlowPlacement(yCol);
                             pageDirty = true;
                             WriteRichParagraph(sb, new RichParagraphBlock(ch.Runs, hb2.Align, ch.Color), lines, heights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, xCol, wCol, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, baselineFont: headingFont, paragraphSpacingAfter: ch.SpacingAfter,
-                                paragraphSpacingBefore: spacingBefore);
+                                paragraphSpacingBefore: spacingBefore, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
                             MarkRichFonts(ch.Runs);
                             if (ch.Bold) {
                                 currentPage!.UsedBold = true;
@@ -452,7 +454,7 @@ internal static partial class PdfWriter {
                                 ? RegisterTextStructureElement("LBody", listItemElementIndex)
                                 : RegisterTextStructureElement("LBody", listItem.StructureElement);
                             WriteRichParagraph(sb, new RichParagraphBlock(listItem.Runs, listItem.TextAlign, listItem.Color), sliceLines, sliceHeights, currentOpts, baselineY, listItem.Size, leading, currentPage!.Annotations, xCol + listItem.TextXOffset, listItem.TextWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage,
-                                hasFollowingParagraphLines: line + take < lines.Count);
+                                hasFollowingParagraphLines: line + take < lines.Count, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
                             MarkRichFonts(listItem.Runs);
                             yCol -= hsum;
                             remain -= hsum;
@@ -470,12 +472,17 @@ internal static partial class PdfWriter {
                                 line = 0;
                             }
                         } else if (it is ColTable table) {
+                            int pendingSpanLines = table.PendingSpanTailRow == line
+                                ? GetTableSpanRemainingLineCount(table.SpanFlow, table.PreparedRows, line) : 0;
                             var state = new ColumnTableCursor { Index = idx, Line = line, Subline = subline, Y = yCol, Remaining = remain, Consumed = consumed };
                             bool completed = RenderColumnTable(table, items, state, xCol, wCol,
                                 GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D)),
                                 GetCurrentFramePageStartY() - activeGroups.Sum(group => group.Style?.GetFragmentTopPadding(group.Decoration?.IsContinuation == true) ?? 0D), closingPadding);
-                            // A merged-cell tail can advance within the same physical row and line cursor.
-                            if (state.Consumed > consumed + .001D) anyColumnAdvanced = true;
+                            // A merged-cell tail can advance without changing the row cursor.
+                            // Repainting only a repeated header consumes space but does not advance content.
+                            if (pendingSpanLines > 0 &&
+                                GetTableSpanRemainingLineCount(table.SpanFlow, table.PreparedRows, line) < pendingSpanLines)
+                                anyColumnAdvanced = true;
                             (idx, line, subline) = (state.Index, state.Line, state.Subline);
                             (yCol, remain, consumed) = (state.Y, state.Remaining, state.Consumed);
                             if (!completed) break;

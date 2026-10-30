@@ -89,6 +89,16 @@ test("OPC rejects part ancestors and descendants case-insensitively in either re
   }
 });
 
+test("OPC rejects oversized or deeply nested part names before ancestor reservation", async () => {
+  const packageFile = new OpcPackage({ compression: "store" });
+  const oversized = "/a".repeat(32769) + "/one.xml";
+  const deep = "/a".repeat(65) + "/one.xml";
+  for (const uri of [oversized, deep])
+    assert.throws(() => packageFile.addPart({ uri, contentType: "application/xml", data: "<x/>" }), { code: "RESOURCE_LIMIT" });
+  packageFile.addPart({ uri: "/valid/part.xml", contentType: "application/xml", data: "<x/>" });
+  assert.equal((await readZip(await packageFile.toBlob())).get("valid/part.xml").content, "<x/>");
+});
+
 test("OPC protects generated property and relationship metadata paths", () => {
   const properties = new OpcPackage(); properties.setProperties();
   for (const uri of ["/DOCPROPS", "/docProps/core.xml/child.xml", "/docProps/app.xml/child.xml"])

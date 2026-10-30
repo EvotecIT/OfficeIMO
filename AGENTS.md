@@ -42,6 +42,7 @@
 
 ## Testing evidence
 
+- Resolve shared procedures under `CODEX_HOME` (default `~/.codex`): use the [test authoring gate](skills/test-audit/SKILL.md#authoring-gate) before adding or changing tests, [contract-focused proof design](skills/contract-focused-tests/SKILL.md), and [campaign mode](skills/test-audit/CAMPAIGN.md) for deliberate pruning. Campaign coverage is local evidence, not a CI or merge gate.
 - Do not use product unit tests to pin human-authored README, roadmap, migration, compatibility, planning, or agent prose.
 - Test Markdown when it is a supported input/output format. Compare generated documents with their executable generator or machine-readable source of truth.
 - Exercise documentation examples through real compile, restore, or run consumers where practical.

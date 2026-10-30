@@ -5,6 +5,18 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlBlockFloatTests {
+    [Fact]
+    public void RepeatedFullWidthFloatsConsumeTheLayoutWorkBudget() {
+        string pair = "<div style='float:left;width:100%;height:1px;background:red'></div><div></div>";
+        var options = new HtmlRenderOptions { MaxLayoutOperations = 20_000 };
+
+        var error = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlRenderTestDriver.Render(string.Concat(Enumerable.Repeat(pair, 120)), options));
+
+        Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutOperations), error.LimitSource);
+        Assert.Contains("inline float placement scans", error.Message);
+    }
+
     [Theory]
     [InlineData("margin-left:40px", "float:left;width:40px", 40D)]
     [InlineData("margin-left:40px", "float:left;width:40px;margin-left:-40px", 40D)]

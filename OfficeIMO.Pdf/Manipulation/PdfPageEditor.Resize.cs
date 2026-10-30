@@ -564,9 +564,14 @@ internal static partial class PdfPageEditor {
         }
 
         if (preserveDestinationSemantics) {
-            if (objects is not null)
-                for (int index = 2; index < array.Items.Count; index++)
-                    array.Items[index] = PdfObjectLookup.Resolve(objects, array.Items[index]) ?? array.Items[index];
+            if (objects is not null) {
+                for (int index = 2; index < array.Items.Count; index++) {
+                    PdfObject? operand = PdfObjectLookup.Resolve(objects, array.Items[index]);
+                    if (operand is not PdfNumber and not PdfNull)
+                        throw new InvalidOperationException("Page rotation normalization requires numeric or null destination operands.");
+                    array.Items[index] = operand;
+                }
+            }
             if (TransformNormalizationDestination(array, destinationMode.Name, transform)) return;
         }
 

@@ -11,7 +11,8 @@ using System.Threading;
 namespace OfficeIMO.Visio {
     // Load core and parse helpers for VisioDocument.
     public partial class VisioDocument {
-        private static VisioDocument LoadCore(Package package, string? filePath, CancellationToken cancellationToken = default) {
+        private static VisioDocument LoadCore(Package package, string? filePath, CancellationToken cancellationToken = default,
+            long maxPackageXmlCharacters = MaxPackageXmlCharacters) {
             cancellationToken.ThrowIfCancellationRequested();
             VisioDocument document = new() { _filePath = filePath };
             Dictionary<int, string> faceNamesById = new();
@@ -33,7 +34,7 @@ namespace OfficeIMO.Visio {
             }
             document._packageType = packageType;
             LoadVbaProject(documentPart, document);
-            XDocument documentXml = LoadPackageXml(documentPart, "Visio document XML part", cancellationToken);
+            XDocument documentXml = LoadPackageXml(documentPart, "Visio document XML part", cancellationToken, maxPackageXmlCharacters);
             VisioFontWireCodec? fontWire = documentXml.Root == null ? null : VisioFontWireCodec.ReadDocument(documentXml.Root);
             if (documentXml.Root != null) fontWire!.DecodeCells(documentXml.Root, VisioNativeCellMetadata.Read(documentXml.Root.Elements()));
             var textBackgroundColors = ReadTextBackgroundPalette(documentXml.Root?.Element(XName.Get("Colors", VisioNamespace))?.Elements() ?? Enumerable.Empty<XElement>());
@@ -46,7 +47,7 @@ namespace OfficeIMO.Visio {
             if (themeRel != null) {
                 Uri themeUri = PackUriHelper.ResolvePartUri(documentPart.Uri, themeRel.TargetUri);
                 PackagePart themePart = package.GetPart(themeUri);
-                XDocument themeDoc = LoadPackageXml(themePart, "Visio theme XML part", cancellationToken);
+                XDocument themeDoc = LoadPackageXml(themePart, "Visio theme XML part", cancellationToken, maxPackageXmlCharacters);
                 document.PackageTheme = new VisioPackageTheme {
                     Name = themeDoc.Root?.Attribute("name")?.Value,
                     TemplateXml = new XDocument(themeDoc)
@@ -80,7 +81,7 @@ namespace OfficeIMO.Visio {
             if (documentPart.GetRelationshipsByType(MastersRelationshipType).FirstOrDefault() is PackageRelationship mastersRel) {
                 Uri mastersUri = PackUriHelper.ResolvePartUri(documentPart.Uri, mastersRel.TargetUri);
                 PackagePart mastersPart = package.GetPart(mastersUri);
-                XDocument mastersDoc = LoadPackageXml(mastersPart, "Visio masters XML part", cancellationToken);
+                XDocument mastersDoc = LoadPackageXml(mastersPart, "Visio masters XML part", cancellationToken, maxPackageXmlCharacters);
                 if (mastersDoc.Root != null) fontWire?.DecodeCells(mastersDoc.Root, nativeCells, "Masters");
                 XNamespace ns = VisioNamespace;
                 XNamespace rNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -108,7 +109,7 @@ namespace OfficeIMO.Visio {
                     PackageRelationship rel = mastersPart.GetRelationship(mRelId);
                     Uri masterUri = PackUriHelper.ResolvePartUri(mastersPart.Uri, rel.TargetUri);
                     PackagePart masterPart = package.GetPart(masterUri);
-                    XDocument masterDoc = LoadPackageXml(masterPart, "Visio master XML part", cancellationToken);
+                    XDocument masterDoc = LoadPackageXml(masterPart, "Visio master XML part", cancellationToken, maxPackageXmlCharacters);
                     if (masterDoc.Root != null) fontWire?.DecodeCells(masterDoc.Root, nativeCells, VisioNativeCellMetadata.MasterScope(masterNameU));
                     HashSet<string> foreignRelationshipIds = ForeignRelationshipIds(masterDoc.Elements());
                     var foreignResources = new List<VisioForeignResource>();
@@ -194,7 +195,7 @@ namespace OfficeIMO.Visio {
             }
 
             XDocument? pagesDoc = pagesPart == null ? null :
-                LoadPackageXml(pagesPart, "Visio pages XML part", cancellationToken);
+                LoadPackageXml(pagesPart, "Visio pages XML part", cancellationToken, maxPackageXmlCharacters);
             if (pagesDoc?.Root != null) fontWire?.DecodeCells(pagesDoc.Root, nativeCells, "Pages");
             XNamespace vNs = VisioNamespace;
             XNamespace relNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -529,7 +530,7 @@ namespace OfficeIMO.Visio {
                 PackageRelationship pageRel = pagesPart!.GetRelationship(relId);
                 Uri pageUri = PackUriHelper.ResolvePartUri(pagesPart.Uri, pageRel.TargetUri);
                 PackagePart pagePart = package.GetPart(pageUri);
-                XDocument pageDoc = LoadPackageXml(pagePart, "Visio page XML part", cancellationToken);
+                XDocument pageDoc = LoadPackageXml(pagePart, "Visio page XML part", cancellationToken, maxPackageXmlCharacters);
                 if (pageDoc.Root != null) fontWire?.DecodeCells(pageDoc.Root, nativeCells, VisioNativeCellMetadata.PageScope(pageId));
                 document.CaptureForeignResources(pagePart, pageDoc, page.ForeignResources);
 

@@ -87,13 +87,15 @@ public static class HtmlMarkdownConverterExtensions {
         AngleSharp.Html.Dom.IHtmlDocument prepared, HtmlToMarkdownOptions options, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         HtmlToMarkdownOptions operation = options.Clone();
+        HtmlUrlPolicy fallbackResourcePolicy = HtmlUrlPolicy.Intersect(document.ResourceUrlPolicy,
+            operation.ResourceUrlPolicy ?? operation.UrlPolicy);
         ApplyDocumentPolicies(document, operation, documentTransformsApplied: true);
         if (document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint) {
             HtmlActiveMediaFilter.Filter(prepared, HtmlCssMediaContext.Print, diagnostics: null, cancellationToken);
         } else {
             HtmlActiveMediaFilter.FilterUnsupportedPictureSources(prepared, cancellationToken);
         }
-        return new HtmlToMarkdownConverter(cancellationToken).ConvertReadOnlyDocumentToDocument(
+        return new HtmlToMarkdownConverter(cancellationToken, fallbackResourcePolicy).ConvertReadOnlyDocumentToDocument(
             prepared, operation, document.SourceHtml.Length).ToMarkdown(operation.MarkdownWriteOptions, cancellationToken);
     }
 

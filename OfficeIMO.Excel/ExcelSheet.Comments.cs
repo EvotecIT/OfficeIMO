@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
+using System.Threading;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Excel {
@@ -143,6 +144,33 @@ namespace OfficeIMO.Excel {
                 DeferPartSave(commentsPart!);
 
                 EnsureCommentVmlShape(row, column, visible, anchor);
+            });
+        }
+
+        internal void AddImportedComments(IReadOnlyList<(int Row, int Column, string Text)> imported, string author, CancellationToken cancellationToken) {
+            if (imported.Count == 0) return;
+            cancellationToken.ThrowIfCancellationRequested();
+            WriteLock(() => {
+                var commentsPart = GetOrCreateCommentsPart();
+                var comments = commentsPart.Comments ??= new Comments();
+                comments.Authors ??= new Authors();
+                comments.CommentList ??= new CommentList();
+                uint authorId = EnsureAuthorId(comments.Authors, NormalizeAuthor(author, null));
+                var vmlPart = GetOrCreateCommentVmlPart();
+                var document = LoadOrCreateVmlDocument(vmlPart);
+                var root = document.Root ?? throw new InvalidDataException("Comment drawing has no root element.");
+                int shapeId = NextVmlShapeId(root);
+                foreach (var item in imported) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    string reference = A1.CellReference(item.Row, item.Column);
+                    var comment = new Comment { Reference = reference, AuthorId = authorId };
+                    comment.Append(BuildCommentText(item.Text));
+                    comments.CommentList.Append(comment);
+                    AppendCommentVmlShape(root, item.Row, item.Column, false, null, shapeId++);
+                }
+                DeferPartSave(commentsPart);
+                SaveVmlDocument(vmlPart, document);
+                cancellationToken.ThrowIfCancellationRequested();
             });
         }
 
@@ -552,11 +580,15 @@ namespace OfficeIMO.Excel {
 
             RemoveVmlShape(root, row, column);
 
+            AppendCommentVmlShape(root, row, column, visible, commentAnchor, NextVmlShapeId(root));
+            SaveVmlDocument(vmlPart, doc);
+        }
+
+        private static void AppendCommentVmlShape(XElement root, int row, int column, bool visible, ExcelCommentAnchor? commentAnchor, int shapeId) {
             var v = XNamespace.Get("urn:schemas-microsoft-com:vml");
             var o = XNamespace.Get("urn:schemas-microsoft-com:office:office");
             var x = XNamespace.Get("urn:schemas-microsoft-com:office:excel");
 
-            int shapeId = NextVmlShapeId(root);
             string anchor = BuildAnchor(row, column, commentAnchor);
             string visibility = visible ? "visible" : "hidden";
 
@@ -584,7 +616,6 @@ namespace OfficeIMO.Excel {
             );
 
             root.Add(shape);
-            SaveVmlDocument(vmlPart, doc);
         }
 
         private bool RemoveCommentVmlShape(int row, int column) {

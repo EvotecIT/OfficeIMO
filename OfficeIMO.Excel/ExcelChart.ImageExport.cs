@@ -420,6 +420,7 @@ namespace OfficeIMO.Excel {
 
         private static Dictionary<int, ImageExportSeriesStyle> GetImageExportSeriesStyles(C.PlotArea plotArea, ExcelChartData data, WorkbookPart workbookPart) {
             var styles = new Dictionary<int, ImageExportSeriesStyle>();
+            var automaticColors = new OfficeOpenXmlChartAutomaticColors.SeriesResolutionContext();
             int seriesOrder = 0;
             foreach (OpenXmlCompositeElement series in plotArea.Descendants<OpenXmlCompositeElement>()
                          .Where(IsSeriesElement)
@@ -453,7 +454,7 @@ namespace OfficeIMO.Excel {
                 style.MarkerOutlineColorArgb = GetImageExportMarkerOutlineColor(marker, workbookPart);
                 style.MarkerOutlineWidth = GetImageExportMarkerOutlineWidth(marker);
                 ApplyImageExportAutomaticAppearance(series, marker, scatterStyle, style,
-                    workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme);
+                    workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme, automaticColors);
                 string? markerFill = GetImageExportMarkerFillColor(marker, workbookPart);
                 style.PointColorArgb = GetImageExportPointColors(series, valueCount, markerFill, workbookPart);
                 var pointOverrides = OfficeOpenXmlChartPointStyles.GetBoundedPoints(series);
@@ -467,7 +468,8 @@ namespace OfficeIMO.Excel {
                 }
                 if (series.Parent is C.Line3DChart) {
                     var ribbon = OfficeOpenXmlChartPointStyles.ReadRibbonPaint(series,
-                        workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme, useSpreadsheetDefaultTheme: true);
+                        workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme, automaticColors,
+                        useSpreadsheetDefaultTheme: true);
                     style.SeriesStyle = ribbon.Paint;
                     style.SeriesColorArgb = ribbon.Color?.ToRgbHex();
                     style.AutomaticColor = ribbon.Automatic;
@@ -486,9 +488,11 @@ namespace OfficeIMO.Excel {
         // Excel colours series without a stored colour from the chart style and theme, and gives
         // line, scatter and marked radar series without a stored symbol its automatic markers.
         private static void ApplyImageExportAutomaticAppearance(OpenXmlCompositeElement series, C.Marker? marker,
-            C.ScatterStyleValues? scatterStyle, ImageExportSeriesStyle style, A.ColorScheme? scheme) {
+            C.ScatterStyleValues? scatterStyle, ImageExportSeriesStyle style, A.ColorScheme? scheme,
+            OfficeOpenXmlChartAutomaticColors.SeriesResolutionContext automaticColors) {
             if (style.SeriesColorArgb == null && series is not C.PieChartSeries &&
-                OfficeOpenXmlChartAutomaticColors.ResolveSeries(series, scheme, useSpreadsheetDefaultTheme: true) is OfficeColor automatic) {
+                OfficeOpenXmlChartAutomaticColors.ResolveSeries(series, scheme, automaticColors,
+                    useSpreadsheetDefaultTheme: true) is OfficeColor automatic) {
                 style.SeriesColorArgb = automatic.ToRgbHex();
                 style.AutomaticColor = true;
             }

@@ -5,19 +5,20 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     /// <summary>Projects a stroke to fill geometry for the shared native gradient writer.</summary>
-    private static OfficeShape? CreateGradientStrokeShape(OfficeShape shape) {
+    private static OfficeShape? CreateGradientStrokeShape(OfficeShape shape, System.Action<int>? chargePoints = null, int maximumPoints = int.MaxValue) {
         double density = OfficeStrokeGeometry.LocalFlatteningDensity(shape.Transform, 4D);
-        var contours = OfficeStrokeGeometry.FlattenShape(shape, density, boundCurveExpansion: true);
+        var contours = OfficeStrokeGeometry.FlattenShape(shape, density, boundCurveExpansion: true, maximumPoints: maximumPoints);
         IReadOnlyList<double>? pattern = shape.StrokeDashArray.Count > 0
             ? shape.StrokeDashArray : shape.StrokeDashStyle.GetDashPattern(shape.StrokeWidth);
         var outlines = OfficeStrokeGeometry.Create(contours, shape.StrokeWidth,
             shape.StrokeLineCap ?? OfficeStrokeLineCap.Round, shape.StrokeLineJoin ?? OfficeStrokeLineJoin.Round,
             shape.StrokeMiterLimit, pattern, shape.StrokeDashOffset, density,
-            double.NegativeInfinity, double.NegativeInfinity, double.PositiveInfinity, double.PositiveInfinity);
+            double.NegativeInfinity, double.NegativeInfinity, double.PositiveInfinity, double.PositiveInfinity, chargePoints: chargePoints);
         if (outlines.Count == 0) return null;
         var commands = new List<OfficePathCommand>();
         foreach (var ring in outlines) {
             if (ring.Count < 3) continue;
+            chargePoints?.Invoke(ring.Count + 1);
             commands.Add(OfficePathCommand.MoveTo(ring[0]));
             for (int i = 1; i < ring.Count; i++) commands.Add(OfficePathCommand.LineTo(ring[i]));
             commands.Add(OfficePathCommand.Close());

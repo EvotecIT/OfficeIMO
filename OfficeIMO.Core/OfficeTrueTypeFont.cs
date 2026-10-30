@@ -843,7 +843,26 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         ref int expandedPointCount,
         CancellationToken cancellationToken,
         List<OfficePoint>? attachmentPoints) {
+        int componentVisits = 0;
+        return ReadGlyphContoursCore(glyph, transform, depth, variationWorkBudget, maximumPointCount,
+            ref expandedPointCount, ref componentVisits, cancellationToken, attachmentPoints);
+    }
+
+    private List<List<OfficePoint>> ReadGlyphContoursCore(
+        ushort glyph,
+        FontTransform transform,
+        int depth,
+        OfficeTrueTypeVariations.WorkBudget? variationWorkBudget,
+        int maximumPointCount,
+        ref int expandedPointCount,
+        ref int componentVisits,
+        CancellationToken cancellationToken,
+        List<OfficePoint>? attachmentPoints) {
         cancellationToken.ThrowIfCancellationRequested();
+        // Empty glyphs do not consume the point budget, but can expand exponentially
+        // when repeatedly referenced by nested composite glyphs.
+        if (++componentVisits > 65536)
+            throw new InvalidOperationException("Font outline expansion exceeded the composite visit budget.");
         var contours = new List<List<OfficePoint>>();
         if (glyph >= _numGlyphs || depth > 8) return contours;
         var glyphStart = GlyphOffset(glyph);
@@ -862,6 +881,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                 variationWorkBudget,
                 maximumPointCount,
                 ref expandedPointCount,
+                ref componentVisits,
                 cancellationToken,
                 attachmentPoints);
             return contours;
@@ -947,6 +967,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         OfficeTrueTypeVariations.WorkBudget? variationWorkBudget,
         int maximumPointCount,
         ref int expandedPointCount,
+        ref int componentVisits,
         CancellationToken cancellationToken,
         List<OfficePoint>? attachmentPoints) {
         const ushort argWords = 1;
@@ -1053,13 +1074,14 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         var compositePoints = new List<OfficePoint>();
         foreach (GlyphComponent component in components) {
             var componentPoints = new List<OfficePoint>();
-            List<List<OfficePoint>> componentContours = ReadGlyphContours(
+            List<List<OfficePoint>> componentContours = ReadGlyphContoursCore(
                 component.Glyph,
                 transform.Compose(component.A, component.B, component.C, component.D, 0, 0),
                 depth + 1,
                 variationWorkBudget,
                 maximumPointCount,
                 ref expandedPointCount,
+                ref componentVisits,
                 cancellationToken,
                 componentPoints);
 

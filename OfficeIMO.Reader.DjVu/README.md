@@ -23,6 +23,8 @@ Console.WriteLine(result.Kind); // DjVu
 
 Stored text retains UTF-16 offsets, rotated geometry in PDF points, source identity, and the primary input hash. Its historical OCR engine is unknown, so the adapter does not invent recognition provenance. Absent and empty text produce explicit OCR candidates; corrupt text produces a parsing diagnostic. Executing OCR requires the separate Reader OCR contract and an explicitly supplied engine.
 
+`ReadOptions.MaxTextCharacters` also bounds the aggregate text retained in projected word and paragraph blocks across the selected pages. The adapter checks this limit before copying each word, including overlapping text zones. Exceeding it raises `ReaderResourceLimitException` for both rich-document and chunk-only reads.
+
 Reader stream ingestion follows the shared Reader convention: seekable input is read from the beginning and its original position is restored; non-seekable input is read from its current position. Streams remain open. The native `DjVuDocument.Load(Stream)` API instead reads from the current position for both stream kinds.
 
 DjVu uses `ReaderInputKind.DjVu` (`28`) and transport schema v12. Older schemas remain available for their supported input kinds. The [native support matrix](../OfficeIMO.DjVu/SUPPORT.md) defines the codec and indirect-document limits.

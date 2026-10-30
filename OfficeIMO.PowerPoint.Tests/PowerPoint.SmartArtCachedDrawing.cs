@@ -38,6 +38,27 @@ public sealed class PowerPointSmartArtCachedDrawingTests {
         Assert.Contains("Validate", PdfReadDocument.Open(result.ToBytes()).Pages[slideIndex].ExtractText(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CachedSmartArtRejectsExpandedCacheBeforeMaterialization(bool oversizedXml) {
+        using PowerPointPresentation presentation = PowerPointPresentation.Load(RoadmapPath);
+        PowerPointSlide slide = presentation.Slides.Single(item => item.Shapes.OfType<PowerPointSmartArt>().Any());
+        PowerPointSmartArt smartArt = slide.Shapes.OfType<PowerPointSmartArt>().Single();
+        DiagramPersistLayoutPart part = slide.SlidePart.Parts.Select(item => item.OpenXmlPart)
+            .OfType<DiagramPersistLayoutPart>().Single();
+        using (Stream stream = part.GetStream(FileMode.Create, FileAccess.Write))
+        using (var writer = new StreamWriter(stream)) {
+            writer.Write("<drawing><spTree>");
+            if (oversizedXml) writer.Write(new string('A', checked((int)PowerPointXmlReader.MaximumPackageXmlCharacters + 1)));
+            else for (int index = 0; index <= 4096; index++) writer.Write("<sp/>");
+            writer.Write("</spTree></drawing>");
+        }
+
+        Assert.False(smartArt.TryCreateCachedDrawing(out _, out string? reason));
+        Assert.Contains(oversizedXml ? "XML admission limits" : "supported shape count", reason, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void EditedSmartArtRefreshesItsProducerDrawing() {
         using PowerPointPresentation presentation = PowerPointPresentation.Load(RoadmapPath);

@@ -128,10 +128,6 @@ public static partial class HtmlResourcePipeline {
 
     private static string MaskCssComments(string css) {
         var result = new StringBuilder(css);
-        // Comment-like text inside a URL token belongs to its resource identifier.
-        var urls = CssUrlExpression.Matches(css).Cast<Match>()
-            .Where(match => IsValidCssUrlMatch(css, match) && IsCssFunctionNameAt(css, match.Index, "url"))
-            .ToDictionary(match => match.Index, match => match.Index + match.Length);
         char quote = '\0';
         for (int index = 0; index < css.Length; index++) {
             char current = css[index];
@@ -139,13 +135,33 @@ public static partial class HtmlResourcePipeline {
                 if (current == quote && !IsEscaped(css, index)) quote = '\0';
                 continue;
             }
-            if (urls.TryGetValue(index, out int urlEnd)) { index = urlEnd - 1; continue; }
             if (current is '"' or '\'') { quote = current; continue; }
-            if (current != '/' || index + 1 >= css.Length || css[index + 1] != '*') continue;
-            result[index++] = CssCommentMask;
-            result[index] = CssCommentMask;
-            while (index + 1 < css.Length && !(css[index] == '*' && css[index + 1] == '/')) result[++index] = CssCommentMask;
-            if (index + 1 < css.Length) { result[index] = CssCommentMask; result[++index] = CssCommentMask; }
+            if (current == '/' && index + 1 < css.Length && css[index + 1] == '*') {
+                result[index++] = CssCommentMask;
+                result[index] = CssCommentMask;
+                while (index + 1 < css.Length && !(css[index] == '*' && css[index + 1] == '/')) result[++index] = CssCommentMask;
+                if (index + 1 < css.Length) { result[index] = CssCommentMask; result[++index] = CssCommentMask; }
+                continue;
+            }
+            int nameEnd = index;
+            if (!HtmlCssIdentifierParser.TryRead(css, ref nameEnd, out string name)) continue;
+            // An unquoted URL owns comment-like path characters. Quoted URLs
+            // need no special handling: the ordinary quote state protects
+            // their value and still masks comments after the closing quote.
+            if (name.Equals("url", StringComparison.OrdinalIgnoreCase) && nameEnd < css.Length && css[nameEnd] == '('
+                && (index == 0 || !IsCssIdentifierCharacter(css[index - 1]))) {
+                int value = nameEnd + 1;
+                while (value < css.Length && IsCssWhitespace(css[value])) value++;
+                if (value < css.Length && css[value] is not ('"' or '\'')) {
+                    while (value < css.Length && css[value] != ')') {
+                        if (css[value] == '\\' && value + 1 < css.Length) value++;
+                        value++;
+                    }
+                    index = value;
+                    continue;
+                }
+            }
+            index = nameEnd - 1;
         }
         return result.ToString();
     }

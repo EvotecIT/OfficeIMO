@@ -400,6 +400,7 @@ public sealed partial class PdfReadPage {
             patternBaseColorSpaces: patternBaseColorSpaces,
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
+            strokeDashProjectionConsumer: pageContentBudget.ChargeStrokeDashProjection,
             retainPrimitiveData: false,
             unsupportedShadingTransformVisitor: () => supported = false,
             unsupportedOperatorVisitor: _ => supported = false,
@@ -863,6 +864,9 @@ public sealed partial class PdfReadPage {
             local.Add(resolvedTransition);
             transitions.Add(resolvedTransition);
         }
+        bool hasContentOrderKeys = contentOrderPrefix != null &&
+            local.All(static transition => transition.ContentOrderKey != null);
+        if (hasContentOrderKeys) SortGraphicsEffectTransitions(local);
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -899,7 +903,9 @@ public sealed partial class PdfReadPage {
                 activeForms.Remove(formStream);
                 continue;
             }
-            PdfPageDrawingEffect inherited = ResolveDrawingEffect(local, invocation.PaintOrder, initialEffect, formOrderPrefix);
+            PdfPageDrawingEffect inherited = hasContentOrderKeys && formOrderPrefix != null
+                ? ResolveDrawingEffectByContentOrder(local, formOrderPrefix, initialEffect)
+                : ResolveDrawingEffect(local, invocation.PaintOrder, initialEffect, formOrderPrefix);
             try {
                 PdfDictionary dictionary = formStream.Dictionary;
                 if (skipTransparencyGroupForms &&
@@ -966,6 +972,21 @@ public sealed partial class PdfReadPage {
         return effect;
     }
 
+    private static PdfPageDrawingEffect ResolveDrawingEffectByContentOrder(
+        List<PdfPageDrawingEffectTransition> transitions,
+        PdfContentOrderKey contentOrderKey,
+        PdfPageDrawingEffect initial) {
+        int low = 0;
+        int high = transitions.Count;
+        while (low < high) {
+            int middle = low + ((high - low) / 2);
+            if (transitions[middle].ContentOrderKey!.CompareTo(contentOrderKey) <= 0)
+                low = middle + 1;
+            else high = middle;
+        }
+        return low == 0 ? initial : transitions[low - 1].Effect;
+    }
+
     private static void SortGraphicsEffectTransitions(List<PdfPageDrawingEffectTransition> transitions) {
         transitions.Sort(static (left, right) => {
             if (left.ContentOrderKey != null && right.ContentOrderKey != null) {
@@ -1006,6 +1027,7 @@ public sealed partial class PdfReadPage {
         var cacheKey = (resource.Group, resource.ParentResources, resource.Mode, resource.BackdropColor, pageTransform, width, height, renderingIntent);
         // Cached masks are shared without their transfer table, which is applied per graphics state.
         if (cache.TryGetValue(cacheKey, out OfficeDrawingSoftMask? existing)) return existing.WithTransferTable(resource.TransferTable);
+        active = pageContentBudget.ActiveSoftMasks;
         if (!active.Add(resource.Group)) {
             return OfficeDrawingSoftMask.CreateWithLuminosityStandard(
                 new OfficeDrawing(width, height),
@@ -1015,6 +1037,8 @@ public sealed partial class PdfReadPage {
                 transform: null).WithTransferTable(resource.TransferTable);
         }
         try {
+            if (active.Count > _limits.MaxContentNestingDepth)
+                throw PdfReadLimitException.Create(PdfReadLimitKind.ContentNestingDepth, _limits.MaxContentNestingDepth, active.Count);
             OfficeDrawing drawing = CreateFormDrawing(resource.Group, resource.ParentResources, width, height, pageTransform, renderingIntent, cache, active, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, cancellationToken: cancellationToken);
             var mask = OfficeDrawingSoftMask.CreateWithLuminosityStandard(
                 drawing,

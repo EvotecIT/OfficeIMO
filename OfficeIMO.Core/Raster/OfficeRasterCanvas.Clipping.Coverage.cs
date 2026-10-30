@@ -43,6 +43,7 @@ public sealed partial class OfficeRasterCanvas {
         ChargeIntermediateSurfacePixels(2L * width * height, MaximumClipRasterPixels);
         var image = new OfficeRasterImage(width, height);
         var maskCanvas = new OfficeRasterCanvas(image, font: null, fonts: null, cancellationToken: _cancellationToken);
+        maskCanvas.ShareTransformedTextBudget(_transformedTextBudget);
         var shifted = new List<ClipContourSource>(sources.Count);
         foreach (ClipContourSource source in sources) {
             var contours = new List<IReadOnlyList<OfficePoint>>(source.Contours.Count);

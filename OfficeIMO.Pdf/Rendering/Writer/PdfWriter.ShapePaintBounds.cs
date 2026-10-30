@@ -5,6 +5,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    private const int MaximumPaintBoundsProjectionPoints = 65536;
     /// <summary>Measures projected fill and stroke after the shape's actual clip geometry.</summary>
     private static bool TryGetShapePaintBounds(OfficeShape shape, double x, double bottomY,
         PdfOptions? options, string source, string contentKind,
@@ -36,8 +37,9 @@ internal static partial class PdfWriter {
         out double left, out double bottom, out double width, out double height, bool conservativeWhenUnmeasured) {
         left = bottom = width = height = 0D;
         if (shape.ClipPath?.Kind == OfficeClipPathKind.Empty) return false;
+        int remainingPoints = MaximumPaintBoundsProjectionPoints;
         IReadOnlyList<OfficeTextInkClip>? clips = shape.ClipPath == null ? null : new[] {
-            OfficeTextInkClip.FromFilledContours(OfficeClipPathGeometry.CreateContours(shape.ClipPath, points => Map(points, shape)), shape.ClipPath.FillRule)
+            OfficeTextInkClip.FromFilledContours(OfficeClipPathGeometry.CreateContours(shape.ClipPath, points => Map(points, shape), remainingPoints), shape.ClipPath.FillRule)
         };
         bool hasBounds = false;
         double paintLeft = 0D, paintBottom = 0D, paintWidth = 0D, paintHeight = 0D;
@@ -46,18 +48,18 @@ internal static partial class PdfWriter {
         if (shape.StrokeWidth > 0D && HasVisibleBoundsPaint(shape.StrokeColor, shape.StrokeGradient, shape.StrokeRadialGradient, shape.StrokeOpacity)) {
             if (shape.StrokeGradient != null || shape.StrokeRadialGradient != null) {
                 // Reuse the painter's outline, including its cap/join defaults.
-                OfficeShape? projected = CreateGradientStrokeShape(shape);
+                OfficeShape? projected = CreateGradientStrokeShape(shape, ChargePoints, remainingPoints);
                 if (projected != null) AddFill(projected);
             } else {
                 var paint = new List<List<OfficePoint>>();
                 double density = OfficeStrokeGeometry.LocalFlatteningDensity(shape.Transform, 4D);
-                var contours = OfficeStrokeGeometry.FlattenShape(shape, density);
+                var contours = OfficeStrokeGeometry.FlattenShape(shape, density, maximumPoints: remainingPoints);
                 bool customDash = shape.StrokeDashArray.Count > 0;
                 IReadOnlyList<double>? dash = customDash ? shape.StrokeDashArray : PdfPresetDashPattern(shape.StrokeDashStyle, shape.StrokeWidth);
                 foreach (var ring in OfficeStrokeGeometry.Create(contours, shape.StrokeWidth,
                     shape.StrokeLineCap ?? (customDash ? OfficeStrokeLineCap.Butt : PdfPresetLineCap(shape.StrokeDashStyle)), shape.StrokeLineJoin ?? OfficeStrokeLineJoin.Miter,
                     PdfPaintMiterLimit(shape), dash, shape.StrokeDashOffset, density,
-                    double.NegativeInfinity, double.NegativeInfinity, double.PositiveInfinity, double.PositiveInfinity))
+                    double.NegativeInfinity, double.NegativeInfinity, double.PositiveInfinity, double.PositiveInfinity, chargePoints: ChargePoints))
                     paint.Add(ring);
                 Measure(paint, OfficeFillRule.NonZero, shape, true);
             }
@@ -68,7 +70,10 @@ internal static partial class PdfWriter {
         void AddFill(OfficeShape geometry) {
             var paint = new List<List<OfficePoint>>();
             foreach (var contour in OfficeStrokeGeometry.FlattenShape(geometry,
-                OfficeStrokeGeometry.LocalFlatteningDensity(geometry.Transform, 4D))) paint.Add(new List<OfficePoint>(contour.Points));
+                OfficeStrokeGeometry.LocalFlatteningDensity(geometry.Transform, 4D), maximumPoints: remainingPoints)) {
+                ChargePoints(contour.Points.Count);
+                paint.Add(new List<OfficePoint>(contour.Points));
+            }
             Measure(paint, geometry.FillRule, geometry, false);
         }
         void Measure(List<List<OfficePoint>> paint, OfficeFillRule rule, OfficeShape geometry, bool stroke) {
@@ -82,7 +87,7 @@ internal static partial class PdfWriter {
             var effectiveClips = clips == null ? new List<OfficeTextInkClip>() : new List<OfficeTextInkClip>(clips);
             var linear = stroke ? geometry.StrokeGradient : geometry.FillGradient;
             var radial = stroke ? geometry.StrokeRadialGradient : geometry.FillRadialGradient;
-            if (!TryCreateGradientAlphaContours(geometry, paint, linear, radial, out var alpha)) {
+            if (!TryCreateGradientAlphaContours(geometry, paint, linear, radial, out var alpha, ChargePoints)) {
                 options?.AddUnassessedLayoutWarning("HeaderFooterPaintBoundsUnmeasured", source,
                     source + " " + contentKind + " gradient alpha bounds are unassessed; physical page clipping is unassessed.");
                 if (conservativeWhenUnmeasured) IncludeUnmeasuredGeometry(MappedPaint());
@@ -115,6 +120,7 @@ internal static partial class PdfWriter {
                 ref hasBounds, ref paintLeft, ref paintBottom, ref paintWidth, ref paintHeight);
         }
         List<OfficePoint> Map(IReadOnlyList<OfficePoint> ring, OfficeShape geometry) {
+            ChargePoints(ring.Count);
             var mapped = new List<OfficePoint>(ring.Count);
             OfficeTransform transform = geometry.Transform ?? OfficeTransform.Identity;
             foreach (OfficePoint point in ring) {
@@ -122,6 +128,11 @@ internal static partial class PdfWriter {
                 mapped.Add(new OfficePoint(x + transformed.X, bottomY + geometry.Height - transformed.Y));
             }
             return mapped;
+        }
+        void ChargePoints(int points) {
+            if (points < 0 || points > remainingPoints)
+                throw new InvalidOperationException("Shape paint bounds exceed the geometry projection point limit.");
+            remainingPoints -= points;
         }
     }
 

@@ -13,6 +13,7 @@ public sealed partial class OfficeWorkflowRunner {
         var loadOptions = new VisioLoadOptions {
             MaxInputBytes = request.Limits.MaximumInputBytes,
             MaxLegacyXmlCharacters = request.Limits.MaximumXmlCharactersInPart,
+            MaxPackageXmlCharacters = request.Limits.MaximumXmlCharactersInPart,
             PackageSecurity = CreateOpenXmlPackageSecurity(request.Limits)
         };
         string extension = Path.GetExtension(request.InputPath).ToLowerInvariant();

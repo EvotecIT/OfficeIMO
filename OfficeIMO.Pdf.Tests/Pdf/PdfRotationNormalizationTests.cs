@@ -4,7 +4,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public sealed class PdfRotationNormalizationTests {
+public sealed partial class PdfRotationNormalizationTests {
     [Fact]
     public void NormalizationPlanReportsResourcesAndContentChanges() {
         var plan = PdfMutationPlanner.Plan(CreateGeometrySource(90), PdfMutationOperation.NormalizePageRotation);

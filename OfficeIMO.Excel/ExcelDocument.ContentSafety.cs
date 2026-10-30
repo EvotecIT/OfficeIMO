@@ -581,6 +581,7 @@ public partial class ExcelDocument {
         private readonly CellFormat[] _formats;
         private readonly Font[] _fonts;
         private readonly Fill[] _fills;
+        private readonly RgbColor[] _indexedColors;
         private readonly Dictionary<uint, string> _numberFormats;
         internal ExcelContentStyleResolver(WorkbookPart workbookPart) {
             _workbookPart = workbookPart;
@@ -588,6 +589,7 @@ public partial class ExcelDocument {
             _formats = stylesheet?.CellFormats?.Elements<CellFormat>().ToArray() ?? Array.Empty<CellFormat>();
             _fonts = stylesheet?.Fonts?.Elements<Font>().ToArray() ?? Array.Empty<Font>();
             _fills = stylesheet?.Fills?.Elements<Fill>().ToArray() ?? Array.Empty<Fill>();
+            _indexedColors = stylesheet?.Colors?.IndexedColors?.Elements<RgbColor>().ToArray() ?? Array.Empty<RgbColor>();
             _numberFormats = stylesheet?.NumberingFormats?.Elements<NumberingFormat>()
                 .Where(item => item.NumberFormatId?.Value != null && item.FormatCode?.Value != null)
                 .ToDictionary(item => item.NumberFormatId!.Value, item => item.FormatCode!.Value!, EqualityComparer<uint>.Default)
@@ -602,10 +604,12 @@ public partial class ExcelDocument {
             CellFormat? format = styleIndex < _formats.Length ? _formats[styleIndex] : null;
             Font? font = format?.FontId?.Value is uint fontId && fontId < _fonts.Length ? _fonts[fontId] : null;
             Fill? fill = format?.FillId?.Value is uint fillId && fillId < _fills.Length ? _fills[fillId] : null;
-            string? foregroundArgb = ExcelThemeColorResolver.Resolve(font?.Color, _workbookPart);
+            string? foregroundArgb = ExcelThemeColorResolver.Resolve(font?.Color, _workbookPart,
+                workbookIndexedPalette: _indexedColors);
             PatternFill? pattern = fill?.PatternFill;
             string? backgroundArgb = pattern?.PatternType?.Value == PatternValues.Solid
-                ? ExcelThemeColorResolver.Resolve(pattern.ForegroundColor, _workbookPart)
+                ? ExcelThemeColorResolver.Resolve(pattern.ForegroundColor, _workbookPart,
+                    workbookIndexedPalette: _indexedColors)
                 : null;
             bool transparent = foregroundArgb?.StartsWith("00", StringComparison.OrdinalIgnoreCase) == true;
             OfficeColor background = OfficeColor.White;

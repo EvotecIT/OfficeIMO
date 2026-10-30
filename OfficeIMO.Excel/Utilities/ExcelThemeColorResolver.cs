@@ -25,7 +25,8 @@ namespace OfficeIMO.Excel.Utilities {
         internal static string? Resolve(
             ColorType? color,
             WorkbookPart? workbookPart,
-            IReadOnlyDictionary<uint, string>? indexedColorOverrides = null) {
+            IReadOnlyDictionary<uint, string>? indexedColorOverrides = null,
+            IReadOnlyList<RgbColor>? workbookIndexedPalette = null) {
             if (color == null) {
                 return null;
             }
@@ -42,7 +43,7 @@ namespace OfficeIMO.Excel.Utilities {
                 if (indexedColorOverrides != null && indexedColorOverrides.TryGetValue(indexed, out string? custom)) {
                     argb = NormalizeArgb(custom);
                 } else {
-                    argb = ResolveWorkbookIndexedColor(indexed, workbookPart);
+                    argb = ResolveWorkbookIndexedColor(indexed, workbookPart, workbookIndexedPalette);
                     if (argb == null && indexed < IndexedColors.Length) {
                         argb = NormalizeArgb(IndexedColors[indexed]);
                     }
@@ -58,7 +59,10 @@ namespace OfficeIMO.Excel.Utilities {
                 : argb;
         }
 
-        private static string? ResolveWorkbookIndexedColor(uint indexed, WorkbookPart? workbookPart) {
+        private static string? ResolveWorkbookIndexedColor(uint indexed, WorkbookPart? workbookPart,
+            IReadOnlyList<RgbColor>? indexedPalette) {
+            if (indexedPalette != null)
+                return indexed < indexedPalette.Count ? NormalizeArgb(indexedPalette[(int)indexed].Rgb?.Value) : null;
             var palette = workbookPart?.WorkbookStylesPart?.Stylesheet?.Colors?.IndexedColors;
             if (palette == null) return null;
             uint index = 0;

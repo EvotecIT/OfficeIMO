@@ -69,13 +69,18 @@ public sealed partial class OfficeVbaProject {
             || directory == null) throw new InvalidDataException(detail);
         var project = new OfficeVbaProject(bytes, compound, directory, OfficeVbaText.Decode(projectText, directory.CodePage));
         project.IsProtected = OfficeVbaProjectText.IsProtected(project._projectText);
+        string[] moduleNames = directory.Modules.Select(module => module.UnicodeName.Length > 0
+            ? new System.Text.UnicodeEncoding(false, false, true).GetString(module.UnicodeName)
+            : OfficeVbaText.Decode(module.AnsiName, directory.CodePage)).ToArray();
+        if (moduleNames.Any(name => name.IndexOf('/') >= 0))
+            throw new InvalidDataException("A VBA module name contains the PROJECT declaration delimiter.");
+        var moduleKinds = new OfficeVbaProjectText.ModuleKindLookup(project._projectText, moduleNames);
         int remaining = options.MaximumExpandedBytes - directoryBytes.Length;
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var streams = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        int moduleIndex = 0;
         foreach (OfficeVbaDirectoryCodec.ModuleModel module in directory.Modules) {
-            string name = module.UnicodeName.Length > 0
-                ? new System.Text.UnicodeEncoding(false, false, true).GetString(module.UnicodeName)
-                : OfficeVbaText.Decode(module.AnsiName, directory.CodePage);
+            string name = moduleNames[moduleIndex++];
             if (!names.Add(name) || !streams.Add(module.StreamName)) throw new InvalidDataException("VBA modules have duplicate names or stream identities.");
             if (!compound.Streams.TryGetValue("VBA/" + module.StreamName, out byte[]? stream)
                 || module.TextOffset > stream.Length) throw new InvalidDataException("A VBA module stream is missing or its source offset is outside the stream.");
@@ -83,7 +88,7 @@ public sealed partial class OfficeVbaProject {
             Buffer.BlockCopy(stream, module.TextOffset, compressedSource, 0, compressedSource.Length);
             if (!OfficeVbaCompression.TryDecompress(compressedSource, remaining, out byte[] source, out detail)) throw new InvalidDataException(detail);
             remaining -= source.Length;
-            OfficeVbaModuleKind kind = OfficeVbaProjectText.GetModuleKind(project._projectText, name, module.TypeId);
+            OfficeVbaModuleKind kind = moduleKinds.Get(name, module.TypeId);
             project._modules.Add(new OfficeVbaModule(name, kind, OfficeVbaText.Decode(source, directory.CodePage).TrimEnd('\0'), module));
         }
         foreach (OfficeVbaDirectoryCodec.ReferenceModel reference in directory.References) {

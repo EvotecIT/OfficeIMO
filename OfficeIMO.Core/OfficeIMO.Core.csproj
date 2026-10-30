@@ -64,6 +64,7 @@
     <InternalsVisibleTo Include="OfficeIMO.RealWorldCorpus.Tool" />
     <InternalsVisibleTo Include="OfficeIMO.GoogleWorkspace.Drive" />
     <InternalsVisibleTo Include="OfficeIMO.IWork" />
+    <InternalsVisibleTo Include="OfficeIMO.Excel.IWork" />
     <InternalsVisibleTo Include="OfficeIMO.IWork.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Opml" />
     <InternalsVisibleTo Include="OfficeIMO.Project" />

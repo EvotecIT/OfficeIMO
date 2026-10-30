@@ -72,6 +72,12 @@ Legacy warnings include the detected profile, structured-versus-salvage quality,
 
 SYLK/DIF project stored values through the same Excel table reader. SYLK expressions and formatting are omitted with warnings; DIF error markers remain literal text with warnings. The [Excel profile coverage](../OfficeIMO.Excel/README.md#profile-coverage) defines the exact grammar and limits. `LegacySpreadsheetImportOptions.TextEncoding` is snapshotted at registration; when absent, the per-read `ReaderOptions.TextEncoding` applies, then Windows-1252. A Unicode BOM takes precedence. `OfficeIMO.Reader.All` includes these formats when `IncludeLegacySpreadsheet` is enabled, which is the preset default.
 
+Reader table extraction admits at most 1,000,000 projected cell positions across
+the selected sheets and ranges. Sparse sources still occupy their full rectangular
+range when projected, so a wider range can fail with
+`ReaderResourceLimitException` (`excel.MaxProjectedCells`) before table rows are
+allocated. Select a smaller `ReaderExcelOptions.A1Range` for a targeted read.
+
 ## Incremental path reads
 
 `reader.EnumerateChunks(path, options)` yields the existing Excel row chunks on demand and releases the
