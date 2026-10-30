@@ -34,6 +34,20 @@ internal sealed class PublisherNativeSource {
         }
     }
 
+    /// <summary>Removes the stale optional SummaryInformation thumbnail from edited output, retaining other raw property values through Core.</summary>
+    internal bool InvalidatePreview(IDictionary<string, byte[]> replacements, CancellationToken token) {
+        token.ThrowIfCancellationRequested();
+        string name = OfficeOlePropertySetWriter.SummaryInformationStreamName;
+        if (!_compound.Streams.TryGetValue(name, out byte[]? source)) return false;
+        if (!OfficeOlePropertySetReader.ReadSections(source, token).Any(section =>
+            section.FormatId == OfficeOlePropertySetWriter.SummaryInformationFormatId && section.Properties.ContainsKey(17))) return false;
+        // A null replacement removes the complete property, including opaque
+        // VT_CF clipboard data; it does not reinterpret or render the preview.
+        replacements.Add(name, OfficeOlePropertySetEditor.RewriteStrings(source,
+            OfficeOlePropertySetWriter.SummaryInformationFormatId, new Dictionary<uint, string?> { [17] = null }, token));
+        return true;
+    }
+
     internal byte[] Rewrite(IReadOnlyDictionary<string, byte[]> streams, long maximumBytes, CancellationToken token) =>
         OfficeCompoundFileWriter.Rewrite(_compound, streams,
             maxOutputBytes: maximumBytes, cancellationToken: token);

@@ -28,6 +28,40 @@ public sealed class PublisherNativeWritingTests {
     }
 
     [Fact]
+    public void Edited_native_content_invalidates_only_the_cached_summary_thumbnail() {
+        byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/Rectangle/native-rectangle.pub"));
+        PublisherDocument document = PublisherDocument.Load(source);
+        Assert.Equal(source, document.PrepareNativeBytes(MaximumBytes).CopyBytes());
+        PublisherShape shape = Assert.Single(document.Pages[0].Shapes);
+        document.SetShapeBounds(shape.Id, 36, 48, 120, 84);
+        PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
+        Assert.True(prepared.IsPrepared);
+        string name = OfficeOlePropertySetWriter.SummaryInformationStreamName;
+        byte[] before = Compound(source).Streams[name], after = Compound(prepared.CopyBytes()).Streams[name];
+        Assert.DoesNotContain(OfficeOlePropertySetReader.ReadSections(after, CancellationToken.None), section =>
+            section.FormatId == OfficeOlePropertySetWriter.SummaryInformationFormatId && section.Properties.ContainsKey(17));
+        Assert.Contains(prepared.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_PREVIEW_INVALIDATED"
+            && item.LossKind == OfficeConversionLossKind.None);
+        AssertSummaryPreviewInvalidated(before, after);
+    }
+
+    [Fact]
+    public void Invalid_preview_metadata_refuses_edits_but_does_not_change_inert_source_copying() {
+        byte[] source = PublisherInputContractTests.Mutate(OfficeOlePropertySetWriter.SummaryInformationStreamName,
+            bytes => bytes[0] = 0, "NativeComparison/Rectangle/native-rectangle.pub");
+        PublisherDocument document = PublisherDocument.Load(source);
+        Assert.Equal(source, document.PrepareNativeBytes(MaximumBytes).CopyBytes());
+        PublisherShape shape = Assert.Single(document.Pages[0].Shapes);
+        document.SetShapeBounds(shape.Id, 36, 48, 120, 84);
+        PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
+        Assert.False(prepared.IsPrepared);
+        Assert.Contains(prepared.FidelityDiagnostics, item => item.Location == OfficeOlePropertySetWriter.SummaryInformationStreamName
+            && item.LossKind == OfficeConversionLossKind.Failure);
+        Assert.Equal((36D, 48D, 120D, 84D), (document.Pages[0].Shapes[0].X, document.Pages[0].Shapes[0].Y,
+            document.Pages[0].Shapes[0].Width, document.Pages[0].Shapes[0].Height));
+    }
+
+    [Fact]
     public void Rectangle_bounds_and_existing_fill_slot_change_one_native_object_and_preserve_other_streams_and_metadata() {
         byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/Rectangle/native-rectangle.pub"));
         PublisherDocument document = PublisherDocument.Load(source);
@@ -473,8 +507,12 @@ public sealed class PublisherNativeWritingTests {
     private static void AssertPreservedStorage(byte[] source, byte[] output, string changedStream = "Escher/EscherStm", params string[] additionalChangedStreams) {
         OfficeCompoundFile before = Compound(source), after = Compound(output);
         Assert.Equal(before.Streams.Keys.OrderBy(path => path), after.Streams.Keys.OrderBy(path => path));
-        foreach (var stream in before.Streams.Where(item => item.Key != changedStream && !additionalChangedStreams.Contains(item.Key)))
-            Assert.Equal(stream.Value, after.Streams[stream.Key]);
+        foreach (var stream in before.Streams.Where(item => item.Key != changedStream && !additionalChangedStreams.Contains(item.Key))) {
+            if (stream.Key == OfficeOlePropertySetWriter.SummaryInformationStreamName
+                && RawProperties(stream.Value).ContainsKey((OfficeOlePropertySetWriter.SummaryInformationFormatId, 17U)))
+                AssertSummaryPreviewInvalidated(stream.Value, after.Streams[stream.Key]);
+            else Assert.Equal(stream.Value, after.Streams[stream.Key]);
+        }
         var metadata = before.Entries.ToDictionary(entry => entry.Path);
         Assert.Equal(metadata.Count, after.Entries.Count);
         foreach (OfficeCompoundFileEntry entry in after.Entries) {
@@ -482,5 +520,36 @@ public sealed class PublisherNativeWritingTests {
             Assert.Equal((original.ObjectType, original.ClassId, original.StateBits, original.CreationTime, original.ModifiedTime),
                 (entry.ObjectType, entry.ClassId, entry.StateBits, entry.CreationTime, entry.ModifiedTime));
         }
+    }
+
+    private static void AssertSummaryPreviewInvalidated(byte[] before, byte[] after) {
+        Assert.Equal(before.Take(24), after.Take(24));
+        var original = RawProperties(before);
+        var current = RawProperties(after);
+        var thumbnail = (OfficeOlePropertySetWriter.SummaryInformationFormatId, 17U);
+        Assert.True(original.ContainsKey(thumbnail));
+        Assert.False(current.ContainsKey(thumbnail));
+        Assert.Equal(original.Count - 1, current.Count);
+        foreach (var value in original.Where(item => item.Key != thumbnail)) {
+            Assert.True(current.ContainsKey(value.Key));
+            Assert.Equal(value.Value, current[value.Key]);
+        }
+    }
+
+    private static Dictionary<(Guid Section, uint Id), byte[]> RawProperties(byte[] bytes) {
+        var result = new Dictionary<(Guid, uint), byte[]>();
+        for (int section = 0; section < BitConverter.ToInt32(bytes, 24); section++) {
+            int slot = 28 + section * 20, offset = BitConverter.ToInt32(bytes, slot + 16);
+            Guid id = new Guid(bytes.Skip(slot).Take(16).ToArray());
+            int length = BitConverter.ToInt32(bytes, offset), count = BitConverter.ToInt32(bytes, offset + 4);
+            var entries = Enumerable.Range(0, count).Select(index => (
+                Id: BitConverter.ToUInt32(bytes, offset + 8 + index * 8),
+                Offset: BitConverter.ToInt32(bytes, offset + 12 + index * 8))).OrderBy(item => item.Offset).ToArray();
+            for (int index = 0; index < entries.Length; index++) {
+                int end = index + 1 == entries.Length ? length : entries[index + 1].Offset;
+                result.Add((id, entries[index].Id), bytes.Skip(offset + entries[index].Offset).Take(end - entries[index].Offset).ToArray());
+            }
+        }
+        return result;
     }
 }
