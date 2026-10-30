@@ -2117,19 +2117,27 @@ namespace OfficeIMO.Tests {
 
             request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, critical: false));
 
-            using X509Certificate2 certificate = request.CreateSelfSigned(
+            X509Certificate2 certificate = request.CreateSelfSigned(
                 DateTimeOffset.UtcNow.AddDays(-1),
                 DateTimeOffset.UtcNow.AddDays(1));
 
-            byte[] exported = certificate.Export(X509ContentType.Pfx);
-            // Ordinary fixtures stay ephemeral; only the explicit store contract opts into a user key.
+            // CreateSelfSigned already owns an in-memory software key. Reimporting a PFX
+            // with EphemeralKeySet is unsupported on macOS and is unnecessary here.
+            if ((fixtureKeys & X509KeyStorageFlags.EphemeralKeySet) != 0) {
+                return certificate;
+            }
+
+            using (certificate) {
+                byte[] exported = certificate.Export(X509ContentType.Pfx);
+                // Only the explicit store contract opts into a user key.
 #if NET9_0_OR_GREATER
-            return X509CertificateLoader.LoadPkcs12(exported, null, fixtureKeys);
+                return X509CertificateLoader.LoadPkcs12(exported, null, fixtureKeys);
 #else
 #pragma warning disable SYSLIB0057 // X509CertificateLoader is unavailable before .NET 9.
-            return new X509Certificate2(exported, (string?)null, fixtureKeys);
+                return new X509Certificate2(exported, (string?)null, fixtureKeys);
 #pragma warning restore SYSLIB0057
 #endif
+            }
         }
 
         private static int AddRfc3161Timestamp(
