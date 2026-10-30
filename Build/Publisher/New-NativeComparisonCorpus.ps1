@@ -19,6 +19,9 @@ TextStories separates three stories; TextFormattingPages retains an overflowing
 96-paragraph story with multiple native paragraph-formatting pages.
 TextFormattingMany has 240 paragraphs; TextCharacterPages uses four independent
 font sizes to produce multiple character-formatting pages.
+TextCharacterAttributes isolates native fonts, colors, italic, underline,
+strikethrough and baseline attributes in twelve independent frames on two pages.
+TextUnderlinePatterns records all eighteen automation underline choices on three pages.
 ZeroAnchors places each of the four client-anchor coordinates at native zero.
 Brochure has two landscape sides with three panels each. MultipleMasters and
 TwoPageMaster exercise explicit native single-page and paired master assignments.
@@ -42,8 +45,8 @@ param(
     [Parameter(Mandatory)]
     [string] $OutputDirectory,
 
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
-    [string[]] $Case = @('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership'),
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
+    [string[]] $Case = @('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership'),
 
     [ValidateRange(10, 600)]
     [int] $TimeoutSeconds = 90

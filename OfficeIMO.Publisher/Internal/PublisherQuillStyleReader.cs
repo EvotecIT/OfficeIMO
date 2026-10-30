@@ -84,7 +84,8 @@ internal sealed partial class PublisherQuillStyleReader {
             switch (field.Id) {
                 case 0x02: case 0x37: result.Bold = field.Type != 0x02; break;
                 case 0x03: case 0x38: result.Italic = field.Type != 0x02; break;
-                case 0x1E: result.Underline = field.Value != 0; break;
+                case 0x10: result.Strikethrough = field.Type != 0x02; break;
+                case 0x1E: result.UnderlineStyle = ReadUnderline(field.Value); break;
                 case 0x0C: case 0x39:
                     if (field.Value == 0 || field.Value > 12700 * 1000) throw new InvalidDataException("Invalid Publisher font size.");
                     result.Size = field.Value / 12700D; break;
@@ -100,5 +101,28 @@ internal sealed partial class PublisherQuillStyleReader {
             }
         }
         return result;
+    }
+
+    private OfficeTextDecorationStyle ReadUnderline(uint value) {
+        // Quill values differ from the public PbUnderlineType automation enum.
+        switch (value) {
+            case 0: return OfficeTextDecorationStyle.None;
+            case 1: return OfficeTextDecorationStyle.Single;
+            case 2: return OfficeTextDecorationStyle.Words;
+            case 3: return OfficeTextDecorationStyle.Double;
+            case 4: return OfficeTextDecorationStyle.Dotted;
+            case 7: return OfficeTextDecorationStyle.Dashed;
+            case 11: return OfficeTextDecorationStyle.Wavy;
+        }
+        OfficeTextDecorationStyle approximation = value switch {
+            9 or 10 or 18 or 19 or 20 or 21 or 22 => OfficeTextDecorationStyle.Dashed,
+            16 or 23 => OfficeTextDecorationStyle.Wavy,
+            17 => OfficeTextDecorationStyle.Dotted,
+            _ => OfficeTextDecorationStyle.Single
+        };
+        _context.Add("PUB_TEXT_UNDERLINE_APPROXIMATED",
+            "The native underline's weight, line length, compound pattern or unknown kind is approximated by a shared decoration pattern.",
+            OfficeConversionLossKind.Approximation, "Quill/underline/" + value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return approximation;
     }
 }

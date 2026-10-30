@@ -1,0 +1,493 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "TextCharacterAttributes",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 2,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [
+      "Native character control: Regular",
+      "Native character control: Italic",
+      "Native character control: UnderlineSingle",
+      "Native character control: UnderlineDouble",
+      "Native character control: Strikethrough",
+      "Native character control: Superscript",
+      "Native character control: Subscript",
+      "Native character control: FontCambria",
+      "Native character control: FontCourier",
+      "Native character control: FontConsolas",
+      "Native character control: ColorRed",
+      "Native character control: Combined"
+    ],
+    "shapes": [
+      {
+        "name": "Regular",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 72.0,
+        "font": "Arial",
+        "size": 12.0,
+        "characterAttributes": {
+          "family": "Arial",
+          "size": 12,
+          "rgb": 0,
+          "underline": 0,
+          "Bold": false,
+          "Italic": false,
+          "StrikeThrough": false,
+          "SuperScript": false,
+          "SubScript": false
+        }
+      },
+      {
+        "name": "Italic",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 162.0,
+        "width": 504.0,
+        "height": 72.0,
+        "font": "Arial",
+        "size": 12.0,
+        "characterAttributes": {
+          "family": "Arial",
+          "size": 12,
+          "rgb": 0,
+          "underline": 0,
+          "Bold": false,
+          "Italic": true,
+          "StrikeThrough": false,
+          "SuperScript": false,
+          "SubScript": false
+        }
+      },
+      {
+        "name": "UnderlineSingle",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 270.0,
+        "width": 504.0,
+        "height": 72.0,
+        "font": "Arial",
+        "size": 12.0,
+        "characterAttributes": {
+          "family": "Arial",
+          "size": 12,
+          "rgb": 0,
+          "underline": 1,
+          "Bold": false,
+          "Italic": false,
+          "StrikeThrough": false,
+          "SuperScript": false,
+          "SubScript": false
+        }
+      },
+      {
+        "name": "UnderlineDouble",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 378.0,
+        "width": 504.0,
+        "height": 72.0,
+        "font": "Arial",
+        "size": 12.0,
+        "characterAttributes": {
+          "family": "Arial",
+          "size": 12,
+          "rgb": 0,
+          "underline": 3,
+          "Bold": false,
+          "Italic": false,
+          "StrikeThrough": false,
+          "SuperScript": false,
+          "SubScript": false
+        }
+      },
+      {
+        "name": "Strikethrough",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 486.0,
+        "width": 504.0,
+        "height": 72.0,
+        "font": "Arial",
+        "size": 12.0,
+        "characterAttributes": {
+          "family": "Arial",
+          "size": 12,
+          "rgb": 0,
+          "underline": 0,
+          "Bold": false,
+          "Italic": false,
+          "StrikeThrough": true,
+          "SuperScript": false,
+          "SubScript": false
+        }
+      },
+      {
+        "name": "Superscript",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 594.0,
+        "width": 504.0,
+        "height": 72.0,
+        "font": "Arial",
+        "size": 12.0,
+        "characterAttributes": {
+          "family": "Arial",
+          "size": 12,
+          "rgb": 0,
+          "underline": 0,
+          "Bold": false,
+          "Italic": false,
+          "StrikeThrough": false,
+          "SuperScript": true,
+          "SubScript": false
+        }
+      },
+      {
+        "name": "Subscript",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 72.0,
+        "font": "Arial",
+        "size": 12.0,
+        "characterAttributes": {
+          "family": "Arial",
+          "size": 12,
+          "rgb": 0,
+          "underline": 0,
+          "Bold": false,
+          "Italic": false,
+          "StrikeThrough": false,
+          "SuperScript": false,
+          "SubScript": true
+        }
+      },
+      {
+        "name": "FontCambria",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 162.0,
+        "width": 504.0,
+        "height": 72.0,
+        "font": "Cambria",
+        "size": 12.0,
+        "characterAttributes": {
+          "family": "Cambria",
+          "size": 12,
+          "rgb": 0,
+          "underline": 0,
+          "Bold": false,
+          "Italic": false,
+          "StrikeThrough": false,
+          "SuperScript": false,
+          "SubScript": false
+        }
+      },
+      {
+        "name": "FontCourier",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 270.0,
+        "width": 504.0,
+        "height": 72.0,
+        "font": "Courier New",
+        "size": 12.0,
+        "characterAttributes": {
+          "family": "Courier New",
+          "size": 12,
+          "rgb": 0,
+          "underline": 0,
+          "Bold": false,
+          "Italic": false,
+          "StrikeThrough": false,
+          "SuperScript": false,
+          "SubScript": false
+        }
+      },
+      {
+        "name": "FontConsolas",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 378.0,
+        "width": 504.0,
+        "height": 72.0,
+        "font": "Consolas",
+        "size": 12.0,
+        "characterAttributes": {
+          "family": "Consolas",
+          "size": 12,
+          "rgb": 0,
+          "underline": 0,
+          "Bold": false,
+          "Italic": false,
+          "StrikeThrough": false,
+          "SuperScript": false,
+          "SubScript": false
+        }
+      },
+      {
+        "name": "ColorRed",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 486.0,
+        "width": 504.0,
+        "height": 72.0,
+        "font": "Arial",
+        "size": 12.0,
+        "characterAttributes": {
+          "family": "Arial",
+          "size": 12,
+          "rgb": 255,
+          "underline": 0,
+          "Bold": false,
+          "Italic": false,
+          "StrikeThrough": false,
+          "SuperScript": false,
+          "SubScript": false
+        }
+      },
+      {
+        "name": "Combined",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 594.0,
+        "width": 504.0,
+        "height": 72.0,
+        "font": "Courier New",
+        "size": 14.0,
+        "characterAttributes": {
+          "family": "Courier New",
+          "size": 14,
+          "rgb": 16711680,
+          "underline": 3,
+          "Bold": true,
+          "Italic": true,
+          "StrikeThrough": true,
+          "SuperScript": false,
+          "SubScript": false
+        }
+      }
+    ]
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "Regular",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 72.0,
+          "text": "Native character control: Regular\r",
+          "font": "Arial",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "Italic",
+          "type": 17,
+          "left": 54.0,
+          "top": 162.0,
+          "width": 504.0,
+          "height": 72.0,
+          "text": "Native character control: Italic\r",
+          "font": "Arial",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "UnderlineSingle",
+          "type": 17,
+          "left": 54.0,
+          "top": 270.0,
+          "width": 504.0,
+          "height": 72.0,
+          "text": "Native character control: UnderlineSingle\r",
+          "font": "Arial",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "UnderlineDouble",
+          "type": 17,
+          "left": 54.0,
+          "top": 378.0,
+          "width": 504.0,
+          "height": 72.0,
+          "text": "Native character control: UnderlineDouble\r",
+          "font": "Arial",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "Strikethrough",
+          "type": 17,
+          "left": 54.0,
+          "top": 486.0,
+          "width": 504.0,
+          "height": 72.0,
+          "text": "Native character control: Strikethrough\r",
+          "font": "Arial",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "Superscript",
+          "type": 17,
+          "left": 54.0,
+          "top": 594.0,
+          "width": 504.0,
+          "height": 72.0,
+          "text": "Native character control: Superscript\r",
+          "font": "Arial",
+          "nextLink": false,
+          "previousLink": false
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "pageId": 33554725,
+      "pageIndex": 2,
+      "pageNumber": "2",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "Subscript",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 72.0,
+          "text": "Native character control: Subscript\r",
+          "font": "Arial",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "FontCambria",
+          "type": 17,
+          "left": 54.0,
+          "top": 162.0,
+          "width": 504.0,
+          "height": 72.0,
+          "text": "Native character control: FontCambria\r",
+          "font": "Cambria",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "FontCourier",
+          "type": 17,
+          "left": 54.0,
+          "top": 270.0,
+          "width": 504.0,
+          "height": 72.0,
+          "text": "Native character control: FontCourier\r",
+          "font": "Courier New",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "FontConsolas",
+          "type": 17,
+          "left": 54.0,
+          "top": 378.0,
+          "width": 504.0,
+          "height": 72.0,
+          "text": "Native character control: FontConsolas\r",
+          "font": "Consolas",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "ColorRed",
+          "type": 17,
+          "left": 54.0,
+          "top": 486.0,
+          "width": 504.0,
+          "height": 72.0,
+          "text": "Native character control: ColorRed\r",
+          "font": "Arial",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "Combined",
+          "type": 17,
+          "left": 54.0,
+          "top": 594.0,
+          "width": 504.0,
+          "height": 72.0,
+          "text": "Native character control: Combined\r",
+          "font": "Courier New",
+          "nextLink": false,
+          "previousLink": false
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 0,
+      "shapes": []
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-textcharacterattributes.pub",
+      "sha256": "6bd37dbba41ee7caf9393446866d8ac48f230ff851605297af63c98acb7000fe"
+    },
+    "reference": {
+      "name": "native-textcharacterattributes.pdf",
+      "sha256": "71da70a130d06c5ba98b3cb83800c1010b8f7a1dcfe0e8b8de0c851d212c9dc3"
+    }
+  }
+}

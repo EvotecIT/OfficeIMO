@@ -28,7 +28,7 @@ param(
     [string] $NativeEditText,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -126,6 +126,7 @@ if ($Case -eq 'TableLabel') {
 $layout = $null
 . (Join-Path $PSScriptRoot 'Add-NativeComparisonLayout.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeComparisonPictures.ps1')
+. (Join-Path $PSScriptRoot 'Add-NativeCharacterAttributeControl.ps1')
 . (Join-Path $PSScriptRoot 'Write-NativePublisherPhaseReceipt.ps1')
 
 function Set-NativePhase {
@@ -579,6 +580,12 @@ try {
             $null = Add-TextFrame $page 'Character14' 'Character page font fourteen' 72 216 360 72 14
             $null = Add-TextFrame $page 'Character16' 'Character page font sixteen' 72 396 360 72 16
             $null = Add-TextFrame $page 'Character18' 'Character page font eighteen' 72 576 360 72 18
+        }
+        'TextCharacterAttributes' {
+            $pageCount = Add-NativeCharacterAttributeControl -Publication $document -FirstPage $page
+        }
+        'TextUnderlinePatterns' {
+            $pageCount = Add-NativeCharacterAttributeControl -Publication $document -FirstPage $page -UnderlinePatterns
         }
         'ZeroAnchors' {
             $null = Add-TextFrame $page 'ZeroLeft' 'Left at native zero' 306 72 234 72

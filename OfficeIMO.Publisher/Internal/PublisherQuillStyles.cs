@@ -47,8 +47,10 @@ internal sealed class PublisherQuillStyles {
             }
         } else if (colorIndex.HasValue) _context.Add("PUB_TEXT_COLOR_UNRESOLVED", "A native text color index is unresolved; the text uses black.", OfficeConversionLossKind.Approximation, "Quill/PL");
         return new OfficeRichTextRun(text, size, color, style.Bold ?? DefaultCharacter.Bold ?? false,
-            style.Italic ?? DefaultCharacter.Italic ?? false, style.Underline ?? DefaultCharacter.Underline ?? false,
-            family, baseline: style.Baseline ?? DefaultCharacter.Baseline ?? OfficeTextBaseline.Normal);
+            style.Italic ?? DefaultCharacter.Italic ?? false, fontFamily: family,
+            strikethrough: style.Strikethrough ?? DefaultCharacter.Strikethrough ?? false,
+            underlineStyle: style.UnderlineStyle ?? DefaultCharacter.UnderlineStyle ?? OfficeTextDecorationStyle.None,
+            baseline: style.Baseline ?? DefaultCharacter.Baseline ?? OfficeTextBaseline.Normal);
     }
     internal PublisherQuillStoryStyles BindStory(uint id, int ordinal, int start, string raw, int textOffset) {
         int end = checked(start + raw.Length);
@@ -95,11 +97,13 @@ internal sealed class PublisherCharacterStyle {
     public uint? Color { get; internal set; }
     public bool? Bold { get; internal set; }
     public bool? Italic { get; internal set; }
-    public bool? Underline { get; internal set; }
+    public bool? Strikethrough { get; internal set; }
+    public OfficeTextDecorationStyle? UnderlineStyle { get; internal set; }
     public OfficeTextBaseline? Baseline { get; internal set; }
     internal PublisherCharacterStyle Inherit(PublisherCharacterStyle fallback) => new() {
         Size = Size ?? fallback.Size, Font = Font ?? fallback.Font, Color = Color ?? fallback.Color,
-        Bold = Bold ?? fallback.Bold, Italic = Italic ?? fallback.Italic, Underline = Underline ?? fallback.Underline,
+        Bold = Bold ?? fallback.Bold, Italic = Italic ?? fallback.Italic, Strikethrough = Strikethrough ?? fallback.Strikethrough,
+        UnderlineStyle = UnderlineStyle ?? fallback.UnderlineStyle,
         Baseline = Baseline ?? fallback.Baseline
     };
 }
