@@ -13,7 +13,7 @@ public static partial class OfficeConverter {
             token.ThrowIfCancellationRequested();
             var html = HtmlConversionDocument.Parse(text, null, token);
             var import = new WordHtmlImportOptions();
-            destination.AddHtmlToBody(html, import);
+            destination.AddHtml(html, import);
             if (import.ConversionReport is { } report) {
                 foreach (HtmlDiagnostic finding in report.Diagnostics)
                     sink?.Invoke(new WordMarkdownConversionDiagnostic(finding.Code, finding.Message, finding.LossKind,

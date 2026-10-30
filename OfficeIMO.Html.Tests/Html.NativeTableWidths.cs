@@ -76,7 +76,7 @@ public class HtmlNativeTableWidths {
         HtmlConversionDocument html = HtmlConversionDocument.Parse("<ul><li><table " + attributes + ">" + FiveColumns + "</table></li></ul>");
         if (scope == "header") word.AddHtmlToHeader(html);
         else if (scope == "footer") word.AddHtmlToFooter(html);
-        else word.AddHtmlToBody(html);
+        else word.AddHtml(html);
         using MemoryStream saved = new System.IO.MemoryStream(word.ToBytes());
         using var archive = new System.IO.Compression.ZipArchive(saved, System.IO.Compression.ZipArchiveMode.Read);
         XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
@@ -136,7 +136,7 @@ public class HtmlNativeTableWidths {
         first.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(350D);
         first.Margins.Left = global::OfficeIMO.OfficeLength.Points(50D);
         first.Margins.Right = global::OfficeIMO.OfficeLength.Points(50D);
-        word.AddHtmlToBody(HtmlConversionDocument.Parse("<table style='width:100%'>" + FiveColumns + "</table>"));
+        word.AddHtml(HtmlConversionDocument.Parse("<table style='width:100%'>" + FiveColumns + "</table>"));
         WordTable table = Assert.Single(word.Tables);
         Assert.Equal(5000, table.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList().Sum());
         WordSection last = word.AddSection();

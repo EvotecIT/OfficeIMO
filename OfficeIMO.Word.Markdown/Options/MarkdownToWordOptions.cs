@@ -84,7 +84,7 @@ namespace OfficeIMO.Word.Markdown {
         /// <summary>
         /// Applies default page settings to the provided document instance.
         /// </summary>
-        public void ApplyDefaults(WordDocument document) {
+        internal void ApplyDefaults(WordDocument document) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }

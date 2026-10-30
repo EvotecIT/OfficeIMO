@@ -49,7 +49,7 @@ public partial class HtmlWordGapClosure {
         target.Margins.Left = global::OfficeIMO.OfficeLength.Points(50D);
         target.Margins.Right = global::OfficeIMO.OfficeLength.Points(50D);
 
-        document.AddHtmlToBody(HtmlConversionDocument.Parse("""
+        document.AddHtml(HtmlConversionDocument.Parse("""
             <div style="padding-inline-end:20px">
               <table style="width:100%"><tr><td>Value</td></tr></table>
             </div>

@@ -5,7 +5,7 @@ namespace OfficeIMO.Word.Markdown;
 /// <summary>
 /// Shared fenced-block contract for Word-specific semantic markdown exported by <c>OfficeIMO.Word.Markdown</c>.
 /// </summary>
-public static class WordMarkdownSemanticBlocks {
+internal static class WordMarkdownSemanticBlocks {
     /// <summary>Semantic kind used for Word header payloads.</summary>
     public const string HeaderSemanticKind = "word-header";
 

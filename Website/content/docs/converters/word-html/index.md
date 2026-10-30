@@ -135,7 +135,7 @@ using var document = WordDocument.Create("mixed.docx");
 document.AddParagraph("Native OfficeIMO paragraph");
 
 // Append HTML-sourced content
-document.AddHtmlToBody("<p>This came from <strong>HTML</strong>.</p>");
+document.AddHtml("<p>This came from <strong>HTML</strong>.</p>");
 document.Save();
 ```
 
@@ -144,7 +144,7 @@ document.Save();
 ```csharp
 document.AddHeadersAndFooters();
 document.AddHtmlToHeader(
-    "<p style='text-align: center;'>Company Header</p>",
+    OfficeIMO.Html.HtmlConversionDocument.Parse("<p style='text-align: center;'>Company Header</p>"),
     WordHeaderFooterType.Default
 );
 ```
@@ -153,7 +153,7 @@ document.AddHtmlToHeader(
 
 ```csharp
 document.AddHtmlToFooter(
-    "<p style='font-size: 8pt; color: gray;'>Confidential</p>",
+    OfficeIMO.Html.HtmlConversionDocument.Parse("<p style='font-size: 8pt; color: gray;'>Confidential</p>"),
     WordHeaderFooterType.Default
 );
 ```
@@ -163,9 +163,9 @@ document.AddHtmlToFooter(
 All `AddHtml*` methods have async counterparts:
 
 ```csharp
-await document.AddHtmlToBodyAsync("<p>Async HTML content</p>");
-await document.AddHtmlToHeaderAsync("<p>Header from HTML</p>");
-await document.AddHtmlToFooterAsync("<p>Footer from HTML</p>");
+await document.AddHtmlAsync("<p>Async HTML content</p>");
+await document.AddHtmlToHeaderAsync(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Header from HTML</p>"));
+await document.AddHtmlToFooterAsync(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Footer from HTML</p>"));
 ```
 
 ## Supported HTML Elements

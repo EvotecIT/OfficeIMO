@@ -42,6 +42,17 @@ using var wordDocument = markdownDocument.ToWord();
 
 Use `MarkdownDocument.ToWord()` when you already have a typed AST and want to avoid flattening back to Markdown text before Word conversion.
 
+For staged parsing, use the import options to configure the Markdown reader before preparing images or converting into a template:
+
+```csharp
+string source = "# Report\n\nPrepared from Markdown.";
+var options = new WordMarkdownImportOptions();
+using var markdown = MarkdownDocument.Parse(source, options.CreateReaderOptions());
+using WordDocument document = markdown.ToWord(options);
+```
+
+The factory returns a fresh reader configuration with the Word semantic fences and import settings applied.
+
 ## What it maps
 
 - Word to Markdown with headings, paragraphs, lists, task items, tables, images, links, code, footnotes, and GitHub-friendly output.

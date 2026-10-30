@@ -316,11 +316,11 @@
       "notes": "Candidate.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Internal adapter implementation; existing friend access serves cross-package callers."
     },
     {
       "old": "OfficeIMO.Markdown.Html.HtmlToMarkdownOptions.HasPluginId(string pluginId)",
@@ -333,11 +333,11 @@
       "notes": "Candidate.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Internal adapter implementation; existing friend access serves cross-package callers."
     },
     {
       "old": "OfficeIMO.Markdown.Html.HtmlToMarkdownOptions.TryMarkFeaturePackApplied(string featurePackId)",
@@ -350,11 +350,11 @@
       "notes": "Candidate.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Internal adapter implementation; existing friend access serves cross-package callers."
     },
     {
       "old": "OfficeIMO.Markdown.Html.HtmlToMarkdownOptions.HasFeaturePackId(string featurePackId)",
@@ -367,11 +367,11 @@
       "notes": "Candidate.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Internal adapter implementation; existing friend access serves cross-package callers."
     }
   ],
   "packageMoves": [

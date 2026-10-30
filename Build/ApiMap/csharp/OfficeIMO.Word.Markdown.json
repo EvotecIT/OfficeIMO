@@ -348,28 +348,28 @@
       "notes": "Candidate.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Internal adapter implementation; existing friend access serves cross-package callers."
     },
     {
       "old": "OfficeIMO.Word.Markdown.MarkdownToWordOptions.CreateReaderOptions()",
       "kind": "method",
-      "action": "internalize",
-      "new": null,
-      "reason": "Converter plumbing on an options type (ApplyDefaults mutates a WordDocument; CreateReaderOptions builds parser options).",
+      "action": "keep",
+      "new": "WordMarkdownImportOptions.CreateReaderOptions() : MarkdownLoadOptions",
+      "reason": "Public source parsing must apply Word semantic fences and import reader settings before image preparation and template conversion. PSWriteOffice uses this existing library factory through public APIs, as required by the design.",
       "file": "OfficeIMO.Word.Markdown/Options/MarkdownToWordOptions.cs",
       "category": "visibility",
       "notes": "Candidate.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "retained-public-contract"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The independent MarkdownDocument.Parse(text, options.CreateReaderOptions()).ToWord(options) workflow requires a configured reader model. No copied PowerShell configuration or new wrapper is added."
     },
     {
       "old": "OfficeIMO.Word.Markdown.WordToMarkdownOptions.CreateReaderOptions(MarkdownDialectProfile profile = OfficeIMO)",
@@ -382,11 +382,11 @@
       "notes": "Candidate.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Internal adapter implementation; existing friend access serves cross-package callers."
     },
     {
       "old": "OfficeIMO.Word.Markdown.WordMarkdownSemanticBlocks",
@@ -399,11 +399,11 @@
       "notes": "Candidate.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Internal adapter implementation; existing friend access serves cross-package callers."
     },
     {
       "old": "OfficeIMO.Word.Markdown.MarkdownToWordPresets",

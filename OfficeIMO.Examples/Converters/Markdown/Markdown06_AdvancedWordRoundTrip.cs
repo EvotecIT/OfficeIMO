@@ -37,7 +37,7 @@ namespace OfficeIMO.Examples.Word.Converters {
                 AllowLocalImages = true
             };
             importOptions.AllowedImageDirectories.Add(Path.GetFullPath(resourcesPath));
-            using var roundTrip = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(importOptions);
+            using var roundTrip = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, importOptions.CreateReaderOptions()).ToWord(importOptions);
             roundTrip.Save(roundTripPath);
 
             Console.WriteLine($"  Source Word:      {sourcePath}");
@@ -45,8 +45,8 @@ namespace OfficeIMO.Examples.Word.Converters {
             Console.WriteLine($"  Resources:        {resourcesPath}");
             Console.WriteLine($"  Round-trip Word:  {roundTripPath}");
             Console.WriteLine($"  Chart SVG files:  {Directory.GetFiles(resourcesPath, "*.svg").Length}");
-            Console.WriteLine($"  Page break block: {markdown.Contains(WordMarkdownSemanticBlocks.PageBreakFenceLanguage, StringComparison.Ordinal)}");
-            Console.WriteLine($"  Header block:     {markdown.Contains(WordMarkdownSemanticBlocks.HeaderFenceLanguage, StringComparison.Ordinal)}");
+            Console.WriteLine($"  Page break block: {markdown.Contains("officeimo-word-page-break", StringComparison.Ordinal)}");
+            Console.WriteLine($"  Header block:     {markdown.Contains("officeimo-word-header", StringComparison.Ordinal)}");
             Console.WriteLine($"  TOC marker:       {markdown.Contains("[TOC", StringComparison.Ordinal)}");
             foreach (string warning in warnings) {
                 Console.WriteLine($"  Warning:          {warning}");

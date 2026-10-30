@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests {
 
             switch (target) {
                 case "body":
-                    await document.AddHtmlToBodyAsync(source, options);
+                    await document.AddHtmlAsync(source, options);
                     break;
                 case "header":
                     await document.AddHtmlToHeaderAsync(source, options: options);
@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
 
             switch (target) {
                 case "body":
-                    await document.AddHtmlToBodyAsync(source, options);
+                    await document.AddHtmlAsync(source, options);
                     break;
                 case "header":
                     await document.AddHtmlToHeaderAsync(source, options: options);

@@ -542,7 +542,7 @@ public partial class HtmlWordGapClosure {
     public async Task WordTableCell_AddHtmlAsync_PreservesTypedContainerAndArtifact() {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
-        await cell.AddHtmlAsync(HtmlConversionDocument.Parse("""
+        IReadOnlyList<WordElement> created = await cell.AddHtmlAsync(HtmlConversionDocument.Parse("""
             <h2>Cell heading</h2>
             <ul><li>First item</li><li>Second item</li></ul>
             <table><tr><td>Nested</td></tr></table>
@@ -550,6 +550,13 @@ public partial class HtmlWordGapClosure {
 
         Assert.Contains(cell.Paragraphs, paragraph => paragraph.Text.Contains("Cell heading", StringComparison.Ordinal));
         Assert.Contains(cell.Elements, element => element is WordTable);
+        Assert.Equal(new[] { "Cell heading", "First item", "Second item", "[table]" },
+            created.Select(element => element is WordParagraph paragraph ? paragraph.Text : "[table]")
+                .Where(text => text.Length > 0));
+        WordParagraph heading = Assert.Single(created.OfType<WordParagraph>(), paragraph => paragraph.Text == "Cell heading");
+        heading.Bold = true;
+        WordTable nested = Assert.Single(created.OfType<WordTable>());
+        nested.Rows[0].Cells[0].Paragraphs.Single(paragraph => paragraph.Text == "Nested").Text = "Nested edited";
 
         using var stream = new MemoryStream();
         document.Save(stream);
@@ -559,18 +566,23 @@ public partial class HtmlWordGapClosure {
         Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text.Contains("Cell heading", StringComparison.Ordinal));
         Assert.Contains(reloadedCell.Elements, element => element is WordTable);
         Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text.Contains("First item", StringComparison.Ordinal));
+        Assert.True(reloadedCell.Paragraphs.Single(paragraph => paragraph.Text == "Cell heading").Bold);
+        Assert.Contains(Assert.Single(reloadedCell.Elements.OfType<WordTable>()).Paragraphs,
+            paragraph => paragraph.Text == "Nested edited");
     }
 
     [Fact]
-    public void WordTableCell_AddHtml_AppendsTopLevelInlineSiblingsWithoutDeletingContent() {
+    public async Task WordTableCell_AddHtml_AppendsTopLevelInlineSiblingsWithoutDeletingContent() {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
         cell.Paragraphs[0].Text = "Existing";
 
-        cell.AddHtml(HtmlConversionDocument.Parse("""<span>First</span><span>Second</span>"""));
+        IReadOnlyList<WordElement> created = await cell.AddHtmlAsync("""<span>First</span><span>Second</span>""");
 
         Assert.Contains(cell.Paragraphs, paragraph => paragraph.Text == "Existing");
         Assert.Equal("ExistingFirstSecond", string.Concat(cell.Paragraphs.Select(paragraph => paragraph.Text)));
+        Assert.Equal(new[] { "First", "Second" }, created.OfType<WordParagraph>()
+            .Where(paragraph => paragraph.Text.Length > 0).Select(paragraph => paragraph.Text));
     }
 
     [Fact]
@@ -597,15 +609,23 @@ public partial class HtmlWordGapClosure {
         Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text == "Appended");
     }
 
-    [Fact]
-    public void WordTableCell_AddHtml_ReplacesOnlyTheFreshEmptyRunPlaceholder() {
+    [Theory]
+    [InlineData("<p>Imported paragraph</p>", true)]
+    [InlineData("<span>Imported paragraph</span>", false)]
+    public void WordTableCell_AddHtml_MaterializesContentInFreshEmptyParagraph(string html, bool parsed) {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
 
-        cell.AddHtml(HtmlConversionDocument.Parse("""<p>Imported paragraph</p>"""));
+        Assert.Empty(cell.AddHtml(string.Empty));
+        IReadOnlyList<WordElement> created = parsed
+            ? cell.AddHtml(HtmlConversionDocument.Parse(html))
+            : cell.AddHtml(html);
 
         Paragraph paragraph = Assert.Single(cell._tableCell.Elements<Paragraph>());
         Assert.Equal("Imported paragraph", paragraph.InnerText);
+        WordParagraph imported = Assert.Single(created.OfType<WordParagraph>(), element => element.Text == "Imported paragraph");
+        Assert.All(created, element => Assert.Same(paragraph, Assert.IsType<WordParagraph>(element)._paragraph));
+        imported.Bold = true;
 
         using var stream = new MemoryStream();
         document.Save(stream);
@@ -613,6 +633,7 @@ public partial class HtmlWordGapClosure {
         WordTableCell reloadedCell = reloaded.Tables[0].Rows[0].Cells[0];
         Paragraph reloadedParagraph = Assert.Single(reloadedCell._tableCell.Elements<Paragraph>());
         Assert.Equal("Imported paragraph", reloadedParagraph.InnerText);
+        Assert.True(reloadedCell.Paragraphs.Single(element => element.Text == "Imported paragraph").Bold);
     }
 
     [Fact]

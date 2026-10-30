@@ -55,12 +55,14 @@ namespace OfficeIMO.Word.Html {
         /// <param name="doc">Document to modify.</param>
         /// <param name="htmlDocument">Parsed HTML source to insert.</param>
         /// <param name="options">Optional conversion options.</param>
-        public static void AddHtmlToBody(this WordDocument doc, HtmlConversionDocument htmlDocument, WordHtmlImportOptions? options = null) {
+        /// <returns>Live imported elements in document order, using the existing Word element projection.</returns>
+        public static IReadOnlyList<WordElement> AddHtml(this WordDocument doc, HtmlConversionDocument htmlDocument, WordHtmlImportOptions? options = null) {
+            if (doc == null) throw new System.ArgumentNullException(nameof(doc));
             if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
             WordHtmlImportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
             resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
             EnsureOfflineSynchronousImport(htmlDocument, resolved);
-            doc.AddHtmlToBodyAsync(htmlDocument, resolved).GetAwaiter().GetResult();
+            return doc.AddHtmlAsync(htmlDocument, resolved).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -70,7 +72,8 @@ namespace OfficeIMO.Word.Html {
         /// <param name="htmlDocument">Parsed HTML source to insert.</param>
         /// <param name="options">Optional conversion options.</param>
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
-        public static async Task AddHtmlToBodyAsync(this WordDocument doc, HtmlConversionDocument htmlDocument, WordHtmlImportOptions? options = null, CancellationToken cancellationToken = default) {
+        /// <returns>Live imported elements in document order, using the existing Word element projection.</returns>
+        public static async Task<IReadOnlyList<WordElement>> AddHtmlAsync(this WordDocument doc, HtmlConversionDocument htmlDocument, WordHtmlImportOptions? options = null, CancellationToken cancellationToken = default) {
             if (doc == null) throw new System.ArgumentNullException(nameof(doc));
             if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
             cancellationToken.ThrowIfCancellationRequested();
@@ -80,8 +83,9 @@ namespace OfficeIMO.Word.Html {
 
             var section = doc.Sections.LastOrDefault() ?? throw new System.InvalidOperationException("The document does not contain any sections to append HTML to the body.");
             var converter = new HtmlToWordConverter();
-            await converter.AddHtmlToBodyAsync(doc, section, CreateWordSourceDocument(htmlDocument, resolved.ConversionReport), resolved, cancellationToken).ConfigureAwait(false);
+            IReadOnlyList<WordElement> elements = await converter.AddHtmlToBodyAsync(doc, section, CreateWordSourceDocument(htmlDocument, resolved.ConversionReport), resolved, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
+            return elements;
         }
 
         /// <summary>

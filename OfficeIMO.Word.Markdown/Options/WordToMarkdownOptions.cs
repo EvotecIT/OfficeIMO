@@ -96,7 +96,7 @@ namespace OfficeIMO.Word.Markdown {
         /// <summary>
         /// Enables exporting section headers and footers as semantic fenced blocks instead of omitting them.
         /// The fenced payload contains markdown for the header/footer body and can be reparsed with
-        /// <see cref="CreateReaderOptions(OfficeIMO.Markdown.MarkdownLoadOptions.MarkdownDialectProfile)"/>.
+        /// <see cref="WordMarkdownImportOptions.CreateReaderOptions"/>.
         /// </summary>
         public bool IncludeHeadersAndFootersAsSemanticBlocks { get; set; }
 
@@ -105,7 +105,7 @@ namespace OfficeIMO.Word.Markdown {
         /// </summary>
         /// <param name="profile">Base markdown reader profile to start from.</param>
         /// <returns>Configured reader options.</returns>
-        public OfficeIMO.Markdown.MarkdownLoadOptions CreateReaderOptions(
+        internal OfficeIMO.Markdown.MarkdownLoadOptions CreateReaderOptions(
             OfficeIMO.Markdown.MarkdownLoadOptions.MarkdownDialectProfile profile = OfficeIMO.Markdown.MarkdownLoadOptions.MarkdownDialectProfile.OfficeIMO) {
             var options = OfficeIMO.Markdown.MarkdownLoadOptions.CreateProfile(profile);
             WordMarkdownSemanticBlocks.ConfigureReaderOptions(options);

@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
                 existing.AddItem("Existing " + index);
             }
 
-            doc.AddHtmlToBody(
+            doc.AddHtml(
                 OfficeIMO.Html.HtmlConversionDocument.Parse(html),
                 new WordHtmlImportOptions { ContinueNumbering = true });
 

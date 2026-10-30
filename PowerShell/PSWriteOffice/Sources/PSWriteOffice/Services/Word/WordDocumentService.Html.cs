@@ -18,6 +18,6 @@ public static partial class WordDocumentService
             return;
         }
 
-        document.AddHtmlToBody(HtmlConversionDocument.Parse(html));
+        document.AddHtml(HtmlConversionDocument.Parse(html));
     }
 }
