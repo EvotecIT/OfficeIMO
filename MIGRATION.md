@@ -1,5 +1,32 @@
 # Upgrading OfficeIMO
 
+## Word table and paper lengths
+
+`WordTableStyleDetails` uses nullable lengths for `MarginDefaultTop/Bottom/Left/Right`,
+`CellSpacing` and signed `TableIndentation`. Remove `Width` and `Centimeters`
+twins. For example, replace `MarginDefaultTopWidth = 90` with
+`MarginDefaultTop = OfficeLength.Points(4.5)`. Null clears a direct override;
+zero remains an explicit value.
+
+Border setters and `GetBorderProperties(...).Size` use physical lengths.
+Replace an eighth-point argument such as `size: 8` with
+`size: OfficeLength.Points(1)`. `WordPaperStyle.RuleSize` also becomes a length;
+its default remains half a point. Paper cell padding uses lengths, and
+`TableParagraphSpacingPoints` and `TableLineSpacingPoints` become
+`TableParagraphSpacing` and nullable `TableLineSpacing`.
+
+## PowerPoint layout utility lengths
+
+Alignment, distribution, stack, grid, fit and group utilities take `OfficeLength`
+for margins, spacing, gutters and explicit dimensions. Remove the `Cm`, `Inches`
+or `Points` method suffix and specify the unit at the call:
+`slide.FitShapesToSlideContent(shapes, OfficeLength.Points(18))`.
+Spacing/grid options expose `Spacing`, `GutterX` and `GutterY` as lengths.
+`ResizeShapes(shapes, width, height)` takes nullable lengths: null retains the
+dimension and zero sets it to zero. Negative dimensions, margins, spacing and
+gutters are rejected before arrangement. Read group bounds from the existing
+`GetGroupChildBounds()` result, whose geometry already uses lengths.
+
 ## Word inspection lengths
 
 `WordDocument.Inspect()` returns physical lengths as `OfficeLength`.

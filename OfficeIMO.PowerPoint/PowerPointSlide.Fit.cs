@@ -18,6 +18,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
+            ValidateLayoutBounds(bounds);
             PowerPointLayoutBox source = GetSelectionBounds(list);
             if (source.Width.ToEmus() == 0 || source.Height.ToEmus() == 0) {
                 return;
@@ -64,38 +65,20 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Scales and repositions shapes to fit the slide content bounds with a margin (EMUs).
+        ///     Scales and repositions shapes to fit the slide content bounds with a margin.
         /// </summary>
-        public void FitShapesToSlideContent(IEnumerable<PowerPointShape> shapes, long marginEmus,
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="margin">Nonnegative inset on every side of the slide.</param>
+        /// <param name="preserveAspect">Whether to retain each shape's aspect ratio when scaling.</param>
+        /// <param name="center">Whether to center the arranged shapes within the target bounds.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
+        public void FitShapesToSlideContent(IEnumerable<PowerPointShape> shapes, OfficeLength margin,
             bool preserveAspect = false, bool center = false) {
-            FitShapesToBounds(shapes, GetSlideContentBounds(marginEmus), preserveAspect, center);
+            FitShapesToBounds(shapes, GetSlideContentBounds(margin), preserveAspect, center);
         }
 
-        /// <summary>
-        ///     Scales and repositions shapes to fit the slide content bounds with a margin (centimeters).
-        /// </summary>
-        public void FitShapesToSlideContentCm(IEnumerable<PowerPointShape> shapes, double marginCm,
-            bool preserveAspect = false, bool center = false) {
-            FitShapesToSlideContent(shapes, PowerPointUnits.FromCentimeters(marginCm), preserveAspect, center);
-        }
-
-        /// <summary>
-        ///     Scales and repositions shapes to fit the slide content bounds with a margin (inches).
-        /// </summary>
-        public void FitShapesToSlideContentInches(IEnumerable<PowerPointShape> shapes, double marginInches,
-            bool preserveAspect = false, bool center = false) {
-            FitShapesToSlideContent(shapes, PowerPointUnits.FromInches(marginInches), preserveAspect, center);
-        }
-
-        /// <summary>
-        ///     Scales and repositions shapes to fit the slide content bounds with a margin (points).
-        /// </summary>
-        public void FitShapesToSlideContentPoints(IEnumerable<PowerPointShape> shapes, double marginPoints,
-            bool preserveAspect = false, bool center = false) {
-            FitShapesToSlideContent(shapes, PowerPointUnits.FromPoints(marginPoints), preserveAspect, center);
-        }
-
-        private PowerPointLayoutBox GetSlideContentBounds(long marginEmus) {
+        private PowerPointLayoutBox GetSlideContentBounds(OfficeLength margin) {
+            if (margin < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(margin));
             PresentationDocument? document = _slidePart.OpenXmlPackage as PresentationDocument;
             PresentationPart? presentationPart = document?.PresentationPart;
             if (presentationPart == null) {
@@ -103,7 +86,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             var slideSize = new PowerPointSlideSize(presentationPart);
-            return slideSize.GetContentBox(OfficeIMO.OfficeLength.Emus(marginEmus));
+            return slideSize.GetContentBox(margin);
         }
     }
 }

@@ -59,5 +59,50 @@ namespace OfficeIMO.Tests {
                 }
             }
         }
+        [Fact]
+        public void FitShapesToBounds_PreservesSignedPositionsAndMidpointToEvenRounding() {
+            using PowerPointDocument presentation = PowerPointDocument.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape first = slide.AddRectangle(OfficeIMO.OfficeLength.Zero, OfficeIMO.OfficeLength.Zero,
+                OfficeIMO.OfficeLength.Emus(1), OfficeIMO.OfficeLength.Emus(1));
+            PowerPointAutoShape second = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(1), OfficeIMO.OfficeLength.Zero,
+                OfficeIMO.OfficeLength.Emus(1), OfficeIMO.OfficeLength.Emus(1));
+
+            slide.FitShapesToBounds(slide.Shapes, new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(-1),
+                OfficeIMO.OfficeLength.Emus(-3), OfficeIMO.OfficeLength.Emus(3), OfficeIMO.OfficeLength.Emus(1)));
+
+            Assert.Equal(-1, first.Left.ToEmus());
+            Assert.Equal(0, second.Left.ToEmus());
+            Assert.Equal(-3, first.Top.ToEmus());
+            Assert.Equal(2, first.Width.ToEmus());
+            Assert.Equal(2, second.Width.ToEmus());
+        }
+
+        [Fact]
+        public void FitShapesToSlideContent_UsesPhysicalMarginAndRejectsNegativeMarginBeforeMutation() {
+            using PowerPointDocument presentation = PowerPointDocument.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Zero, OfficeIMO.OfficeLength.Zero,
+                OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20));
+            OfficeIMO.OfficeLength margin = OfficeIMO.OfficeLength.Centimeters(1);
+            PowerPointLayoutBox expected = presentation.SlideSize.GetContentBox(margin);
+
+            slide.FitShapesToSlideContent(slide.Shapes, margin);
+            Assert.Equal(expected.Left, shape.Left);
+            Assert.Equal(expected.Top, shape.Top);
+            Assert.Equal(expected.Width, shape.Width);
+            Assert.Equal(expected.Height, shape.Height);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => slide.FitShapesToSlideContent(slide.Shapes,
+                OfficeIMO.OfficeLength.Emus(-1)));
+            Assert.Equal(expected.Left, shape.Left);
+            Assert.Equal(expected.Width, shape.Width);
+
+            var beforeSave = slide.Shapes.Select(item => (item.Left, item.Top, item.Width, item.Height)).ToArray();
+            using var saved = new MemoryStream(presentation.ToBytes());
+            using PowerPointDocument loaded = PowerPointDocument.Load(saved);
+            Assert.Equal(beforeSave, loaded.Slides[0].Shapes.Select(item => (item.Left, item.Top, item.Width, item.Height)).ToArray());
+        }
+
     }
 }

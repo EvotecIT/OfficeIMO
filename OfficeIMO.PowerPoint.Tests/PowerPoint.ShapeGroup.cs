@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
                 slide.AddRectangle(OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(500));
 
                 PowerPointGroupShape group = slide.GroupShapes(slide.Shapes);
-                slide.DistributeGroupChildrenWithSpacing(group, PowerPointShapeDistribution.Horizontal, spacingEmus: 500);
+                slide.DistributeGroupChildrenWithSpacing(group, PowerPointShapeDistribution.Horizontal, spacing: OfficeIMO.OfficeLength.Emus(500));
 
                 PowerPointLayoutBox bounds = slide.GetGroupChildBounds(group);
                 var children = slide.GetGroupChildren(group).OrderBy(s => s.Left.ToEmus()).ToList();

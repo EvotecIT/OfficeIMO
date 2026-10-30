@@ -2988,11 +2988,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AlignShapesToSlideContentCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AlignShapesToSlideContentInches(IEnumerable<PowerPointShape> shapes, PowerPointShapeAlignment alignment, double marginInches)",
@@ -3005,11 +3005,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AlignShapesToSlideContentInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AlignShapesToSlideContentPoints(IEnumerable<PowerPointShape> shapes, PowerPointShapeAlignment alignment, double marginPoints)",
@@ -3022,11 +3022,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AlignShapesToSlideContentPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridAutoToSlideContentCm(IEnumerable<PowerPointShape> shapes, double marginCm, double gutterXCm = 0, double gutterYCm = 0, bool resizeToCell = True, PowerPointShapeGridFlow flow = RowMajor)",
@@ -3039,11 +3039,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridAutoToSlideContentCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridAutoToSlideContentInches(IEnumerable<PowerPointShape> shapes, double marginInches, double gutterXInches = 0, double gutterYInches = 0, bool resizeToCell = True, PowerPointShapeGridFlow flow = RowMajor)",
@@ -3056,11 +3056,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridAutoToSlideContentInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridAutoToSlideContentPoints(IEnumerable<PowerPointShape> shapes, double marginPoints, double gutterXPoints = 0, double gutterYPoints = 0, bool resizeToCell = True, PowerPointShapeGridFlow flow = RowMajor)",
@@ -3073,11 +3073,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridAutoToSlideContentPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridToSlideContentCm(IEnumerable<PowerPointShape> shapes, int columns, int rows, double marginCm, double gutterXCm = 0, double gutterYCm = 0, bool resizeToCell = True, PowerPointShapeGridFlow flow = RowMajor)",
@@ -3090,11 +3090,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridToSlideContentCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridToSlideContentInches(IEnumerable<PowerPointShape> shapes, int columns, int rows, double marginInches, double gutterXInches = 0, double gutterYInches = 0, bool resizeToCell = True, PowerPointShapeGridFlow flow = RowMajor)",
@@ -3107,11 +3107,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridToSlideContentInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridToSlideContentPoints(IEnumerable<PowerPointShape> shapes, int columns, int rows, double marginPoints, double gutterXPoints = 0, double gutterYPoints = 0, bool resizeToCell = True, PowerPointShapeGridFlow flow = RowMajor)",
@@ -3124,11 +3124,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridToSlideContentPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesToSlideContentCm(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, double marginCm)",
@@ -3141,11 +3141,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesToSlideContentCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesToSlideContentCm(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, double marginCm, PowerPointShapeAlignment crossAxisAlignment)",
@@ -3158,11 +3158,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesToSlideContentCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesToSlideContentInches(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, double marginInches)",
@@ -3175,11 +3175,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesToSlideContentInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesToSlideContentInches(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, double marginInches, PowerPointShapeAlignment crossAxisAlignment)",
@@ -3192,11 +3192,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesToSlideContentInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesToSlideContentPoints(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, double marginPoints)",
@@ -3209,11 +3209,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesToSlideContentPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesToSlideContentPoints(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, double marginPoints, PowerPointShapeAlignment crossAxisAlignment)",
@@ -3226,11 +3226,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesToSlideContentPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingCm(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, double spacingCm, bool center = False)",
@@ -3243,11 +3243,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingInches(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, double spacingInches, bool center = False)",
@@ -3260,11 +3260,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingPoints(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, double spacingPoints, bool center = False)",
@@ -3277,11 +3277,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlideContentCm(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, double spacingCm, double marginCm, bool center = False)",
@@ -3294,11 +3294,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlideContentCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlideContentInches(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, double spacingInches, double marginInches, bool center = False)",
@@ -3311,11 +3311,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlideContentInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlideContentPoints(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, double spacingPoints, double marginPoints, bool center = False)",
@@ -3328,11 +3328,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlideContentPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShapeCm(PowerPointShape shape, double offsetXCm, double offsetYCm)",
@@ -3396,11 +3396,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.FitShapesToSlideContentCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.FitShapesToSlideContentInches(IEnumerable<PowerPointShape> shapes, double marginInches, bool preserveAspect = False, bool center = False)",
@@ -3413,11 +3413,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.FitShapesToSlideContentInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.FitShapesToSlideContentPoints(IEnumerable<PowerPointShape> shapes, double marginPoints, bool preserveAspect = False, bool center = False)",
@@ -3430,11 +3430,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.FitShapesToSlideContentPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.GetGroupChildBoundsCm(PowerPointGroupShape groupShape)",
@@ -3447,11 +3447,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.GetGroupChildBoundsInches(PowerPointGroupShape groupShape)",
@@ -3464,11 +3464,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.GetGroupChildBoundsPoints(PowerPointGroupShape groupShape)",
@@ -3481,11 +3481,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.GetShapesInBoundsCm(double leftCm, double topCm, double widthCm, double heightCm, bool includePartial = True)",
@@ -3549,11 +3549,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.ResizeShapesCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use nullable OfficeLength width and height only; preserve null as unchanged. No position parameters are added. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ResizeShapesInches(IEnumerable<PowerPointShape> shapes, double? widthInches, double? heightInches)",
@@ -3566,11 +3566,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.ResizeShapesInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use nullable OfficeLength width and height only; preserve null as unchanged. No position parameters are added. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ResizeShapesPoints(IEnumerable<PowerPointShape> shapes, double? widthPoints, double? heightPoints)",
@@ -3583,11 +3583,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.ResizeShapesPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use nullable OfficeLength width and height only; preserve null as unchanged. No position parameters are added. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapesCm(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, double spacingCm)",
@@ -3600,11 +3600,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.StackShapesCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapesInches(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, double spacingInches)",
@@ -3617,11 +3617,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.StackShapesInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapesPoints(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, double spacingPoints)",
@@ -3634,11 +3634,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.StackShapesPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContentCm(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, double spacingCm, double marginCm)",
@@ -3651,11 +3651,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContentCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContentCm(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, double spacingCm, double marginCm, PowerPointShapeStackJustify justify)",
@@ -3668,11 +3668,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContentCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContentInches(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, double spacingInches, double marginInches)",
@@ -3685,11 +3685,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContentInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContentInches(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, double spacingInches, double marginInches, PowerPointShapeStackJustify justify)",
@@ -3702,11 +3702,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContentInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContentPoints(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, double spacingPoints, double marginPoints)",
@@ -3719,11 +3719,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContentPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContentPoints(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, double spacingPoints, double marginPoints, PowerPointShapeStackJustify justify)",
@@ -3736,11 +3736,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContentPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Merge unit-specific twin into the unit-free OfficeLength family. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.GetColumnsCm(int columnCount, double marginCm, double gutterCm)",
@@ -5168,11 +5168,11 @@
       "notes": "Raw EMU long geometry parameters with EMU defaults.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use nullable OfficeLength width and height only; preserve null as unchanged. No position parameters are added. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidth(int columnIndex, long width)",
@@ -6275,11 +6275,11 @@
       "notes": "Numeric parameters with unit-suffixed names: marginEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridAutoToSlideContent(IEnumerable<PowerPointShape> shapes, long marginEmus, PowerPointShapeGridOptions options)",
@@ -6292,11 +6292,11 @@
       "notes": "Numeric parameters with unit-suffixed names: marginEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridAutoToSlideContent(IEnumerable<PowerPointShape> shapes, long marginEmus, long gutterX = 0, long gutterY = 0, bool resizeToCell = True, PowerPointShapeGridFlow flow = RowMajor)",
@@ -6309,11 +6309,11 @@
       "notes": "Numeric parameters with unit-suffixed names: marginEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ArrangeShapesInGridToSlideContent(IEnumerable<PowerPointShape> shapes, int columns, int rows, long marginEmus, long gutterX = 0, long gutterY = 0, bool resizeToCell = True, PowerPointShapeGridFlow flow = RowMajor)",
@@ -6326,11 +6326,11 @@
       "notes": "Numeric parameters with unit-suffixed names: marginEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeGroupChildrenWithSpacing(PowerPointGroupShape groupShape, PowerPointShapeDistribution distribution, long spacingEmus, bool center = False)",
@@ -6343,11 +6343,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, long marginEmus)",
@@ -6360,11 +6360,11 @@
       "notes": "Numeric parameters with unit-suffixed names: marginEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, long marginEmus, PowerPointShapeAlignment crossAxisAlignment)",
@@ -6377,11 +6377,11 @@
       "notes": "Numeric parameters with unit-suffixed names: marginEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacing(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, PowerPointLayoutBox bounds, long spacingEmus, PowerPointShapeAlignment alignment)",
@@ -6394,11 +6394,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacing(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, PowerPointLayoutBox bounds, long spacingEmus, PowerPointShapeAlignment alignment, PowerPointShapeAlignment crossAxisAlignment)",
@@ -6411,11 +6411,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacing(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, PowerPointLayoutBox bounds, long spacingEmus, bool center = False)",
@@ -6428,11 +6428,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacing(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, long spacingEmus, PowerPointShapeAlignment alignment)",
@@ -6445,11 +6445,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacing(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, long spacingEmus, PowerPointShapeAlignment alignment, PowerPointShapeAlignment crossAxisAlignment)",
@@ -6462,11 +6462,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacing(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, long spacingEmus, bool center = False)",
@@ -6479,11 +6479,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, long spacingEmus, PowerPointShapeAlignment alignment)",
@@ -6496,11 +6496,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, long spacingEmus, PowerPointShapeAlignment alignment, PowerPointShapeAlignment crossAxisAlignment)",
@@ -6513,11 +6513,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, long spacingEmus, bool center = False)",
@@ -6530,11 +6530,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, long marginEmus, PowerPointShapeSpacingOptions options)",
@@ -6547,11 +6547,11 @@
       "notes": "Numeric parameters with unit-suffixed names: marginEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, long spacingEmus, long marginEmus, PowerPointShapeAlignment alignment)",
@@ -6564,11 +6564,11 @@
       "notes": "Numeric parameters with unit-suffixed names: marginEmus, spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, long spacingEmus, long marginEmus, PowerPointShapeAlignment alignment, PowerPointShapeAlignment crossAxisAlignment)",
@@ -6581,11 +6581,11 @@
       "notes": "Numeric parameters with unit-suffixed names: marginEmus, spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, long spacingEmus, long marginEmus, bool center = False)",
@@ -6598,11 +6598,11 @@
       "notes": "Numeric parameters with unit-suffixed names: marginEmus, spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.FitShapesToSlideContent(IEnumerable<PowerPointShape> shapes, long marginEmus, bool preserveAspect = False, bool center = False)",
@@ -6615,11 +6615,11 @@
       "notes": "Numeric parameters with unit-suffixed names: marginEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackGroupChildren(PowerPointGroupShape groupShape, PowerPointShapeStackDirection direction, long spacingEmus)",
@@ -6632,11 +6632,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, PowerPointLayoutBox bounds, long spacingEmus)",
@@ -6649,11 +6649,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, PowerPointLayoutBox bounds, long spacingEmus, PowerPointShapeAlignment alignment)",
@@ -6666,11 +6666,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, PowerPointLayoutBox bounds, long spacingEmus, PowerPointShapeAlignment alignment, PowerPointShapeStackJustify justify)",
@@ -6683,11 +6683,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, PowerPointLayoutBox bounds, long spacingEmus, PowerPointShapeStackJustify justify)",
@@ -6700,11 +6700,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus)",
@@ -6717,11 +6717,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus, PowerPointShapeAlignment alignment)",
@@ -6734,11 +6734,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus, PowerPointShapeAlignment alignment, PowerPointShapeStackJustify justify)",
@@ -6751,11 +6751,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus, PowerPointShapeStackJustify justify)",
@@ -6768,11 +6768,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus)",
@@ -6785,11 +6785,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus, PowerPointShapeAlignment alignment)",
@@ -6802,11 +6802,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus, PowerPointShapeAlignment alignment, PowerPointShapeStackJustify justify)",
@@ -6819,11 +6819,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus, PowerPointShapeStackJustify justify)",
@@ -6836,11 +6836,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long marginEmus, PowerPointShapeStackOptions options)",
@@ -6853,11 +6853,11 @@
       "notes": "Numeric parameters with unit-suffixed names: marginEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus, long marginEmus)",
@@ -6870,11 +6870,11 @@
       "notes": "Numeric parameters with unit-suffixed names: marginEmus, spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus, long marginEmus, PowerPointShapeAlignment alignment)",
@@ -6887,11 +6887,11 @@
       "notes": "Numeric parameters with unit-suffixed names: marginEmus, spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus, long marginEmus, PowerPointShapeAlignment alignment, PowerPointShapeStackJustify justify)",
@@ -6904,11 +6904,11 @@
       "notes": "Numeric parameters with unit-suffixed names: marginEmus, spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus, long marginEmus, PowerPointShapeStackJustify justify)",
@@ -6921,11 +6921,11 @@
       "notes": "Numeric parameters with unit-suffixed names: marginEmus, spacingEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.ContentArea(double topCm = 3.65, double bottomMarginCm = 1.65, double horizontalMarginCm = 1.5)",
@@ -8303,11 +8303,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShapeStackOptions.SpacingEmus",
@@ -8319,11 +8319,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Use root OfficeLength for physical geometry; preserve overload purpose and nonphysical arguments. Physical geometry uses the root OfficeLength; native units are converted privately without compatibility overloads."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideSize.HeightCm",
@@ -10378,6 +10378,151 @@
       "note": "Six maintained normal-load, report-load and cross-format report examples compile together against the current public Word, Excel, PowerPoint and Core libraries with zero warnings/errors. Application code can format the immutable diagnostics for archival text reports.",
       "files": [
         "OfficeIMO.PowerPoint/README.md"
+      ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "Nullable options annotations",
+      "new": "Owned stack, spacing, grid and group layout overloads",
+      "reason": "The implementation already treats null as default options; the signatures now state that existing behavior.",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointShapeGridOptions.cs",
+        "OfficeIMO.PowerPoint/PowerPointShapeSpacingOptions.cs",
+        "OfficeIMO.PowerPoint/PowerPointShapeStackOptions.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Alignment.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Fit.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Grid.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.GroupLayout.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Resize.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Spacing.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Stack.cs",
+        "OfficeIMO.PowerPoint/PublicAPI.Shipped.txt",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeAlignment.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeFit.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeGrid.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeGroup.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeResize.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeSpacing.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeStack.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointShapeLayoutCommand.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "Resize dimensions reject negative values before assigning either dimension",
+      "new": "ResizeShapes(IEnumerable<PowerPointShape>, OfficeLength?, OfficeLength?)",
+      "reason": "Negative DrawingML extents are invalid. Null leaves the dimension unchanged and zero is accepted.",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointShapeGridOptions.cs",
+        "OfficeIMO.PowerPoint/PowerPointShapeSpacingOptions.cs",
+        "OfficeIMO.PowerPoint/PowerPointShapeStackOptions.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Alignment.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Fit.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Grid.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.GroupLayout.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Resize.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Spacing.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Stack.cs",
+        "OfficeIMO.PowerPoint/PublicAPI.Shipped.txt",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeAlignment.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeFit.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeGrid.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeGroup.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeResize.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeSpacing.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeStack.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointShapeLayoutCommand.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "Validate layout dimensions, checked right/bottom edges and axis enums before mutation",
+      "new": "Owned alignment, spacing, stack, grid and fit utility implementations",
+      "reason": "Previously a bad cross-axis alignment could throw after distribution or scaling had already changed shapes. Invalid enum values and negative target dimensions are rejected before mutation.",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointShapeGridOptions.cs",
+        "OfficeIMO.PowerPoint/PowerPointShapeSpacingOptions.cs",
+        "OfficeIMO.PowerPoint/PowerPointShapeStackOptions.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Alignment.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Fit.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Grid.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.GroupLayout.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Resize.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Spacing.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Stack.cs",
+        "OfficeIMO.PowerPoint/PublicAPI.Shipped.txt",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeAlignment.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeFit.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeGrid.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeGroup.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeResize.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeSpacing.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeStack.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointShapeLayoutCommand.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "GetGroupChildBounds keeps only the existing unit-free method",
+      "new": "PowerPointSlide.GroupLayout.cs",
+      "reason": "The map placeholder suggests OfficeLength arguments, but this is a getter returning an already typed PowerPointLayoutBox; no new arguments are added.",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointShapeGridOptions.cs",
+        "OfficeIMO.PowerPoint/PowerPointShapeSpacingOptions.cs",
+        "OfficeIMO.PowerPoint/PowerPointShapeStackOptions.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Alignment.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Fit.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Grid.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.GroupLayout.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Resize.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Spacing.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Stack.cs",
+        "OfficeIMO.PowerPoint/PublicAPI.Shipped.txt",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeAlignment.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeFit.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeGrid.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeGroup.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeResize.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeSpacing.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeStack.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointShapeLayoutCommand.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "GetSlideContentBounds remains private in PowerPointSlide.Fit.cs",
+      "new": "No change to PowerPointSlide.cs",
+      "reason": "The delegated checkout has no matching overload in PowerPointSlide.cs. The existing private helper now accepts OfficeLength and validates negative margins before accessing slide state.",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointShapeGridOptions.cs",
+        "OfficeIMO.PowerPoint/PowerPointShapeSpacingOptions.cs",
+        "OfficeIMO.PowerPoint/PowerPointShapeStackOptions.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Alignment.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Fit.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Grid.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.GroupLayout.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Resize.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Spacing.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.Stack.cs",
+        "OfficeIMO.PowerPoint/PublicAPI.Shipped.txt",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeAlignment.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeFit.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeGrid.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeGroup.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeResize.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeSpacing.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeStack.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointShapeLayoutCommand.cs"
       ]
     }
   ],

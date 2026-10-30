@@ -73,5 +73,40 @@ namespace OfficeIMO.Tests {
                 }
             }
         }
+        [Fact]
+        public void ResizeShapes_NullDimensionsRetainSizeAndZeroIsExplicit() {
+            using PowerPointDocument presentation = PowerPointDocument.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Zero, OfficeIMO.OfficeLength.Zero,
+                OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20));
+
+            slide.ResizeShapes(slide.Shapes, OfficeIMO.OfficeLength.Inches(1), null);
+            Assert.Equal(OfficeIMO.OfficeLength.Inches(1), shape.Width);
+            Assert.Equal(OfficeIMO.OfficeLength.Points(20), shape.Height);
+
+            slide.ResizeShapes(slide.Shapes, null, null);
+            Assert.Equal(OfficeIMO.OfficeLength.Inches(1), shape.Width);
+            Assert.Equal(OfficeIMO.OfficeLength.Points(20), shape.Height);
+
+            slide.ResizeShapes(slide.Shapes, null, OfficeIMO.OfficeLength.Zero);
+            Assert.Equal(OfficeIMO.OfficeLength.Inches(1), shape.Width);
+            Assert.Equal(OfficeIMO.OfficeLength.Zero, shape.Height);
+        }
+
+        [Fact]
+        public void ResizeShapes_RejectsBothNegativeDimensionsBeforeChangingAnyShape() {
+            using PowerPointDocument presentation = PowerPointDocument.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Zero, OfficeIMO.OfficeLength.Zero,
+                OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => slide.ResizeShapes(slide.Shapes,
+                OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Emus(-1)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => slide.ResizeShapes(slide.Shapes,
+                OfficeIMO.OfficeLength.Emus(-1), OfficeIMO.OfficeLength.Points(30)));
+            Assert.Equal(OfficeIMO.OfficeLength.Points(10), shape.Width);
+            Assert.Equal(OfficeIMO.OfficeLength.Points(20), shape.Height);
+        }
+
     }
 }

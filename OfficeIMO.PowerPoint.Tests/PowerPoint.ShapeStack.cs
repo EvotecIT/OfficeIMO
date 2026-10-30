@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
 
                 var bounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(100),OfficeIMO.OfficeLength.Emus(200),OfficeIMO.OfficeLength.Emus(8000),OfficeIMO.OfficeLength.Emus(3000));
                 slide.StackShapes(slide.Shapes, PowerPointShapeStackDirection.Horizontal, bounds,
-                    spacingEmus: 300, PowerPointShapeAlignment.Bottom);
+                    spacing: OfficeIMO.OfficeLength.Emus(300), PowerPointShapeAlignment.Bottom);
 
                 Assert.Equal(100, a.Left.ToEmus());
                 Assert.Equal(100 + 1000 + 300, b.Left.ToEmus());
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
 
                 var bounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(200),OfficeIMO.OfficeLength.Emus(300),OfficeIMO.OfficeLength.Emus(6000),OfficeIMO.OfficeLength.Emus(4000));
                 slide.StackShapes(slide.Shapes, PowerPointShapeStackDirection.Vertical, bounds,
-                    spacingEmus: 250, PowerPointShapeAlignment.Center);
+                    spacing: OfficeIMO.OfficeLength.Emus(250), PowerPointShapeAlignment.Center);
 
                 Assert.Equal(300, a.Top.ToEmus());
                 Assert.Equal(300 + 600 + 250, b.Top.ToEmus());
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
                 long margin = PowerPointUnits.FromCentimeters(1);
 
                 slide.StackShapesToSlideContent(slide.Shapes, PowerPointShapeStackDirection.Vertical,
-                    spacingEmus: 200, marginEmus: margin);
+                    spacing: OfficeIMO.OfficeLength.Emus(200), margin: OfficeIMO.OfficeLength.Emus(margin));
 
                 PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Emus(margin));
                 Assert.Equal(content.Top.ToEmus(), a.Top.ToEmus());
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
 
                 var bounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(8000),OfficeIMO.OfficeLength.Emus(2000));
                 slide.StackShapes(slide.Shapes, PowerPointShapeStackDirection.Horizontal, bounds,
-                    spacingEmus: 500, PowerPointShapeStackJustify.Center);
+                    spacing: OfficeIMO.OfficeLength.Emus(500), PowerPointShapeStackJustify.Center);
 
                 long totalWidth = a.Width.ToEmus() + b.Width.ToEmus() + 500;
                 long expectedLeft = (bounds.Width.ToEmus() - totalWidth) / 2;
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
                 var bounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(8000),OfficeIMO.OfficeLength.Emus(2000));
                 slide.StackShapes(slide.Shapes, PowerPointShapeStackDirection.Horizontal, bounds,
                     new PowerPointShapeStackOptions {
-                        SpacingEmus = 1000,
+                        Spacing = OfficeIMO.OfficeLength.Emus(1000),
                         ClampSpacingToBounds = true
                     });
 
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
                 var bounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(5000),OfficeIMO.OfficeLength.Emus(2000));
                 slide.StackShapes(slide.Shapes, PowerPointShapeStackDirection.Horizontal, bounds,
                     new PowerPointShapeStackOptions {
-                        SpacingEmus = 1000,
+                        Spacing = OfficeIMO.OfficeLength.Emus(1000),
                         ScaleToFitBounds = true
                     });
 
@@ -156,5 +156,28 @@ namespace OfficeIMO.Tests {
                 }
             }
         }
+        [Fact]
+        public void StackShapes_RejectsAlignmentBeforeScalingOrMoving() {
+            using PowerPointDocument presentation = PowerPointDocument.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape first = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(200),
+                OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(500));
+            PowerPointAutoShape second = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(200),
+                OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(500));
+            var bounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Zero, OfficeIMO.OfficeLength.Zero,
+                OfficeIMO.OfficeLength.Emus(5000), OfficeIMO.OfficeLength.Emus(2000));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => slide.StackShapes(slide.Shapes,
+                PowerPointShapeStackDirection.Horizontal, bounds, new PowerPointShapeStackOptions {
+                    Spacing = OfficeIMO.OfficeLength.Emus(1000),
+                    ScaleToFitBounds = true,
+                    Alignment = PowerPointShapeAlignment.Left
+                }));
+            Assert.Equal(100, first.Left.ToEmus());
+            Assert.Equal(4000, second.Left.ToEmus());
+            Assert.Equal(3000, first.Width.ToEmus());
+            Assert.Equal(3000, second.Width.ToEmus());
+        }
+
     }
 }

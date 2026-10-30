@@ -43,11 +43,22 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Resizes shapes to an explicit width/height (EMUs).
+        ///     Resizes shapes to explicit dimensions, leaving each null dimension unchanged.
         /// </summary>
-        public void ResizeShapes(IEnumerable<PowerPointShape> shapes, long? width, long? height) {
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="width">Nonnegative width, or null to retain each shape's current width. Zero is permitted.</param>
+        /// <param name="height">Nonnegative height, or null to retain each shape's current height. Zero is permitted.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
+        public void ResizeShapes(IEnumerable<PowerPointShape> shapes, OfficeLength? width, OfficeLength? height) {
             if (shapes == null) {
                 throw new ArgumentNullException(nameof(shapes));
+            }
+
+            if (width.HasValue && width.Value < OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(width));
+            }
+            if (height.HasValue && height.Value < OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(height));
             }
 
             List<PowerPointShape> list = NormalizeShapes(shapes);
@@ -57,39 +68,12 @@ namespace OfficeIMO.PowerPoint {
 
             foreach (PowerPointShape shape in list) {
                 if (width != null) {
-                    shape.Width= OfficeIMO.OfficeLength.Emus(width.Value);
+                    shape.Width= width.Value;
                 }
                 if (height != null) {
-                    shape.Height= OfficeIMO.OfficeLength.Emus(height.Value);
+                    shape.Height= height.Value;
                 }
             }
-        }
-
-        /// <summary>
-        ///     Resizes shapes to an explicit width/height (centimeters).
-        /// </summary>
-        public void ResizeShapesCm(IEnumerable<PowerPointShape> shapes, double? widthCm, double? heightCm) {
-            long? width = widthCm != null ? PowerPointUnits.FromCentimeters(widthCm.Value) : null;
-            long? height = heightCm != null ? PowerPointUnits.FromCentimeters(heightCm.Value) : null;
-            ResizeShapes(shapes, width, height);
-        }
-
-        /// <summary>
-        ///     Resizes shapes to an explicit width/height (inches).
-        /// </summary>
-        public void ResizeShapesInches(IEnumerable<PowerPointShape> shapes, double? widthInches, double? heightInches) {
-            long? width = widthInches != null ? PowerPointUnits.FromInches(widthInches.Value) : null;
-            long? height = heightInches != null ? PowerPointUnits.FromInches(heightInches.Value) : null;
-            ResizeShapes(shapes, width, height);
-        }
-
-        /// <summary>
-        ///     Resizes shapes to an explicit width/height (points).
-        /// </summary>
-        public void ResizeShapesPoints(IEnumerable<PowerPointShape> shapes, double? widthPoints, double? heightPoints) {
-            long? width = widthPoints != null ? PowerPointUnits.FromPoints(widthPoints.Value) : null;
-            long? height = heightPoints != null ? PowerPointUnits.FromPoints(heightPoints.Value) : null;
-            ResizeShapes(shapes, width, height);
         }
 
         private static (long width, long height) ResolveReferenceSize(IReadOnlyList<PowerPointShape> shapes,

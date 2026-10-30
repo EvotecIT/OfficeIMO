@@ -7,45 +7,70 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Distributes shapes with a fixed spacing within their selection bounds.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="distribution">Axis along which shapes are distributed.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="center">Whether to center the arranged shapes within the target bounds.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void DistributeShapesWithSpacing(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
-            long spacingEmus, bool center = false) {
-            DistributeShapesWithSpacing(shapes, distribution, GetSelectionBounds(shapes), spacingEmus, center);
+            OfficeLength spacing, bool center = false) {
+            DistributeShapesWithSpacing(shapes, distribution, GetSelectionBounds(shapes), spacing, center);
         }
 
         /// <summary>
         ///     Distributes shapes with a fixed spacing within their selection bounds using alignment.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="distribution">Axis along which shapes are distributed.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="alignment">Alignment within the bounds on the applicable axis.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void DistributeShapesWithSpacing(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
-            long spacingEmus, PowerPointShapeAlignment alignment) {
-            DistributeShapesWithSpacing(shapes, distribution, GetSelectionBounds(shapes), spacingEmus, alignment);
+            OfficeLength spacing, PowerPointShapeAlignment alignment) {
+            DistributeShapesWithSpacing(shapes, distribution, GetSelectionBounds(shapes), spacing, alignment);
         }
 
         /// <summary>
         ///     Distributes shapes with a fixed spacing within their selection bounds using options.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="distribution">Axis along which shapes are distributed.</param>
+        /// <param name="options">Layout settings, or null to use the default settings.</param>
         public void DistributeShapesWithSpacing(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
-            PowerPointShapeSpacingOptions options) {
+            PowerPointShapeSpacingOptions? options) {
             DistributeShapesWithSpacing(shapes, distribution, GetSelectionBounds(shapes), options);
         }
 
         /// <summary>
         ///     Distributes shapes with a fixed spacing within their selection bounds using alignment and cross-axis alignment.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="distribution">Axis along which shapes are distributed.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="alignment">Alignment within the bounds on the applicable axis.</param>
+        /// <param name="crossAxisAlignment">Alignment on the axis perpendicular to distribution.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void DistributeShapesWithSpacing(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
-            long spacingEmus, PowerPointShapeAlignment alignment, PowerPointShapeAlignment crossAxisAlignment) {
-            DistributeShapesWithSpacing(shapes, distribution, GetSelectionBounds(shapes), spacingEmus, alignment, crossAxisAlignment);
+            OfficeLength spacing, PowerPointShapeAlignment alignment, PowerPointShapeAlignment crossAxisAlignment) {
+            DistributeShapesWithSpacing(shapes, distribution, GetSelectionBounds(shapes), spacing, alignment, crossAxisAlignment);
         }
 
         /// <summary>
         ///     Distributes shapes with a fixed spacing within a custom bounding box.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="distribution">Axis along which shapes are distributed.</param>
+        /// <param name="bounds">Target region; positions may be signed and dimensions must be nonnegative.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="center">Whether to center the arranged shapes within the target bounds.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void DistributeShapesWithSpacing(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
-            PowerPointLayoutBox bounds, long spacingEmus, bool center = false) {
+            PowerPointLayoutBox bounds, OfficeLength spacing, bool center = false) {
             if (shapes == null) {
                 throw new ArgumentNullException(nameof(shapes));
             }
-            if (spacingEmus < 0) {
-                throw new ArgumentOutOfRangeException(nameof(spacingEmus));
+            if (spacing < OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(spacing));
             }
 
             List<PowerPointShape> list = NormalizeShapes(shapes);
@@ -53,12 +78,14 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
+            ValidateLayoutBounds(bounds);
+            ValidateDistributionLayout(distribution);
             switch (distribution) {
                 case PowerPointShapeDistribution.Horizontal:
-                    DistributeHorizontalWithSpacing(list, bounds, spacingEmus, center);
+                    DistributeHorizontalWithSpacing(list, bounds, spacing.ToEmus(), center);
                     break;
                 case PowerPointShapeDistribution.Vertical:
-                    DistributeVerticalWithSpacing(list, bounds, spacingEmus, center);
+                    DistributeVerticalWithSpacing(list, bounds, spacing.ToEmus(), center);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(distribution));
@@ -68,13 +95,19 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Distributes shapes with a fixed spacing within a custom bounding box using alignment.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="distribution">Axis along which shapes are distributed.</param>
+        /// <param name="bounds">Target region; positions may be signed and dimensions must be nonnegative.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="alignment">Alignment within the bounds on the applicable axis.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void DistributeShapesWithSpacing(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
-            PowerPointLayoutBox bounds, long spacingEmus, PowerPointShapeAlignment alignment) {
+            PowerPointLayoutBox bounds, OfficeLength spacing, PowerPointShapeAlignment alignment) {
             if (shapes == null) {
                 throw new ArgumentNullException(nameof(shapes));
             }
-            if (spacingEmus < 0) {
-                throw new ArgumentOutOfRangeException(nameof(spacingEmus));
+            if (spacing < OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(spacing));
             }
 
             List<PowerPointShape> list = NormalizeShapes(shapes);
@@ -82,12 +115,14 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
+            ValidateLayoutBounds(bounds);
+            ValidateDistributionLayout(distribution, alignment);
             switch (distribution) {
                 case PowerPointShapeDistribution.Horizontal:
-                    DistributeHorizontalWithSpacingAligned(list, bounds, spacingEmus, alignment);
+                    DistributeHorizontalWithSpacingAligned(list, bounds, spacing.ToEmus(), alignment);
                     break;
                 case PowerPointShapeDistribution.Vertical:
-                    DistributeVerticalWithSpacingAligned(list, bounds, spacingEmus, alignment);
+                    DistributeVerticalWithSpacingAligned(list, bounds, spacing.ToEmus(), alignment);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(distribution));
@@ -97,11 +132,15 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Distributes shapes with a fixed spacing within a custom bounding box using options.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="distribution">Axis along which shapes are distributed.</param>
+        /// <param name="bounds">Target region; positions may be signed and dimensions must be nonnegative.</param>
+        /// <param name="options">Layout settings, or null to use the default settings.</param>
         public void DistributeShapesWithSpacing(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
-            PowerPointLayoutBox bounds, PowerPointShapeSpacingOptions options) {
+            PowerPointLayoutBox bounds, PowerPointShapeSpacingOptions? options) {
             PowerPointShapeSpacingOptions resolvedOptions = options ?? new PowerPointShapeSpacingOptions();
             PowerPointShapeAlignment alignment = resolvedOptions.Alignment ?? GetDefaultSpacingAlignment(distribution);
-            DistributeShapesWithSpacingInternal(shapes, distribution, bounds, resolvedOptions.SpacingEmus, alignment,
+            DistributeShapesWithSpacingInternal(shapes, distribution, bounds, resolvedOptions.Spacing.ToEmus(), alignment,
                 resolvedOptions.CrossAxisAlignment, resolvedOptions.ClampSpacingToBounds,
                 resolvedOptions.ScaleToFitBounds, resolvedOptions.PreserveAspect);
         }
@@ -109,13 +148,20 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Distributes shapes with a fixed spacing within a custom bounding box using alignment and cross-axis alignment.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="distribution">Axis along which shapes are distributed.</param>
+        /// <param name="bounds">Target region; positions may be signed and dimensions must be nonnegative.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="alignment">Alignment within the bounds on the applicable axis.</param>
+        /// <param name="crossAxisAlignment">Alignment on the axis perpendicular to distribution.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void DistributeShapesWithSpacing(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
-            PowerPointLayoutBox bounds, long spacingEmus, PowerPointShapeAlignment alignment, PowerPointShapeAlignment crossAxisAlignment) {
+            PowerPointLayoutBox bounds, OfficeLength spacing, PowerPointShapeAlignment alignment, PowerPointShapeAlignment crossAxisAlignment) {
             if (shapes == null) {
                 throw new ArgumentNullException(nameof(shapes));
             }
-            if (spacingEmus < 0) {
-                throw new ArgumentOutOfRangeException(nameof(spacingEmus));
+            if (spacing < OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(spacing));
             }
 
             List<PowerPointShape> list = NormalizeShapes(shapes);
@@ -123,12 +169,14 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
+            ValidateLayoutBounds(bounds);
+            ValidateDistributionLayout(distribution, alignment, crossAxisAlignment);
             switch (distribution) {
                 case PowerPointShapeDistribution.Horizontal:
-                    DistributeHorizontalWithSpacingAligned(list, bounds, spacingEmus, alignment, crossAxisAlignment);
+                    DistributeHorizontalWithSpacingAligned(list, bounds, spacing.ToEmus(), alignment, crossAxisAlignment);
                     break;
                 case PowerPointShapeDistribution.Vertical:
-                    DistributeVerticalWithSpacingAligned(list, bounds, spacingEmus, alignment, crossAxisAlignment);
+                    DistributeVerticalWithSpacingAligned(list, bounds, spacing.ToEmus(), alignment, crossAxisAlignment);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(distribution));
@@ -138,125 +186,111 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Distributes shapes with a fixed spacing within the full slide bounds.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="distribution">Axis along which shapes are distributed.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="center">Whether to center the arranged shapes within the target bounds.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void DistributeShapesWithSpacingToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
-            long spacingEmus, bool center = false) {
-            DistributeShapesWithSpacing(shapes, distribution, GetSlideBounds(), spacingEmus, center);
+            OfficeLength spacing, bool center = false) {
+            DistributeShapesWithSpacing(shapes, distribution, GetSlideBounds(), spacing, center);
         }
 
         /// <summary>
         ///     Distributes shapes with a fixed spacing within the full slide bounds using alignment.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="distribution">Axis along which shapes are distributed.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="alignment">Alignment within the bounds on the applicable axis.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void DistributeShapesWithSpacingToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
-            long spacingEmus, PowerPointShapeAlignment alignment) {
-            DistributeShapesWithSpacing(shapes, distribution, GetSlideBounds(), spacingEmus, alignment);
+            OfficeLength spacing, PowerPointShapeAlignment alignment) {
+            DistributeShapesWithSpacing(shapes, distribution, GetSlideBounds(), spacing, alignment);
         }
 
         /// <summary>
         ///     Distributes shapes with a fixed spacing within the full slide bounds using options.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="distribution">Axis along which shapes are distributed.</param>
+        /// <param name="options">Layout settings, or null to use the default settings.</param>
         public void DistributeShapesWithSpacingToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
-            PowerPointShapeSpacingOptions options) {
+            PowerPointShapeSpacingOptions? options) {
             DistributeShapesWithSpacing(shapes, distribution, GetSlideBounds(), options);
         }
 
         /// <summary>
         ///     Distributes shapes with a fixed spacing within the full slide bounds using alignment and cross-axis alignment.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="distribution">Axis along which shapes are distributed.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="alignment">Alignment within the bounds on the applicable axis.</param>
+        /// <param name="crossAxisAlignment">Alignment on the axis perpendicular to distribution.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void DistributeShapesWithSpacingToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
-            long spacingEmus, PowerPointShapeAlignment alignment, PowerPointShapeAlignment crossAxisAlignment) {
-            DistributeShapesWithSpacing(shapes, distribution, GetSlideBounds(), spacingEmus, alignment, crossAxisAlignment);
+            OfficeLength spacing, PowerPointShapeAlignment alignment, PowerPointShapeAlignment crossAxisAlignment) {
+            DistributeShapesWithSpacing(shapes, distribution, GetSlideBounds(), spacing, alignment, crossAxisAlignment);
         }
 
         /// <summary>
-        ///     Distributes shapes with a fixed spacing within the slide content bounds using a margin (EMUs).
+        ///     Distributes shapes with a fixed spacing within the slide content bounds using a margin.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="distribution">Axis along which shapes are distributed.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="margin">Nonnegative inset on every side of the slide.</param>
+        /// <param name="center">Whether to center the arranged shapes within the target bounds.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void DistributeShapesWithSpacingToSlideContent(IEnumerable<PowerPointShape> shapes,
-            PowerPointShapeDistribution distribution, long spacingEmus, long marginEmus, bool center = false) {
-            DistributeShapesWithSpacing(shapes, distribution, GetSlideContentBounds(marginEmus), spacingEmus, center);
+            PowerPointShapeDistribution distribution, OfficeLength spacing, OfficeLength margin, bool center = false) {
+            DistributeShapesWithSpacing(shapes, distribution, GetSlideContentBounds(margin), spacing, center);
         }
 
         /// <summary>
-        ///     Distributes shapes with a fixed spacing within the slide content bounds using a margin (EMUs) and alignment.
+        ///     Distributes shapes with a fixed spacing within the slide content bounds using a margin and alignment.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="distribution">Axis along which shapes are distributed.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="margin">Nonnegative inset on every side of the slide.</param>
+        /// <param name="alignment">Alignment within the bounds on the applicable axis.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void DistributeShapesWithSpacingToSlideContent(IEnumerable<PowerPointShape> shapes,
-            PowerPointShapeDistribution distribution, long spacingEmus, long marginEmus, PowerPointShapeAlignment alignment) {
-            DistributeShapesWithSpacing(shapes, distribution, GetSlideContentBounds(marginEmus), spacingEmus, alignment);
+            PowerPointShapeDistribution distribution, OfficeLength spacing, OfficeLength margin, PowerPointShapeAlignment alignment) {
+            DistributeShapesWithSpacing(shapes, distribution, GetSlideContentBounds(margin), spacing, alignment);
         }
 
         /// <summary>
-        ///     Distributes shapes with a fixed spacing within the slide content bounds using a margin (EMUs) and options.
+        ///     Distributes shapes with a fixed spacing within the slide content bounds using a margin and options.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="distribution">Axis along which shapes are distributed.</param>
+        /// <param name="margin">Nonnegative inset on every side of the slide.</param>
+        /// <param name="options">Layout settings, or null to use the default settings.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void DistributeShapesWithSpacingToSlideContent(IEnumerable<PowerPointShape> shapes,
-            PowerPointShapeDistribution distribution, long marginEmus, PowerPointShapeSpacingOptions options) {
-            DistributeShapesWithSpacing(shapes, distribution, GetSlideContentBounds(marginEmus), options);
+            PowerPointShapeDistribution distribution, OfficeLength margin, PowerPointShapeSpacingOptions? options) {
+            DistributeShapesWithSpacing(shapes, distribution, GetSlideContentBounds(margin), options);
         }
 
         /// <summary>
-        ///     Distributes shapes with a fixed spacing within the slide content bounds using a margin (EMUs),
+        ///     Distributes shapes with a fixed spacing within the slide content bounds using a margin,
         ///     alignment, and cross-axis alignment.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="distribution">Axis along which shapes are distributed.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="margin">Nonnegative inset on every side of the slide.</param>
+        /// <param name="alignment">Alignment within the bounds on the applicable axis.</param>
+        /// <param name="crossAxisAlignment">Alignment on the axis perpendicular to distribution.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void DistributeShapesWithSpacingToSlideContent(IEnumerable<PowerPointShape> shapes,
-            PowerPointShapeDistribution distribution, long spacingEmus, long marginEmus,
+            PowerPointShapeDistribution distribution, OfficeLength spacing, OfficeLength margin,
             PowerPointShapeAlignment alignment, PowerPointShapeAlignment crossAxisAlignment) {
-            DistributeShapesWithSpacing(shapes, distribution, GetSlideContentBounds(marginEmus), spacingEmus,
+            DistributeShapesWithSpacing(shapes, distribution, GetSlideContentBounds(margin), spacing,
                 alignment, crossAxisAlignment);
-        }
-
-        /// <summary>
-        ///     Distributes shapes with a fixed spacing within the slide content bounds using a margin (centimeters).
-        /// </summary>
-        public void DistributeShapesWithSpacingToSlideContentCm(IEnumerable<PowerPointShape> shapes,
-            PowerPointShapeDistribution distribution, double spacingCm, double marginCm, bool center = false) {
-            DistributeShapesWithSpacingToSlideContent(shapes, distribution,
-                PowerPointUnits.FromCentimeters(spacingCm),
-                PowerPointUnits.FromCentimeters(marginCm),
-                center);
-        }
-
-        /// <summary>
-        ///     Distributes shapes with a fixed spacing within the slide content bounds using a margin (inches).
-        /// </summary>
-        public void DistributeShapesWithSpacingToSlideContentInches(IEnumerable<PowerPointShape> shapes,
-            PowerPointShapeDistribution distribution, double spacingInches, double marginInches, bool center = false) {
-            DistributeShapesWithSpacingToSlideContent(shapes, distribution,
-                PowerPointUnits.FromInches(spacingInches),
-                PowerPointUnits.FromInches(marginInches),
-                center);
-        }
-
-        /// <summary>
-        ///     Distributes shapes with a fixed spacing within the slide content bounds using a margin (points).
-        /// </summary>
-        public void DistributeShapesWithSpacingToSlideContentPoints(IEnumerable<PowerPointShape> shapes,
-            PowerPointShapeDistribution distribution, double spacingPoints, double marginPoints, bool center = false) {
-            DistributeShapesWithSpacingToSlideContent(shapes, distribution,
-                PowerPointUnits.FromPoints(spacingPoints),
-                PowerPointUnits.FromPoints(marginPoints),
-                center);
-        }
-
-        /// <summary>
-        ///     Distributes shapes with a fixed spacing using centimeters.
-        /// </summary>
-        public void DistributeShapesWithSpacingCm(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
-            double spacingCm, bool center = false) {
-            DistributeShapesWithSpacing(shapes, distribution, PowerPointUnits.FromCentimeters(spacingCm), center);
-        }
-
-        /// <summary>
-        ///     Distributes shapes with a fixed spacing using inches.
-        /// </summary>
-        public void DistributeShapesWithSpacingInches(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
-            double spacingInches, bool center = false) {
-            DistributeShapesWithSpacing(shapes, distribution, PowerPointUnits.FromInches(spacingInches), center);
-        }
-
-        /// <summary>
-        ///     Distributes shapes with a fixed spacing using points.
-        /// </summary>
-        public void DistributeShapesWithSpacingPoints(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
-            double spacingPoints, bool center = false) {
-            DistributeShapesWithSpacing(shapes, distribution, PowerPointUnits.FromPoints(spacingPoints), center);
         }
 
         private static void DistributeHorizontalWithSpacing(IReadOnlyList<PowerPointShape> shapes, PowerPointLayoutBox bounds,
@@ -379,7 +413,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentNullException(nameof(shapes));
             }
             if (spacingEmus < 0) {
-                throw new ArgumentOutOfRangeException(nameof(spacingEmus));
+                throw new ArgumentOutOfRangeException("spacing");
             }
 
             List<PowerPointShape> list = NormalizeShapes(shapes);
@@ -387,6 +421,8 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
+            ValidateLayoutBounds(bounds);
+            ValidateDistributionLayout(distribution, alignment, crossAxisAlignment);
             long effectiveSpacing = ResolveSpacingForBounds(list, distribution, bounds, spacingEmus, clampSpacingToBounds);
             if (scaleToFitBounds) {
                 ApplyScaleToFitBounds(list, distribution, bounds, effectiveSpacing, preserveAspect);

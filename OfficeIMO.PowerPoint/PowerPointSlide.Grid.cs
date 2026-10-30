@@ -6,8 +6,16 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Arranges shapes into a grid within their selection bounds.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="columns">Number of grid columns, greater than zero.</param>
+        /// <param name="rows">Number of grid rows, greater than zero.</param>
+        /// <param name="gutterX">Nonnegative horizontal gap between cells. The default is zero.</param>
+        /// <param name="gutterY">Nonnegative vertical gap between cells. The default is zero.</param>
+        /// <param name="resizeToCell">Whether each shape is resized to its grid cell.</param>
+        /// <param name="flow">Order used to fill grid cells.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void ArrangeShapesInGrid(IEnumerable<PowerPointShape> shapes, int columns, int rows,
-            long gutterX = 0L, long gutterY = 0L, bool resizeToCell = true,
+            OfficeLength gutterX = default, OfficeLength gutterY = default, bool resizeToCell = true,
             PowerPointShapeGridFlow flow = PowerPointShapeGridFlow.RowMajor) {
             ArrangeShapesInGrid(shapes, GetSelectionBounds(shapes), columns, rows, gutterX, gutterY, resizeToCell, flow);
         }
@@ -15,8 +23,17 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Arranges shapes into a grid within a custom bounding box.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="bounds">Target region; positions may be signed and dimensions must be nonnegative.</param>
+        /// <param name="columns">Number of grid columns, greater than zero.</param>
+        /// <param name="rows">Number of grid rows, greater than zero.</param>
+        /// <param name="gutterX">Nonnegative horizontal gap between cells. The default is zero.</param>
+        /// <param name="gutterY">Nonnegative vertical gap between cells. The default is zero.</param>
+        /// <param name="resizeToCell">Whether each shape is resized to its grid cell.</param>
+        /// <param name="flow">Order used to fill grid cells.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void ArrangeShapesInGrid(IEnumerable<PowerPointShape> shapes, PowerPointLayoutBox bounds, int columns,
-            int rows, long gutterX = 0L, long gutterY = 0L, bool resizeToCell = true,
+            int rows, OfficeLength gutterX = default, OfficeLength gutterY = default, bool resizeToCell = true,
             PowerPointShapeGridFlow flow = PowerPointShapeGridFlow.RowMajor) {
             if (shapes == null) {
                 throw new ArgumentNullException(nameof(shapes));
@@ -27,10 +44,10 @@ namespace OfficeIMO.PowerPoint {
             if (rows <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(rows));
             }
-            if (gutterX < 0) {
+            if (gutterX < OfficeLength.Zero) {
                 throw new ArgumentOutOfRangeException(nameof(gutterX));
             }
-            if (gutterY < 0) {
+            if (gutterY < OfficeLength.Zero) {
                 throw new ArgumentOutOfRangeException(nameof(gutterY));
             }
 
@@ -39,7 +56,9 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            PowerPointLayoutBox[,] grid = BuildGrid(bounds, columns, rows, gutterX, gutterY);
+            ValidateLayoutBounds(bounds);
+            ValidateGridFlow(flow);
+            PowerPointLayoutBox[,] grid = BuildGrid(bounds, columns, rows, gutterX.ToEmus(), gutterY.ToEmus());
             int max = Math.Min(list.Count, columns * rows);
 
             for (int i = 0; i < max; i++) {
@@ -61,65 +80,49 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Arranges shapes into a grid that spans the slide bounds.        
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="columns">Number of grid columns, greater than zero.</param>
+        /// <param name="rows">Number of grid rows, greater than zero.</param>
+        /// <param name="gutterX">Nonnegative horizontal gap between cells. The default is zero.</param>
+        /// <param name="gutterY">Nonnegative vertical gap between cells. The default is zero.</param>
+        /// <param name="resizeToCell">Whether each shape is resized to its grid cell.</param>
+        /// <param name="flow">Order used to fill grid cells.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void ArrangeShapesInGridToSlide(IEnumerable<PowerPointShape> shapes, int columns, int rows,
-            long gutterX = 0L, long gutterY = 0L, bool resizeToCell = true,
+            OfficeLength gutterX = default, OfficeLength gutterY = default, bool resizeToCell = true,
             PowerPointShapeGridFlow flow = PowerPointShapeGridFlow.RowMajor) {  
             ArrangeShapesInGrid(shapes, GetSlideBounds(), columns, rows, gutterX, gutterY, resizeToCell, flow);
         }
 
         /// <summary>
-        ///     Arranges shapes into a grid that spans the slide content bounds using a margin (EMUs).
+        ///     Arranges shapes into a grid that spans the slide content bounds using a margin.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="columns">Number of grid columns, greater than zero.</param>
+        /// <param name="rows">Number of grid rows, greater than zero.</param>
+        /// <param name="margin">Nonnegative inset on every side of the slide.</param>
+        /// <param name="gutterX">Nonnegative horizontal gap between cells. The default is zero.</param>
+        /// <param name="gutterY">Nonnegative vertical gap between cells. The default is zero.</param>
+        /// <param name="resizeToCell">Whether each shape is resized to its grid cell.</param>
+        /// <param name="flow">Order used to fill grid cells.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void ArrangeShapesInGridToSlideContent(IEnumerable<PowerPointShape> shapes, int columns, int rows,
-            long marginEmus, long gutterX = 0L, long gutterY = 0L, bool resizeToCell = true,
+            OfficeLength margin, OfficeLength gutterX = default, OfficeLength gutterY = default, bool resizeToCell = true,
             PowerPointShapeGridFlow flow = PowerPointShapeGridFlow.RowMajor) {
-            ArrangeShapesInGrid(shapes, GetSlideContentBounds(marginEmus), columns, rows, gutterX, gutterY,
-                resizeToCell, flow);
-        }
-
-        /// <summary>
-        ///     Arranges shapes into a grid that spans the slide content bounds using a margin (centimeters).
-        /// </summary>
-        public void ArrangeShapesInGridToSlideContentCm(IEnumerable<PowerPointShape> shapes, int columns, int rows,
-            double marginCm, double gutterXCm = 0d, double gutterYCm = 0d, bool resizeToCell = true,
-            PowerPointShapeGridFlow flow = PowerPointShapeGridFlow.RowMajor) {
-            ArrangeShapesInGridToSlideContent(shapes, columns, rows,
-                PowerPointUnits.FromCentimeters(marginCm),
-                PowerPointUnits.FromCentimeters(gutterXCm),
-                PowerPointUnits.FromCentimeters(gutterYCm),
-                resizeToCell, flow);
-        }
-
-        /// <summary>
-        ///     Arranges shapes into a grid that spans the slide content bounds using a margin (inches).
-        /// </summary>
-        public void ArrangeShapesInGridToSlideContentInches(IEnumerable<PowerPointShape> shapes, int columns, int rows,
-            double marginInches, double gutterXInches = 0d, double gutterYInches = 0d, bool resizeToCell = true,
-            PowerPointShapeGridFlow flow = PowerPointShapeGridFlow.RowMajor) {
-            ArrangeShapesInGridToSlideContent(shapes, columns, rows,
-                PowerPointUnits.FromInches(marginInches),
-                PowerPointUnits.FromInches(gutterXInches),
-                PowerPointUnits.FromInches(gutterYInches),
-                resizeToCell, flow);
-        }
-
-        /// <summary>
-        ///     Arranges shapes into a grid that spans the slide content bounds using a margin (points).
-        /// </summary>
-        public void ArrangeShapesInGridToSlideContentPoints(IEnumerable<PowerPointShape> shapes, int columns, int rows,
-            double marginPoints, double gutterXPoints = 0d, double gutterYPoints = 0d, bool resizeToCell = true,
-            PowerPointShapeGridFlow flow = PowerPointShapeGridFlow.RowMajor) {
-            ArrangeShapesInGridToSlideContent(shapes, columns, rows,
-                PowerPointUnits.FromPoints(marginPoints),
-                PowerPointUnits.FromPoints(gutterXPoints),
-                PowerPointUnits.FromPoints(gutterYPoints),
+            ArrangeShapesInGrid(shapes, GetSlideContentBounds(margin), columns, rows, gutterX, gutterY,
                 resizeToCell, flow);
         }
 
         /// <summary>
         ///     Arranges shapes into an auto-sized grid within their selection bounds.
         /// </summary>
-        public void ArrangeShapesInGridAuto(IEnumerable<PowerPointShape> shapes, long gutterX = 0L, long gutterY = 0L,
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="gutterX">Nonnegative horizontal gap between cells. The default is zero.</param>
+        /// <param name="gutterY">Nonnegative vertical gap between cells. The default is zero.</param>
+        /// <param name="resizeToCell">Whether each shape is resized to its grid cell.</param>
+        /// <param name="flow">Order used to fill grid cells.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
+        public void ArrangeShapesInGridAuto(IEnumerable<PowerPointShape> shapes, OfficeLength gutterX = default, OfficeLength gutterY = default,
             bool resizeToCell = true, PowerPointShapeGridFlow flow = PowerPointShapeGridFlow.RowMajor) {
             ArrangeShapesInGridAuto(shapes, GetSelectionBounds(shapes),
                 new PowerPointShapeGridOptions {
@@ -133,8 +136,15 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Arranges shapes into an auto-sized grid within a custom bounding box.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="bounds">Target region; positions may be signed and dimensions must be nonnegative.</param>
+        /// <param name="gutterX">Nonnegative horizontal gap between cells. The default is zero.</param>
+        /// <param name="gutterY">Nonnegative vertical gap between cells. The default is zero.</param>
+        /// <param name="resizeToCell">Whether each shape is resized to its grid cell.</param>
+        /// <param name="flow">Order used to fill grid cells.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void ArrangeShapesInGridAuto(IEnumerable<PowerPointShape> shapes, PowerPointLayoutBox bounds,
-            long gutterX = 0L, long gutterY = 0L, bool resizeToCell = true,
+            OfficeLength gutterX = default, OfficeLength gutterY = default, bool resizeToCell = true,
             PowerPointShapeGridFlow flow = PowerPointShapeGridFlow.RowMajor) {
             ArrangeShapesInGridAuto(shapes, bounds,
                 new PowerPointShapeGridOptions {
@@ -148,8 +158,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Arranges shapes into an auto-sized grid within a custom bounding box using options.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="bounds">Target region; positions may be signed and dimensions must be nonnegative.</param>
+        /// <param name="options">Layout settings, or null to use the default settings.</param>
         public void ArrangeShapesInGridAuto(IEnumerable<PowerPointShape> shapes, PowerPointLayoutBox bounds,
-            PowerPointShapeGridOptions options) {
+            PowerPointShapeGridOptions? options) {
             if (shapes == null) {
                 throw new ArgumentNullException(nameof(shapes));
             }
@@ -160,7 +173,11 @@ namespace OfficeIMO.PowerPoint {
             }
 
             PowerPointShapeGridOptions resolvedOptions = options ?? new PowerPointShapeGridOptions();
-            int columns = GetAutoGridColumns(list.Count, bounds, resolvedOptions.GutterX, resolvedOptions.GutterY,
+            ValidateLayoutBounds(bounds);
+            if (resolvedOptions.GutterX < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(options), "Horizontal gutter cannot be negative.");
+            if (resolvedOptions.GutterY < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(options), "Vertical gutter cannot be negative.");
+            ValidateGridFlow(resolvedOptions.Flow);
+            int columns = GetAutoGridColumns(list.Count, bounds, resolvedOptions.GutterX.ToEmus(), resolvedOptions.GutterY.ToEmus(),
                 resolvedOptions.MinColumns, resolvedOptions.MaxColumns, resolvedOptions.TargetCellAspect);
             int rows = (int)Math.Ceiling(list.Count / (double)columns);
 
@@ -171,7 +188,13 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Arranges shapes into an auto-sized grid that spans the slide bounds.
         /// </summary>
-        public void ArrangeShapesInGridAutoToSlide(IEnumerable<PowerPointShape> shapes, long gutterX = 0L, long gutterY = 0L,
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="gutterX">Nonnegative horizontal gap between cells. The default is zero.</param>
+        /// <param name="gutterY">Nonnegative vertical gap between cells. The default is zero.</param>
+        /// <param name="resizeToCell">Whether each shape is resized to its grid cell.</param>
+        /// <param name="flow">Order used to fill grid cells.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
+        public void ArrangeShapesInGridAutoToSlide(IEnumerable<PowerPointShape> shapes, OfficeLength gutterX = default, OfficeLength gutterY = default,
             bool resizeToCell = true, PowerPointShapeGridFlow flow = PowerPointShapeGridFlow.RowMajor) {
             ArrangeShapesInGridAuto(shapes, GetSlideBounds(),
                 new PowerPointShapeGridOptions {
@@ -185,17 +208,26 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Arranges shapes into an auto-sized grid that spans the slide bounds using options.
         /// </summary>
-        public void ArrangeShapesInGridAutoToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeGridOptions options) {
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="options">Layout settings, or null to use the default settings.</param>
+        public void ArrangeShapesInGridAutoToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeGridOptions? options) {
             ArrangeShapesInGridAuto(shapes, GetSlideBounds(), options);
         }
 
         /// <summary>
-        ///     Arranges shapes into an auto-sized grid that spans the slide content bounds using a margin (EMUs).
+        ///     Arranges shapes into an auto-sized grid that spans the slide content bounds using a margin.
         /// </summary>
-        public void ArrangeShapesInGridAutoToSlideContent(IEnumerable<PowerPointShape> shapes, long marginEmus,
-            long gutterX = 0L, long gutterY = 0L, bool resizeToCell = true,
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="margin">Nonnegative inset on every side of the slide.</param>
+        /// <param name="gutterX">Nonnegative horizontal gap between cells. The default is zero.</param>
+        /// <param name="gutterY">Nonnegative vertical gap between cells. The default is zero.</param>
+        /// <param name="resizeToCell">Whether each shape is resized to its grid cell.</param>
+        /// <param name="flow">Order used to fill grid cells.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
+        public void ArrangeShapesInGridAutoToSlideContent(IEnumerable<PowerPointShape> shapes, OfficeLength margin,
+            OfficeLength gutterX = default, OfficeLength gutterY = default, bool resizeToCell = true,
             PowerPointShapeGridFlow flow = PowerPointShapeGridFlow.RowMajor) {
-            ArrangeShapesInGridAuto(shapes, GetSlideContentBounds(marginEmus),
+            ArrangeShapesInGridAuto(shapes, GetSlideContentBounds(margin),
                 new PowerPointShapeGridOptions {
                     GutterX = gutterX,
                     GutterY = gutterY,
@@ -205,50 +237,21 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Arranges shapes into an auto-sized grid that spans the slide content bounds using a margin (EMUs) and options.
+        ///     Arranges shapes into an auto-sized grid that spans the slide content bounds using a margin and options.
         /// </summary>
-        public void ArrangeShapesInGridAutoToSlideContent(IEnumerable<PowerPointShape> shapes, long marginEmus,
-            PowerPointShapeGridOptions options) {
-            ArrangeShapesInGridAuto(shapes, GetSlideContentBounds(marginEmus), options);
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="margin">Nonnegative inset on every side of the slide.</param>
+        /// <param name="options">Layout settings, or null to use the default settings.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
+        public void ArrangeShapesInGridAutoToSlideContent(IEnumerable<PowerPointShape> shapes, OfficeLength margin,
+            PowerPointShapeGridOptions? options) {
+            ArrangeShapesInGridAuto(shapes, GetSlideContentBounds(margin), options);
         }
 
-        /// <summary>
-        ///     Arranges shapes into an auto-sized grid that spans the slide content bounds using a margin (centimeters).
-        /// </summary>
-        public void ArrangeShapesInGridAutoToSlideContentCm(IEnumerable<PowerPointShape> shapes, double marginCm,
-            double gutterXCm = 0d, double gutterYCm = 0d, bool resizeToCell = true,
-            PowerPointShapeGridFlow flow = PowerPointShapeGridFlow.RowMajor) {
-            ArrangeShapesInGridAutoToSlideContent(shapes,
-                PowerPointUnits.FromCentimeters(marginCm),
-                PowerPointUnits.FromCentimeters(gutterXCm),
-                PowerPointUnits.FromCentimeters(gutterYCm),
-                resizeToCell, flow);
-        }
-
-        /// <summary>
-        ///     Arranges shapes into an auto-sized grid that spans the slide content bounds using a margin (inches).
-        /// </summary>
-        public void ArrangeShapesInGridAutoToSlideContentInches(IEnumerable<PowerPointShape> shapes, double marginInches,
-            double gutterXInches = 0d, double gutterYInches = 0d, bool resizeToCell = true,
-            PowerPointShapeGridFlow flow = PowerPointShapeGridFlow.RowMajor) {
-            ArrangeShapesInGridAutoToSlideContent(shapes,
-                PowerPointUnits.FromInches(marginInches),
-                PowerPointUnits.FromInches(gutterXInches),
-                PowerPointUnits.FromInches(gutterYInches),
-                resizeToCell, flow);
-        }
-
-        /// <summary>
-        ///     Arranges shapes into an auto-sized grid that spans the slide content bounds using a margin (points).
-        /// </summary>
-        public void ArrangeShapesInGridAutoToSlideContentPoints(IEnumerable<PowerPointShape> shapes, double marginPoints,
-            double gutterXPoints = 0d, double gutterYPoints = 0d, bool resizeToCell = true,
-            PowerPointShapeGridFlow flow = PowerPointShapeGridFlow.RowMajor) {
-            ArrangeShapesInGridAutoToSlideContent(shapes,
-                PowerPointUnits.FromPoints(marginPoints),
-                PowerPointUnits.FromPoints(gutterXPoints),
-                PowerPointUnits.FromPoints(gutterYPoints),
-                resizeToCell, flow);
+        private static void ValidateGridFlow(PowerPointShapeGridFlow flow) {
+            if (flow != PowerPointShapeGridFlow.RowMajor && flow != PowerPointShapeGridFlow.ColumnMajor) {
+                throw new ArgumentOutOfRangeException(nameof(flow));
+            }
         }
 
         private static PowerPointLayoutBox[,] BuildGrid(PowerPointLayoutBox bounds, int columns, int rows,

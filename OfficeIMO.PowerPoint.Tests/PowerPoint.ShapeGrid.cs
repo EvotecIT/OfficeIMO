@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape c = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(500));
 
                 slide.ArrangeShapesInGrid(slide.Shapes, new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(4200),OfficeIMO.OfficeLength.Emus(4300)), 2, 2,
-                    gutterX: 200, gutterY: 300, flow: PowerPointShapeGridFlow.ColumnMajor);
+                    gutterX: OfficeIMO.OfficeLength.Emus(200), gutterY: OfficeIMO.OfficeLength.Emus(300), flow: PowerPointShapeGridFlow.ColumnMajor);
 
                 Assert.Equal(0, a.Left.ToEmus());
                 Assert.Equal(0, a.Top.ToEmus());
@@ -228,7 +228,7 @@ namespace OfficeIMO.Tests {
                 long margin = PowerPointUnits.FromCentimeters(1);
 
                 slide.ArrangeShapesInGridToSlideContent(slide.Shapes, columns: 2, rows: 1,
-                    marginEmus: margin);
+                    margin: OfficeIMO.OfficeLength.Emus(margin));
 
                 PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Emus(margin));
                 long cellWidth = content.Width.ToEmus() / 2;
@@ -261,7 +261,7 @@ namespace OfficeIMO.Tests {
                 PowerPointAutoShape d = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
                 long margin = PowerPointUnits.FromCentimeters(1);
 
-                slide.ArrangeShapesInGridAutoToSlideContent(slide.Shapes, margin,
+                slide.ArrangeShapesInGridAutoToSlideContent(slide.Shapes, OfficeIMO.OfficeLength.Emus(margin),
                     new PowerPointShapeGridOptions { MinColumns = 2, MaxColumns = 2 });
 
                 PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Emus(margin));
@@ -285,5 +285,27 @@ namespace OfficeIMO.Tests {
                 }
             }
         }
+        [Fact]
+        public void ArrangeShapesInGridAuto_OptionsUsePhysicalGutters() {
+            using PowerPointDocument presentation = PowerPointDocument.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            for (int i = 0; i < 4; i++) {
+                slide.AddRectangle(OfficeIMO.OfficeLength.Zero, OfficeIMO.OfficeLength.Zero,
+                    OfficeIMO.OfficeLength.Points(1), OfficeIMO.OfficeLength.Points(1));
+            }
+            var bounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Zero, OfficeIMO.OfficeLength.Zero,
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000));
+
+            slide.ArrangeShapesInGridAuto(slide.Shapes, bounds, new PowerPointShapeGridOptions {
+                MinColumns = 2, MaxColumns = 2,
+                GutterX = OfficeIMO.OfficeLength.Points(1),
+                GutterY = OfficeIMO.OfficeLength.Points(2)
+            });
+            Assert.Equal(43650, slide.Shapes[0].Width.ToEmus());
+            Assert.Equal(37300, slide.Shapes[0].Height.ToEmus());
+            Assert.Equal(56350, slide.Shapes[1].Left.ToEmus());
+            Assert.Equal(62700, slide.Shapes[2].Top.ToEmus());
+        }
+
     }
 }
