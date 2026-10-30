@@ -61,7 +61,7 @@ Describe 'Mixed-format conversion review recipe' -Skip:($PSVersionTable.PSEditio
         $warningOutcomes = @($retryReview.Outcomes | Where-Object { @($_.Diagnostics | Where-Object Severity -EQ 'Warning').Count })
         $warningOutcomes.Count | Should -BeGreaterThan 0
         @($warningOutcomes | Where-Object { -not $_.ReviewRequired }).Count | Should -Be 0
-        $pdf = Join-Path $retry.PdfDirectory 'Correctable.docx.pdf'
+        $pdf = Join-Path $retry.PdfDirectory 'Correctable.pdf'
         Add-Content $pdf 'Changed output'
         $changedHash = (Get-FileHash $pdf).Hash
         { & $recipe -InputDirectory $source -OutputDirectory $destination -ModulePath $moduleManifest -RetryFailed } | Should -Throw '*Conversion needs attention*'

@@ -49,7 +49,7 @@ public sealed class SavedConversionJobOutcomeTests {
             Assert.Same(report, caught.TargetObject);
             Assert.Same(report.Summary, runspace.SessionStateProxy.GetVariable("summary"));
             Assert.Equal("External replacement must survive", File.ReadAllText(reportPath));
-            Assert.Contains("Completed output", OfficeIMO.Pdf.PdfDocument.Load(Path.Combine(root, "output", "one.txt.pdf")).Read().Text);
+            Assert.Contains("Completed output", OfficeIMO.Pdf.PdfDocument.Load(Path.Combine(root, "output", "one.pdf")).Read().Text);
         } finally {
             Directory.Delete(root, true);
         }

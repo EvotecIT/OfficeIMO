@@ -169,7 +169,7 @@ public sealed class DocumentPdfCmdletTests {
             AddCommand();
             var first = Assert.IsType<OfficeIMO.OfficeBatchSummary>(Assert.Single(shell.Invoke()).BaseObject);
             Assert.False(shell.HadErrors, string.Join("\n", shell.Streams.Error)); Assert.Equal(1, first.Completed); Assert.Equal(0, first.Failed);
-            var encrypted = PdfDocument.Load(Path.Combine(output, "one.txt.pdf"),
+            var encrypted = PdfDocument.Load(Path.Combine(output, "one.pdf"),
                 new PdfLoadOptions { Password = "Synthetic output reader" });
             Assert.True(encrypted.Inspect().Security.HasEncryption); Assert.Single(encrypted.Read().Pages);
             shell.Commands.Clear(); AddCommand();
@@ -203,10 +203,10 @@ public sealed class DocumentPdfCmdletTests {
             Assert.Single(items, item => item.Skipped);
             var summary = Assert.IsType<OfficeIMO.OfficeBatchSummary>(runspace.SessionStateProxy.GetVariable("summary"));
             Assert.Equal(2, summary.Completed); Assert.Equal(1, summary.Skipped); Assert.Equal(0, summary.Failed);
-            var textPdf = PdfDocument.Load(Path.Combine(root, "output", "one.txt.pdf")).Read();
+            var textPdf = PdfDocument.Load(Path.Combine(root, "output", "one.pdf")).Read();
             Assert.NotEmpty(textPdf.Pages);
             Assert.All(textPdf.Pages, page => Assert.Equal(240, page.Width));
-            Assert.Contains("HTML pipeline text", PdfDocument.Load(Path.Combine(root, "output", "two.html.pdf")).Read().Text);
+            Assert.Contains("HTML pipeline text", PdfDocument.Load(Path.Combine(root, "output", "two.pdf")).Read().Text);
         } finally { Directory.Delete(root, true); }
     }
 }
