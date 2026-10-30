@@ -2906,7 +2906,7 @@
       "limits": [
         "Only the exact recorded specimens are qualified; repair-free opening, native editing of every profile and general opaque semantic preservation remain unassessed.",
         "Native frame inventories expose the visible TextFrame.TextRange prefix. Complete overflow is verified independently in Publisher-resaved Quill text and story-length tables.",
-        "Paragraph topology, source story count/order and existing formatting-page allocation remain fixed. Changed linked stories, chained directories, tables and unsupported formatting refuse output.",
+        "These specimens retain paragraph topology, source story count/order and existing formatting-page allocation. Subsequent topology, linked-story and chained-directory/character qualification has separate records.",
         "Default Block still refuses Unassessed output. Explicit Allow never enables source-free native creation or bypasses refused profiles.",
         "The original single-story/one-page output path is retained; four prior edited candidates and the internal template-free combined candidate remain byte-identical.",
         "Native PDF pixels match before/after native resave for these specimens; this does not establish OfficeIMO renderer parity or general font coverage."
@@ -4065,7 +4065,7 @@
       },
       "limits": [
         "Only these exact eleven public-operation specimens and three layout experiments are qualified; repair-free opening and general opaque semantics remain unassessed.",
-        "Nonuniform source definitions, empty final paragraphs with distinct native typing definitions, zero-paragraph story states, changed linked stories, tables and chained directories remain refused.",
+        "Nonuniform source definitions, empty final paragraphs with distinct native typing definitions, zero-paragraph native story states and tables remain refused. Linked-story and chained-directory/character qualification has separate records.",
         "The single directory holds at most20descriptors; output requiring more formatting pages refuses rather than dropping styles.",
         "Native pixels and spans compare physical pages before/after native resave, not OfficeIMO renderer parity or general font coverage.",
         "Thirteen prior accepted outputs remain byte-identical, including the internal template-free combined candidate. Source-free native creation remains unavailable."
@@ -5031,6 +5031,2649 @@
         "Isolated appended FONT entry with a zero suffix and eight body script selectors. No product font writer or repair-free proof.",
         "The original CR definition remains unchanged; a Calibri whitespace span and empty whole-range Font.Name remain visible. Body-font proof uses native-resaved selectors and non-whitespace PDF text."
       ]
+    },
+    "characterEditing": {
+      "scope": "Bounded ordinary source-story character/font/opaque color editing and known chained Quill storage; no source-free native creation or repair-free qualification.",
+      "codecCommit": "5835a9f54d4873580a783238219058681bf485be",
+      "sourceFiles": [
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/PublisherMultipleStoryWritingTests.cs",
+          "sha256": "0b6444e21d4d390104a6bc787555a1132a14c2884538794a778576c70b786e36",
+          "gitBlobSha256": "0b6444e21d4d390104a6bc787555a1132a14c2884538794a778576c70b786e36"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/PublisherNativeWritingTests.cs",
+          "sha256": "b3c0bc20ef0c7890eb4776a3359e5e38719ef364a7cc5f8d3d602b6df4b3486d",
+          "gitBlobSha256": "b3c0bc20ef0c7890eb4776a3359e5e38719ef364a7cc5f8d3d602b6df4b3486d"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherNativeWriter.Compare.cs",
+          "sha256": "37fafbd417965dd7730d086710feab4c3f4ecd248c29c8f5c633e4e668a502c3",
+          "gitBlobSha256": "37fafbd417965dd7730d086710feab4c3f4ecd248c29c8f5c633e4e668a502c3"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherNativeWriter.cs",
+          "sha256": "61a82e314d3dade3fd5bd2ee3da8a2d9bc14cbd14ff6b5ca481ff76e821b4246",
+          "gitBlobSha256": "61a82e314d3dade3fd5bd2ee3da8a2d9bc14cbd14ff6b5ca481ff76e821b4246"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillCharacterStyleWriter.cs",
+          "sha256": "c3716ca7ca2655aa07c4f4f6492492ccac4f803866bcca1252011a4c7e00f845",
+          "gitBlobSha256": "c3716ca7ca2655aa07c4f4f6492492ccac4f803866bcca1252011a4c7e00f845"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillPageAllocator.cs",
+          "sha256": "b280ddd36e3af0767fda41b36b43e4fd5a696ee492f4cc9410e0508954152428",
+          "gitBlobSha256": "b280ddd36e3af0767fda41b36b43e4fd5a696ee492f4cc9410e0508954152428"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Topology.cs",
+          "sha256": "dfe93fa066fad07e5a7c354d2b8b2ea18efa972f55b7a4dc58d007197e3a91e6",
+          "gitBlobSha256": "dfe93fa066fad07e5a7c354d2b8b2ea18efa972f55b7a4dc58d007197e3a91e6"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.cs",
+          "sha256": "dcaf04dcf8a803f335598cc83cf495d8142329c4da329405a09c0740c1fe58ae",
+          "gitBlobSha256": "dcaf04dcf8a803f335598cc83cf495d8142329c4da329405a09c0740c1fe58ae"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillSourceLayout.cs",
+          "sha256": "656ddbdcd6a80022cd7fa8b63e5531353ca2ea2687cdc9f2c546e24d716f7c5e",
+          "gitBlobSha256": "656ddbdcd6a80022cd7fa8b63e5531353ca2ea2687cdc9f2c546e24d716f7c5e"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillStoriesWriter.cs",
+          "sha256": "e9bad37d9b47152fd42fc5d7dd947b7531c3ed828231e2ce296c586c39b63c1a",
+          "gitBlobSha256": "e9bad37d9b47152fd42fc5d7dd947b7531c3ed828231e2ce296c586c39b63c1a"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/PublisherCharacterWritingTests.cs",
+          "sha256": "2764e25d6ae1ef45c5f59317492c15fb8221d373fd29046f7f348087cafdd9b6",
+          "gitBlobSha256": "2764e25d6ae1ef45c5f59317492c15fb8221d373fd29046f7f348087cafdd9b6"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillCharacterStyleWriter.Extended.cs",
+          "sha256": "5e1c6744a83835d8f861487f25788a9786587cdb36b0b8982a87b00c359488bd",
+          "gitBlobSha256": "5e1c6744a83835d8f861487f25788a9786587cdb36b0b8982a87b00c359488bd"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillDirectoryWriter.cs",
+          "sha256": "f77bdc03dc10e7ed9b3fc0c2122e074dc6518e2ba3dd97b3ba1c94dd913efc23",
+          "gitBlobSha256": "f77bdc03dc10e7ed9b3fc0c2122e074dc6518e2ba3dd97b3ba1c94dd913efc23"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillStorageWriter.cs",
+          "sha256": "bc696494fde37d57c79b6422b3547cb5656fcae69f678526c06c8a6de3717710",
+          "gitBlobSha256": "bc696494fde37d57c79b6422b3547cb5656fcae69f678526c06c8a6de3717710"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillWriteResources.cs",
+          "sha256": "f85edcd98b849c3e55eec8af248f3401d4e657c32a0f0f90e6ec1ff2ee01a5f8",
+          "gitBlobSha256": "f85edcd98b849c3e55eec8af248f3401d4e657c32a0f0f90e6ec1ff2ee01a5f8"
+        }
+      ],
+      "sourceHashScope": "sha256 identifies qualified worktree bytes; gitBlobSha256 identifies Git-normalized files at codecCommit.",
+      "producer": {
+        "name": "Microsoft Publisher",
+        "version": "16.0",
+        "executableVersion": "16.0.20527.20088",
+        "automationSecurity": 3
+      },
+      "qualifiedOperations": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "publicApi": [
+        "ReplaceStoryParagraphs",
+        "ToPubBytesResult",
+        "SaveAsync"
+      ],
+      "admittedAttributes": [
+        "Font size and bold",
+        "Italic",
+        "None/single/words-only/double/dotted/dashed/wavy underlines",
+        "None/single strikethrough",
+        "Normal/superscript/subscript baseline",
+        "Uniform eight-script font family",
+        "Ordinary paired opaque RGB text color"
+      ],
+      "nativeFields": {
+        "italic": "03 Boolean",
+        "underline": "1E UInt16:0,1,2,3,4,7,11",
+        "strikethrough": "10 Boolean",
+        "baseline": "0F UInt16:0,1,2",
+        "font": "24 nested eight-script selectors with child0 type18 index",
+        "color": "44 nested index paired with58 solid index/100000opacity"
+      },
+      "resources": {
+        "font": "Retain original indexed entries and suffixes; reuse names or append names of 1..32 UTF-16 units with four zero suffix bytes. Publisher resolves the font name on load.",
+        "color": "Retain original palette entries; reuse exact ordinary 18-byte opaque RGB entries or append one. Both 44 and 58 reference the index.",
+        "storage": "Relocate changed resources and clear superseded known payloads; retain unrelated Quill payloads, logical streams, metadata and unknown padding."
+      },
+      "directoryProfile": {
+        "descriptorsPerPage": 20,
+        "maximumDescriptors": 65535,
+        "knownMarker": 504,
+        "allocation": "Use wholly zero unused descriptor slots or append aligned pages; preserve unknown padding and retire unused known directory headers/rows."
+      },
+      "verifiedInEveryCase": [
+        "Complete requested stories survive native resave, including overflow.",
+        "Independent raw decoding verifies every requested body attribute and explicitly changed CR attributes in candidate and native-resaved Quill.",
+        "Unrelated body/CR OPL tokens, original FONT/PL entries, opaque Quill payloads, logical streams and compound metadata remain unchanged; stale thumbnail is removed.",
+        "Native initial/resaved all-page pixels and text/font/size/color/flags spans match.",
+        "Source files remain unchanged; default strict policy blocks unassessed edits, and explicit Allow never bypasses unsupported preparation."
+      ],
+      "nativePhysicalPageStates": 58,
+      "cases": [
+        {
+          "name": "combined",
+          "source": {
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub"
+          },
+          "candidateSha256": "57c713196f26ef6ec7c625c4e909de5adf1ad6029fffd22fb206b7c82d77418f",
+          "candidateBytes": 39424,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 1,
+            "runs": [
+              1
+            ],
+            "firstRun": {
+              "Text": "Changed text for combined",
+              "FontSize": 18,
+              "FontFamily": "Consolas",
+              "Bold": true,
+              "Italic": true,
+              "UnderlineStyle": 2,
+              "StrikethroughStyle": 1,
+              "Baseline": 1,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 255
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "497097abfb6dafc99adba461c326fd2b1016517e42bc8e14152cb4cfbf180bff"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "addedFontNames": [
+            "Consolas"
+          ],
+          "addedColorRecords": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "8933556a1dccedebb2d26bff88b75695d721ce3929844c121859a3da5b2cb3d7"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "57c713196f26ef6ec7c625c4e909de5adf1ad6029fffd22fb206b7c82d77418f"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "3be84a472096d125c8a40dbd0af8bcae63c43a6c8867a8a4f6c5321dd1e0e512"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "4469a9fee23242f1ed13200eda887def89db637ae98fbb711c57341e4bf4a879"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "d91cfa1d8dc5770f5b2d38b1c42e03575e07f9e60693165f7acf3fc905f22ddd"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "c750c4889b4710052dbb014790d7027987d80e13fd464eb9e586cc2e91d01fcb"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "dd29ef67e6ce74695f9da219abb8401bc1d7571a300547be56ad6b1a829a0bad"
+            }
+          ]
+        },
+        {
+          "name": "chained-remove",
+          "source": {
+            "sha256": "6bd37dbba41ee7caf9393446866d8ac48f230ff851605297af63c98acb7000fe",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextCharacterAttributes/native-textcharacterattributes.pub"
+          },
+          "candidateSha256": "b18c17d76bafd53a9e09f8ce0ec30e9b02493fe916c798368eabcd5cec154cfa",
+          "candidateBytes": 52224,
+          "editRecipe": {
+            "storyId": 13,
+            "paragraphs": 1,
+            "runs": [
+              1
+            ],
+            "firstRun": {
+              "Text": "Changed text for chained-remove",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 0
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "610e4c38f094c7a8e50e80845e41083736df7e4fd6fe1b95a6674d21685037e2"
+            },
+            {
+              "id": 3,
+              "sha256": "f5b0ab90a40690f96758399bfe07b52ee4deeec28232261b25e8ce889224d490"
+            },
+            {
+              "id": 4,
+              "sha256": "82c040f171c3167cef5c1345860d84f085246868eb7e869d12167058a4045075"
+            },
+            {
+              "id": 5,
+              "sha256": "f91600122c424323a80d99e5149950cde1d599f4d58c55ecde32c6415cd4a5d5"
+            },
+            {
+              "id": 6,
+              "sha256": "a6f646e139f003afce3dd11874bbb698c76a495fd0648d5944d3168ee7e8f1ee"
+            },
+            {
+              "id": 7,
+              "sha256": "aead4f36b58d1ed2d92b932423ab73b672dee8e59108b49f1b13a6ce3ed0b752"
+            },
+            {
+              "id": 8,
+              "sha256": "30760413919b5f133b460e99346418e1b3a94c67d45c864afc3c78f3c4202fe5"
+            },
+            {
+              "id": 9,
+              "sha256": "f9696db6841dc01b3b6fff6472f0ee024bc7a36b1558bfccbd7198951bfd5bfc"
+            },
+            {
+              "id": 10,
+              "sha256": "b4ccd77f72aa9d4a937d9c4193276154f4e7893f92dbbda15140662bca5b5bc6"
+            },
+            {
+              "id": 11,
+              "sha256": "755b6f5ae1e622ffc73d334ac36a755eda5cd7a1299ace1753f81b29461e0b6b"
+            },
+            {
+              "id": 12,
+              "sha256": "b609cfd28956082cff97246e12a1f97e1ad16078789f83c5fb9fb551179dd6d3"
+            },
+            {
+              "id": 13,
+              "sha256": "6b3fd734e19b7772b0215791227fa37dd5814aaf7bc0646c1d755d768bdbb918"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 19
+            },
+            {
+              "offset": 28160,
+              "count": 3
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 20
+            },
+            {
+              "offset": 28160,
+              "count": 2
+            }
+          ],
+          "addedFontNames": [],
+          "addedColorRecords": 0,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "f0023071a66f71da71f080c8d7c7f398105b853ce96a61e73f1b8b028c992b5b"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "9f85049f06b30c45126aa24c3491699751a3d31a692237c8f7935b0f6728ce04"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "b18c17d76bafd53a9e09f8ce0ec30e9b02493fe916c798368eabcd5cec154cfa"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "01488ff4dc3834c827e05df809861e2823ac345c01bb39e36f02832a393ab2c9"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "3ebc92543261ef02f20fd4bafd5da9a08c48d42abda5bd702c9f93130afb948d"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "7c6d90f132a61ab6dd0ec56c13d42788df4f693f94faeafddd4acbe436d6d03a"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "e9601d4b15a59a6fb1b1777c1209d2770480240a8f13f6a47c8f8d158e615755"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "0568442006f5da90b03a6fcb6550925fa8348600d37ebe46cc2c441e9822697e"
+            }
+          ]
+        },
+        {
+          "name": "directory-growth",
+          "source": {
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub"
+          },
+          "candidateSha256": "3b561544d6a3db99a258042d346a2ca84b05ed7063f8beb941e16c8912dcde0a",
+          "candidateBytes": 58880,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 96,
+            "runs": {
+              "each": 1
+            },
+            "firstRun": {
+              "Text": "Distinct style 1",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": true,
+              "Italic": false,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 0
+              }
+            },
+            "lastRun": {
+              "Text": "Distinct style 96",
+              "FontSize": 107,
+              "FontFamily": "Arial",
+              "Bold": true,
+              "Italic": false,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 0
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry.",
+            "textAndSize": "For i=1..96: text Distinct style <i>, size 11+i points, bold."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "34e048d3c71b74dcfc3cfbe48c58dc517eaa4abc93aa0120c5758d1d83315da3"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 20
+            },
+            {
+              "offset": 41984,
+              "count": 20
+            },
+            {
+              "offset": 42496,
+              "count": 7
+            }
+          ],
+          "addedFontNames": [],
+          "addedColorRecords": 0,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "0381b8e58f3719c54d0b55c7f9c68db1af0745fc78385a9f389f0c20bc2f3b7a"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "3b561544d6a3db99a258042d346a2ca84b05ed7063f8beb941e16c8912dcde0a"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "c2e17f8824b18527e989af91f2d9f049bea34082719b075a9c634ca0f358c691"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "b04b69ccd3e7ac68455cc9a53ed8529db40e7658424e6fc5d6af6e61d48025b1"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "b7233a07bf51232e898e559517ef993844bc03db73714ac2f8b44ed9ff5226ea"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "cce9e25b83401dca809342f0a02ffc7738183892998b097f63a5309d5a127954"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "28c2b7d83b5a62921658f2a65fc2c73babca864d6652b40d5cdd26d6c0e44380"
+            }
+          ]
+        },
+        {
+          "name": "italic",
+          "source": {
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub"
+          },
+          "candidateSha256": "66bda6cb4063908b880f825f0768dba377047b0bb593aeb1144bd984f73a85f8",
+          "candidateBytes": 37888,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 1,
+            "runs": [
+              1
+            ],
+            "firstRun": {
+              "Text": "Changed text for italic",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": true,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 0
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "18d2cc27bc47685a0d551d5f40085f29c9d06462c3fdd7b8b945aeede254836c"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "addedFontNames": [],
+          "addedColorRecords": 0,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "173bc50e53eac3b48b885087f27e59e109fd2032905167f5db07babe7598018d"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "66bda6cb4063908b880f825f0768dba377047b0bb593aeb1144bd984f73a85f8"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "c5a30dc05b382d4c4a956a913b76bdd2aad72c1f9561d45986a79c7605c956d2"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "147bb4fde0baebf752e20ac1c13a241e2a3f43c56e599e54a576dccc4e979bf5"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "1ee8737668979f20f0787c8ac9750f69ccb3e83cef0431fceb4f5e0c86017933"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "ad4bd85a2f710c9c1420ae1fab91ab1746ca76f669e5257ef9bf195aeee69e0d"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "ab5d9578fb3c752a851090b471ac2f5280c7af05cb744bdd3b3e10b617cbc41c"
+            }
+          ]
+        },
+        {
+          "name": "strike",
+          "source": {
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub"
+          },
+          "candidateSha256": "2865eace47fd5df31b9f43f55eb6b9b5276fd92d1ee7c7b86ff88ee4bca192c3",
+          "candidateBytes": 37888,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 1,
+            "runs": [
+              1
+            ],
+            "firstRun": {
+              "Text": "Changed text for strike",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 1,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 0
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "9001fde4831377c0910c65285c6fd2d94d209f257b01d83ed5f6142e00154c93"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "addedFontNames": [],
+          "addedColorRecords": 0,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "0d7b97e1330e91865c877f7baf3c41a2548d800124a8064d49bf2c80afbbfda9"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "2865eace47fd5df31b9f43f55eb6b9b5276fd92d1ee7c7b86ff88ee4bca192c3"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "5086a949d8f61fd47642ba76e249f7e883c8251ae5c1883d06d5a045e6b74200"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "0e5a8e5476d7d6a5532424bb6105400c97ace709f36a9309745573e18c8ed6c1"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "40a269b85f948a78b29ff97a99b6a825e64dfb2c8a9b8c1d2853986bfbdcb215"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "27ed11c41442134c8d41c827053502ad9514b4b4984513219da08dce1f9c77a4"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "7c7569a70af32f9cd67047be71f51eaa3956bc4eeb1a1e0479806c6d82b20472"
+            }
+          ]
+        },
+        {
+          "name": "words",
+          "source": {
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub"
+          },
+          "candidateSha256": "a09343b0bf9bdaecbcb85954178af063db8e2648820cf53f27b76e5a255db1c5",
+          "candidateBytes": 37888,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 1,
+            "runs": [
+              1
+            ],
+            "firstRun": {
+              "Text": "Changed text for words",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 6,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 0
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "7a94ac40111e313410c3016e75189a5bc9409795fc5ff62090c65aa823d2a9a3"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "addedFontNames": [],
+          "addedColorRecords": 0,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "6191382369d57fcc2f573a4369b913309a0a3a1c889105485ab035ff88023a30"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "a09343b0bf9bdaecbcb85954178af063db8e2648820cf53f27b76e5a255db1c5"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "c4a45d7698272d2a1238a3050e8e6c0b904ffb0a5891fc5946c614515e1da847"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "7f0149023ae1f5d79d00fe988c600eba807cb941d5c8635323b7f6a58be696ee"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "b30abe32268d9d600be1a686470186d1488a4bf889ea7981224e23323962ddfc"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "4fed65442199b8b4235eb588c8668191a58852c16dfd917f1ddb9aaf26692021"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "68016bd5b25486446202db7a0acbd694a6ab7ae56ba486b0d3037b5fbb42574c"
+            }
+          ]
+        },
+        {
+          "name": "double",
+          "source": {
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub"
+          },
+          "candidateSha256": "8947993acdd0c270ce4715813c9262cc6cdade954b5e49fbd1b124291e1cbb3e",
+          "candidateBytes": 37888,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 1,
+            "runs": [
+              1
+            ],
+            "firstRun": {
+              "Text": "Changed text for double",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 2,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 0
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "5c6ce4d85665d133f3a78fa66c451961063043a51ed004bbe2268b6a807e8e5b"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "addedFontNames": [],
+          "addedColorRecords": 0,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "aa13aae273d40ce93145f1d4cbacdf264d3a46b5abe4ee1ded0371cba7d4d9f8"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "8947993acdd0c270ce4715813c9262cc6cdade954b5e49fbd1b124291e1cbb3e"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "66b4199172c347c2385c68dbf820651f02ec08e9359b480dbcbc5387aa7be310"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "f537136e441a920817946636d1cd0d3ed0864162a964a08854ee548fda0eb467"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "4cc83fd3345cd157f07230ae8608384d4e401d12429c5067da0e623af9227fb0"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "d3c487f2b2c7e55873004383c28af670c19fb520a5cd9b2c3565bf910b6a9c7b"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "5ff764a3fea64fe6a1f1bfb104ce5fbf2092bf7dfeffe6d0658185622b1c0c01"
+            }
+          ]
+        },
+        {
+          "name": "dotted",
+          "source": {
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub"
+          },
+          "candidateSha256": "0db34bce34ad983049f58dc445fd27e16b1623365b289da315a6ba477fdef241",
+          "candidateBytes": 37888,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 1,
+            "runs": [
+              1
+            ],
+            "firstRun": {
+              "Text": "Changed text for dotted",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 3,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 0
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "1e0dc18834db5954a7bcf40cf6e21d6ff5aa25625bf60b2ad742d02e2afb6666"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "addedFontNames": [],
+          "addedColorRecords": 0,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "e1bc3480a5b45767f8961749498548231795d57d6a677e67a511de88b1299e4c"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "0db34bce34ad983049f58dc445fd27e16b1623365b289da315a6ba477fdef241"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "9809c0262eec7cdd9c032bfd76f055bce3b74b9266ee0e541cd5c9b0fa736eef"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "234fcf42a7fefd88d4fa6ac4971747453e10596b758b3d3e98193b7e8be9a0d0"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "fa529c6c7331f22e83a1dfc38965ca74dc24be19ac688251682ea1d83f198501"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "db6adc3018772ade888fd674dd6c13f470f5932e1c7686ec2aa38424adcd3c41"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "bb0aec50a44c5f4cb867d85370dfe7219454cabe0c40f33cba5e981cee7f31e5"
+            }
+          ]
+        },
+        {
+          "name": "dashed",
+          "source": {
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub"
+          },
+          "candidateSha256": "5a25990819f0ca0df666c379fb030a4d3b2e6fa29d6da9190b1bb5fe214a0e2d",
+          "candidateBytes": 37888,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 1,
+            "runs": [
+              1
+            ],
+            "firstRun": {
+              "Text": "Changed text for dashed",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 4,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 0
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "a65ab99a93656e162bd1eaaba9f5f2b7a8e120247e9ed0186def8c848035bd15"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "addedFontNames": [],
+          "addedColorRecords": 0,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "065f31323aa3e24816f67fcdec5fbdbfc384411937aba51737dee00fb8674e1f"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "5a25990819f0ca0df666c379fb030a4d3b2e6fa29d6da9190b1bb5fe214a0e2d"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "0de11eee085f701f1e9b9e6a241bf976c31eebc9772aeff6d8e511a7f9a64612"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "9da827d5a6112ffffaa00587e78e3aff4eed09be74649cb56cb760bef54b832f"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "17437ffa645cadeec7ad8f92db1f29e3e126b90e6d60d184e98432bcb74bb54c"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "7af6c3530d5f6e4304db4673704f08894a5317a6e0088ca3756e095402b7029e"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "b316666959e9ae12322ccd21e7a327d5fec001ad98f99954ea9b8b826b856a91"
+            }
+          ]
+        },
+        {
+          "name": "wavy",
+          "source": {
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub"
+          },
+          "candidateSha256": "e9932345805ddf12d8ce74cfa6c39df995ecd841cf7d05e6834952ae83f3d140",
+          "candidateBytes": 37888,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 1,
+            "runs": [
+              1
+            ],
+            "firstRun": {
+              "Text": "Changed text for wavy",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 5,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 0
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "a0a6ff4d268da52a53c32e60e20b21711e3e99b60c07ccc62a1c589535c59145"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "addedFontNames": [],
+          "addedColorRecords": 0,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "f4b02afad347477aa7cf38119d2718f056a0f8a56862cf945ce518910c053ca8"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "e9932345805ddf12d8ce74cfa6c39df995ecd841cf7d05e6834952ae83f3d140"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "34345d98e4b855c80555681cc65763a8760b6eec5c44740d553a975abc2dde6f"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "ae792fbc6df82071a0bb29ec64a28ebd605f3fa8cbdf79ebdcf7208637f89d99"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "42a4358da29a33e3be4f3f030de55e5191f4727769158115c374df5015d387e6"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "7606cefcd654b2d81ea28aa05ce2ed4f9b0bcd87ac1b5e6d8bb3b9d23c3ed154"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "8c7d0904b3b2e9a38f85603c4f5ef218b5fc0412b8a09d05e4d3f394222ac248"
+            }
+          ]
+        },
+        {
+          "name": "super",
+          "source": {
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub"
+          },
+          "candidateSha256": "71e24255708ec1300dc7dcd3d82b6ecf11c9587b67f2f3866382bb6af7c70579",
+          "candidateBytes": 37888,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 1,
+            "runs": [
+              1
+            ],
+            "firstRun": {
+              "Text": "Changed text for super",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 1,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 0
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "c4b12d8369d264fa099fb4f88cc4a82d5252a764a2ad1ac6bbca4fa33ac871fb"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "addedFontNames": [],
+          "addedColorRecords": 0,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "1e0966fc2d0c94cbdd4006a83236f569cbf40eee2b2f154e45da580af873128f"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "71e24255708ec1300dc7dcd3d82b6ecf11c9587b67f2f3866382bb6af7c70579"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "7ca4b92234e4fb00c6369a0cda09288354f048597f4afb1c150bd29f932e6130"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "594ea2f795f0fce283c0ca3bdf3057e76051832c66a61d0cd1f9903ce147a14b"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "ac275c644970a8e74fa2103e89272e326703aba86a2f3dd1b4844d2e012b3071"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "756a252c339e0b53872fbede13420e30baae6794ab0902832c77e784c459ee5c"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "13e27b6a732768ddc786199d3220b443ec6840754eaf7a6b88424d153e00a897"
+            }
+          ]
+        },
+        {
+          "name": "sub",
+          "source": {
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub"
+          },
+          "candidateSha256": "c6ef2e24e310ffd558b9f82c17ee4c2c3ffc0e6f82adffd9d70bfd207a758afd",
+          "candidateBytes": 37888,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 1,
+            "runs": [
+              1
+            ],
+            "firstRun": {
+              "Text": "Changed text for sub",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 2,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 0
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "8779203e86e9bae8b5b321fdad548a44182ec66e0b16b0166102b1d475bab1c7"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "addedFontNames": [],
+          "addedColorRecords": 0,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "13f566b56a64c714fcdb0d9835f77241964630096a0e15df994776799496135f"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "c6ef2e24e310ffd558b9f82c17ee4c2c3ffc0e6f82adffd9d70bfd207a758afd"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "c37e7e6e82044251bf8fa18d382f380c46e9c6a26d057ed936fa7c9d02226fab"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "cc4931446199acab3dce54a928664c00a57a9d38dffce44f810964edff41b7d5"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "e30e10504b71619d6417f261c3fd1e4fefc07b64dc0959bc5e37c4f3630953ad"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "d79e7e68b749b043f5ed1d25b5499d3b0dc48a221e47576df599a014202f231b"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "c000f5a210609553ec5cf36557a85e637deb8d56932a33e0ac6390feb8c2ecc2"
+            }
+          ]
+        },
+        {
+          "name": "font-existing",
+          "source": {
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub"
+          },
+          "candidateSha256": "8669d5fa42f580aed1e1ab310290007d9a1e651c4a2b43cef67ab8cc21f34e68",
+          "candidateBytes": 37888,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 1,
+            "runs": [
+              1
+            ],
+            "firstRun": {
+              "Text": "Changed text for font-existing",
+              "FontSize": 12,
+              "FontFamily": "Cambria",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 0
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "82caa4835bb2c52ae579c6f090ebb8d20e8d0d70d78279b7a6a87cc8d9518c0d"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "addedFontNames": [],
+          "addedColorRecords": 0,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "4f91339ec5b98ff93bcad8c7ee1247f20c651cac2b737ddab1f0df7a9a29460d"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "8669d5fa42f580aed1e1ab310290007d9a1e651c4a2b43cef67ab8cc21f34e68"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "d9becfe80ed1d9956c0b775a92af605ba0938d3705044d36b3f743aaa8b701e4"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "e41c1e10e24350ad86bd6e8e4f04826e91f1a1c268e2669caeee13804c933409"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "9f9f0f0aef5007ce1546f4937722a55e198b5d75f99f95c2d1fba732d6b8b246"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "dfc8432e504c299dc1f1b38c49fd0cda310961b748337038ca0ea100473cdeef"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "6cf97cf871117fc76453a07d8aa3aaef4e31b1e7f0fc1f43f7ef8d9ea9f388c9"
+            }
+          ]
+        },
+        {
+          "name": "font-new",
+          "source": {
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub"
+          },
+          "candidateSha256": "0410e4ea319202193b34cf16b3519e1b957cc61fad4403a2c04afab0e0ea9909",
+          "candidateBytes": 38912,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 1,
+            "runs": [
+              1
+            ],
+            "firstRun": {
+              "Text": "Changed text for font-new",
+              "FontSize": 12,
+              "FontFamily": "Consolas",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 0
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "fd49dee74a7d6e0d96c1c64e33ac8d1e2b36c9bdb024b41772cd200e447ae4bd"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "addedFontNames": [
+            "Consolas"
+          ],
+          "addedColorRecords": 0,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "b70fc191434f4de32b59be3dac163071bee8a0768344ea79a52cc4e1bbb9fa3d"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "0410e4ea319202193b34cf16b3519e1b957cc61fad4403a2c04afab0e0ea9909"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "ce8d4b21b352821baceffdfe0b0a3726c7449adfbae08d55e02ae266e6cf2e8a"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "8e2a71d88e31a39c0d30f87e58ff3223b2d08105b30b9639b6675a52549c3c21"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "dfe3a28347183aac01c604268a331b67e0f2b4b4ed388b08689d86af48432ab4"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "736e1d6e0b55d72dc35355d5e3e50260207c37c34de70d3ecf5474d09b920b00"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "281e67524dee9e69f79433ff86bd443b0d23edd8f1475dabf7e45d4044e8425e"
+            }
+          ]
+        },
+        {
+          "name": "color-existing",
+          "source": {
+            "sha256": "6bd37dbba41ee7caf9393446866d8ac48f230ff851605297af63c98acb7000fe",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextCharacterAttributes/native-textcharacterattributes.pub"
+          },
+          "candidateSha256": "9b24d56ea161846def3f5d37897aa1b675ff3ff34cd72960c67d234aca1f751d",
+          "candidateBytes": 52224,
+          "editRecipe": {
+            "storyId": 12,
+            "paragraphs": 1,
+            "runs": [
+              1
+            ],
+            "firstRun": {
+              "Text": "Changed text for color-existing",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 255
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "610e4c38f094c7a8e50e80845e41083736df7e4fd6fe1b95a6674d21685037e2"
+            },
+            {
+              "id": 3,
+              "sha256": "f5b0ab90a40690f96758399bfe07b52ee4deeec28232261b25e8ce889224d490"
+            },
+            {
+              "id": 4,
+              "sha256": "82c040f171c3167cef5c1345860d84f085246868eb7e869d12167058a4045075"
+            },
+            {
+              "id": 5,
+              "sha256": "f91600122c424323a80d99e5149950cde1d599f4d58c55ecde32c6415cd4a5d5"
+            },
+            {
+              "id": 6,
+              "sha256": "a6f646e139f003afce3dd11874bbb698c76a495fd0648d5944d3168ee7e8f1ee"
+            },
+            {
+              "id": 7,
+              "sha256": "aead4f36b58d1ed2d92b932423ab73b672dee8e59108b49f1b13a6ce3ed0b752"
+            },
+            {
+              "id": 8,
+              "sha256": "30760413919b5f133b460e99346418e1b3a94c67d45c864afc3c78f3c4202fe5"
+            },
+            {
+              "id": 9,
+              "sha256": "f9696db6841dc01b3b6fff6472f0ee024bc7a36b1558bfccbd7198951bfd5bfc"
+            },
+            {
+              "id": 10,
+              "sha256": "b4ccd77f72aa9d4a937d9c4193276154f4e7893f92dbbda15140662bca5b5bc6"
+            },
+            {
+              "id": 11,
+              "sha256": "755b6f5ae1e622ffc73d334ac36a755eda5cd7a1299ace1753f81b29461e0b6b"
+            },
+            {
+              "id": 12,
+              "sha256": "5628b2bd0dff0c4e4398a0ec9417c0b886c167a7aeef39f903a95780797bf625"
+            },
+            {
+              "id": 13,
+              "sha256": "7916f87c2a23c3d7548c375e9d551dfff4bc284f6f8ffd466ea483ae69f2a9c8"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 19
+            },
+            {
+              "offset": 28160,
+              "count": 3
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 20
+            },
+            {
+              "offset": 28160,
+              "count": 2
+            }
+          ],
+          "addedFontNames": [],
+          "addedColorRecords": 0,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "f0023071a66f71da71f080c8d7c7f398105b853ce96a61e73f1b8b028c992b5b"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "641cd43a7c42066556f7828c03c7b84f47338c3e4b0389d2483ac3c19a47ba68"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "9b24d56ea161846def3f5d37897aa1b675ff3ff34cd72960c67d234aca1f751d"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "793f5cdf625ffec0a6c405529cd9238520f8fbb86df3c0e134fb66becc9b08df"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "c189168917f2fb17d7b7f9ca93c5100ced37dc1d9a30eed4f401380048eb9774"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "b03de4c399005da2e66c001cc803acead26b0bd2313624559da30b572df700d1"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "734c30d7e8a8b19e678d7e71d21e03d4ddd493132c5ea1f65ccaef26e8037f4b"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "b3bc9ba9e3e9d6a2a1fd3f3c0c900d490da6558894b5ef432b9d1dd7d0f2577b"
+            }
+          ]
+        },
+        {
+          "name": "color-new",
+          "source": {
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub"
+          },
+          "candidateSha256": "19cf53a822577d428b0fdc19808ff0ecdfd38824e54eb03475008025758715bc",
+          "candidateBytes": 38400,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 1,
+            "runs": [
+              1
+            ],
+            "firstRun": {
+              "Text": "Changed text for color-new",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 14,
+                "G": 93,
+                "B": 151
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "7fcb9b5e72ebdab4032fed388812643ccfb139ac2392a012fef4502c6f95355b"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "addedFontNames": [],
+          "addedColorRecords": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "70aa1ed731d6f9b236341e397509344e764d112d7ccd548615c35270c0ec1123"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "19cf53a822577d428b0fdc19808ff0ecdfd38824e54eb03475008025758715bc"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "218f9ea905137d282d523e7ea334a9fecdd0187f84b0e24ea5f7bea3d5792b4b"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "111c709f6ea6b9fb66f45162e4b02fcae28f5aea6f9b2d092cd0f5f49298ae54"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "143cd527c93552605ed9822903f00ff411549b34c749a6b8cf4b31c390ff1fcb"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "06d6bd6d918f5884d83ab12ddc45de723fc2a434da7f593100472d4d65fed457"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "220983146dda3b94fff26a874577f1373ec9808893b8e9061ada9725d6065fea"
+            }
+          ]
+        },
+        {
+          "name": "chained-pattern",
+          "source": {
+            "sha256": "5cb4bd00b71f3ac357c6163bfe60790467c869d96dcfd81b3d40120c11482e54",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextUnderlinePatterns/native-textunderlinepatterns.pub"
+          },
+          "candidateSha256": "86f92625e5bfc23cadda966a52802aded6497586afc7dd1fdc19b30fdb927679",
+          "candidateBytes": 59392,
+          "editRecipe": {
+            "storyId": 19,
+            "paragraphs": 1,
+            "runs": [
+              1
+            ],
+            "firstRun": {
+              "Text": "Changed text for chained-pattern",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 2,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 0
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "e2bba125a6bfb8185517bbd26ccdb61cf18ee7cdd1d6e0c4d9729d04da0fe9c9"
+            },
+            {
+              "id": 3,
+              "sha256": "82f32c528eb510969846288fa68ccfc588483faf684d6012f938cf9d6fa9e573"
+            },
+            {
+              "id": 4,
+              "sha256": "f50ac16d11cbd3e97b00c7c1832ea7a0431258a4e444e9250901dcf22ba240cd"
+            },
+            {
+              "id": 5,
+              "sha256": "67ebbb06338984e8340f29b9d1751012196ed924bf13cad66e3fca73c7fd155c"
+            },
+            {
+              "id": 6,
+              "sha256": "dc151488e409397ba2b5092d4833284ba1319cf1fa95b4b6b88de82009843ba0"
+            },
+            {
+              "id": 7,
+              "sha256": "35a4075c8157db662710230cfa5de19c21ba06c80925814947114f804803bf41"
+            },
+            {
+              "id": 8,
+              "sha256": "3a974b9d028d8ae5cad58d3c24984f4006bb42011c7638e6ca09704af78174ce"
+            },
+            {
+              "id": 9,
+              "sha256": "0e11c4e2aa232b7fb605086bba2655ef2caeb6178129243172875b123d4aa3c2"
+            },
+            {
+              "id": 10,
+              "sha256": "ebe1b69934045242e2923fa46aae83b8aaf5a378c851f8f08105016ab553f28b"
+            },
+            {
+              "id": 11,
+              "sha256": "77bfd8b66599ff53be512abaa9884099fd446abf52d2122eff21b71deda8214f"
+            },
+            {
+              "id": 12,
+              "sha256": "07d759e7aff498ee529c9511bfa1f070a1ee41b753c17baf9d979f5da1f2e5bd"
+            },
+            {
+              "id": 13,
+              "sha256": "cdef9210c15804292782809b85c3d901912ab26175ccb4dc72f89b0cb3c4c5ec"
+            },
+            {
+              "id": 14,
+              "sha256": "59f2ea90f9e11b2d44e31d6e7097290cd3527813b45e4bb2689ac9d7a8f1c0ca"
+            },
+            {
+              "id": 15,
+              "sha256": "c2b2a1947ee7eabe526b4a78fabe6c4ef9cfb8fb4b370f096e395682a6ae2eec"
+            },
+            {
+              "id": 16,
+              "sha256": "9201777ed7286450e342738403bd7a15678ac417574d776024e56c0e9d16cf53"
+            },
+            {
+              "id": 17,
+              "sha256": "07a2cd1ad6a7a29960d3817c52d7d5dbca4d642f66f4d1bf5ce3fab6306d4bf8"
+            },
+            {
+              "id": 18,
+              "sha256": "e4d443aa1c8a4f710eb758628062b6de1dd265efeb25be4a673994d4eec6e65e"
+            },
+            {
+              "id": 19,
+              "sha256": "a093190a70fc381fae5879bd565b8960405b738e0c0c771a99b2f7394adf268c"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 19
+            },
+            {
+              "offset": 31744,
+              "count": 7
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 20
+            },
+            {
+              "offset": 31744,
+              "count": 6
+            }
+          ],
+          "addedFontNames": [],
+          "addedColorRecords": 0,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "f3f32f0796ae407bfd8a8f096c9f9b0f58e34a20d0381e864443a0f46d9eb204"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "4a7242d04aceee5e50f03b31bc24ae4cc43b8d947a83d2d47fc0954cd5ab6af8"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "8937f8adcc687acd3d96c69660f8adc3b72e9a8bdf2ca905948659c14c5a12ae"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "86f92625e5bfc23cadda966a52802aded6497586afc7dd1fdc19b30fdb927679"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "8ed8ac49d9c49d700ab6738bf528fc9ef3f09aa5bffb454cb8578c53c90faf3a"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "3c3c3a73c01cc9794669dbd1c3b50972d04f1f58c263bb1ba0be4674316ca7da"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "5b347cd16a87aa478e30300f06c2d441b0d99c19e1403f9c30dbbfc614b48a99"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "77a8613224dc671e7b4b787209a84d46ab9157ae21c6a994947dde437a17c192"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "febefe568d994a2a0b752d98fcef0538211236f612ee6e88a337f7ea721f01f0"
+            }
+          ]
+        },
+        {
+          "name": "paragraphs",
+          "source": {
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub"
+          },
+          "candidateSha256": "23c7db23b9a11c7904d774af55254b535d343feeabb60e3ef9972a3ea7e532ca",
+          "candidateBytes": 39424,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 3,
+            "runs": [
+              1,
+              1,
+              1
+            ],
+            "firstRun": {
+              "Text": "Changed text for paragraphs 1",
+              "FontSize": 12,
+              "FontFamily": "Consolas",
+              "Bold": false,
+              "Italic": true,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 14,
+                "G": 93,
+                "B": 151
+              }
+            },
+            "lastRun": {
+              "Text": "Changed text for paragraphs 3",
+              "FontSize": 12,
+              "FontFamily": "Consolas",
+              "Bold": false,
+              "Italic": true,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 14,
+                "G": 93,
+                "B": 151
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry.",
+            "textAndSize": "For i=1..3: Changed text for paragraphs <i>, Consolas 12 italic RGB 14/93/151."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "d8e1a3fc67e4b27cc95bbd779d579d732ef4091519a9eca075f053fca08dbd65"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "addedFontNames": [
+            "Consolas"
+          ],
+          "addedColorRecords": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "06581e978bf75c0a7eeb7c12b995d58739beedfeb55319d602066294c5b514b8"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "23c7db23b9a11c7904d774af55254b535d343feeabb60e3ef9972a3ea7e532ca"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "7474cdb3c63e1394d3e96dd318515d96609501668cb21047c75217544288f068"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "d333a28e1e4529a5e46dc91905d1027903391f57b84a43d3177a24366160dd23"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "b96ae53418547f3559906c4f7bc2c0b28925db5ee5fc50d8dad2f3992e1e72dc"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "c643f8624b1d988c527596b93b9cfc36d2a61f66f3b8a6e25d1d9faded8d234b"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "c3232f5ce6c70588860a0f571c1b39891a9b3eed6af8245ec7e993a46401e9a9"
+            }
+          ]
+        },
+        {
+          "name": "linked",
+          "source": {
+            "sha256": "def04c4f03de132d9b0f652e3acf63ce7340e3057e2e70738ae255a89e6a2c83",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Newsletter/native-newsletter.pub"
+          },
+          "candidateSha256": "fc32f60a9feceb235297d64ba63bfb7937ad53cf2c975da2d95011efe467ef95",
+          "candidateBytes": 45568,
+          "editRecipe": {
+            "storyId": 3,
+            "paragraphs": 10,
+            "runs": {
+              "each": 1
+            },
+            "firstRun": {
+              "Text": "Linked styled section 1. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "FontSize": 12,
+              "FontFamily": "Consolas",
+              "Bold": false,
+              "Italic": true,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 255
+              }
+            },
+            "lastRun": {
+              "Text": "Linked styled section 10. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+              "FontSize": 12,
+              "FontFamily": "Consolas",
+              "Bold": false,
+              "Italic": true,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 255
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry.",
+            "textAndSize": "For i=1..source paragraph count: Linked styled section <i>. followed by 120 lowercase x characters; Consolas 12 italic blue."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "f0b67d3cb48b81b786b73eb0a267c059b0c7a4565b3b78f610b9c7902fbff465"
+            },
+            {
+              "id": 3,
+              "sha256": "9a2eccd03474551596d559280ac1a9f52ad4ed2c2d0c107f93ac74af4b73a951"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "addedFontNames": [
+            "Consolas"
+          ],
+          "addedColorRecords": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "63ea67b5a30e9889040ad1f766a36957a69d5039ef8c7276b99f2ca8d62365f7"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "11072be81718df003dd3de85ae95dd569a51855d52a5dfd11a1bb86c9ae17527"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "fc32f60a9feceb235297d64ba63bfb7937ad53cf2c975da2d95011efe467ef95"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "ca8663be74cfb9382a0831491600ac85966e7292ad26819a542ff49aef57f277"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "316514e01c8b1821dc0301d7e36a8e17c97c4c97625b042de54d0e17063ba5f6"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "fe24f32d9e54fd365842db0b37cefe6bc7357759fe4bb034857becc6fd07e65f"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "5cbb3cbac28fd51a4d78ada8703e8a33755f894f2b54a78b8388c4e576d93c9a"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "8d74618aabe1c8ed8dfca2daaee47d097c0286d94d69f0fd5e10a0a641adc8c2"
+            }
+          ]
+        },
+        {
+          "name": "mixed",
+          "source": {
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub"
+          },
+          "candidateSha256": "78f4266fc01746a5d4bd5b50c5c73f58a54ca78ecb76bc82e1b08223000ae7df",
+          "candidateBytes": 39936,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 1,
+            "runs": [
+              {
+                "Text": "Arial blue ",
+                "FontSize": 12,
+                "FontFamily": "Arial",
+                "Bold": false,
+                "Italic": true,
+                "UnderlineStyle": 0,
+                "StrikethroughStyle": 0,
+                "Baseline": 0,
+                "color": {
+                  "A": 255,
+                  "R": 0,
+                  "G": 0,
+                  "B": 255
+                }
+              },
+              {
+                "Text": "Courier red ",
+                "FontSize": 16,
+                "FontFamily": "Courier New",
+                "Bold": true,
+                "Italic": false,
+                "UnderlineStyle": 6,
+                "StrikethroughStyle": 0,
+                "Baseline": 0,
+                "color": {
+                  "A": 255,
+                  "R": 255,
+                  "G": 0,
+                  "B": 0
+                }
+              },
+              {
+                "Text": "Consolas custom",
+                "FontSize": 14,
+                "FontFamily": "Consolas",
+                "Bold": false,
+                "Italic": false,
+                "UnderlineStyle": 0,
+                "StrikethroughStyle": 1,
+                "Baseline": 2,
+                "color": {
+                  "A": 255,
+                  "R": 14,
+                  "G": 93,
+                  "B": 151
+                }
+              }
+            ],
+            "firstRun": {
+              "Text": "Arial blue ",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": true,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 255
+              }
+            },
+            "lastRun": {
+              "Text": "Consolas custom",
+              "FontSize": 14,
+              "FontFamily": "Consolas",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 1,
+              "Baseline": 2,
+              "color": {
+                "A": 255,
+                "R": 14,
+                "G": 93,
+                "B": 151
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "d576a42928641e3c19016ee4e9a9235f7244ad44b04c0abda7a0e91f4347bb8b"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 16
+            }
+          ],
+          "addedFontNames": [
+            "Courier New",
+            "Consolas"
+          ],
+          "addedColorRecords": 3,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "cc6510433056b1310a9148d8399747d779c4787a3931dc252217f5928afb1aa4"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "78f4266fc01746a5d4bd5b50c5c73f58a54ca78ecb76bc82e1b08223000ae7df"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "0f8da60a2013f9281ee1bd352c458b74490b8085e706cacfc4419a98d388a069"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "429d2333d8e88a2c2c8d514b01e5322670db5ce7e036b4f38edb452cef44d85b"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "a0ba3b3c07deb0776f7db0c748e7835e0d21eb1ac9896c315ac64f01af33cbae"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "2f9af326f61e7eac5aaa92e9689ba5a51f13dbd92c4786af9e42ee6da44e32bb"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "f8cd4d53b94de15af4191661fd768a89647801d11fc160a0a699e41e94dabb46"
+            }
+          ]
+        },
+        {
+          "name": "directory-paragraphs",
+          "source": {
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub"
+          },
+          "candidateSha256": "49675aefc55368061e318dd649745807de38b3549fe7e229a131a3c650d98a48",
+          "candidateBytes": 92672,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 600,
+            "runs": {
+              "each": 1
+            },
+            "firstRun": {
+              "Text": "Changed text for directory-paragraphs 1",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 0
+              }
+            },
+            "lastRun": {
+              "Text": "Changed text for directory-paragraphs 600",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 0
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry.",
+            "textAndSize": "For i=1..600: text Changed text for directory-paragraphs <i>, Arial 12 ordinary formatting."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "6ef3a44c497496bd0d3441d0f70fcab1b2ac167475b5b04a983114858da67be9"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 20
+            },
+            {
+              "offset": 75776,
+              "count": 2
+            }
+          ],
+          "addedFontNames": [],
+          "addedColorRecords": 0,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "e77ab9d8900f1895ef04119416beaf701a2290bce1bcf9a5eb3373f4c7cc9568"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "49675aefc55368061e318dd649745807de38b3549fe7e229a131a3c650d98a48"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "cd067dab280fe04aec930d57a59173ff282ac7526deb1d0529af0d89cebb551b"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "7c548b2459b33ca27f5c9d6077fea0adf78f223ff63e24abc027ea6e26d80126"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "02e475bc636e777c550baacade3f2aa0934ec2277d04f4f5bca63f1ae031379e"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "567f33446ade89d3653e17ebf24fdd261b32ba6b28be4ab1f813e40b92aa1e0b"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "5257350799cacd6cea13d0afd543e059ce252e1b4e5ddcddf4fc4a73a2fa4735"
+            }
+          ]
+        },
+        {
+          "name": "reedit-reset",
+          "source": {
+            "sha256": "4469a9fee23242f1ed13200eda887def89db637ae98fbb711c57341e4bf4a879",
+            "nativeResaveOf": "combined"
+          },
+          "candidateSha256": "1d9d2dc485303f9497363239681f2c0df5a09bf2928d5adb37d47242de72650a",
+          "candidateBytes": 38400,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 1,
+            "runs": [
+              1
+            ],
+            "firstRun": {
+              "Text": "Changed text for reset",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 0
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "70cf6915df1ff0becbecbc53b4999c1078cfb34b52869d6904cb48362c2d2ca0"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "addedFontNames": [
+            "Arial"
+          ],
+          "addedColorRecords": 0,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "54dba8254794882507c7f24ecd1925d2ce9546f61923f219526cafcec08f2540"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "1d9d2dc485303f9497363239681f2c0df5a09bf2928d5adb37d47242de72650a"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "9d4b4d3ca57c48f2b85891c1dfa89f4cd6aed89bb999c95f4bb7aa444ec00b92"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "4ccf3ae1631878669ca3a7350f44ecd093f6c5489c73d6755812a1180f918e4a"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "131081cb17353d9e8a5dc549696067069cbb32d5eec61070769fbdf668ab63ca"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "00b4e2086bd705008b01e3b16daee4ecac67ded28b1ab5c367449666607a4941"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "7ceefb777ca71fd30045592377f8b89d9aff35a5a797b40dedfb0f86cf5a4f84"
+            }
+          ]
+        },
+        {
+          "name": "reedit-color-reuse",
+          "source": {
+            "sha256": "111c709f6ea6b9fb66f45162e4b02fcae28f5aea6f9b2d092cd0f5f49298ae54",
+            "nativeResaveOf": "color-new"
+          },
+          "candidateSha256": "c057d59a03d262f030c8115e14b8da008e0575f931cc366b86dde71e3ea99d51",
+          "candidateBytes": 37888,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 1,
+            "runs": [
+              1
+            ],
+            "firstRun": {
+              "Text": "Second save: Changed text for color-new",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 14,
+                "G": 93,
+                "B": 151
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "858524b902ecfe7edf5a5d18e0c0e5c41e44730ef924e7aeebaa092e1b7a5fb2"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "addedFontNames": [],
+          "addedColorRecords": 0,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "5b9d6001b7da188cf282f1385b15498cd338d645564ad962a319844f0eb9e357"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "c057d59a03d262f030c8115e14b8da008e0575f931cc366b86dde71e3ea99d51"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "3039f02ff15a0ba2e5cbd86addacce150e278ef80ad8fc75402d0f09367a6505"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "c13c424e1af0acf264682e24383aa62fa7979962fa495bfc83e1352e40953c20"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "d4571bc2919c94b6effcb592272a57efdb64866c57575bab9fcb8b65a46adbaf"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "d73307d43e2410ab906b1f8d2cda0fb902d5a8ee5d6403f4e56a7f05921e7961"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "caaf520fc333dc04864c82002474cd991c8fb6ddcad0dfb1c034dced8a9ba238"
+            }
+          ]
+        },
+        {
+          "name": "reedit-directory",
+          "source": {
+            "sha256": "7c548b2459b33ca27f5c9d6077fea0adf78f223ff63e24abc027ea6e26d80126",
+            "nativeResaveOf": "directory-paragraphs"
+          },
+          "candidateSha256": "44497011e297cb96cd566276ccaf2d4eabaa61413a36b02b90ecdcffdd13c146",
+          "candidateBytes": 92672,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphs": 1,
+            "runs": [
+              1
+            ],
+            "firstRun": {
+              "Text": "Changed text for reset",
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "UnderlineStyle": 0,
+              "StrikethroughStyle": 0,
+              "Baseline": 0,
+              "color": {
+                "A": 255,
+                "R": 0,
+                "G": 0,
+                "B": 0
+              }
+            },
+            "paragraphFormatting": "Retain first source paragraph formatting; preserve paragraph count except the explicit uniform-source topology recipes.",
+            "frameOwnership": "Retain all native frame identities, links, page ownership and geometry."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "70cf6915df1ff0becbecbc53b4999c1078cfb34b52869d6904cb48362c2d2ca0"
+            }
+          ],
+          "directoryPagesBefore": [
+            {
+              "offset": 24,
+              "count": 19
+            },
+            {
+              "offset": 75264,
+              "count": 3
+            }
+          ],
+          "directoryPagesAfter": [
+            {
+              "offset": 24,
+              "count": 15
+            }
+          ],
+          "addedFontNames": [],
+          "addedColorRecords": 0,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "54dba8254794882507c7f24ecd1925d2ce9546f61923f219526cafcec08f2540"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "44497011e297cb96cd566276ccaf2d4eabaa61413a36b02b90ecdcffdd13c146"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "8734fddfd237500c48547a87e84ac3b1ae6da0656c9bccfb60ab5dcd2f4f1562"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "ce0ffab92b5a309b3267cfbd8cf63b9e46dce7b3845f15c6790095682d2dcc54"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "65ccb798a289eb2460c4052c9f9cb83d7a76e23311fa892224aa9ec4e77ba2f4"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "9558e99d30cf93cb3078f3d3d165f00af80c250b540d44b9d86bb4926b7d00b1"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "ee25fadf4049b209959f5ef512dde0333cd52fb06b8238cc0c327cf1747d1ab9"
+            }
+          ]
+        }
+      ],
+      "priorAcceptedOutputs": {
+        "cases": 18,
+        "byteIdentical": true,
+        "groups": {
+          "linkedStories": 7,
+          "paragraphTopology": 11
+        },
+        "scope": "Recompiled public consumers with the current writer; exact output hashes match prior accepted candidate bytes."
+      },
+      "platformValidation": {
+        "publisherTestsPerFramework": 578,
+        "frameworks": [
+          "net10.0",
+          "net8.0",
+          "net472"
+        ],
+        "readerPublisherTests": 95,
+        "standard2Builds": [
+          "OfficeIMO.Publisher.Pdf",
+          "OfficeIMO.Reader.Publisher"
+        ],
+        "probeBuild": true,
+        "publicConsumers": true,
+        "sourceBuiltPowerShell": {
+          "runtime": "7.6.9",
+          "command": "ConvertTo-OfficeDocument",
+          "route": "publisher-pdf",
+          "cases": 4,
+          "reopenedPages": 5,
+          "actualPublisherAssemblyBound": true
+        }
+      },
+      "refusals": [
+        "Double strikethrough, unsupported underline kinds, nonopaque colors and font names beyond 32 UTF-16 units.",
+        "Ambiguous/duplicate or unsupported native fields, mixed-script font selectors, nonordinary text fill/opacity and malformed FONT indices.",
+        "Unknown directory/page-descriptor metadata, nonuniform-source paragraph-count changes, zero-paragraph native stories and unqualified object/topology changes."
+      ],
+      "limits": [
+        "Exact ordinary-story source profiles and native operations only. Repair-free opening remains unassessed.",
+        "Complete text and body attributes are independently decoded from native-resaved Quill; explicitly changed CR attributes are checked separately.",
+        "PDF pixels/spans compare native initial/resaved output, not managed/native renderer parity.",
+        "Font substitution and installed-font metrics remain native-environment limits. Existing controls cover Arial, Cambria, Courier New and Consolas, not every font or producer.",
+        "Source-built PowerShell conversion is qualified separately from packaged installation or PowerShell-native create/edit/save cmdlets."
+      ]
     }
   },
   "characterReading": {
@@ -5328,8 +7971,8 @@
     "limits": [
       "Exact specimens from Publisher16.0.20527.20088 only; broad producer/script/font-metric coverage remains unassessed.",
       "The eighteen automation choices use Quill-specific stored values. Seven kinds are representable; eleven require explicit approximation.",
-      "Product native formatting edits remain limited to size/bold until the independent font/character writer is implemented and qualified.",
-      "Both controls have two Quill directories, with 22 and 26 descriptors. They are readable, but changed-story saving remains outside the current single-directory profile."
+      "Production source character/font/opaque color editing has separate sourceEditing.characterEditing qualification; this record qualifies the independent reading controls.",
+      "Both controls have two Quill directories, with 22 and 26 descriptors. Source-edit qualification covers these exact known layouts separately."
     ],
     "powerShellWorkflow": {
       "command": "ConvertTo-OfficeDocument",

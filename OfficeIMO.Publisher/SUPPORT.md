@@ -29,8 +29,8 @@ approximation. The `characterReading` section of the
 the fixtures, native values and reader source. Managed SVG/PDF inspection confirms
 that the recovered decorations reach output; it does not establish matching native
 decoration geometry, font availability or script metrics.
-Both controls exercise two chained Quill directories. This reading evidence does
-not extend the admitted single-directory native story-save profile.
+Both controls exercise two chained Quill directories. Separate source-save
+qualification below covers character edits in these layouts.
 Source-built PSWriteOffice converts both controls through `ConvertTo-OfficeDocument`
 and the in-process `publisher-pdf` route on PowerShell 7. The five output pages
 reopen, and all eleven underline approximation locations survive in workflow
@@ -113,15 +113,16 @@ support the native source-save path: unchanged content copies the
 original bytes; bounded existing anchor and solid-scalar edits replace the
 OfficeArt stream. Admitted ordinary-story profiles can
 replace text of different
-lengths and edit font size/bold through retained per-run OPLs, Quill text, story lengths,
+lengths and edit supported character attributes through retained per-run OPLs, Quill text, story lengths,
 formatting endpoints and page indexes. A single original run can split into
 styled runs, and matching run counts can be edited again. Each changed story has
 one existing frame or a complete resolved chain of ordinary, visible,
 untransformed document-page frames. Linked-story saving retains the native
 chain, frame identities, page ownership and geometry; it does not relink frames.
 Unresolved, unavailable, grouped, transformed and master-page chains refuse
-changed-story output. Story identities and order remain fixed. Source layouts have
-one directory with at most 20 descriptors and no table stories. Repeated
+changed-story output. Story identities and order remain fixed. Known source layouts
+can have chained directory pages, with at most 20 descriptors per page and 65,535
+descriptors in total, and no table stories. Repeated
 byte-identical OPLs can share native page storage, with all story lengths, range
 endpoints, page indexes and later-page start headers remapped. The original
 single-story/one-page path retains its accepted encoding. In multi-paragraph stories, existing empty paragraphs can remain empty or
@@ -129,7 +130,7 @@ gain text. Each paragraph's
 native definition and endpoint are retained independently; character ranges can
 cross paragraph boundaries. Making a paragraph empty refuses output when its
 source CR has a distinct OPL from the last visible run. Unsupported run merges,
-other formatting and chained directories refuse
+unsupported formatting and unknown directory metadata refuse
 output. Edited output removes the optional [SummaryInformation thumbnail](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-oleps/f7933d28-2cc4-4b36-bc23-8861cbcd37c4) so it
 cannot retain that stale content preview. The shared OLE property-set editor
 retains the other raw property values and header; unrelated logical streams and
@@ -146,18 +147,48 @@ Paragraph counts can increase or decrease from a uniform source: every source
 paragraph has one run, matching projected formatting, byte-identical native
 paragraph definitions and matching body/intermediate-CR definitions. Added
 paragraphs repeat those definitions; the final source CR definition is retained.
-New runs can change size/bold while retaining the other source attributes.
+New runs can change size, bold, italic, representable underlines, single
+strikethrough, baseline, font family and opaque RGB text color. Unchanged
+attributes retain their source tokens; explicitly changed attributes also reach
+the paragraph CR. None, single, words-only, double, dotted, dashed and wavy
+underlines are writable. Double strikethrough and nonopaque colors are refused.
+Font changes require a known uniform eight-script source selector or no direct
+selector; mixed-script source mappings are refused. Names must contain 1–32
+UTF-16 code units, with no control characters or malformed encoding. Existing
+FONT entries and suffixes remain byte-identical; new names append indexed entries
+with zero hints. Font availability and substitution remain native-environment limits.
+Color edits require an absent or ordinary paired solid-color representation.
+They update both color references and retain existing palette entries; ordinary
+RGB entries are reused or appended. Other fill, opacity or ambiguous source
+representations refuse output.
 Nonuniform source definitions refuse count changes, even when their projected
 formatting looks equal. An empty final paragraph is refused when it would replace
 a different native typing definition. A zero-paragraph story remains unsupported
 for native saving; in-memory clearing and rendering remain available.
 
 When ranges no longer fit the original allocation, the codec can append aligned
-formatting pages, relocate enlarged BTE indexes and retire unused pages inside
-the admitted directory. Superseded known pages/indexes are cleared, while unrelated
-payloads and gap bytes remain retained. Growth refuses nonzero unassigned header
-bytes or unknown page-descriptor metadata rather than overwriting it. Directory
+formatting pages and directory pages, relocate enlarged BTE indexes and resources,
+and retire unused pages. Superseded known pages/indexes and relocated resource
+payloads are cleared, while unrelated payloads and gap bytes remain retained.
+Directory growth uses wholly zero unused descriptor slots or appends a page;
+unknown padding is retained. The established single-directory allocation path
+still refuses nonzero unassigned header bytes, and unknown page-descriptor
+metadata is refused. Directory
 capacity, output-byte limits and cancellation remain enforced.
+
+The `sourceEditing.characterEditing` qualification record binds 24 public-save
+specimens to the writer source. They cover adding and clearing attributes,
+mixed runs, existing and new font/color entries, linked overflow, paragraph-count
+changes, chained source layouts, directory growth and retirement, and re-editing
+native-resaved output. Independent decoding verifies complete native-resaved text,
+body attributes and explicitly changed CR attributes. Existing resource entries,
+unrelated OPL tokens, logical streams and metadata remain byte-identical. Native
+PDF pixels and spans match across save/reopen over 58 physical page states.
+Eighteen earlier linked-story and paragraph/topology saves remain byte-identical.
+Source-built PSWriteOffice converts four edited publications through its existing
+in-process `publisher-pdf` route; all five output pages reopen. This qualifies
+these specimens and operations, with repair-free opening, general opaque semantics,
+packaged consumers and managed/native rendering parity still separate.
 
 Public native saving prepares and bounds the complete candidate before destination
 publication. `PublisherSaveOptions` defaults to a 64 MiB ceiling, `Block` loss

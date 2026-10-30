@@ -71,12 +71,14 @@ byte[] detachedBytes = result.Value;
 codec. Unchanged semantic content produces a byte-exact copy of the original
 source. Supported edits include existing ordinary frame/shape/picture bounds,
 existing solid scalar paint slots, and ordinary text stories with bounded
-size/bold changes. Paragraph counts can change when the source paragraphs have
+size, bold, italic, underline pattern, single strikethrough, baseline, font family
+and opaque RGB color changes. Paragraph counts can change when the source paragraphs have
 uniform projected formatting and matching native definitions. A changed story
 can use one existing frame or a complete resolved chain of ordinary, visible,
 untransformed document-page frames. Native links, ownership and frame identities
-remain fixed. Formatting pages can be allocated or retired
-inside the admitted single-directory profile, which has at most 20 descriptors.
+remain fixed. Known chained Quill layouts are supported; formatting and directory
+pages can be allocated or retired, and font/color resources can grow while existing
+entries retain their identities and bytes.
 Ambiguous source definitions, unsupported directory layouts and zero-paragraph
 native story states are refused. The [support contract](SUPPORT.md)
 defines the precise restrictions. Other in-memory edits, including new objects,

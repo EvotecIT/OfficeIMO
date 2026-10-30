@@ -145,23 +145,31 @@ Static text-component inspection shows that loading resolves names and replaces
 saved font IDs with local IDs. Native open/export/save/reopen retains the complete
 text and Consolas body font, with identical native pixels and spans across resave.
 The original paragraph-CR definition remains separate, including its Calibri
-whitespace span and mixed whole-range font name. This isolated experiment does
-not add product font writing or establish repair-free opening; source saving
-still supports only its documented size/bold formatting edits.
+whitespace span and mixed whole-range font name. This isolated experiment remains
+distinct from the production character writer and does not establish repair-free opening.
+The `sourceEditing.characterEditing` record qualifies public source saves for
+italic, representable underline kinds, single strike, baseline, font families and
+opaque RGB colors alongside size/bold. It includes mixed runs, native-resaved
+re-edits and explicitly changed paragraph-CR attributes. The contributor JSON
+commands above retain their narrower size/bold input schema; use the public
+rich-text model for the additional attributes.
 
 The multiple-story/page path retains existing story identities and order, admits
 one frame or a complete resolved ordinary document-page chain per changed story,
-and admits one directory with at most 20 descriptors
-and no table stories. It verifies every FDPC/FDPP page against its BTE index
+and admits known directory chains with at most 20 descriptors per page and
+65,535 in total, with no table stories. It verifies every FDPC/FDPP page against its BTE index
 and shares byte-identical OPLs within each page.
 Story lengths, endpoints, page offsets and later-page header starts are remapped;
 unrelated Quill payloads remain byte-identical. Through the public
 `ReplaceStoryParagraphs` API, paragraph counts can change when projected and raw
 source paragraph/body definitions are uniform. The native codec can allocate or
-retire pages and relocate enlarged indexes. Nonzero unassigned header bytes,
-unknown page metadata, directory capacity and ambiguous source definitions guard
-that operation. Chained directories and zero-paragraph native stories remain
-unavailable. The original accepted single-story/one-page encoding path remains first.
+retire formatting/directory pages and relocate enlarged indexes and resources.
+Unknown padding remains retained; growth uses zero descriptor slots or appends a
+directory page. The established single-directory allocation path retains its
+nonzero-header guard. Unknown page metadata, directory capacity and ambiguous
+source definitions guard that operation. Zero-paragraph native stories remain
+unavailable. The original accepted single-story/one-page encoding path remains first
+for edits within its supported character fields.
 
 Linked-story source saving preserves existing native links, frame identities,
 physical-page ownership and geometry. It requires every chain member to be
@@ -176,7 +184,7 @@ Visible frame slices are checked in order; an empty trailing frame can report
 a lone paragraph CR after the complete story fits the preceding frame. This
 does not qualify other chain profiles, repair-free opening or renderer parity.
 
-Other formatting changes, run merges, nonuniform-source paragraph-count changes, tables, image replacement,
+Unsupported formatting changes, run merges, nonuniform-source paragraph-count changes, tables, image replacement,
 page/master relationships, new objects and source-free publications have no writer in this path. Every
 current semantic family is compared with the import baseline before output;
 source-byte retention does not permit dropping unsupported edits. Each new
