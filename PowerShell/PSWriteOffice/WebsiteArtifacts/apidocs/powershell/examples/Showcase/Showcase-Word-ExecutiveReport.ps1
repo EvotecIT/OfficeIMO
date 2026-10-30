@@ -129,7 +129,7 @@ New-OfficeWord -Path $path {
     }
 }
 
-$document = Get-OfficeWord -Path $path -ReadOnly
+$document = Open-OfficeWord -Path $path -ReadOnly
 try {
     [pscustomobject]@{
         Path            = $path

@@ -59354,7 +59354,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Report.docx
+        <dev:code>$doc = Open-OfficeWord -Path .\Report.docx
             $doc | Get-OfficeWordTable | Select-Object -First 1 |
                 Add-OfficeWordTableRow -Values 'Service', 'Ready', 'Low'</dev:code>
         <dev:remarks>
@@ -59366,7 +59366,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Report.docx
+        <dev:code>$doc = Open-OfficeWord -Path .\Report.docx
             $table = Find-OfficeWordTable -Document $doc -Text 'Risk marker' | Select-Object -First 1
             $table | Add-OfficeWordTableRow -Values ([ordered]@{
                 Item  = 'Mitigation plan'
@@ -64900,27 +64900,15 @@ cells. This keeps existing-document editing simple without forcing callers back 
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Provides a cmdlet wrapper for WordDocument.Dispose/Save so scripts need not call .NET methods directly.</maml:para>
+      <maml:para>Provides a cmdlet wrapper for WordDocument.Dispose/Save so scripts need not call .NET methods directly. Documents must use explicit persistence to prevent writes during disposal.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="Current">
         <maml:name>Close-OfficeWord</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Current</maml:name>
+          <maml:name>AllowLoss</maml:name>
           <maml:description>
-            <maml:para>Close the most recently tracked document.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Show">
-          <maml:name>Open</maml:name>
-          <maml:description>
-            <maml:para>Open the file after saving. Requires -Save or -Path.</maml:para>
+            <maml:para>Explicitly accept reported native-save reductions.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -64934,9 +64922,9 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <maml:description>
             <maml:para>Password used to save the document as an encrypted package.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -64965,9 +64953,33 @@ cells. This keeps existing-document editing simple without forcing callers back 
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Show</maml:name>
+          <maml:description>
+            <maml:para>Open the file after saving. Requires -Save or -Path.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
       </command:syntaxItem>
       <command:syntaxItem parameterSetName="Document">
         <maml:name>Close-OfficeWord</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowLoss</maml:name>
+          <maml:description>
+            <maml:para>Explicitly accept reported native-save reductions.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>Document</maml:name>
           <maml:description>
@@ -64980,26 +64992,14 @@ cells. This keeps existing-document editing simple without forcing callers back 
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Show">
-          <maml:name>Open</maml:name>
-          <maml:description>
-            <maml:para>Open the file after saving. Requires -Save or -Path.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Password</maml:name>
           <maml:description>
             <maml:para>Password used to save the document as an encrypted package.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -65020,6 +65020,18 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <maml:name>Save</maml:name>
           <maml:description>
             <maml:para>Persist changes before closing.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Show</maml:name>
+          <maml:description>
+            <maml:para>Open the file after saving. Requires -Save or -Path.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -65043,10 +65055,10 @@ cells. This keeps existing-document editing simple without forcing callers back 
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Show">
-          <maml:name>Open</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowLoss</maml:name>
           <maml:description>
-            <maml:para>Open the file after saving. Requires -Save or -Path.</maml:para>
+            <maml:para>Explicitly accept reported native-save reductions.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -65060,9 +65072,9 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <maml:description>
             <maml:para>Password used to save the document as an encrypted package.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -65071,6 +65083,18 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <maml:name>Save</maml:name>
           <maml:description>
             <maml:para>Persist changes before closing.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Show</maml:name>
+          <maml:description>
+            <maml:para>Open the file after saving. Requires -Save or -Path.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -65095,9 +65119,9 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Current</maml:name>
+        <maml:name>AllowLoss</maml:name>
         <maml:description>
-          <maml:para>Close the most recently tracked document.</maml:para>
+          <maml:para>Explicitly accept reported native-save reductions.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -65118,26 +65142,14 @@ cells. This keeps existing-document editing simple without forcing callers back 
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Show">
-        <maml:name>Open</maml:name>
-        <maml:description>
-          <maml:para>Open the file after saving. Requires -Save or -Path.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Password</maml:name>
         <maml:description>
           <maml:para>Password used to save the document as an encrypted package.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -65166,6 +65178,18 @@ cells. This keeps existing-document editing simple without forcing callers back 
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Show</maml:name>
+        <maml:description>
+          <maml:para>Open the file after saving. Requires -Save or -Path.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
     </command:parameters>
     <command:inputTypes>
       <command:inputType>
@@ -65186,7 +65210,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Report.docx; Close-OfficeWord -Document $doc</dev:code>
+        <dev:code>$doc = Open-OfficeWord -Path .\Report.docx; Close-OfficeWord -Document $doc</dev:code>
         <dev:remarks>
           <maml:para>Disposes the loaded document instance without saving changes.</maml:para>
         </dev:remarks>
@@ -65206,7 +65230,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>Close-OfficeWord -Document $doc -Save -Path .\Report-final.docx -Open</dev:code>
+        <dev:code>Close-OfficeWord -Document $doc -Save -Path .\Report-final.docx -Show</dev:code>
         <dev:remarks>
           <maml:para>Saves updates to Report-final.docx, opens it, and disposes the document.</maml:para>
         </dev:remarks>
@@ -107121,7 +107145,7 @@ returned list objects can be piped directly to Add-OfficeWordListItem.</maml:par
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Report.docx
+        <dev:code>$doc = Open-OfficeWord -Path .\Report.docx
             Find-OfficeWordList -Document $doc -Text 'Initial review' |
                 Add-OfficeWordListItem -Text 'Final approval'</dev:code>
         <dev:remarks>
@@ -107133,7 +107157,7 @@ returned list objects can be piped directly to Add-OfficeWordListItem.</maml:par
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Handover.docx
+        <dev:code>$doc = Open-OfficeWord -Path .\Handover.docx
             $list = Find-OfficeWordList -Document $doc -Text 'Initial review' | Select-Object -First 1
             $list | Add-OfficeWordListItem -Text 'Business sign-off'
             $list | Add-OfficeWordListItem -Text 'Go-live approval'
@@ -107468,7 +107492,7 @@ expressions.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Report.docx
+        <dev:code>$doc = Open-OfficeWord -Path .\Report.docx
             $table = Find-OfficeWordTable -Document $doc -Text 'Risk register' | Select-Object -First 1
             $table | Add-OfficeWordTableRow -Values 'Contoso', 'Open', 'High'</dev:code>
         <dev:remarks>
@@ -107480,7 +107504,7 @@ expressions.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Handover.docx
+        <dev:code>$doc = Open-OfficeWord -Path .\Handover.docx
             $table = Find-OfficeWordTable -Document $doc -Text 'Risk marker' | Select-Object -First 1
             $table | Add-OfficeWordTableRow -Values 'Mitigation plan', 'Service Desk', 'Ready'
             $table | Get-OfficeWordTableCell -Row 2 -Column 2 |
@@ -132876,158 +132900,6 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
-      <command:name>Get-OfficeWord</command:name>
-      <command:verb>Get</command:verb>
-      <command:noun>OfficeWord</command:noun>
-      <maml:description>
-        <maml:para>Opens an existing Word document.</maml:para>
-      </maml:description>
-    </command:details>
-    <maml:description>
-      <maml:para>Returns an OfficeIMO WordDocument for inspection, advanced operations, or optional DSL edits.</maml:para>
-    </maml:description>
-    <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
-        <maml:name>Get-OfficeWord</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
-          <maml:name>Content</maml:name>
-          <maml:description>
-            <maml:para>Optional DSL scriptblock to execute against the loaded document.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
-          <dev:type>
-            <maml:name>ScriptBlock</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Password</maml:name>
-          <maml:description>
-            <maml:para>Password used to open an encrypted document package.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue, ByPropertyName)" position="0" aliases="InputPath,FilePath,FullName,LiteralPath">
-          <maml:name>Path</maml:name>
-          <maml:description>
-            <maml:para>Path to the .docx. Accepts PS paths.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ReadOnly</maml:name>
-          <maml:description>
-            <maml:para>Open in read-only mode.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-    </command:syntax>
-    <command:parameters>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
-        <maml:name>Content</maml:name>
-        <maml:description>
-          <maml:para>Optional DSL scriptblock to execute against the loaded document.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
-        <dev:type>
-          <maml:name>ScriptBlock</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Password</maml:name>
-        <maml:description>
-          <maml:para>Password used to open an encrypted document package.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue, ByPropertyName)" position="0" aliases="InputPath,FilePath,FullName,LiteralPath">
-        <maml:name>Path</maml:name>
-        <maml:description>
-          <maml:para>Path to the .docx. Accepts PS paths.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>ReadOnly</maml:name>
-        <maml:description>
-          <maml:para>Open in read-only mode.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-    </command:parameters>
-    <command:inputTypes>
-      <command:inputType>
-        <dev:type>
-          <maml:name>System.String</maml:name>
-        </dev:type>
-      </command:inputType>
-    </command:inputTypes>
-    <command:returnValues />
-    <maml:alertSet>
-      <maml:alert>
-        <maml:para></maml:para>
-      </maml:alert>
-    </maml:alertSet>
-    <command:examples>
-      <command:example>
-        <maml:title>Load a document in read-only mode.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Report.docx -ReadOnly</dev:code>
-        <dev:remarks>
-          <maml:para>Loads Report.docx and exposes the document object for querying.</maml:para>
-        </dev:remarks>
-      </command:example>
-      <command:example>
-        <maml:title>Run the Word DSL against an existing document.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Report.docx { WordParagraph -Text 'Appended by DSL' }; $doc | Save-OfficeWord</dev:code>
-        <dev:remarks>
-          <maml:para>Loads the document, appends content through the DSL, and returns the open document for saving or further edits.</maml:para>
-        </dev:remarks>
-      </command:example>
-    </command:examples>
-    <command:relatedLinks />
-  </command:command>
-  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
-    <command:details>
       <command:name>Get-OfficeWordBookmark</command:name>
       <command:verb>Get</command:verb>
       <command:noun>OfficeWordBookmark</command:noun>
@@ -135866,7 +135738,7 @@ the script needs to work with list objects directly instead of using a text sear
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Report.docx
+        <dev:code>$doc = Open-OfficeWord -Path .\Report.docx
             $list = $doc | Get-OfficeWordList | Select-Object -First 1
             $list.ListItems | Select-Object -Property Text</dev:code>
         <dev:remarks>
@@ -135878,7 +135750,7 @@ the script needs to work with list objects directly instead of using a text sear
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Report.docx
+        <dev:code>$doc = Open-OfficeWord -Path .\Report.docx
             Get-OfficeWordList -Document $doc |
                 Where-Object { $_.ListItems.Text -contains 'Initial review' } |
                 Add-OfficeWordListItem -Text 'Final approval'
@@ -137363,7 +137235,7 @@ the script needs to work with list objects directly instead of using a text sear
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Report.docx
+        <dev:code>$doc = Open-OfficeWord -Path .\Report.docx
             $toc = $doc | Get-OfficeWordTableOfContents
             if ($toc) {
                 $toc | Set-OfficeWordTableOfContents -Text 'Contents' -TextNoContent 'No entries' -PassThru
@@ -149382,7 +149254,7 @@ This does not discover, bypass, or crack a missing password.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Base.docx
+        <dev:code>$doc = Open-OfficeWord -Path .\Base.docx
             $doc | Join-OfficeWordDocument -AppendPath .\Section1.docx, .\Section2.docx -PassThru |
                 Save-OfficeWord -Path .\Combined.docx</dev:code>
         <dev:remarks>
@@ -174022,6 +173894,337 @@ Use -NoSave or omit -Path when a document object should be returned for further 
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
+      <command:name>Open-OfficeWord</command:name>
+      <command:verb>Open</command:verb>
+      <command:noun>OfficeWord</command:noun>
+      <maml:description>
+        <maml:para>Opens a Word document for explicit editing, or saves and closes a completed content block.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Opening preserves the document's theme and encryption. Without a block the document remains live. A failed block leaves the source unchanged; read-only input cannot run an authoring block.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Path">
+        <maml:name>Open-OfficeWord</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowLoss</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether native-save loss is explicitly accepted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+          <maml:name>Content</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets a content block; omission returns the live document.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
+          <dev:type>
+            <maml:name>ScriptBlock</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether a completed content block returns the saved FileInfo.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Password</maml:name>
+          <maml:description>
+            <maml:para>Source password as a SecureString, credential, or warned plaintext value.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+          <dev:type>
+            <maml:name>SecureString</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="None">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Word document path with FileSystem wildcard expansion.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ReadOnly</maml:name>
+          <maml:description>
+            <maml:para>Return a read-only live document. Cannot be combined with Content.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Show</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether the saved file opens in the system default application.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="LiteralPath">
+        <maml:name>Open-OfficeWord</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowLoss</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether native-save loss is explicitly accepted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+          <maml:name>Content</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets a content block; omission returns the live document.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
+          <dev:type>
+            <maml:name>ScriptBlock</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="FullName,PSPath">
+          <maml:name>LiteralPath</maml:name>
+          <maml:description>
+            <maml:para>Word document path without wildcard expansion; accepts FileInfo.FullName and provider PSPath.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether a completed content block returns the saved FileInfo.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Password</maml:name>
+          <maml:description>
+            <maml:para>Source password as a SecureString, credential, or warned plaintext value.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+          <dev:type>
+            <maml:name>SecureString</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ReadOnly</maml:name>
+          <maml:description>
+            <maml:para>Return a read-only live document. Cannot be combined with Content.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Show</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether the saved file opens in the system default application.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>AllowLoss</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether native-save loss is explicitly accepted.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+        <maml:name>Content</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets a content block; omission returns the live document.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
+        <dev:type>
+          <maml:name>ScriptBlock</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="FullName,PSPath">
+        <maml:name>LiteralPath</maml:name>
+        <maml:description>
+          <maml:para>Word document path without wildcard expansion; accepts FileInfo.FullName and provider PSPath.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>PassThru</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether a completed content block returns the saved FileInfo.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Password</maml:name>
+        <maml:description>
+          <maml:para>Source password as a SecureString, credential, or warned plaintext value.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+        <dev:type>
+          <maml:name>SecureString</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="None">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>Word document path with FileSystem wildcard expansion.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>ReadOnly</maml:name>
+        <maml:description>
+          <maml:para>Return a read-only live document. Cannot be combined with Content.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Show</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether the saved file opens in the system default application.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Word.WordDocument</maml:name>
+        </dev:type>
+      </command:returnValue>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>System.IO.FileInfo</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Open a literal file path from a file pipeline.</maml:title>
+        <dev:code>$document = Get-Item './Review[final].docx' | Open-OfficeWord
+            $document | Close-OfficeWord</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Edit and save an existing document atomically.</maml:title>
+        <dev:code>Open-OfficeWord -Path ./Report.docx -PassThru {
+                WordParagraph 'Reviewed and approved'
+            }</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
       <command:name>Protect-OfficeDocument</command:name>
       <command:verb>Protect</command:verb>
       <command:noun>OfficeDocument</command:noun>
@@ -179489,7 +179692,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Report.docx
+        <dev:code>$doc = Open-OfficeWord -Path .\Report.docx
             $doc | Remove-OfficeWordTableOfContents -PassThru |
                 Save-OfficeWord -Path .\Report-NoToc.docx</dev:code>
         <dev:remarks>
@@ -183455,31 +183658,19 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
       <command:verb>Save</command:verb>
       <command:noun>OfficeWord</command:noun>
       <maml:description>
-        <maml:para>Saves a Word document without disposing it.</maml:para>
+        <maml:para>Saves a live Word document without closing it.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Use Close-OfficeWord -Save when you want to save and dispose the document.</maml:para>
+      <maml:para>Uses the supplied path or associated destination. Omitted Password preserves loaded encryption. PassThru returns the saved FileInfo. The document must use explicit persistence.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="__AllParameterSets">
         <maml:name>Save-OfficeWord</maml:name>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
-          <maml:name>Document</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowLoss</maml:name>
           <maml:description>
-            <maml:para>Document to save.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">WordDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>WordDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Show">
-          <maml:name>Open</maml:name>
-          <maml:description>
-            <maml:para>Open the document after saving.</maml:para>
+            <maml:para>Explicitly accept reported native-save reductions.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -183488,10 +183679,22 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Live Word document to save.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">WordDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>WordDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Emit the document object for further processing.</maml:para>
+            <maml:para>Return the saved FileInfo.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -183503,7 +183706,19 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Password</maml:name>
           <maml:description>
-            <maml:para>Password used to save the document as an encrypted package.</maml:para>
+            <maml:para>Override the output password; omission preserves the document's loaded encryption.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+          <dev:type>
+            <maml:name>SecureString</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Optional new destination; omission uses the associated path.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -183512,14 +183727,14 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="FilePath">
-          <maml:name>Path</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Show</maml:name>
           <maml:description>
-            <maml:para>Optional save-as path.</maml:para>
+            <maml:para>Open the saved file in its registered default application.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -183527,22 +183742,10 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
-        <maml:name>Document</maml:name>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>AllowLoss</maml:name>
         <maml:description>
-          <maml:para>Document to save.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">WordDocument</command:parameterValue>
-        <dev:type>
-          <maml:name>WordDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Show">
-        <maml:name>Open</maml:name>
-        <maml:description>
-          <maml:para>Open the document after saving.</maml:para>
+          <maml:para>Explicitly accept reported native-save reductions.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -183551,10 +183754,22 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Live Word document to save.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">WordDocument</command:parameterValue>
+        <dev:type>
+          <maml:name>WordDocument</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>PassThru</maml:name>
         <maml:description>
-          <maml:para>Emit the document object for further processing.</maml:para>
+          <maml:para>Return the saved FileInfo.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -183566,7 +183781,19 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Password</maml:name>
         <maml:description>
-          <maml:para>Password used to save the document as an encrypted package.</maml:para>
+          <maml:para>Override the output password; omission preserves the document's loaded encryption.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+        <dev:type>
+          <maml:name>SecureString</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>Optional new destination; omission uses the associated path.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -183575,14 +183802,14 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="FilePath">
-        <maml:name>Path</maml:name>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Show</maml:name>
         <maml:description>
-          <maml:para>Optional save-as path.</maml:para>
+          <maml:para>Open the saved file in its registered default application.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -183598,7 +183825,7 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
     <command:returnValues>
       <command:returnValue>
         <dev:type>
-          <maml:name>OfficeIMO.Word.WordDocument</maml:name>
+          <maml:name>System.IO.FileInfo</maml:name>
         </dev:type>
       </command:returnValue>
     </command:returnValues>
@@ -183609,13 +183836,20 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Save the open document.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$doc | Save-OfficeWord</dev:code>
+        <maml:title>Save and retain the live document for further editing.</maml:title>
+        <dev:code>Save-OfficeWord -Document $document -Path ./Report.docx -PassThru
+            Close-OfficeWord -Document $document</dev:code>
         <dev:remarks>
-          <maml:para>Persists pending changes and keeps the document open.</maml:para>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Save a loaded document with its existing encryption.</maml:title>
+        <dev:code>$document = Open-OfficeWord -Path ./Protected.docx -Password (Read-Host -AsSecureString)
+            $document | Save-OfficeWord
+            $document | Close-OfficeWord</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -213925,7 +214159,7 @@ cell inside a deck that already exists.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Draft.docx
+        <dev:code>$doc = Open-OfficeWord -Path .\Draft.docx
             $doc | Set-OfficeWordBackground -ImagePath .\Assets\Background.png -Width 600 -Height 800 -PassThru |
                 Save-OfficeWord -Path .\Draft-Branded.docx</dev:code>
         <dev:remarks>
@@ -214558,7 +214792,7 @@ cell inside a deck that already exists.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Report.docx
+        <dev:code>$doc = Open-OfficeWord -Path .\Report.docx
             $doc |
                 Get-OfficeWordImage |
                 Set-OfficeWordImage -Width 320 -Wrap Square -Title 'Report image' -Description 'Image used in the report'
@@ -216565,7 +216799,7 @@ cell inside a deck that already exists.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Report.docx
+        <dev:code>$doc = Open-OfficeWord -Path .\Report.docx
             $doc |
                 Get-OfficeWordShape |
                 Set-OfficeWordShape -FillColor '#fff7e6' -StrokeColor '#fa8c16' -StrokeWidth 1.25 -Description 'Highlighted callout'
@@ -217197,7 +217431,7 @@ cell inside a deck that already exists.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Handover.docx
+        <dev:code>$doc = Open-OfficeWord -Path .\Handover.docx
             $table = Find-OfficeWordTable -Document $doc -Text 'Risk marker' | Select-Object -First 1
             $table |
                 Get-OfficeWordTableCell -Row 2 -Column 2 |
@@ -217212,7 +217446,7 @@ cell inside a deck that already exists.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Report.docx
+        <dev:code>$doc = Open-OfficeWord -Path .\Report.docx
             $table = $doc | Get-OfficeWordTable | Select-Object -First 1
             $table |
                 Get-OfficeWordTableCell -Column 2 |
@@ -217237,7 +217471,7 @@ cell inside a deck that already exists.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Report.docx
+        <dev:code>$doc = Open-OfficeWord -Path .\Report.docx
             $table = $doc | Get-OfficeWordTable | Select-Object -First 1
             $table |
                 Get-OfficeWordTableCell -Row 0 -Column 0 |
@@ -217473,7 +217707,7 @@ cell inside a deck that already exists.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Report.docx
+        <dev:code>$doc = Open-OfficeWord -Path .\Report.docx
             $doc |
                 Get-OfficeWordTableOfContents |
                 Set-OfficeWordTableOfContents -Text 'Report contents'
@@ -221899,7 +222133,7 @@ cell inside a deck that already exists.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$doc = Get-OfficeWord -Path .\Report.docx
+        <dev:code>$doc = Open-OfficeWord -Path .\Report.docx
             $doc | Update-OfficeWordTableOfContents -Regenerate
             $doc | Save-OfficeWord -Path .\Report-RegeneratedToc.docx</dev:code>
         <dev:remarks>

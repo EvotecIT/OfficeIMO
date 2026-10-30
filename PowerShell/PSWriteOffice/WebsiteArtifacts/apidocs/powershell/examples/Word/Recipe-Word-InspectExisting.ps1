@@ -12,7 +12,7 @@ WordNew -Path $path {
     }
 }
 
-$document = Get-OfficeWord -Path $path -ReadOnly
+$document = Open-OfficeWord -Path $path -ReadOnly
 Get-OfficeWordStatistics -Document $document
 $document | Get-OfficeWordParagraph | Select-Object Index, Text
 $document | Get-OfficeWordTable | Select-Object Index, RowCount, ColumnCount

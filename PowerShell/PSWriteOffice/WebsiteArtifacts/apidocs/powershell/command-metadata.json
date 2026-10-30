@@ -1715,8 +1715,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/CloseOfficeWordCommand.cs",
-      "sourceLine": 28,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/CloseOfficeWordCommand.cs#L28"
+      "sourceLine": 30,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/CloseOfficeWordCommand.cs#L30"
     },
     {
       "name": "Compare-OfficeExcelRange",
@@ -3195,14 +3195,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Visio/GetOfficeVisioStencilCatalogCommand.cs#L19"
     },
     {
-      "name": "Get-OfficeWord",
-      "kind": "Cmdlet",
-      "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/GetOfficeWordCommand.cs",
-      "sourceLine": 24,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/GetOfficeWordCommand.cs#L24"
-    },
-    {
       "name": "Get-OfficeWordBookmark",
       "kind": "Cmdlet",
       "aliases": [],
@@ -4161,6 +4153,14 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/OpenOfficePowerPointCommand.cs",
       "sourceLine": 21,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/OpenOfficePowerPointCommand.cs#L21"
+    },
+    {
+      "name": "Open-OfficeWord",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/OpenOfficeWordCommand.cs",
+      "sourceLine": 22,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/OpenOfficeWordCommand.cs#L22"
     },
     {
       "name": "Protect-OfficeDocument",

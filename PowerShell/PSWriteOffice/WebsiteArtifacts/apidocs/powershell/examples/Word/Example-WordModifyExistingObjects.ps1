@@ -21,7 +21,7 @@ New-OfficeWord -Path $path {
 }
 
 # Second pass: treat the file as an existing document that came from a user or template.
-$document = Get-OfficeWord -Path $path
+$document = Open-OfficeWord -Path $path
 try {
     $riskTable = Find-OfficeWordTable -Document $document -Text 'Risk marker' | Select-Object -First 1
 

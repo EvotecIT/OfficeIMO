@@ -9,6 +9,6 @@ Add-OfficeMarkdownTaskList -Document $document -Items 'Review the evidence', 'Co
 $document | Save-OfficeMarkdown -Path $markdownPath
 
 ConvertFrom-OfficeWordMarkdown -Document $document -OutputPath $wordPath
-$word = Get-OfficeWord -Path $wordPath
+$word = Open-OfficeWord -Path $wordPath
 $word | Export-OfficeDocumentPdf -Path $pdfPath
 $word | Close-OfficeWord
