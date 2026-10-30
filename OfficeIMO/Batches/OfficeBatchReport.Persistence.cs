@@ -20,5 +20,5 @@ public sealed partial record OfficeBatchReport {
     /// <summary>Checks the local report writer lease without treating timestamps as activity evidence.</summary>
     public static bool IsActive(string path) => OfficeBatchReportStore.IsActive(path);
     /// <summary>Removes only an inactive valid recorded report and its matching lease.</summary>
-    public static bool TryDeleteFinished(string path) => OfficeBatchReportStore.TryDeleteFinished(path);
+    internal static bool TryDeleteFinished(string path) => OfficeBatchReportStore.TryDeleteFinished(path);
 }

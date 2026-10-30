@@ -25,7 +25,7 @@ public sealed class PdfDrawingTextFitTests {
             bold: name.Contains("Bold"), italic: name.Contains("Italic") || name.Contains("Oblique"), fontFamily: family) },
             10, 10, 80, 15, lineHeight: 10, verticalAlignment: alignment, shrinkToFit: true);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            DefaultFont = font, PageWidth = 100, PageHeight = 50, MarginLeft = 0, MarginTop = 0, MarginRight = 0, MarginBottom = 0
+            DefaultFont = font, PageWidth = global::OfficeIMO.OfficeLength.Points(100), PageHeight = global::OfficeIMO.OfficeLength.Points(50), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
         }).Compose(c => c.Page(p => p.Content(content => content.Drawing(drawing)))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var letters = pdf.GetPage(1).Letters;
@@ -47,7 +47,7 @@ public sealed class PdfDrawingTextFitTests {
         drawing.AddRichText(new[] { new OfficeRichTextRun(value, 20, OfficeColor.Black, fontFamily: "Proof Sans") },
             10, 10, 80, 15, lineHeight: 10, verticalAlignment: alignment, shrinkToFit: true);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 100, PageHeight = 50, MarginLeft = 0, MarginTop = 0, MarginRight = 0, MarginBottom = 0
+            PageWidth = global::OfficeIMO.OfficeLength.Points(100), PageHeight = global::OfficeIMO.OfficeLength.Points(50), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
         }.UseRenderingProfile(new OfficeRenderingProfile("fit", drawing.Fonts))).Compose(c => c.Page(p => p.Content(content => content.Drawing(drawing)))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var letters = pdf.GetPage(1).Letters;

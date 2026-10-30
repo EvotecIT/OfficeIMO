@@ -16,15 +16,15 @@ namespace OfficeIMO.Examples.Pdf {
                 .H1("Table Style Gallery", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
                 .Paragraph(p => p.Text("Generic Word-style table names rendered by OfficeIMO.Pdf without invoice or report-specific behavior."))), new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 9.5,
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9.5),
                     DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
                     HeaderFont = PdfStandardFont.Helvetica,
-                    HeaderFontSize = 8,
+                    HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
                     HeaderFormat = "OfficeIMO.Pdf Word-like table styles",
                     HeaderAlign = PdfAlign.Left,
                     ShowHeader = true,
                     FooterFont = PdfStandardFont.Helvetica,
-                    FooterFontSize = 8,
+                    FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
                     FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
                     FooterAlign = PdfAlign.Right,
                     ShowPageNumbers = true

@@ -665,6 +665,19 @@
       ],
       "reason": "Remove the fluent image surface while retaining format renderers, Core execution/persistence, streaming, deadlines, limits and diagnostic evidence.",
       "qualification": "Static preparation only. Parent applies and qualifies every maintained target; no build or test was run."
+    },
+    {
+      "phase": "B",
+      "action": "internalize",
+      "old": "Duplicate raw PDF checkpoint metadata generated in the front door and Workflows",
+      "new": "Workflows shares the front door raw PDF settings context; outer contexts declare the existing custom PDF fingerprint converter",
+      "reason": "Keep one canonical PDF checkpoint representation, preserve source-generated NativeAOT serialization, and avoid retaining duplicate raw metadata graphs. No runtime dependency or public API is added.",
+      "files": [
+        "OfficeIMO.Workflows/OfficeWorkflowCheckpointSettings.cs",
+        "OfficeIMO.Workflows/OfficeWorkflowCheckpointJsonContext.cs",
+        "OfficeIMO/Batches/OfficeBatchConfigurationJsonContext.cs"
+      ],
+      "applied": "phase-b-applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

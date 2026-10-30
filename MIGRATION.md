@@ -4250,3 +4250,10 @@ stream does not change the original destination's persistence mode.
 Shared chart snapshots now take `OfficeLength` dimensions in their constructors and `WithSize(width, height)`. Read `Width` and `Height`; call `.ToPoints()` only when passing dimensions to a numeric rendering boundary. For example, replace `snapshot.WithSize(320, 180)` with `snapshot.WithSize(OfficeLength.Points(320), OfficeLength.Points(180))`.
 
 Word page, paragraph and cell border `Size`/`Space` properties now use nullable `OfficeLength`. Old border size `8` meant one point: assign `OfficeLength.Points(1)`. Old spacing `3` meant three points. `WordTabStop.Position` and `AddTabStop` also take `OfficeLength`: replace a native tab position of `1440` with `OfficeLength.Inches(1)`. Null still removes a border attribute, zero stays explicit, and signed tab positions remain supported.
+
+PDF creation option page dimensions, margins, default font size, and header/footer font sizes and vertical offsets now take `OfficeLength`. Replace `MarginLeft = 36` with `MarginLeft = OfficeLength.Inches(0.5)` and `DefaultFontSize = 12` with `DefaultFontSize = OfficeLength.Points(12)`. Read `.ToPoints()` when passing one of these values into a numeric PDF layout boundary. Explicit zero margins and inherited theme values keep their meaning.
+
+For custom JSON persistence, store lengths with `ToEmus()` and restore them with `OfficeLength.Emus(value)`. Default object serialization does not preserve an `OfficeLength` value. Conversion checkpoints fingerprint physical settings as exact signed EMUs; existing checkpoints whose rendering identity was written using numeric point settings must be regenerated.
+
+
+Batch output names replace the final source extension: `Sales.docx` becomes `Sales.pdf`. Sources such as `Sales.docx` and `Sales.xlsx` now select the same destination. Use distinct stems or an explicit `OfficePublicationPolicy.Rename`/`Replace` conflict policy.

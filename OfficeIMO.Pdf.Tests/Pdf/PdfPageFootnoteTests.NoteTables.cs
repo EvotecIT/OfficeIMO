@@ -190,11 +190,11 @@ public partial class PdfPageFootnoteTests {
         for (int index = 0; index < 22; index++)
             Assert.Single(pdf.GetPages().SelectMany(page => page.GetWords()), word => word.Text == "PanelCell" + index.ToString("00"));
         Assert.Contains("PanelAfterTable", pdf.GetPage(pdf.NumberOfPages).Text, StringComparison.Ordinal);
-        Assert.All(pdf.GetPages().SelectMany(page => page.Letters), letter => Assert.True(letter.StartBaseLine.Y >= options.MarginBottom));
+        Assert.All(pdf.GetPages().SelectMany(page => page.Letters), letter => Assert.True(letter.StartBaseLine.Y >= options.MarginBottom.ToPoints()));
         Assert.All(pdf.GetPages().SelectMany(page => page.GetWords()).Where(word => word.Text.StartsWith("PanelCell", StringComparison.Ordinal)),
             word => {
-                Assert.True(word.BoundingBox.Left >= options.MarginLeft + horizontalPadding);
-                Assert.True(word.BoundingBox.Bottom >= options.MarginBottom + verticalPadding - .001D);
+                Assert.True(word.BoundingBox.Left >= options.MarginLeft.ToPoints() + horizontalPadding);
+                Assert.True(word.BoundingBox.Bottom >= options.MarginBottom.ToPoints() + verticalPadding - .001D);
             });
     }
 

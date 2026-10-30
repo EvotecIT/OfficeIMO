@@ -382,13 +382,13 @@ public sealed class PdfLogicalTableContinuationContractTests {
         }
 
         return PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
-                DefaultFontSize = 9
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(rows, style: new PdfTableStyle {
                 HeaderRowCount = 2,
@@ -402,13 +402,13 @@ public sealed class PdfLogicalTableContinuationContractTests {
 
     private static byte[] BuildSlashPaginationTablePdf() {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 500,
-            PageHeight = 320,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
-            DefaultFontSize = 9
+            PageWidth = global::OfficeIMO.OfficeLength.Points(500),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(320),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         });
         for (int index = 0; index < 10; index++) {
             document.Paragraph(paragraph => paragraph.Text("Lead-in line " + index.ToString(CultureInfo.InvariantCulture)));
@@ -444,14 +444,14 @@ public sealed class PdfLogicalTableContinuationContractTests {
 
     private static byte[] BuildNativeTableThenBlankPagePdf() {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 320,
-            PageHeight = 220,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 20,
-            MarginBottom = 20,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 9,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9),
             // Seven 12.6-point lines with 3.78-point gaps place the native table near the page edge.
             DefaultParagraphStyle = new PdfParagraphStyle {
                 LineHeight = 1.4, SpacingBefore = 0, SpacingAfter = 3.78, WidowControl = false
@@ -482,13 +482,13 @@ public sealed class PdfLogicalTableContinuationContractTests {
         double secondColumnWidth = 100D,
         double pageWidth = 320D) =>
         PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = pageWidth,
-                PageHeight = 220,
-                MarginLeft = marginLeft,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20,
-                DefaultFontSize = 9
+                PageWidth = global::OfficeIMO.OfficeLength.Points(pageWidth),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(marginLeft),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(new[] {
                 new[] { "Description", "Amount" },

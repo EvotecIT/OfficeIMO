@@ -39,15 +39,15 @@ public partial class Word {
                     if (setting == "alignment") options.PdfOptions.FooterAlign = PdfAlign.Right;
                     else if (setting == "font") options.PdfOptions.FooterFont = PdfStandardFont.Courier;
                     else if (setting == "family") options.PdfOptions.FooterFontFamily = "Arial";
-                    else if (setting == "size") options.PdfOptions.FooterFontSize = 24D;
-                    else if (setting == "offset") options.PdfOptions.FooterOffsetY = 45D;
+                    else if (setting == "size") options.PdfOptions.FooterFontSize = global::OfficeIMO.OfficeLength.Points(24D);
+                    else if (setting == "offset") options.PdfOptions.FooterOffsetY = global::OfficeIMO.OfficeLength.Points(45D);
                     else options.PdfOptions.FooterTextColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
                 } else {
                     if (setting == "alignment") options.PdfOptions.HeaderAlign = PdfAlign.Right;
                     else if (setting == "font") options.PdfOptions.HeaderFont = PdfStandardFont.Courier;
                     else if (setting == "family") options.PdfOptions.HeaderFontFamily = "Arial";
-                    else if (setting == "size") options.PdfOptions.HeaderFontSize = 24D;
-                    else if (setting == "offset") options.PdfOptions.HeaderOffsetY = 45D;
+                    else if (setting == "size") options.PdfOptions.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(24D);
+                    else if (setting == "offset") options.PdfOptions.HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(45D);
                     else options.PdfOptions.HeaderTextColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
                 }
             }
@@ -79,8 +79,8 @@ public partial class Word {
         }
         WordPdfExportOptions options = EmptyRunningOptions();
         options.PdfOptions = new PdfCreateOptions();
-        if (footer) options.PdfOptions.FooterOffsetY = 24D;
-        else options.PdfOptions.HeaderOffsetY = 24D;
+        if (footer) options.PdfOptions.FooterOffsetY = global::OfficeIMO.OfficeLength.Points(24D);
+        else options.PdfOptions.HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(24D);
         using var withImplicit = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, withImplicit.NumberOfPages);
         for (int index = 0; index < 3; index++) {

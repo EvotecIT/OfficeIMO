@@ -8,13 +8,13 @@ public partial class PdfDocumentReadResultTests {
     [Fact]
     public void ToMarkdown_RendersLogicalHeadingsParagraphsListsTablesAndImages() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("Logical Heading")
             .Paragraph(p => p.Text("Logical readback marker."))
@@ -62,13 +62,13 @@ public partial class PdfDocumentReadResultTests {
     [Fact]
     public void ToMarkdown_RightAlignsNumericTableColumns() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
                 new[] { "Item", "Qty", "Amount" },
@@ -92,13 +92,13 @@ public partial class PdfDocumentReadResultTests {
     [Fact]
     public void TableAnalysis_ExposesColumnProfilesForAdapters() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
                 new[] { "Code", "Qty", "Mixed" },
@@ -132,13 +132,13 @@ public partial class PdfDocumentReadResultTests {
     [Fact]
     public void TableAnalysis_RecoversGeneratedHeaderBandForColumnProfiles() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 460,
-                PageHeight = 380,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(460),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(380),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("Revenue Readback Diagnostics")
             .Paragraph(paragraph => paragraph.Text("Image geometry and table confidence marker."))
@@ -181,13 +181,13 @@ public partial class PdfDocumentReadResultTests {
     [Fact]
     public void TableAnalysis_PreservesOrdinaryTwoColumnTableHeaders() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 320,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(320),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
                 new[] { "Name", "Age" },
@@ -220,13 +220,13 @@ public partial class PdfDocumentReadResultTests {
     [Fact]
     public void TableAnalysis_KeepsMixedNumericFirstRowsAsBodyRows() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 460,
-                PageHeight = 320,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(460),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(320),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
                 new[] { "Product A", "10", "20" },
@@ -254,13 +254,13 @@ public partial class PdfDocumentReadResultTests {
     [Fact]
     public void TableAnalysis_DoesNotPromoteAnAllTextDataRowWithoutStructuralHeaderEvidence() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 460,
-                PageHeight = 320,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(460),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(320),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
                 new[] { "Sverige", "Stockholm" },
@@ -318,13 +318,13 @@ public partial class PdfDocumentReadResultTests {
     [Fact]
     public void TableAnalysis_UsesDistinctHeaderTypographyWithoutHeaderVocabulary() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 460,
-                PageHeight = 320,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(460),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(320),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
                 new[] { "Område", "Ansvarig" },
@@ -347,13 +347,13 @@ public partial class PdfDocumentReadResultTests {
     [Fact]
     public void TableAnalysis_ReportsHeaderlessTwoColumnShapeAsUnknown() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .KeyValueTable(new[] {
                 PdfKeyValueRow.Text("InvoiceId", "INV-001"),
@@ -402,13 +402,13 @@ public partial class PdfDocumentReadResultTests {
     [Fact]
     public void ToMarkdown_EscapesMarkdownControlSyntaxFromPdfText() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 260,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(260),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Paragraph(p => p.Text("# Literal heading marker"))
             .Paragraph(p => p.Text("[not a link](https://example.test)"))
@@ -428,13 +428,13 @@ public partial class PdfDocumentReadResultTests {
     [InlineData(true)]
     public void ToMarkdown_DoesNotDuplicateLeaderRows(bool includeSecondRow) {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 260,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(260),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Paragraph(p => p.Text("Chapter One ........ 3"));
         if (includeSecondRow) document.Paragraph(p => p.Text("Chapter Two ........ 5"));

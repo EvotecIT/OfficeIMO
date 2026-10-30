@@ -16,7 +16,7 @@ public sealed class PdfRunSpacingTableSizingTests {
             return styled ? run.WithHorizontalTextScaling(50D).WithCharacterSpacing(1D) : run;
         }
         var runs = separateRun ? new[] { Text("A"), PdfTextRun.Tab(), Text("B") } : new[] { Text("A\tB") };
-        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 12D };
+        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D) };
         byte[] Render(bool shrink) => PdfDocument.Create(options).Table(new[] {
             new[] { PdfTableCell.RichTextCell(runs) }
         }, style: new PdfTableStyle {
@@ -44,7 +44,7 @@ public sealed class PdfRunSpacingTableSizingTests {
     [InlineData(50D, 1D, 30D, false)]
     [InlineData(200D, -1D, 11.25D, false)]
     public void TableRunShrinkingUsesScaledGlyphsAndFixedTracking(double scale, double tracking, double expectedSize, bool explicitSize) {
-        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, MarginLeft = 36D, MarginRight = 36D };
+        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, MarginLeft = global::OfficeIMO.OfficeLength.Points(36D), MarginRight = global::OfficeIMO.OfficeLength.Points(36D) };
         PdfTextRun run = new PdfTextRun("MMMMMMMM", font: PdfStandardFont.Courier, fontSize: explicitSize ? 30D : null)
             .WithHorizontalTextScaling(scale).WithCharacterSpacing(tracking);
         byte[] bytes = PdfDocument.Create(options).Table(new[] {

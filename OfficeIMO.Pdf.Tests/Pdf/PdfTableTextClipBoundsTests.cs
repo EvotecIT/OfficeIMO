@@ -13,9 +13,9 @@ public sealed class PdfTableTextClipBoundsTests {
     [InlineData("column", false)]
     [InlineData("canvas", false)]
     public void Cell_clip_policy_survives_style_copy_and_retains_authored_glyph_positions(string frame, bool containText) {
-        var options = new PdfCreateOptions { PageWidth = 240, PageHeight = 180,
-            MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24,
-            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 48, CompressContentStreams = false };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(48), CompressContentStreams = false };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.ClipTextToCellBounds = containText;

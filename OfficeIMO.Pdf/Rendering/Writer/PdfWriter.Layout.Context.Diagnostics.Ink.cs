@@ -56,8 +56,8 @@ internal static partial class PdfWriter {
             for (int index = 0; index < _diagnosticCanvasClips.Count; index++) {
                 (_diagnosticCanvasSourceClips[index] ? sourceClips : targetClips).Add(_diagnosticCanvasClips[index]);
             }
-            OfficeTextInkClip pageClip = DiagnosticRectangleClip(new TableCellContentFrame(0D, currentOpts.PageHeight,
-                currentOpts.PageWidth, currentOpts.PageHeight), OfficeTransform.Identity);
+            OfficeTextInkClip pageClip = DiagnosticRectangleClip(new TableCellContentFrame(0D, currentOpts.PageHeight.ToPoints(),
+                currentOpts.PageWidth.ToPoints(), currentOpts.PageHeight.ToPoints()), OfficeTransform.Identity);
             bool clipped = false, outsidePage = false, overflow = false, outerClipped = false;
             string? unmeasuredReason = null;
             double baseline = firstBaseline;
@@ -131,7 +131,7 @@ internal static partial class PdfWriter {
                         } else if (segment.InlineElement is PdfInlineImage image) {
                             double imageX = image.TableTextRotation > 0 ? origin + available - cursor - image.Width : x;
                             var pictureClip = GetImportedPictureClip(image, paragraphLineSpacing,
-                                imageX, lineY, paragraphStartTop, currentOpts.PageWidth);
+                                imageX, lineY, paragraphStartTop, currentOpts.PageWidth.ToPoints());
                             OfficeTextInkClip? intrinsicParagraphClip = pictureClip is { } clip
                                 ? DiagnosticRectangleClip(new TableCellContentFrame(clip.X, clip.Bottom + clip.Height,
                                     clip.Width, clip.Height), OfficeTransform.Identity) : null;

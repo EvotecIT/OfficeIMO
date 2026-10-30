@@ -56,8 +56,8 @@ public sealed class PdfInlineFormLineMetricsTests {
 
     private static byte[] Render(string frame, bool exactSpacing, bool field) {
         var options = new PdfCreateOptions {
-            PageWidth = 300, PageHeight = 300, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10,
-            MarginTop = 30, MarginBottom = 30, MarginLeft = 30, MarginRight = 30
+            PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(300), DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30)
         };
         var source = PdfTextRun.Normal("H", fontSize: 20, font: PdfStandardFont.Helvetica);
         PdfTextRun content = source;

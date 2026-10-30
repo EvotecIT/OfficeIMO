@@ -8,17 +8,17 @@ internal static partial class PdfWriter {
         private void RenderRichParagraphFlowBlock(RichParagraphBlock rpb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             double frameStart = GetCurrentFramePageStartY();
             PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(rpb);
-            double size = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize;
+            double size = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize.ToPoints();
             double leading = GetParagraphLeading(paragraphStyle, size);
             double spacingBefore = GetParagraphSpacingBefore(paragraphStyle);
             double spacingAfter = GetParagraphSpacingAfter(paragraphStyle, leading);
-            var textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
+            var textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft.ToPoints(), width);
             double wrappedWidth = textFrame.Width;
             RunningFrameAdmissionAttempt? runningAdmission = null;
             bool pictureWrapping = HasParagraphPictures(paragraphStyle) || HasPictureExclusions;
             // Keep, widow and frame admission must see the same physical rows that will paint.
             var (lines, lineHeights) = pictureWrapping
-                ? WrapPictureParagraph(rpb, currentOpts.MarginLeft, width, size,
+                ? WrapPictureParagraph(rpb, currentOpts.MarginLeft.ToPoints(), width, size,
                     y - ResolveTopLevelSpacingBefore(spacingBefore))
                 : WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
             bool splittingConstrainedParagraph = ResolveParagraphConstraintOverflow(paragraphStyle, lines, lineHeights, leading) !=
@@ -30,7 +30,7 @@ internal static partial class PdfWriter {
             bool AdvancePastPartialColumn(double height) => (CanOverflowImportedExactLine(paragraphStyle) ||
                 lines.Any(HasImportedOverflowPicture)) &&
                 activeColumnFlow is { } column && IsPartialPhysicalColumnFrame() &&
-                height > column.Top - column.ParentOptions.MarginBottom + .001D;
+                height > column.Top - column.ParentOptions.MarginBottom.ToPoints() + .001D;
             if (activeColumnFlow is { Options.BalanceParagraphLines: false, Options.BalanceLastPage: true } &&
                 lineHeights.Sum() <= GetMaximumBlockContinuationHeight() + 0.001D) {
                 paragraphStyle = paragraphStyle?.Clone() ?? new PdfParagraphStyle();
@@ -39,11 +39,11 @@ internal static partial class PdfWriter {
             void NewParagraphStartFrame(bool forcePhysicalPage = false, bool preserveEmptyPage = false) {
                 NewBlockFrame(forcePhysicalPage: forcePhysicalPage || SkipColumnsForParagraphOverflow(), preserveEmptyPage: preserveEmptyPage);
                 frameStart = GetCurrentFramePageStartY();
-                textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
+                textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft.ToPoints(), width);
                 pictureWrapping |= HasPictureExclusions;
                 if (pictureWrapping) {
                     // A page move changes paragraph anchors even when the frame width is unchanged.
-                    (lines, lineHeights) = WrapPictureParagraph(rpb, currentOpts.MarginLeft, width, size,
+                    (lines, lineHeights) = WrapPictureParagraph(rpb, currentOpts.MarginLeft.ToPoints(), width, size,
                         y - ResolveTopLevelSpacingBefore(spacingBefore));
                     wrappedWidth = textFrame.Width;
                 } else if (Math.Abs(wrappedWidth - textFrame.Width) > .001D) {
@@ -68,13 +68,13 @@ internal static partial class PdfWriter {
             if (paragraphStyle?.KeepWithNext == true && nextBlock != null && lines.Count > 0 &&
                 (ReservesWholeKeepGroup() || IsKeptInCurrentFrame())) {
                 double paragraphHeight = ResolveTopLevelSpacingBefore(spacingBefore) + lineHeights.Sum() + spacingAfter;
-                double nextHeight = MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size, paragraphHeight);
+                double nextHeight = MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, currentOpts.MarginLeft.ToPoints(), width, size, paragraphHeight);
                 double keepHeight = paragraphHeight + nextHeight;
                 while ((ReservesWholeKeepGroup() || IsKeptInCurrentFrame()) && nextHeight > 0.001 &&
                     keepHeight <= GetMaximumBlockContinuationHeight() + 0.001 && ShouldAdvanceForBlockHeight(keepHeight)) {
                     NewParagraphStartFrame();
                     paragraphHeight = lineHeights.Sum() + spacingAfter;
-                    nextHeight = MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size, paragraphHeight);
+                    nextHeight = MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, currentOpts.MarginLeft.ToPoints(), width, size, paragraphHeight);
                     keepHeight = paragraphHeight + nextHeight;
                 }
             }
@@ -97,7 +97,7 @@ internal static partial class PdfWriter {
                 NewParagraphStartFrame(forcePhysicalPage: IsPartialPhysicalColumnFrame());
 
             List<double>? floatingLineOffsets = null;
-            textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
+            textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft.ToPoints(), width);
             if (!pictureWrapping && activeColumnFlow != null && Math.Abs(wrappedWidth - textFrame.Width) > 0.001D) {
                 (lines, lineHeights) = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,
                     textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts,
@@ -160,7 +160,7 @@ internal static partial class PdfWriter {
                 lines = wrapped.Lines; lineHeights = wrapped.LineHeights;
                 double actualHeight = (y < frameStart - 0.001 ? spacingBefore : 0) + lineHeights.Sum();
                 double nextHeight = paragraphStyle?.KeepWithNext == true && nextBlock != null
-                    ? MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size, actualHeight + spacingAfter) : 0;
+                    ? MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft.ToPoints(), width, size, actualHeight + spacingAfter) : 0;
                 bool simulatedPageBreak = floatingPageStarts.Count > 0;
                 double fitHeight = (y < frameStart - 0.001 ? spacingBefore : 0D) +
                     MeasureRichLinesFrameFitHeight(lines, lineHeights, leading, floatingLineGaps);
@@ -174,7 +174,7 @@ internal static partial class PdfWriter {
             int lineIndex = 0;
             bool firstSegment = true;
             bool firstLogicalLine = true;
-            textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
+            textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft.ToPoints(), width);
             void NewParagraphPage(bool preserveEmptyPage = false) {
                 double firstBodyHeight = GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], floatingLineGaps?[lineIndex] ?? 0D);
                 if (lineIndex == lines.Count - 1) firstBodyHeight += GetClosingTextPadding(spacingAfter);
@@ -192,7 +192,7 @@ internal static partial class PdfWriter {
                     firstBodyAllowsExactOverflow: CanOverflowImportedExactLine(paragraphStyle) ||
                         CanOverflowImportedPictureLine(lines[lineIndex]));
                 frameStart = GetCurrentFramePageStartY();
-                textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
+                textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft.ToPoints(), width);
                 pictureWrapping |= HasPictureExclusions;
                 if (pictureWrapping) {
                     IReadOnlyList<PdfTextRun> remaining = firstLogicalLine ? rpb.Runs :
@@ -205,7 +205,7 @@ internal static partial class PdfWriter {
                         continuation.AnchoredCanvas = null;
                     }
                     var remainder = new RichParagraphBlock(remaining, rpb.Align, rpb.DefaultColor, continuation);
-                    var wrapped = WrapPictureParagraph(remainder, currentOpts.MarginLeft, width, size, y);
+                    var wrapped = WrapPictureParagraph(remainder, currentOpts.MarginLeft.ToPoints(), width, size, y);
                     lines = wrapped.Lines;
                     lineHeights = wrapped.LineHeights;
                     floatingLineOffsets = null;
@@ -377,7 +377,7 @@ internal static partial class PdfWriter {
 
                 if (activeColumnFlow is { } column && (CanOverflowImportedExactLine(paragraphStyle) ||
                     lines.Skip(lineIndex).Take(take).Any(HasImportedOverflowPicture))) {
-                    double physicalHeight = column.Top - column.ParentOptions.MarginBottom;
+                    double physicalHeight = column.Top - column.ParentOptions.MarginBottom.ToPoints();
                     for (int index = lineIndex; index < lineIndex + take; index++) {
                         if (lineHeights[index] > physicalHeight + .001D) {
                             column.RequiresPhysicalContinuation = true;
@@ -410,7 +410,7 @@ internal static partial class PdfWriter {
                 MarkRichFonts(rpb.Runs);
                 ReportRichPaintDiagnostics(PaintDiagnosticCodes.Paragraph, "PdfParagraph", rpb, sliceLines, sliceHeights,
                     FirstTextBaselineFromTop(paragraphFont, size, y), size, leading, textFrame.X, textFrame.Width,
-                    new TableCellContentFrame(textFrame.X, currentOpts.PageHeight, textFrame.Width, currentOpts.PageHeight), clipsToFrame: false,
+                    new TableCellContentFrame(textFrame.X, currentOpts.PageHeight.ToPoints(), textFrame.Width, currentOpts.PageHeight.ToPoints()), clipsToFrame: false,
                     offsets: floatingLineOffsets?.GetRange(lineIndex, take), widths: floatingLineWidths?.GetRange(lineIndex, take),
                     firstLineX: sliceStartsAtFirstLine ? textFrame.FirstLineX : null,
                     firstLineWidth: sliceStartsAtFirstLine ? textFrame.FirstLineWidth : null,

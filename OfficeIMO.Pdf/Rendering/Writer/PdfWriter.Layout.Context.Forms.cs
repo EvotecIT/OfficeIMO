@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderTextFieldBlock(TextFieldBlock block, double containerX, double containerWidth) {
-            double frameMarginLeft = currentOpts.MarginLeft;
+            double frameMarginLeft = currentOpts.MarginLeft.ToPoints();
             double spacingBefore = PlaceFixedFlowBlock("Text field", block.Width, block.Height,
                 block.SpacingBefore, block.SpacingAfter, ref containerWidth);
 
@@ -14,7 +14,7 @@ internal static partial class PdfWriter {
                 y -= spacingBefore;
             }
 
-            double x = GetAlignedObjectX(containerX + currentOpts.MarginLeft - frameMarginLeft, containerWidth, block.Width, block.Align);
+            double x = GetAlignedObjectX(containerX + currentOpts.MarginLeft.ToPoints() - frameMarginLeft, containerWidth, block.Width, block.Align);
             AddFormFieldAnnotation(new FormFieldAnnotation {
                 X1 = x,
                 Y1 = y - block.Height,
@@ -31,7 +31,7 @@ internal static partial class PdfWriter {
         }
 
         private void RenderCheckBoxBlock(CheckBoxBlock block, double containerX, double containerWidth) {
-            double frameMarginLeft = currentOpts.MarginLeft;
+            double frameMarginLeft = currentOpts.MarginLeft.ToPoints();
             double spacingBefore = PlaceFixedFlowBlock("Check box", block.Size, block.Size,
                 block.SpacingBefore, block.SpacingAfter, ref containerWidth);
 
@@ -39,7 +39,7 @@ internal static partial class PdfWriter {
                 y -= spacingBefore;
             }
 
-            double x = GetAlignedObjectX(containerX + currentOpts.MarginLeft - frameMarginLeft, containerWidth, block.Size, block.Align);
+            double x = GetAlignedObjectX(containerX + currentOpts.MarginLeft.ToPoints() - frameMarginLeft, containerWidth, block.Size, block.Align);
             AddFormFieldAnnotation(new FormFieldAnnotation {
                 X1 = x,
                 Y1 = y - block.Size,
@@ -57,7 +57,7 @@ internal static partial class PdfWriter {
         }
 
         private void RenderChoiceFieldBlock(ChoiceFieldBlock block, double containerX, double containerWidth) {
-            double frameMarginLeft = currentOpts.MarginLeft;
+            double frameMarginLeft = currentOpts.MarginLeft.ToPoints();
             double spacingBefore = PlaceFixedFlowBlock("Choice field", block.Width, block.Height,
                 block.SpacingBefore, block.SpacingAfter, ref containerWidth);
 
@@ -65,7 +65,7 @@ internal static partial class PdfWriter {
                 y -= spacingBefore;
             }
 
-            double x = GetAlignedObjectX(containerX + currentOpts.MarginLeft - frameMarginLeft, containerWidth, block.Width, block.Align);
+            double x = GetAlignedObjectX(containerX + currentOpts.MarginLeft.ToPoints() - frameMarginLeft, containerWidth, block.Width, block.Align);
             AddFormFieldAnnotation(new FormFieldAnnotation {
                 X1 = x,
                 Y1 = y - block.Height,
@@ -86,7 +86,7 @@ internal static partial class PdfWriter {
         }
 
         private void RenderRadioButtonGroupBlock(RadioButtonGroupBlock block, double containerX, double containerWidth) {
-            double frameMarginLeft = currentOpts.MarginLeft;
+            double frameMarginLeft = currentOpts.MarginLeft.ToPoints();
             double height = block.Height;
             double groupWidth = GetRadioButtonGroupWidth(block);
             double spacingBefore = PlaceFixedFlowBlock("Radio button group", groupWidth, height,
@@ -96,7 +96,7 @@ internal static partial class PdfWriter {
                 y -= spacingBefore;
             }
 
-            double x = GetAlignedObjectX(containerX + currentOpts.MarginLeft - frameMarginLeft, containerWidth, groupWidth, block.Align);
+            double x = GetAlignedObjectX(containerX + currentOpts.MarginLeft.ToPoints() - frameMarginLeft, containerWidth, groupWidth, block.Align);
             AddFormFieldAnnotation(new FormFieldAnnotation {
                 X1 = x,
                 Y1 = y - height,
@@ -280,7 +280,7 @@ internal static partial class PdfWriter {
         }
 
         private double GetRadioButtonGroupLabelFontSize(RadioButtonGroupBlock block) =>
-            PdfRadioButtonLayout.GetLabelFontSize(currentOpts.DefaultFontSize, block.Size);
+            PdfRadioButtonLayout.GetLabelFontSize(currentOpts.DefaultFontSize.ToPoints(), block.Size);
 
         private static double GetRadioButtonGroupLabelGap(RadioButtonGroupBlock block) =>
             PdfRadioButtonLayout.GetLabelGap(block.Size);

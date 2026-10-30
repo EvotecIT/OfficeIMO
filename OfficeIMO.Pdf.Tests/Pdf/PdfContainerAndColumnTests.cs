@@ -37,7 +37,7 @@ public class PdfContainerAndColumnTests {
     public void Columns_DistributesBlocksAcrossEqualFramesAndSupportsExplicitBreak() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 // Two 222-point frames separated by 24 points start at 72 and 318.
-                PageWidth = 612, MarginLeft = 72, MarginRight = 72
+                PageWidth = global::OfficeIMO.OfficeLength.Points(612), MarginLeft = global::OfficeIMO.OfficeLength.Points(72), MarginRight = global::OfficeIMO.OfficeLength.Points(72)
             })
             .Columns(columns => {
                 columns.Paragraph(paragraph => paragraph.Text("Left one"));
@@ -84,13 +84,13 @@ public class PdfContainerAndColumnTests {
     [Fact]
     public void Container_PaginatesAndDecoratesEveryPageFragment() {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 260,
-            PageHeight = 180,
-            MarginLeft = 20,
-            MarginRight = 20,
-            MarginTop = 20,
-            MarginBottom = 20,
-            DefaultFontSize = 10,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
             CompressContentStreams = false
         });
 
@@ -143,13 +143,13 @@ public class PdfContainerAndColumnTests {
     [Fact]
     public void Columns_BalancesOneLongParagraphAtWrappedLineBoundaries() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 300,
-                MarginLeft = 40,
-                MarginRight = 40,
-                MarginTop = 40,
-                MarginBottom = 40,
-                DefaultFontSize = 10,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(300),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(40),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(40),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 CompressContentStreams = false
             })
             .Columns(columns => columns.Paragraph(paragraph => paragraph
@@ -180,13 +180,13 @@ public class PdfContainerAndColumnTests {
     [Fact]
     public void Columns_DefaultKeepTogetherParagraphIsNotSplitByLineBalancing() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 300,
-                MarginLeft = 40,
-                MarginRight = 40,
-                MarginTop = 40,
-                MarginBottom = 40,
-                DefaultFontSize = 10,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(300),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(40),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(40),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultParagraphStyle = new PdfParagraphStyle {
                     KeepTogether = true
                 },
@@ -221,13 +221,13 @@ public class PdfContainerAndColumnTests {
     [Fact]
     public void Columns_BalancedRichLinesPreserveSpaceBeforeInlineElements() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 300,
-                MarginLeft = 40,
-                MarginRight = 40,
-                MarginTop = 40,
-                MarginBottom = 40,
-                DefaultFontSize = 10,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(300),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(40),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(40),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 CompressContentStreams = false
             })
             .Columns(columns => columns.Paragraph(paragraph => paragraph
@@ -258,13 +258,13 @@ public class PdfContainerAndColumnTests {
     [Fact]
     public void Columns_BalancedJustifiedParagraphPreservesSoftWrapJustification() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 300,
-                MarginLeft = 40,
-                MarginRight = 40,
-                MarginTop = 40,
-                MarginBottom = 40,
-                DefaultFontSize = 10,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(300),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(40),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(40),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 CompressContentStreams = false
             })
             .Columns(columns => columns.Paragraph(paragraph => paragraph.Text(

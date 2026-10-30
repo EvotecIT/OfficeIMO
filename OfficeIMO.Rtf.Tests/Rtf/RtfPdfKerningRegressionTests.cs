@@ -141,7 +141,7 @@ public sealed class RtfPdfKerningRegressionTests {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         PdfOptions = new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,
-            DefaultFontSize = fontSize,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(fontSize),
             TextKerning = true
         }
     };

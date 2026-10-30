@@ -74,7 +74,7 @@ public sealed class PdfRunSpacingFontTrackingTests {
         byte[] font = ManagedTextShapingTestAssets.AddTrackingTable(File.ReadAllBytes(path!),
             ManagedTextShapingTestAssets.CreateTrackingTable(new[] { 10D, 20D }, new[] { 0D },
                 new[] { new[] { smallTracking, largeTracking } }));
-        var options = new PdfCreateOptions { DefaultFontSize = 12D };
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D) };
         options.EmbedStandardFont(PdfStandardFont.Helvetica, font, "TrackedSpacing");
         return options;
     }
@@ -91,7 +91,7 @@ public sealed class PdfRunSpacingFontTrackingTests {
             ManagedTextShapingTestAssets.CreateTrackingTable(new[] { 10D, 20D }, new[] { 0D },
                 new[] { new short[] { -100, 0 } }));
         byte[] Render(bool styled) {
-            var options = new PdfCreateOptions { DefaultFontSize = 12D };
+            var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D) };
             options.EmbedStandardFont(PdfStandardFont.Helvetica, font, "TrackedSpacing");
             var run = new PdfTextRun("AABB", fontSize: 12D);
             if (styled) run = run.WithHorizontalTextScaling(scale).WithCharacterSpacing(spacing);

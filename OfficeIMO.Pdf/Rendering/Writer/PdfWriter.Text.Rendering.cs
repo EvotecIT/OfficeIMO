@@ -138,7 +138,7 @@ internal static partial class PdfWriter {
     private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfCreateOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, string? foregroundGraphicsState = null, string? decorationGraphicsState = null, bool captureInlineForms = true, bool hasFollowingParagraphLines = false, LayoutResult.Page? fontPage = null, double paragraphSpacingAfter = 0D, TableCellContentFrame? barClipFrame = null, double paragraphSpacingBefore = 0D) {
         List<List<RichSeg>> logicalRows = lines;
         RichPaintRows? paintRows = ExpandRichPaintRows(lines, lineHeights, defaultLeading,
-            xOverride ?? opts.MarginLeft, widthOverride ?? opts.PageWidth - opts.MarginLeft - opts.MarginRight,
+            xOverride ?? opts.MarginLeft.ToPoints(), widthOverride ?? opts.PageWidth.ToPoints() - opts.MarginLeft.ToPoints() - opts.MarginRight.ToPoints(),
             firstLineXOverride, firstLineWidthOverride, lineXOffsets, lineWidths, lineTopGaps);
         if (paintRows != null) {
             lines = paintRows.Lines;
@@ -152,7 +152,7 @@ internal static partial class PdfWriter {
         // Canvas artifacts can suppress accessibility structure while still
         // owning page glyphs and their font resources.
         fontPage ??= structurePage;
-        double widthContent = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
+        double widthContent = opts.PageWidth.ToPoints() - opts.MarginLeft.ToPoints() - opts.MarginRight.ToPoints();
         double widthUsed = widthOverride ?? widthContent;
         System.Collections.Generic.List<(double X1, double X2, double Y, global::OfficeIMO.OfficeColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>? underlines = null;
         System.Collections.Generic.List<(double X1, double X2, double Y, global::OfficeIMO.OfficeColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>? strikes = null;
@@ -181,7 +181,7 @@ internal static partial class PdfWriter {
         }
 
         double backgroundYOffset = 0D;
-        double xOrigin = xOverride ?? opts.MarginLeft;
+        double xOrigin = xOverride ?? opts.MarginLeft.ToPoints();
         int?[] bidiParagraphLevels = ResolveRichParagraphBidiLevels(lines);
         var justification = new RichLineJustification[lines.Count];
         for (int index = 0; index < lines.Count; index++) {
@@ -431,7 +431,7 @@ internal static partial class PdfWriter {
                         : lineXOrigin + xCursor;
                     bool pictureClip = BeginImportedPictureClip(sb, s.InlineElement,
                         (block.Style ?? opts.DefaultParagraphStyleSnapshot)?.LineSpacing, inlineX, lineY,
-                        startY + GetAscenderForOptions(baselineFont ?? ChooseNormal(opts.DefaultFont), fontSize, opts), opts.PageWidth);
+                        startY + GetAscenderForOptions(baselineFont ?? ChooseNormal(opts.DefaultFont), fontSize, opts), opts.PageWidth.ToPoints());
                     AppendInlineElement(
                         s.InlineElement is PdfInlineImage { TableTextRotation: not 0 }
                             ? uprightCellImages ??= new StringBuilder()

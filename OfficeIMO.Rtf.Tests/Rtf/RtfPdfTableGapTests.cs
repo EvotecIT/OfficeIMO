@@ -57,7 +57,7 @@ public class RtfPdfTableGapTests {
         const int gapTwips = 300;
         var caller = new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,
-            DefaultFontSize = 12D,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D),
             DefaultTableStyle = new PdfCore.PdfTableStyle {
                 BorderColor = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255),
                 BorderWidth = 1D,
@@ -116,7 +116,7 @@ public class RtfPdfTableGapTests {
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
         PdfOptions = includePdfOptions ? new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,
-            DefaultFontSize = 12D
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D)
         } : null
     };
 }

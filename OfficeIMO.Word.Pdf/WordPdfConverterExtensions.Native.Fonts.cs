@@ -21,7 +21,7 @@ namespace OfficeIMO.Word.Pdf {
 
             public bool UsePdfDefaultForDocumentDefaultFont { get; private set; }
 
-            public double? DefaultFontSize => _resolvedOptions?.DefaultFontSize;
+            public double? DefaultFontSize => _resolvedOptions?.DefaultFontSize.ToPoints();
 
             public double? MeasureText(PdfCore.PdfTextRun run) => _resolvedOptions == null
                 ? null : PdfCore.PdfWriter.MeasurePositionedText(run, _resolvedOptions);

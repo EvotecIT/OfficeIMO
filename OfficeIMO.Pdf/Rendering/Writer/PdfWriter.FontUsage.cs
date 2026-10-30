@@ -33,7 +33,7 @@ internal static partial class PdfWriter {
             LayoutResult.Page page = layout.Pages[pageIndex];
             PdfCreateOptions pageOptions = page.Options ?? options;
             if (pageOptions.PrintProductionPageBoxesSnapshot != null) {
-                pageOptions.PrintProductionPageBoxesSnapshot.Resolve(pageOptions.PageWidth, pageOptions.PageHeight);
+                pageOptions.PrintProductionPageBoxesSnapshot.Resolve(pageOptions.PageWidth.ToPoints(), pageOptions.PageHeight.ToPoints());
                 pagesWithPrintProductionBoxes++;
             }
             annotationCount += page.Annotations.Count + page.TextAnnotations.Count + page.FormFields.Sum(GetFormFieldWidgetCount);

@@ -14,12 +14,12 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfDocument_ToPowerPointDocument_VisualProfileCreatesOnePageImagePerSlide() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 360,
-                PageHeight = 240,
-                MarginLeft = 24,
-                MarginRight = 24,
-                MarginTop = 24,
-                MarginBottom = 24
+                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(240),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24)
             })
             .H1("Visual page one")
             .PageBreak()
@@ -53,13 +53,13 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfDocument_ToPowerPointDocument_DefaultCreatesNativeEditableObjects() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("Quarterly report")
             .Paragraph(p => p.Text("Editable content projection"))
@@ -101,12 +101,12 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfDocument_ToPowerPointDocument_EditableContentCreatesNativeSafeVectorShapes() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 300,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(300),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 PageBackgroundShapes = new[] {
                     PdfCore.PdfPageBackgroundShape.Rectangle(
                         40,
@@ -140,8 +140,8 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void LogicalEditableContentReportsRepresentableVectorsAsOmittedWithoutRenderer() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 300,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(300),
                 PageBackgroundShapes = new[] {
                     PdfCore.PdfPageBackgroundShape.Rectangle(
                         40,
@@ -321,13 +321,13 @@ public class PowerPointPdfTableImportTests {
         double pageHeight,
         int expectedFontSizeHundredths) {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = pageWidth,
-                PageHeight = pageHeight,
-                MarginLeft = 12,
-                MarginRight = 12,
-                MarginTop = 12,
-                MarginBottom = 12,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(pageWidth),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(pageHeight),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(12),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(12),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(12),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(12),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Paragraph(p => p.Text("Scale probe"))
             .ToBytes();
@@ -357,12 +357,12 @@ public class PowerPointPdfTableImportTests {
         int pageRotation,
         int expectedPowerPointRotation) {
         byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 360,
-                PageHeight = 240,
-                MarginLeft = 24,
-                MarginRight = 24,
-                MarginTop = 24,
-                MarginBottom = 24
+                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(240),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24)
             })
             .Paragraph(p => p.Text("Rotation probe"))
             .ToBytes();
@@ -388,13 +388,13 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfDocument_ToPowerPointDocument_EditableContinuationTablesStayInsideSlide() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 3600D,
-                PageHeight = 1800D,
-                MarginLeft = 36D,
-                MarginRight = 36D,
-                MarginTop = 36D,
-                MarginBottom = 36D,
-                DefaultFontSize = 10D
+                PageWidth = global::OfficeIMO.OfficeLength.Points(3600D),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(1800D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36D),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36D),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36D),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36D),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D)
             })
             .Table(new[] {
                 new[] { "Metric", "Value" },
@@ -430,13 +430,13 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfDocument_ToPowerPointDocument_HybridKeepsVisualPageAndEditableTableOverlay() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Paragraph(p => p.Text("Quarterly status"))
             .Table(new[] {
@@ -477,13 +477,13 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfDocument_ToPowerPointDocument_ReportsDocumentActionsAsOmittedFromHybridAndEditableOutput() {
         var pdfOptions = new PdfCore.PdfCreateOptions {
-            PageWidth = 420,
-            PageHeight = 360,
-            MarginLeft = 36,
-            MarginRight = 36,
-            MarginTop = 36,
-            MarginBottom = 36,
-            DefaultFontSize = 10
+            PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         }.SetOpenAction(1, destinationMode: PdfCore.PdfOpenActionDestinationMode.Fit);
         byte[] tablePdf = PdfCore.PdfDocument.Create(pdfOptions)
             .Table(new[] {
@@ -536,12 +536,12 @@ public class PowerPointPdfTableImportTests {
     [InlineData(270)]
     public void PdfDocument_ToPowerPointDocument_HybridMapsRotatedTableBoundsToVisualCoordinates(int rotation) {
         byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 300,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(300),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
             })
             .Table(new[] {
                 new[] { "Code", "Qty" },
@@ -602,12 +602,12 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfDocument_ToPowerPointDocument_HybridPreservesSelectedPageIndexesInTableReports() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 300,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(300),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
             })
             .Table(new[] {
                 new[] { "Code", "Qty" },
@@ -633,13 +633,13 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfDocument_ToPowerPointDocument_HybridSplitsTablesWithinPerSlideCaps() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 520,
-                PageHeight = 420,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 9
+                PageWidth = global::OfficeIMO.OfficeLength.Points(520),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(420),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(new[] {
                 new[] { "C1", "C2", "C3", "C4" },
@@ -700,13 +700,13 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfDocument_ToPowerPointDocument_HybridChargesRepeatedBackgroundsToAggregateBudget() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 520,
-                PageHeight = 420,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 9
+                PageWidth = global::OfficeIMO.OfficeLength.Points(520),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(420),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(new[] {
                 new[] { "C1", "C2" },
@@ -735,13 +735,13 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfDocument_ToPowerPointDocument_HybridUsesVisualPlacementForMixedPageAspectRatios() {
         byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 240,
-                MarginLeft = 24,
-                MarginRight = 24,
-                MarginTop = 24,
-                MarginBottom = 24,
-                DefaultFontSize = 9
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(240),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Paragraph(p => p.Text("Landscape reference"))
             .PageBreak()
@@ -790,13 +790,13 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfDocument_ToPowerPointDocument_HybridRetainsEditableTablesWhenVisualRenderFails() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
                 new[] { "Code", "Qty" },
@@ -1029,13 +1029,13 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfTables_SaveTablesAsPowerPoint_ImportsDetectedTablesAsPowerPointTables() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
@@ -1132,13 +1132,13 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfEditableContent_PreservesTypographyAcrossUserUnitScaling() {
         byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Paragraph(paragraph => paragraph.Text("Standalone marker"))
             .Table(new[] {
@@ -1178,13 +1178,13 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfEditableContent_PreservesTableTypographyAboveEighteenPoints() {
         byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 24
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(24)
             })
             .Table(new[] {
                 new[] { "Metric", "Value" },
@@ -1219,13 +1219,13 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfTables_SaveTablesAsPowerPoint_AppliesRowCapsAndKeepsPresentationValidWhenEmpty() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .KeyValueTable(new[] {
                 PdfCore.PdfKeyValueRow.Text("InvoiceId", "INV-001"),
@@ -1285,13 +1285,13 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfTables_SaveTablesAsPowerPoint_SkipsHeaderOnlySegmentsWhenHeadersAreDisabled() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 260,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(260),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
                 new[] { "Code", "Name" }
@@ -1322,13 +1322,13 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfTables_SaveTablesAsPowerPoint_SplitsLargeTablesAcrossSlides() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 520,
-                PageHeight = 420,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 9
+                PageWidth = global::OfficeIMO.OfficeLength.Points(520),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(420),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(new[] {
                 new[] { "C1", "C2", "C3", "C4" },
@@ -1395,13 +1395,13 @@ public class PowerPointPdfTableImportTests {
             rows.Add(new[] { "Check " + index, "Team " + index });
         }
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
-                DefaultFontSize = 9
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(rows, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 2,

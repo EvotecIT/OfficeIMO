@@ -42,7 +42,7 @@ public sealed class PdfRichInlineLineHeightTests {
 
     [Fact]
     public void CompressedTextOnlySpacingRetainsItsAuthoredAdvance() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { DefaultFontSize = 8 })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8) })
             .Paragraph(p => p.FontSize(24).Text("A\n").FontSize(8).Text("B"),
                 style: new PdfParagraphStyle { FontSize = 8, LineSpacing = PdfLineSpacing.Multiple(.5) }).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
@@ -52,8 +52,8 @@ public sealed class PdfRichInlineLineHeightTests {
     }
 
     internal static byte[] Render(string frame, bool boxFirst, PdfLineSpacing? spacing = null) {
-        var options = new PdfCreateOptions { PageWidth = 300, PageHeight = 300, DefaultFontSize = 8,
-            MarginTop = 30, MarginBottom = 30, MarginLeft = 30, MarginRight = 30,
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(300), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),
             CompressContentStreams = false };
         var text = new PdfTextRun("A", fontSize: 24, font: PdfStandardFont.Helvetica);
         var box = PdfTextRun.Inline(new PdfInlineBox(20, 32, background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2, .5, .8), baselineOffset: -20));

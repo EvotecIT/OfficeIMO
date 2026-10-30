@@ -53,12 +53,12 @@ public class RichParagraphWrappingHyphenationTests {
         var dictionary = new PdfHyphenationLexicon(new[] { "typog-ra-phy-mile-stone" });
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 118,
-                PageHeight = 180,
-                MarginLeft = 18,
-                MarginRight = 18,
-                MarginTop = 24,
-                MarginBottom = 24,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(118),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(18),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(18),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
                 CompressContentStreams = false
             })
             .TextHyphenationDictionary(dictionary)
@@ -94,12 +94,12 @@ public class RichParagraphWrappingHyphenationTests {
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 118,
-                PageHeight = 180,
-                MarginLeft = 18,
-                MarginRight = 18,
-                MarginTop = 24,
-                MarginBottom = 24,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(118),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(18),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(18),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
                 CompressContentStreams = false
             })
             .TextHyphenation(callback)
@@ -123,12 +123,12 @@ public class RichParagraphWrappingHyphenationTests {
             : Array.Empty<int>();
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 118,
-                PageHeight = 180,
-                MarginLeft = 18,
-                MarginRight = 18,
-                MarginTop = 24,
-                MarginBottom = 24,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(118),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(18),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(18),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
                 CompressContentStreams = false
             })
             .TextHyphenation(callback)
@@ -144,12 +144,12 @@ public class RichParagraphWrappingHyphenationTests {
     [Fact]
     public void GeneratedText_BreaksLongDelimitedTokensAtRealDelimitersBeforeCharacterChunks() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 118,
-                PageHeight = 180,
-                MarginLeft = 18,
-                MarginRight = 18,
-                MarginTop = 24,
-                MarginBottom = 24,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(118),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(18),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(18),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
                 CompressContentStreams = false
             })
             .Paragraph(paragraph => paragraph.Text("CASE-REVIEW-LINE-001"))
@@ -165,12 +165,12 @@ public class RichParagraphWrappingHyphenationTests {
     [Fact]
     public void GeneratedText_PreservesDelimiterChunksWhenLaterSegmentNeedsCharacterWrapping() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 72,
-                PageHeight = 180,
-                MarginLeft = 18,
-                MarginRight = 18,
-                MarginTop = 24,
-                MarginBottom = 24,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(72),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(18),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(18),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
                 CompressContentStreams = false
             })
             .Paragraph(paragraph => paragraph.Text("INV-DNS-LOCATOR-001"))
@@ -193,14 +193,14 @@ public class RichParagraphWrappingHyphenationTests {
     [Fact]
     public void GeneratedText_UsesAvailableWidthAfterIdentifierDelimiters() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 160,
-                PageHeight = 180,
-                MarginLeft = 18,
-                MarginRight = 18,
-                MarginTop = 24,
-                MarginBottom = 24,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(160),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(18),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(18),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10,
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 CompressContentStreams = false
             })
             .Paragraph(paragraph => paragraph.Text(@"ACME\Service_2026AlphaIdentifier"))
@@ -217,12 +217,12 @@ public class RichParagraphWrappingHyphenationTests {
     [Fact]
     public void GeneratedText_CarriesDelimiterToNextLineBeforeSplittingWordSegment() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 86,
-                PageHeight = 180,
-                MarginLeft = 18,
-                MarginRight = 18,
-                MarginTop = 24,
-                MarginBottom = 24,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(86),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(18),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(18),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
                 CompressContentStreams = false
             })
             .Paragraph(paragraph => paragraph.Text("CASE-RECORD-STATIC-001"))
@@ -244,7 +244,7 @@ public class RichParagraphWrappingHyphenationTests {
     public void GeneratedTableText_CarriesDelimitedWordSegmentBeforeCharacterFallback() {
         var style = PdfTableStyles.Minimal();
         using var metric = PdfPigDocument.Open(PdfDocument.Create(new PdfCreateOptions {
-                DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9
+                DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             }).Paragraph(paragraph => paragraph.Text("RECORD")).ToBytes());
         var measured = metric.GetPage(1).Letters;
         double wordAdvance = measured[measured.Count - 1].EndBaseLine.X - measured[0].StartBaseLine.X;
@@ -254,14 +254,14 @@ public class RichParagraphWrappingHyphenationTests {
         style.ColumnWidthPoints = new System.Collections.Generic.List<double?> { columnWidth, 70 };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 160,
-                PageHeight = 180,
-                MarginLeft = 18,
-                MarginRight = 18,
-                MarginTop = 24,
-                MarginBottom = 24,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(160),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(18),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(18),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 9,
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9),
                 CompressContentStreams = false
             })
             .Table(new[] {

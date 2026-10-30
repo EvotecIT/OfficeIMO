@@ -5,7 +5,7 @@ public sealed class PdfTextStyleBuilder {
     private readonly PdfCreateOptions _opts;
     internal PdfTextStyleBuilder(PdfCreateOptions opts) { _opts = opts; }
     /// <summary>Sets the default font size (points).</summary>
-    public PdfTextStyleBuilder FontSize(double size) { Guard.Positive(size, nameof(size)); _opts.DefaultFontSize = size; return this; }
+    public PdfTextStyleBuilder FontSize(double size) { Guard.Positive(size, nameof(size)); _opts.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(size); return this; }
     /// <summary>Sets the default text color.</summary>
     public PdfTextStyleBuilder Color(global::OfficeIMO.OfficeColor color) { _opts.DefaultTextColor = color; return this; }
     /// <summary>Sets the default standard font family.</summary>

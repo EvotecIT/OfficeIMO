@@ -150,8 +150,8 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         byte[] Render(bool diagnostics) {
             var report = new PdfConversionReport();
             var options = CreateOptions(report);
-            if (!diagnostics) options = new PdfCreateOptions { PageWidth = 260, PageHeight = 180, MarginLeft = 24, MarginRight = 24,
-                MarginTop = 24, MarginBottom = 24, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9 };
+            if (!diagnostics) options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(180), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9) };
             options.AddEmbeddedFile("attachment.bin", new byte[65536]);
             return PdfDocument.Create(options).Canvas(canvas => canvas.Text(new[] {
                 PdfTextRun.Inline(new PdfInlineImage(png, 40, 40))

@@ -73,9 +73,9 @@ public sealed class PdfWordSpaceExpansionTests {
             };
             if (anchored) style.AddTabStop(36D, PdfTabAlignment.Left);
             return PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 612D, PageHeight = 792D, MarginLeft = 72D, MarginRight = 360D,
-                MarginTop = 72D, MarginBottom = 72D, DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 12D, CompressContentStreams = false
+                PageWidth = global::OfficeIMO.OfficeLength.Points(612D), PageHeight = global::OfficeIMO.OfficeLength.Points(792D), MarginLeft = global::OfficeIMO.OfficeLength.Points(72D), MarginRight = global::OfficeIMO.OfficeLength.Points(360D),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(72D), MarginBottom = global::OfficeIMO.OfficeLength.Points(72D), DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), CompressContentStreams = false
             }).Compose(document => document.Content(content => content.Paragraph(paragraph => {
                 if (anchored) paragraph.Text("TAG").Tab();
                 paragraph.Runs(runs).LineBreak().Text("NEXT");
@@ -118,9 +118,9 @@ public sealed class PdfWordSpaceExpansionTests {
     }
 
     private static byte[] Render(PdfTextRun[] runs, double width, bool native, bool lastLine, PdfTextWhitespaceMode whitespace) =>
-        PdfDocument.Create(new PdfCreateOptions { PageWidth = width + 40D, PageHeight = 300D,
-            MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D,
-            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12D, CompressContentStreams = false })
+        PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(width + 40D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
+            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), CompressContentStreams = false })
         .Paragraph(p => p.Runs(runs), PdfAlign.Justify, style: new PdfParagraphStyle {
             UseWordJustificationSpacing = native, JustifyLastLine = lastLine, TextWhitespaceMode = whitespace }).ToBytes();
 

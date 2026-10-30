@@ -110,9 +110,9 @@ namespace OfficeIMO.Tests.Pdf {
 
         private static byte[] Render(PdfTextRun[] runs, double width, bool distributed, byte[]? cff = null) {
             var options = new PdfCreateOptions {
-                PageWidth = width + 40D, PageHeight = 220D,
-                MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D,
-                DefaultFontSize = 12D, CompressContentStreams = false
+                PageWidth = global::OfficeIMO.OfficeLength.Points(width + 40D), PageHeight = global::OfficeIMO.OfficeLength.Points(220D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), CompressContentStreams = false
             };
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Small Average",
                 ManagedTextShapingTestAssets.CreateWordCharacterAverageFont(400)));

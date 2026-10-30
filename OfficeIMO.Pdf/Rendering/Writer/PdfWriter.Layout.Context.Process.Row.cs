@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
             System.Collections.Generic.IList<IPdfBlock> blockList,
             int blockIndex,
             RowFragmentDecorator? fragmentDecorator = null) {
-            double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
+            double contentWidth = currentOpts.PageWidth.ToPoints() - currentOpts.MarginLeft.ToPoints() - currentOpts.MarginRight.ToPoints();
             int ncols = rb.Columns.Count;
             PdfRowStyle? rowStyle = rb.StyleSnapshot ?? currentOpts.DefaultRowStyleSnapshot;
             double rowGap = rb.GapOverride ?? rowStyle?.Gap ?? PdfRowStyle.DefaultGap;
@@ -33,7 +33,7 @@ internal static partial class PdfWriter {
             double columnAreaWidth = contentWidth - totalGap;
             double[] colXs = new double[ncols];
             double[] colWs = ResolveRowColumnWidths(rb, columnAreaWidth);
-            double xAcc = currentOpts.MarginLeft;
+            double xAcc = currentOpts.MarginLeft.ToPoints();
             for (int i = 0; i < ncols; i++) { colXs[i] = xAcc; xAcc += colWs[i] + rowGap; }
 
             void DrawRowColumnSeparators(double topY, double bottomY) {
@@ -94,7 +94,7 @@ internal static partial class PdfWriter {
                     throw new ArgumentException("Row height exceeds the available page content height.");
                 }
 
-                if (y < GetCurrentFramePageStartY() - 0.001 && y - rowKeepHeight < currentOpts.MarginBottom) {
+                if (y < GetCurrentFramePageStartY() - 0.001 && y - rowKeepHeight < currentOpts.MarginBottom.ToPoints()) {
                     NewPage();
                     rowSpacingBefore = 0D;
                 }
@@ -104,17 +104,17 @@ internal static partial class PdfWriter {
                 var measurement = GetRowMeasurement();
                 double rowHeight = rowSpacingBefore + measurement.PaintExtent + rowSpacingAfter;
                 double flowHeight = rowSpacingBefore + measurement.FlowAdvance + rowSpacingAfter;
-                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, flowHeight);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft.ToPoints(), width, currentOpts.DefaultFontSize.ToPoints(), flowHeight);
                 double keepHeight = Math.Max(rowHeight, flowHeight + nextHeight);
                 double availableHeight = GetFullPageContentHeight();
-                if (nextHeight > 0.001 && rowHeight <= availableHeight + 0.001 && keepHeight <= availableHeight + 0.001 && y < GetCurrentFramePageStartY() - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
+                if (nextHeight > 0.001 && rowHeight <= availableHeight + 0.001 && keepHeight <= availableHeight + 0.001 && y < GetCurrentFramePageStartY() - 0.001 && y - keepHeight < currentOpts.MarginBottom.ToPoints()) {
                     NewPage();
                     rowSpacingBefore = 0D;
                 }
             }
 
             if (rowSpacingBefore > 0) {
-                if (y - rowSpacingBefore < currentOpts.MarginBottom) {
+                if (y - rowSpacingBefore < currentOpts.MarginBottom.ToPoints()) {
                     NewPage();
                     rowSpacingBefore = 0D;
                 }
@@ -134,9 +134,9 @@ internal static partial class PdfWriter {
                     throw new InvalidOperationException("Row column layout did not make forward progress.");
                 }
 
-                double avail = y - currentOpts.MarginBottom;
-                if (avail <= 0.5) { NewPage(); avail = y - currentOpts.MarginBottom; }
-                xAcc = currentOpts.MarginLeft;
+                double avail = y - currentOpts.MarginBottom.ToPoints();
+                if (avail <= 0.5) { NewPage(); avail = y - currentOpts.MarginBottom.ToPoints(); }
+                xAcc = currentOpts.MarginLeft.ToPoints();
                 for (int i = 0; i < ncols; i++) { colXs[i] = xAcc; xAcc += colWs[i] + rowGap; }
 
                 int fragmentInsertionIndex = sb.Length;
@@ -263,7 +263,7 @@ internal static partial class PdfWriter {
                             int? markedContentId = RegisterTextStructureElement("P");
                             ReportRichPaintDiagnostics(PaintDiagnosticCodes.Paragraph, "PdfColumnParagraph", pblock, sliceLines, sliceHeights,
                                 FirstTextBaselineFromTop(paragraphFont, size, yCol), size, leading, xCol + par.XOffset, par.TextWidth,
-                                new TableCellContentFrame(xCol + par.XOffset, currentOpts.PageHeight, par.TextWidth, currentOpts.PageHeight), clipsToFrame: false,
+                                new TableCellContentFrame(xCol + par.XOffset, currentOpts.PageHeight.ToPoints(), par.TextWidth, currentOpts.PageHeight.ToPoints()), clipsToFrame: false,
                                 firstLineX: start == 0 ? xCol + par.FirstLineXOffset : null, firstLineWidth: start == 0 ? par.FirstLineTextWidth : null,
                                 hasFollowingParagraphLines: start + take < lines.Count);
                             WriteRichParagraph(sb, pblock, sliceLines, sliceHeights, currentOpts, FirstTextBaselineFromTop(paragraphFont, size, yCol), size, leading, currentPage!.Annotations, xCol + par.XOffset, par.TextWidth, start == 0 ? xCol + par.FirstLineXOffset : null, start == 0 ? par.FirstLineTextWidth : null, "P", markedContentId, currentPage,

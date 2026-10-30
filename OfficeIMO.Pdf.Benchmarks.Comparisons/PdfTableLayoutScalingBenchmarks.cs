@@ -49,13 +49,13 @@ public class PdfTableLayoutScalingBenchmarks {
     [Benchmark]
     public byte[] ComposeTablePdf() {
         PdfDocument document = PdfDocument.Create(pdf => pdf.Content(content => content.Table(_rows, style: _style)), new PdfCreateOptions {
-            PageWidth = 612D,
-            PageHeight = 792D,
-            MarginLeft = 54D,
-            MarginRight = 54D,
-            MarginTop = 54D,
-            MarginBottom = 54D,
-            DefaultFontSize = CellFontSize,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(612D),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(792D),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(54D),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(54D),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(54D),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(54D),
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(CellFontSize),
             FileVersion = PdfFileVersion.Pdf17,
             ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly
         });

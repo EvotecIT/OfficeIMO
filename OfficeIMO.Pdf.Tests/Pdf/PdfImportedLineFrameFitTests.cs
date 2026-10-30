@@ -90,7 +90,7 @@ public sealed class PdfImportedLineFrameFitTests {
     }
 
     private static PdfCreateOptions Options(double bodyHeight) => new() {
-        PageWidth = 200D, PageHeight = bodyHeight + 40D, DefaultFont = PdfStandardFont.Helvetica,
-        DefaultFontSize = 10D, MarginTop = 20D, MarginBottom = 20D, MarginLeft = 20D, MarginRight = 20D
+        PageWidth = global::OfficeIMO.OfficeLength.Points(200D), PageHeight = global::OfficeIMO.OfficeLength.Points(bodyHeight + 40D), DefaultFont = PdfStandardFont.Helvetica,
+        DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D), MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D)
     };
 }

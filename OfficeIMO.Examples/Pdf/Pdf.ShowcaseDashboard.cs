@@ -9,15 +9,15 @@ namespace OfficeIMO.Examples.Pdf {
 
             var options = new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 9.5,
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9.5),
                 DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(30, 41, 59),
                 HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = 8,
+                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
                 HeaderFormat = "Northwind Support - Q3 operations review (sample data)",
                 HeaderAlign = PdfAlign.Left,
                 ShowHeader = true,
                 FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = 8,
+                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
                 FooterFormat = "Page {page} of {pages}",
                 FooterAlign = PdfAlign.Right,
                 ShowPageNumbers = true,

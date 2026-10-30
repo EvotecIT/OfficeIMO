@@ -144,7 +144,7 @@ public class RtfPdfBarTabTests {
     private static RtfToPdfOptions Options() => new RtfToPdfOptions {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         PdfOptions = new PdfCore.PdfCreateOptions {
-            DefaultFont = PdfCore.PdfStandardFont.Courier, DefaultFontSize = 12,
+            DefaultFont = PdfCore.PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
             CompressContentStreams = false
         }
     };

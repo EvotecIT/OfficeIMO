@@ -143,7 +143,7 @@ public class PdfFloatingTablePaginationRegressionTests {
 
 
     private static PdfCreateOptions Options(double height = 500) => new() {
-        PageWidth = 400, PageHeight = height, MarginLeft = 40, MarginRight = 40, MarginTop = 40, MarginBottom = 40
+        PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(height), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40), MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40)
     };
     private static PdfTableStyle Floating(double width = 120, double height = 80) => new() {
         HeaderRowCount = 0, ColumnWidthPoints = new List<double?> { width }, MinRowHeight = height,

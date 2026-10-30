@@ -348,9 +348,9 @@ public sealed class PdfAnchoredPictureWrappingTests {
     }
 
     private static PdfCreateOptions Options(double height = 400D) => new PdfCreateOptions {
-        PageWidth = 360D, PageHeight = height, MarginLeft = 30D, MarginRight = 30D,
-        MarginTop = 30D, MarginBottom = 30D, DefaultFont = PdfStandardFont.Helvetica,
-        DefaultFontSize = 12D, ShowHeader = false, ShowPageNumbers = false
+        PageWidth = global::OfficeIMO.OfficeLength.Points(360D), PageHeight = global::OfficeIMO.OfficeLength.Points(height), MarginLeft = global::OfficeIMO.OfficeLength.Points(30D), MarginRight = global::OfficeIMO.OfficeLength.Points(30D),
+        MarginTop = global::OfficeIMO.OfficeLength.Points(30D), MarginBottom = global::OfficeIMO.OfficeLength.Points(30D), DefaultFont = PdfStandardFont.Helvetica,
+        DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), ShowHeader = false, ShowPageNumbers = false
     };
 
     private static PdfParagraphStyle TextStyle() => new PdfParagraphStyle {

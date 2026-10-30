@@ -335,7 +335,7 @@ public sealed class PdfDrawingFlowWidthTests {
     };
 
     private static PdfCreateOptions Options(double width, double height) => new() {
-        PageWidth = width, PageHeight = height, MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20
+        PageWidth = global::OfficeIMO.OfficeLength.Points(width), PageHeight = global::OfficeIMO.OfficeLength.Points(height), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
     };
 
     private static PdfParagraphStyle Paragraph() => new() {

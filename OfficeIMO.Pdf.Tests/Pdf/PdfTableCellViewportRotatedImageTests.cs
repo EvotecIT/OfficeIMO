@@ -70,8 +70,8 @@ public sealed partial class PdfTableCellViewportTests {
         });
         if (fragment) cell = cell.WithViewport(new PdfTableCellViewport(200, 72, 80, 72, offsetX: 120));
         var rows = new[] { new[] { cell } };
-        var options = new PdfCreateOptions { PageWidth = 320, PageHeight = 180,
-            MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(320), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24) };
         var style = PdfTableStyles.Minimal();
         style.BorderColor = null; style.BorderWidth = 0; style.HeaderRowCount = 0;
         style.ColumnWidthPoints = new List<double?> { width }; style.FixedRowHeights = new List<double?> { 72 };

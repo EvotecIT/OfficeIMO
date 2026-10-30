@@ -83,7 +83,7 @@ internal static partial class PdfWriter {
         PrepareCanvasTextBoxText(IReadOnlyList<PdfTextRun> runs, double width,
             PdfCanvasTextBoxStyle style, PdfCreateOptions options) {
         double textWidth = width - style.EffectivePaddingLeft - style.EffectivePaddingRight;
-        double size = style.FontSize ?? options.DefaultFontSize;
+        double size = style.FontSize ?? options.DefaultFontSize.ToPoints();
         double leading = style.LineHeight ?? size * 1.2D;
         PdfStandardFont baseFont = ChooseNormal(style.Font ?? options.DefaultFont);
         var wrap = WrapRichRunsWithSpacing(runs, textWidth, size, baseFont, leading,

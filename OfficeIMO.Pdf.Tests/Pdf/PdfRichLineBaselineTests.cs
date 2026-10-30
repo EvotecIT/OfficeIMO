@@ -50,8 +50,8 @@ public sealed class PdfRichLineBaselineTests {
 
     private static byte[] Render(string frame, bool namedFont, bool mixed) {
         const string family = "Line Box Test";
-        var options = new PdfCreateOptions { PageWidth = 300, PageHeight = 300,
-            MarginTop = 30, MarginBottom = 30, MarginLeft = 30, MarginRight = 30, DefaultFontSize = 8 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(300),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8) };
         if (namedFont) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'B', 'C')));
         var style = new PdfParagraphStyle { FontSize = 8, SpacingBefore = 0, SpacingAfter = 0,

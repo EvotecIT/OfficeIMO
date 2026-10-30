@@ -14,8 +14,8 @@ public class PdfImportedColumnPreferenceTests {
         const string leftText = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         const string rightText = "ABCDEFGHIJKLM";
         var options = new PdfCreateOptions {
-            PageWidth = explicitMaximum ? 240D : 119D, PageHeight = 300D,
-            MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(explicitMaximum ? 240D : 119D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
             DefaultFont = PdfStandardFont.Courier
         };
         var style = new PdfTableStyle {
@@ -41,8 +41,8 @@ public class PdfImportedColumnPreferenceTests {
     [InlineData(400D, 90D)]
     public void ImportedPreferredFrameRetainsAnExplicitMaximumBeyondTheTextFrame(double maximum, double expectedFirstWidth) {
         var options = new PdfCreateOptions {
-            PageWidth = 120D, PageHeight = 200D,
-            MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
+            PageWidth = global::OfficeIMO.OfficeLength.Points(120D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
         };
         var style = new PdfTableStyle {
             HeaderRowCount = 0, AutoFitColumns = true, AutoFitWidthUsesContentMinimum = true,
@@ -72,8 +72,8 @@ public class PdfImportedColumnPreferenceTests {
     public void ImportedPreferencesShrinkAfterMinimumsAndGrowProportionally(
         double preferredWidth, double frameWidth, double firstMaximum, int automaticColumn, double expectedFirstWidth) {
         var options = new PdfCreateOptions {
-            PageWidth = frameWidth + 40D, PageHeight = 200D,
-            MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
+            PageWidth = global::OfficeIMO.OfficeLength.Points(frameWidth + 40D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
         };
         var style = new PdfTableStyle {
             HeaderRowCount = 0, AutoFitColumns = true, AutoFitWidthUsesContentMinimum = true,
@@ -220,9 +220,9 @@ public class PdfImportedColumnPreferenceTests {
     };
 
     private static PdfCreateOptions ConstrainedImportedPreferenceOptions() => new() {
-        PageWidth = 340D, PageHeight = 300D,
-        MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D,
-        DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 10D
+        PageWidth = global::OfficeIMO.OfficeLength.Points(340D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
+        DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D)
     };
 
 }

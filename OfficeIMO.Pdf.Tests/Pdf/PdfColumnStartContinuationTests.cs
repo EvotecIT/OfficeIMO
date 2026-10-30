@@ -153,8 +153,8 @@ public sealed class PdfColumnStartContinuationTests {
         Matches(string.Concat(Enumerable.Range(1, pdf.NumberOfPages).Select(page => pdf.GetPage(page).Text)), "Marker"));
     private static double X(PdfPigDocument pdf, int page, string marker) => pdf.GetPage(page).GetWords()
         .Single(word => word.Text == marker || word.Text.EndsWith("." + marker, StringComparison.Ordinal)).BoundingBox.Left;
-    private static PdfCreateOptions Options() => new() { PageWidth = 500, PageHeight = 400, MarginLeft = 40, MarginRight = 40,
-        MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12, CompressContentStreams = false, MaxGeneratedPages = 4 };
+    private static PdfCreateOptions Options() => new() { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+        MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false, MaxGeneratedPages = 4 };
     private static PdfParagraphStyle ParagraphStyle() => new() { LineSpacing = PdfLineSpacing.Exactly(20),
         SpacingBefore = 0, SpacingAfter = 0, WidowControl = false };
     private static PdfMultiColumnOptions ColumnOptions() => new() { Gap = 20, BalanceLastPage = true };

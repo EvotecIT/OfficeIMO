@@ -16,15 +16,15 @@ namespace OfficeIMO.Examples.Pdf {
                     .Bold("gradients")
                     .Text(", shadows, dashed strokes, line caps and joins, clipping paths, transforms, grouped scenes, and freeform paths."))), new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 10,
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                     DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
                     HeaderFont = PdfStandardFont.Helvetica,
-                    HeaderFontSize = 8,
+                    HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
                     HeaderFormat = "OfficeIMO.Drawing shared vector gate",
                     HeaderAlign = PdfAlign.Left,
                     ShowHeader = true,
                     FooterFont = PdfStandardFont.Helvetica,
-                    FooterFontSize = 8,
+                    FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
                     FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
                     FooterAlign = PdfAlign.Right,
                     ShowPageNumbers = true

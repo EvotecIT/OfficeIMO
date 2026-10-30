@@ -114,7 +114,7 @@ public partial class PdfPageFootnoteTests {
     [InlineData(true)]
     public void FirstAdmittedTableNoteOwnsFinalReservationWithoutChargingItAgain(bool firstAdmittedReserves) {
         var options = Options();
-        options.PageHeight = 260D;
+        options.PageHeight = global::OfficeIMO.OfficeLength.Points(260D);
         var document = PdfDocument.Create(options);
         // The right-cell note is admitted first, although the spanned left-cell
         // reference precedes it in authored source order and is admitted later.

@@ -61,7 +61,7 @@ internal static partial class PdfWriter {
 
                     if (block is TableBlock overlay && RestoresMeasuredTableFlow(
                         overlay.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light(), height.Value,
-                        y - currentOpts.MarginBottom)) {
+                        y - currentOpts.MarginBottom.ToPoints())) {
                         if (isRunningContent)
                             measuredRunningPaintBottom = Math.Min(measuredRunningPaintBottom, y - height.Value);
                         continue;

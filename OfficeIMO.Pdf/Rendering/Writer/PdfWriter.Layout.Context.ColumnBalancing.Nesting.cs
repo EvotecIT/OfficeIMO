@@ -61,7 +61,7 @@ internal static partial class PdfWriter {
             if (wrapper is FlowBlock flow) {
                 if (!PdfFlowNestingRules.IsColumnFlowSupported(flow, allowTableOfContents: true)) return null;
                 if (flow.Options.KeepTogether) {
-                    double? keptHeight = MeasureWholeBlockHeight(flow, scope.ParentOptions.MarginLeft, frameWidth, currentOpts.DefaultFontSize);
+                    double? keptHeight = MeasureWholeBlockHeight(flow, scope.ParentOptions.MarginLeft.ToPoints(), frameWidth, currentOpts.DefaultFontSize.ToPoints());
                     return keptHeight.HasValue ? new() { new(keptHeight.Value) } : null;
                 }
                 List<ColumnBalanceUnit>? children = MeasureColumnBalanceContent(remainder ?? new ColumnBalanceContent(flow.StaticBlocks!), scope, frameWidth);
@@ -69,9 +69,9 @@ internal static partial class PdfWriter {
             }
             var container = (ContainerBlock)wrapper;
             PdfPanelStyle style = ResolveContainerStyle(container);
-            var frame = ResolveContainerFrame(container, style, scope.ParentOptions.MarginLeft, frameWidth);
+            var frame = ResolveContainerFrame(container, style, scope.ParentOptions.MarginLeft.ToPoints(), frameWidth);
             if (style.KeepTogether) {
-                double? keptHeight = MeasureWholeBlockHeight(container, frame.X, frameWidth, currentOpts.DefaultFontSize);
+                double? keptHeight = MeasureWholeBlockHeight(container, frame.X, frameWidth, currentOpts.DefaultFontSize.ToPoints());
                 return keptHeight.HasValue ? new() { new(keptHeight.Value) } : null;
             }
             List<ColumnBalanceUnit>? units = MeasureWithContainerPaddingReservation(style, () =>
@@ -79,7 +79,7 @@ internal static partial class PdfWriter {
             if (units == null) return null;
             double firstHeight = remainder != null || container.Blocks.Count == 0 ? 0D :
                 MeasureWithContainerPaddingReservation(style, () => MeasureNextBlockFirstVisualHeight(
-                    container.Blocks[0], frame.X + style.PaddingX, frame.ContentWidth, currentOpts.DefaultFontSize,
+                    container.Blocks[0], frame.X + style.PaddingX, frame.ContentWidth, currentOpts.DefaultFontSize.ToPoints(),
                     allowTableFragments: true, suppressParagraphSpacingBefore: true));
             return new() { new(new ColumnBalanceContainer(style, units, firstHeight, remainder != null)) };
         }

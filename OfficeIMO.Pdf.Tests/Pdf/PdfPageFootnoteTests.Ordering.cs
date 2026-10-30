@@ -10,7 +10,7 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void StaggeredSpanReferencesUseSourceOrderAndOnePageSeparatorAcrossRepeatedSerialization() {
         var options = Options();
-        options.PageHeight = 260;
+        options.PageHeight = global::OfficeIMO.OfficeLength.Points(260);
         var document = PdfDocument.Create(options);
         // Deliberately create the right-cell definition first. Source order comes from
         // the body inventory; the earlier left-cell reference is admitted in row two.

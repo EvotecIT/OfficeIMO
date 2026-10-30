@@ -98,9 +98,9 @@ public partial class PdfDocumentVisualQualityTests {
         // Ambiguous ActualText deliberately has no public glyph projection. Inspect the
         // real PDF show: two unchanged CIDs and one adjustment at their sole boundary.
         double adjustment = Assert.Single(JustificationTextAdjustments(actualBytes));
-        double natural = shaped.TotalAdvanceWidth1000 * options.DefaultFontSize / 1000D;
-        double spare = options.PageWidth - options.MarginLeft - options.MarginRight - natural;
-        Assert.Equal(spare, -adjustment * options.DefaultFontSize / 1000D, 3);
+        double natural = shaped.TotalAdvanceWidth1000 * options.DefaultFontSize.ToPoints() / 1000D;
+        double spare = options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints() - natural;
+        Assert.Equal(spare, -adjustment * options.DefaultFontSize.ToPoints() / 1000D, 3);
         AssertJustificationPolicyWidth(actual.ToList(), expanded: true);
     }
 
@@ -175,8 +175,8 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     private static PdfCreateOptions JustificationPolicyOptions() => new() {
-        PageWidth = 300, PageHeight = 220, MarginLeft = 30, MarginRight = 30,
-        MarginTop = 30, MarginBottom = 30, DefaultFontSize = 12, CompressContentStreams = false
+        PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(220), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+        MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false
     };
     private static PdfParagraphStyle CharacterJustificationPolicy() => new() {
         JustificationMode = PdfJustificationMode.Characters, JustifyExplicitLineBreaks = true, JustifyLastLine = true

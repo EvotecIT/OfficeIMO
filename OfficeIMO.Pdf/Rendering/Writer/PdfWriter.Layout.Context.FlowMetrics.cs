@@ -91,7 +91,7 @@ internal static partial class PdfWriter {
         }
 
         private void EnsurePanelSegmentCanFitLine(double topPadding, double lineHeight) {
-            double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+            double availableHeight = currentOpts.PageHeight.ToPoints() - currentOpts.MarginTop.ToPoints() - currentOpts.MarginBottom.ToPoints();
             if (topPadding + lineHeight > availableHeight + 0.001D) {
                 throw new ArgumentException("Panel vertical padding and first line height exceed the available page content height.");
             }
@@ -124,7 +124,7 @@ internal static partial class PdfWriter {
             RichParagraphBlock paragraph, double frameX, double frameWidth, double fontSize, bool suppressSpacingBefore = false,
             double closingPadding = 0D, bool reserveSingleLine = false) {
             PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph);
-            fontSize = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize;
+            fontSize = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize.ToPoints();
             double leading = GetParagraphLeading(paragraphStyle, fontSize);
             double spacingBefore = suppressSpacingBefore ? 0D : GetParagraphSpacingBefore(paragraphStyle);
             var textFrame = GetParagraphTextFrame(paragraphStyle, frameX, frameWidth);
@@ -188,9 +188,9 @@ internal static partial class PdfWriter {
                 (enclosingClosingPadding > 0D ? style.SpacingAfter : 0D) : 0D;
             return MeasureWithContainerPaddingReservation(style, () =>
                 blocks[0] is RichParagraphBlock paragraph
-                    ? MeasureParagraphFirstVisual(paragraph, contentX, contentWidth, currentOpts.DefaultFontSize, closingPadding: closingPadding)
+                    ? MeasureParagraphFirstVisual(paragraph, contentX, contentWidth, currentOpts.DefaultFontSize.ToPoints(), closingPadding: closingPadding)
                     : (MeasureNextBlockFirstVisualHeight(blocks[0], contentX, contentWidth,
-                        currentOpts.DefaultFontSize, allowTableFragments: true, closingPadding: closingPadding), PdfKeepTogetherOverflowBehavior.Reject));
+                        currentOpts.DefaultFontSize.ToPoints(), allowTableFragments: true, closingPadding: closingPadding), PdfKeepTogetherOverflowBehavior.Reject));
         }
 
         private const int MaxKeepWithNextChainBlocks = 256;
@@ -250,7 +250,7 @@ internal static partial class PdfWriter {
                         if (!style.ConsumesVerticalFlow && style.Position == null)
                             restoresTableFlow = RestoresMeasuredTableFlow(style,
                                 MeasureTableBlockHeight(overlay, frameWidth, fontSize, firstVisualOnly: false),
-                                y - currentOpts.MarginBottom);
+                                y - currentOpts.MarginBottom.ToPoints());
                     }
                     if (!restoresTableFlow) y -= blockHeight;
                     if (!keepWithNext) {
@@ -331,7 +331,7 @@ internal static partial class PdfWriter {
             PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph);
             if (HasParagraphPictures(paragraphStyle) || HasPictureExclusions)
                 return MeasurePictureParagraph(paragraph, frameX, frameWidth, fontSize);
-            fontSize = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize;
+            fontSize = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize.ToPoints();
             double leading = GetParagraphLeading(paragraphStyle, fontSize);
             double spacingBefore = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(paragraphStyle));
             double spacingAfter = GetParagraphSpacingAfter(paragraphStyle, leading);
@@ -731,13 +731,13 @@ internal static partial class PdfWriter {
         }
 
         private void RenderHorizontalRuleBlock(HorizontalRuleBlock block, double containerX, double containerWidth) {
-            double frameMarginLeft = currentOpts.MarginLeft;
+            double frameMarginLeft = currentOpts.MarginLeft.ToPoints();
             PdfHorizontalRuleStyle ruleStyle = ResolveHorizontalRuleStyle(block, currentOpts);
             ValidateHorizontalRule(ruleStyle);
             double spacingBefore = PlaceFixedFlowBlock("Horizontal rule", 0D, ruleStyle.Thickness,
                 ruleStyle.SpacingBefore, ruleStyle.SpacingAfter, ref containerWidth);
             if (spacingBefore > 0) y -= spacingBefore;
-            containerX += currentOpts.MarginLeft - frameMarginLeft;
+            containerX += currentOpts.MarginLeft.ToPoints() - frameMarginLeft;
             RecordFlowPlacement(y);
             double yLine = y - ruleStyle.Thickness * 0.5;
             DrawHLine(sb, ruleStyle.Color, ruleStyle.Thickness, containerX, containerX + containerWidth, yLine, emitGeneratedStructure);

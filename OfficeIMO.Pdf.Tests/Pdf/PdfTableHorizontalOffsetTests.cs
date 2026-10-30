@@ -36,8 +36,8 @@ public sealed class PdfTableHorizontalOffsetTests {
             HorizontalOffset = 30, Position = new PdfTablePosition()
         };
         using var read = PdfPigDocument.Open(PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 400, PageHeight = 300, MarginLeft = 40, MarginRight = 40,
-            MarginTop = 40, MarginBottom = 40
+            PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40)
         }).Table(new[] { new[] { "floating" } }, style: style)
             .Paragraph(p => p.Text("alongside")).ToBytes());
         var words = read.GetPage(1).GetWords().ToArray();
@@ -56,8 +56,8 @@ public sealed class PdfTableHorizontalOffsetTests {
             BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 0
         };
         var document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 360, PageHeight = 240, MarginLeft = 30, MarginRight = 30,
-            MarginTop = 30, MarginBottom = 30, DefaultFontSize = 9
+            PageWidth = global::OfficeIMO.OfficeLength.Points(360), PageHeight = global::OfficeIMO.OfficeLength.Points(240), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         });
         string[][] rows = Enumerable.Range(1, 7).Select(index => new[] { "Left" + index, "Right" + index }).ToArray();
         if (frame == "columns") document.Columns(content => content.Table(rows, alignment, style),

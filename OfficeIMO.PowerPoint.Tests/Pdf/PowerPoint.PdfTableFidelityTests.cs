@@ -171,8 +171,8 @@ public sealed class PowerPointPdfTableFidelityTests {
         // Read back the actual preview, including text below the original
         // frame, rather than only checking its enlarged model dimensions.
         var pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-            PageWidth = preview.Width,
-            PageHeight = preview.Height,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(preview.Width),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(preview.Height),
             Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0))
         });
         pdf.Canvas(canvas => canvas.DrawingForClippedRendering(preview, 0, 0, preview.Width, preview.Height));

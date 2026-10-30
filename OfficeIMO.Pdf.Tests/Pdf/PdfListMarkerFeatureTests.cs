@@ -14,7 +14,7 @@ public sealed class PdfListMarkerFeatureTests {
     [InlineData(true, "A■")]
     public void MarkersUseTheSameFallbackRunsForWidthAndPaint(bool inRow, string marker) {
         const string primary = "Marker primary";
-        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 10D }
+        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D) }
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(primary, ManagedTextShapingTestAssets.CreateFont(' ', 'A')))
             .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(new[] {
                 new PdfEmbeddedFontFallbackCandidate("Marker square", ManagedTextShapingTestAssets.CreateFont('■'))
@@ -40,7 +40,7 @@ public sealed class PdfListMarkerFeatureTests {
     [InlineData(false)]
     [InlineData(true)]
     public void MixedNumberingMeasuresOnlyMarkersActuallyRendered(bool inRow) {
-        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 10D };
+        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D) };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('1', '.', 'A', 'V')));
         var style = new PdfListStyle {
@@ -68,7 +68,7 @@ public sealed class PdfListMarkerFeatureTests {
     [InlineData(false, -1, 9.2D)]
     [InlineData(true, -1, 9.2D)]
     public void MarkerFeaturesRemainConsistentInFlowAndRowColumns(bool inRow, int kerning, double advance) {
-        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 10D };
+        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D) };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', 'V')));
         var style = new PdfListStyle {

@@ -92,12 +92,12 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = 120D,
-                PageHeight = 180D,
-                MarginLeft = 0D,
-                MarginRight = 0D,
-                MarginTop = 0D,
-                MarginBottom = 0D
+                PageWidth = global::OfficeIMO.OfficeLength.Points(120D),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
             }
             .ReportDiagnosticsTo(report, "HarfBuzz vertical PDF")
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
@@ -144,8 +144,8 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = 120D, PageHeight = 180D,
-                MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D
+                PageWidth = global::OfficeIMO.OfficeLength.Points(120D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
             }
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, fontData))
             .SetLanguage("ja")

@@ -66,12 +66,12 @@ public class PdfDrawingInteropTests {
         shape.StrokeWidth = 1.5;
 
         var doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
             })
             .Shape(shape);
 
@@ -166,12 +166,12 @@ public class PdfDrawingInteropTests {
         shape.FillColor = OfficeColor.WhiteSmoke;
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             })
             .DefaultDrawingStyle(style)
             .Shape(shape)
@@ -219,12 +219,12 @@ public class PdfDrawingInteropTests {
             .AddShape(background, 0, 0);
 
         var doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             });
         if (scaledCanvas) doc.Canvas(canvas => canvas.Drawing(drawing, 30D, 40D, 180D, 90D));
         else doc.Drawing(drawing, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6);

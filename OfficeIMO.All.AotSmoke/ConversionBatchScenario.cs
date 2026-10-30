@@ -34,7 +34,7 @@ internal static class ConversionBatchScenario {
                 PowerPoint = new() { IncludeHiddenSlides = true },
                 Html = new() { InteractiveFormControls = false },
                 Markdown = new() { Title = "Native Markdown" },
-                RegisteredSettings = new OfficeWorkflowRouteSettings { Rtf = new() { IncludeHiddenText = true } }
+                RegisteredSettings = new OfficeWorkflowRouteSettings { Rtf = new() { IncludeHiddenText = true, PdfOptions = new PdfCreateOptions { DefaultFontSize = OfficeLength.Points(14) } } }
             }
         };
         OfficeWorkflow.RegisterConversions();
@@ -42,12 +42,23 @@ internal static class ConversionBatchScenario {
         OfficeBatchReport first = await OfficeConverter.ConvertAsync(request, items);
         if (first.Summary.Completed != 7 || first.Summary.Failed != 0) throw new InvalidOperationException("Native checkpoint conversion failed: " + items.Summary);
         foreach (string file in Directory.GetFiles(output, "*.pdf")) {
-            var pdf = PdfDocument.Load(file, new PdfLoadOptions { Password = password });
+            using var pdf = PdfDocument.Load(file, new PdfLoadOptions { Password = password });
             if (pdf.Read().Pages.Count == 0) throw new InvalidOperationException("Native batch produced an empty PDF.");
         }
         OfficeBatchReport resumed = await OfficeConverter.ConvertAsync(request);
         if (resumed.Summary.Reused != 7 || resumed.Summary.Failed != 0) throw new InvalidOperationException("Native checkpoint reuse failed.");
-        Console.WriteLine("PASS | Native conversion batch: seven format option bags, encrypted TXT, verified checkpoint reuse.");
+        OfficeConversionOptions changedText = request.ConversionOptions.Clone();
+        changedText.PlainText!.PdfOptions!.DefaultFontSize += OfficeLength.Emus(1);
+        OfficeBatchReport textRejected = await OfficeConverter.ConvertAsync(request with { ConversionOptions = changedText });
+        if (textRejected.Summary.Failed != 1 || textRejected.Summary.Reused != 6)
+            throw new InvalidOperationException("Native checkpoint reused changed text geometry.");
+        OfficeConversionOptions changedRtf = request.ConversionOptions.Clone();
+        var registered = (OfficeWorkflowRouteSettings)changedRtf.RegisteredSettings!;
+        registered.Rtf!.PdfOptions!.DefaultFontSize += OfficeLength.Emus(1);
+        OfficeBatchReport rtfRejected = await OfficeConverter.ConvertAsync(request with { ConversionOptions = changedRtf });
+        if (rtfRejected.Summary.Failed != 1 || rtfRejected.Summary.Reused != 6)
+            throw new InvalidOperationException("Native checkpoint reused changed registered-route geometry.");
+        Console.WriteLine("PASS | Native conversion batch: seven format option bags, encrypted TXT, verified reuse and exact physical settings rejection.");
     }
 
     private sealed class BatchItems : IProgress<OfficeBatchItemReport> {

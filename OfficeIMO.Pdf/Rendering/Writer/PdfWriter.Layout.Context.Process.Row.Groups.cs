@@ -40,7 +40,7 @@ internal static partial class PdfWriter {
                     childX = frame.X + ResolveContainerStyle(container).PaddingX;
                     childWidth = frame.ContentWidth;
                     blocks = ResolveContainerContentBlocks(container, group.Style, childX, childWidth,
-                        currentOpts.DefaultFontSize, reservedImageHeight);
+                        currentOpts.DefaultFontSize.ToPoints(), reservedImageHeight);
                     break;
                 case SemanticBlock semantic:
                     blocks = semantic.Blocks;

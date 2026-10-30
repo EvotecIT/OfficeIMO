@@ -41,11 +41,11 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         if (options.PageLayout == PowerPointPdfPageLayout.NotesPages) {
-            RenderNotesPages(pdf, presentation, pdfOptions.PageWidth, pdfOptions.PageHeight, options);
+            RenderNotesPages(pdf, presentation, pdfOptions.PageWidth.ToPoints(), pdfOptions.PageHeight.ToPoints(), options);
             return pdf;
         }
         if (options.PageLayout == PowerPointPdfPageLayout.Handouts) {
-            RenderHandoutPages(pdf, presentation, pdfOptions.PageWidth, pdfOptions.PageHeight, options);
+            RenderHandoutPages(pdf, presentation, pdfOptions.PageWidth.ToPoints(), pdfOptions.PageHeight.ToPoints(), options);
             return pdf;
         }
 

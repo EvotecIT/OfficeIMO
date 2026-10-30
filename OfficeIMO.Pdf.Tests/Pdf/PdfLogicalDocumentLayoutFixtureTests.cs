@@ -43,13 +43,13 @@ public partial class PdfDocumentReadResultTests {
     [Fact]
     public void Load_GroupsWrappedTextLinesIntoParagraphs() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Paragraph(p => p.Text("This logical paragraph should wrap across multiple nearby PDF text lines so wrappers can start from paragraph-like objects."))
             .Table(new[] {

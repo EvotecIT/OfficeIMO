@@ -45,7 +45,7 @@ internal static partial class PdfWriter {
             var style = EffectiveParagraphStyle(paragraph);
             if (HasParagraphPictures(style) || HasPictureExclusions)
                 return MeasurePictureParagraph(paragraph, frameX, frameWidth, fontSize, firstVisualOnly);
-            fontSize = style?.FontSize ?? currentOpts.DefaultFontSize;
+            fontSize = style?.FontSize ?? currentOpts.DefaultFontSize.ToPoints();
             double leading = GetParagraphLeading(style, fontSize);
             double spacing = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(style));
             var textFrame = GetParagraphTextFrame(style, frameX, frameWidth);

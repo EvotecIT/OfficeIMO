@@ -199,12 +199,12 @@ public partial class PdfDocumentVisualQualityTests {
 
     private static byte[] CreateCompressionProbe(bool compressContentStreams) {
         PdfDocument doc = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 420,
-            PageHeight = 1200,
-            MarginLeft = 42,
-            MarginRight = 42,
-            MarginTop = 42,
-            MarginBottom = 42,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(1200),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(42),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(42),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(42),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(42),
             CompressContentStreams = compressContentStreams
         })
             .H1("CompressionProbe");
@@ -252,12 +252,12 @@ public partial class PdfDocumentVisualQualityTests {
 
     private static string RenderTableStyleContent(PdfTableStyle style) {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
             })
             .Table(new[] {
                 new[] { "Metric", "Status" },
@@ -455,14 +455,14 @@ public partial class PdfDocumentVisualQualityTests {
 
     private static PdfCreateOptions CreateFlowSpacingProbeOptions() {
         return new PdfCreateOptions {
-            PageWidth = 320,
-            PageHeight = 220,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
     }
 

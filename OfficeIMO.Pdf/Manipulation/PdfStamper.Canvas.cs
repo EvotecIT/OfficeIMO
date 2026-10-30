@@ -49,12 +49,12 @@ internal static partial class PdfStamper {
             RejectNonVisualCanvasItems(canvas.Items);
 
             PdfCreateOptions overlayOptions = canvasRenderingOptions?.Clone() ?? new PdfCreateOptions();
-            overlayOptions.PageWidth = width;
-            overlayOptions.PageHeight = height;
-            overlayOptions.MarginLeft = 0D;
-            overlayOptions.MarginTop = 0D;
-            overlayOptions.MarginRight = 0D;
-            overlayOptions.MarginBottom = 0D;
+            overlayOptions.PageWidth = global::OfficeIMO.OfficeLength.Points(width);
+            overlayOptions.PageHeight = global::OfficeIMO.OfficeLength.Points(height);
+            overlayOptions.MarginLeft = global::OfficeIMO.OfficeLength.Points(0D);
+            overlayOptions.MarginTop = global::OfficeIMO.OfficeLength.Points(0D);
+            overlayOptions.MarginRight = global::OfficeIMO.OfficeLength.Points(0D);
+            overlayOptions.MarginBottom = global::OfficeIMO.OfficeLength.Points(0D);
             overlayOptions.Encryption = null;
             byte[] overlay = PdfDocument.CreateForImportedLayout(overlayOptions)
                 .Canvas(generatedCanvas => CopyCanvasItems(canvas, generatedCanvas))

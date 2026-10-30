@@ -72,8 +72,8 @@ public sealed class PdfEmptyColumnPageBreakTests {
 
     private static byte[] Render(int columns, int breaks, bool header, bool preserve) {
         var document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 500, PageHeight = 400, MarginLeft = 40, MarginRight = 40,
-            MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12, CompressContentStreams = false
+            PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false
         });
         document.Compose(builder => builder.Page(page => {
             if (header) page.Header(running => running.Content(content => content.Paragraph(paragraph => paragraph.Text("HEADER")), 18));

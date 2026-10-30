@@ -87,7 +87,7 @@ public sealed class WordPdfListMarkerKerningTests {
             paragraph._paragraph.ParagraphProperties.ParagraphMarkRunProperties =
                 new ParagraphMarkRunProperties(new Kern { Val = paragraphMarkThreshold.Value });
         if (route is "header" or "footer") document.AddParagraph("B").FontFamily = "Courier";
-        var options = new PdfCreateOptions { DefaultFontSize = 10D };
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D) };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', 'V')));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {

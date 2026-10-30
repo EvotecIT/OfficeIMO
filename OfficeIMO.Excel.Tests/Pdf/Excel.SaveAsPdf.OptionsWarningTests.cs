@@ -28,7 +28,7 @@ public partial class Excel {
 
         Assert.False(options.HasExplicitPdfFontConfiguration);
 
-        options.PdfOptions!.DefaultFontSize = 13;
+        options.PdfOptions!.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(13);
 
         Assert.True(options.HasExplicitPdfFontConfiguration);
     }

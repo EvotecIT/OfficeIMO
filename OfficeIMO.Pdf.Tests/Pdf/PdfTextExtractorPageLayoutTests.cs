@@ -36,7 +36,7 @@ public partial class PdfTextExtractorPageTests {
     public void GetTextSpans_UsesStandardFontMetricsWhenWidthsAreOmitted() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.TimesRoman,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Paragraph(p => p.Text("WWWW"))
             .ToBytes();
@@ -55,7 +55,7 @@ public partial class PdfTextExtractorPageTests {
         const string text = "\u201CWait\u201D\u2014ok\u2026";
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.TimesRoman,
-                DefaultFontSize = 10,
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 TextKerning = false
             })
             .Paragraph(p => p.Text(text))
@@ -75,7 +75,7 @@ public partial class PdfTextExtractorPageTests {
         const string text = "r\u00E9sum\u00E9";
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.TimesRoman,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Paragraph(p => p.Text(text))
             .ToBytes();

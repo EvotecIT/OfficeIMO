@@ -30,10 +30,10 @@ internal static partial class PdfWriter {
         /// <summary>Allows a width-dependent first drawing or kept container to start in another valid physical-column width.</summary>
         private bool CanContainerFitAnotherFlowWidth(ContainerBlock container, PdfPanelStyle style, double parentWidth, bool wholeContainer) {
             return CanFitAnotherFixedFlowWidth(parentWidth, candidateWidth => {
-                if (!TryResolveContainerFrame(container, style, currentOpts.MarginLeft, candidateWidth, out var frame) ||
+                if (!TryResolveContainerFrame(container, style, currentOpts.MarginLeft.ToPoints(), candidateWidth, out var frame) ||
                     !HasUsableContainerMeasurementWidths(container.Blocks, frame.ContentWidth, wholeContainer)) return null;
                 if (wholeContainer) {
-                    return MeasureWholeBlockAtFrameStart(container, currentOpts.MarginLeft, candidateWidth, currentOpts.DefaultFontSize);
+                    return MeasureWholeBlockAtFrameStart(container, currentOpts.MarginLeft.ToPoints(), candidateWidth, currentOpts.DefaultFontSize.ToPoints());
                 }
                 var firstVisual = MeasureContainerFirstVisual(container, style, frame.X + style.PaddingX,
                     frame.ContentWidth, GetClosingContainerPadding());

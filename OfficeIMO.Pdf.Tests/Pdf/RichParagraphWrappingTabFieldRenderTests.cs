@@ -12,8 +12,8 @@ public partial class RichParagraphWrappingTests {
         var style = new PdfParagraphStyle { TextWhitespaceMode = PdfTextWhitespaceMode.Collapse, SpacingAfter = 0D };
         style.AddTabStop(stop, alignment, PdfTabLeaderStyle.Dots);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 360D, PageHeight = 180D, MarginLeft = margin, MarginRight = margin,
-            MarginTop = margin, MarginBottom = margin, DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 12D
+            PageWidth = global::OfficeIMO.OfficeLength.Points(360D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D), MarginLeft = global::OfficeIMO.OfficeLength.Points(margin), MarginRight = global::OfficeIMO.OfficeLength.Points(margin),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(margin), MarginBottom = global::OfficeIMO.OfficeLength.Points(margin), DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D)
         }).Paragraph(p => p.Runs(new[] {
             PdfTextRun.Normal("A"), PdfTextRun.Tab(), PdfTextRun.Normal(" "),
             PdfTextRun.Normal("B "), new PdfTextRun("C", bold: true)
@@ -47,8 +47,8 @@ public partial class RichParagraphWrappingTests {
         style.AddTabStop(180D, alignment);
         style.AddTabStop(300D);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 400D, PageHeight = 180D, MarginLeft = 40D, MarginRight = 40D,
-            MarginTop = 40D, MarginBottom = 40D, DefaultFontSize = 10D
+            PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D), MarginLeft = global::OfficeIMO.OfficeLength.Points(40D), MarginRight = global::OfficeIMO.OfficeLength.Points(40D),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(40D), MarginBottom = global::OfficeIMO.OfficeLength.Points(40D), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D)
         }).Paragraph(p => p.Runs(new[] {
             PdfTextRun.Normal("LABEL\tFooter "), new PdfTextRun("Right", bold: true),
             PdfTextRun.Normal("\tTAIL")

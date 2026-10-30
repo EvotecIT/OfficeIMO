@@ -3,35 +3,35 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfCreateOptions {
     internal void Validate(bool allowDerivedHorizontalOverflow = false) {
         ValidateEmbeddedFileLimits();
-        if (PageWidth <= 0 || double.IsNaN(PageWidth) || double.IsInfinity(PageWidth)) {
+        if (PageWidth.ToPoints() <= 0 || double.IsNaN(PageWidth.ToPoints()) || double.IsInfinity(PageWidth.ToPoints())) {
             throw new System.ArgumentException("PDF page width must be a positive finite value.");
         }
 
-        if (PageHeight <= 0 || double.IsNaN(PageHeight) || double.IsInfinity(PageHeight)) {
+        if (PageHeight.ToPoints() <= 0 || double.IsNaN(PageHeight.ToPoints()) || double.IsInfinity(PageHeight.ToPoints())) {
             throw new System.ArgumentException("PDF page height must be a positive finite value.");
         }
 
-        if ((!allowDerivedHorizontalOverflow && MarginLeft < 0) || double.IsNaN(MarginLeft) || double.IsInfinity(MarginLeft)) {
+        if ((!allowDerivedHorizontalOverflow && MarginLeft.ToPoints() < 0) || double.IsNaN(MarginLeft.ToPoints()) || double.IsInfinity(MarginLeft.ToPoints())) {
             throw new System.ArgumentException("PDF left margin must be a non-negative finite value.");
         }
 
-        if ((!allowDerivedHorizontalOverflow && MarginRight < 0) || double.IsNaN(MarginRight) || double.IsInfinity(MarginRight)) {
+        if ((!allowDerivedHorizontalOverflow && MarginRight.ToPoints() < 0) || double.IsNaN(MarginRight.ToPoints()) || double.IsInfinity(MarginRight.ToPoints())) {
             throw new System.ArgumentException("PDF right margin must be a non-negative finite value.");
         }
 
-        if (MarginTop < 0 || double.IsNaN(MarginTop) || double.IsInfinity(MarginTop)) {
+        if (MarginTop.ToPoints() < 0 || double.IsNaN(MarginTop.ToPoints()) || double.IsInfinity(MarginTop.ToPoints())) {
             throw new System.ArgumentException("PDF top margin must be a non-negative finite value.");
         }
 
-        if (MarginBottom < 0 || double.IsNaN(MarginBottom) || double.IsInfinity(MarginBottom)) {
+        if (MarginBottom.ToPoints() < 0 || double.IsNaN(MarginBottom.ToPoints()) || double.IsInfinity(MarginBottom.ToPoints())) {
             throw new System.ArgumentException("PDF bottom margin must be a non-negative finite value.");
         }
 
-        if (PageWidth - MarginLeft - MarginRight <= 0) {
+        if (PageWidth.ToPoints() - MarginLeft.ToPoints() - MarginRight.ToPoints() <= 0) {
             throw new System.ArgumentException("PDF margins must leave a positive content width.");
         }
 
-        if (PageHeight - MarginTop - MarginBottom <= 0) {
+        if (PageHeight.ToPoints() - MarginTop.ToPoints() - MarginBottom.ToPoints() <= 0) {
             throw new System.ArgumentException("PDF margins must leave a positive content height.");
         }
 
@@ -53,35 +53,35 @@ public sealed partial class PdfCreateOptions {
             throw new System.ArgumentException("PDF Standard encryption cannot be combined with PDF/A, PDF/X, Factur-X, or ZUGFeRD groundwork.");
         }
 
-        if (DefaultFontSize <= 0 || double.IsNaN(DefaultFontSize) || double.IsInfinity(DefaultFontSize)) {
+        if (DefaultFontSize.ToPoints() <= 0 || double.IsNaN(DefaultFontSize.ToPoints()) || double.IsInfinity(DefaultFontSize.ToPoints())) {
             throw new System.ArgumentException("PDF default font size must be a positive finite value.");
         }
 
-        if (HeaderFontSize <= 0 || double.IsNaN(HeaderFontSize) || double.IsInfinity(HeaderFontSize)) {
+        if (HeaderFontSize.ToPoints() <= 0 || double.IsNaN(HeaderFontSize.ToPoints()) || double.IsInfinity(HeaderFontSize.ToPoints())) {
             throw new System.ArgumentException("PDF header font size must be a positive finite value.");
         }
 
-        if (FooterFontSize <= 0 || double.IsNaN(FooterFontSize) || double.IsInfinity(FooterFontSize)) {
+        if (FooterFontSize.ToPoints() <= 0 || double.IsNaN(FooterFontSize.ToPoints()) || double.IsInfinity(FooterFontSize.ToPoints())) {
             throw new System.ArgumentException("PDF footer font size must be a positive finite value.");
         }
 
-        if (HeaderOffsetY < 0 || double.IsNaN(HeaderOffsetY) || double.IsInfinity(HeaderOffsetY)) {
+        if (HeaderOffsetY.ToPoints() < 0 || double.IsNaN(HeaderOffsetY.ToPoints()) || double.IsInfinity(HeaderOffsetY.ToPoints())) {
             throw new System.ArgumentException("PDF header offset must be a non-negative finite value.");
         }
 
-        if (HasHeaderContent && HeaderOffsetY > MarginTop) {
+        if (HasHeaderContent && HeaderOffsetY.ToPoints() > MarginTop.ToPoints()) {
             throw new System.ArgumentException("PDF header offset must not exceed the top margin when header content is enabled.");
         }
 
-        if (HasHeaderContentForPage(1) && HeaderOffsetY > MarginTop) {
+        if (HasHeaderContentForPage(1) && HeaderOffsetY.ToPoints() > MarginTop.ToPoints()) {
             throw new System.ArgumentException("PDF header offset must not exceed the top margin when header content is enabled.");
         }
 
-        if (HasHeaderContentForPage(2) && HeaderOffsetY > MarginTop) {
+        if (HasHeaderContentForPage(2) && HeaderOffsetY.ToPoints() > MarginTop.ToPoints()) {
             throw new System.ArgumentException("PDF header offset must not exceed the top margin when header content is enabled.");
         }
 
-        if (FooterOffsetY < 0 || double.IsNaN(FooterOffsetY) || double.IsInfinity(FooterOffsetY)) {
+        if (FooterOffsetY.ToPoints() < 0 || double.IsNaN(FooterOffsetY.ToPoints()) || double.IsInfinity(FooterOffsetY.ToPoints())) {
             throw new System.ArgumentException("PDF footer offset must be a non-negative finite value.");
         }
 
@@ -89,15 +89,15 @@ public sealed partial class PdfCreateOptions {
             throw new System.ArgumentException("PDF page number start must be a positive value.");
         }
 
-        if (HasFooterContent && FooterOffsetY > MarginBottom) {
+        if (HasFooterContent && FooterOffsetY.ToPoints() > MarginBottom.ToPoints()) {
             throw new System.ArgumentException("PDF footer offset must not exceed the bottom margin when footer content is enabled.");
         }
 
-        if (HasFooterContentForPage(1) && FooterOffsetY > MarginBottom) {
+        if (HasFooterContentForPage(1) && FooterOffsetY.ToPoints() > MarginBottom.ToPoints()) {
             throw new System.ArgumentException("PDF footer offset must not exceed the bottom margin when footer content is enabled.");
         }
 
-        if (HasFooterContentForPage(2) && FooterOffsetY > MarginBottom) {
+        if (HasFooterContentForPage(2) && FooterOffsetY.ToPoints() > MarginBottom.ToPoints()) {
             throw new System.ArgumentException("PDF footer offset must not exceed the bottom margin when footer content is enabled.");
         }
 

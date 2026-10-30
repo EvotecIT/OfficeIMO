@@ -29,8 +29,8 @@ public partial class Word {
         }
         WordPdfExportOptions options = EmptyRunningOptions();
         options.PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions();
-        if (footer) options.PdfOptions.FooterOffsetY = 24D;
-        else options.PdfOptions.HeaderOffsetY = 24D;
+        if (footer) options.PdfOptions.FooterOffsetY = global::OfficeIMO.OfficeLength.Points(24D);
+        else options.PdfOptions.HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(24D);
         using var ordinary = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         for (int index = 0; index < stories.Length; index++)
             if (index != emptyVariant) stories[index].Paragraphs.Last().AddText(" ").AddField(WordFieldType.SectionPages);

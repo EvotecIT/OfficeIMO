@@ -3790,6 +3790,34 @@
       ],
       "applied": "phase-b-applied",
       "note": "All five previously failing PDF cases pass with unchanged assertions and goldens. The owning reading-result type remains public under the design model/result exception; adapter reconstruction takes PdfDocument only."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "PdfCreateOptions numeric page dimensions, margins, default font size and header/footer size and offsets",
+      "new": "PdfCreateOptions physical dimensions, margins and typography use OfficeLength",
+      "reason": "Keep the public creation options on explicit physical units; convert to PDF points only at layout, measurement and serialization boundaries. Preserve inherited theme values and explicit zero margins.",
+      "files": [
+        "OfficeIMO.Pdf/Options/PdfOptions.Page.cs",
+        "OfficeIMO.Pdf/Options/PdfOptions.Styles.cs",
+        "OfficeIMO.Pdf/Options/PdfOptions.HeaderFooter.cs",
+        "OfficeIMO.Pdf/Options/PdfOptions.cs"
+      ],
+      "properties": [
+        "PageWidth",
+        "PageHeight",
+        "MarginLeft",
+        "MarginRight",
+        "MarginTop",
+        "MarginBottom",
+        "DefaultFontSize",
+        "HeaderFontSize",
+        "FooterFontSize",
+        "HeaderOffsetY",
+        "FooterOffsetY"
+      ],
+      "applied": "phase-b-applied",
+      "note": "All in-repository option assignments and numerical consumers are migrated; relative line height, raster pixel counts and density remain numeric."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

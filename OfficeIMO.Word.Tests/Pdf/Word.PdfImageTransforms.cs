@@ -52,7 +52,7 @@ public sealed class WordPdfImageTransformTests {
         string original = loaded._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         var options = new WordPdfExportOptions { IncludePageNumbers = false };
         if (context.StartsWith("simple-", StringComparison.Ordinal))
-            options.PdfOptions = new PdfCore.PdfCreateOptions { HeaderFontSize = 10, FooterFontSize = 10 };
+            options.PdfOptions = new PdfCore.PdfCreateOptions { HeaderFontSize = global::OfficeIMO.OfficeLength.Points(10), FooterFontSize = global::OfficeIMO.OfficeLength.Points(10) };
         PdfCore.PdfDocumentConversionResult conversion = loaded.ConvertToPdfWithEvidence(options);
         byte[] pdf = conversion.ToBytes();
         PdfCore.PdfImagePlacement placement = Assert.Single(PdfCore.PdfImageExtractor.ExtractImagePlacements(pdf));

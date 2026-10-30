@@ -12,8 +12,8 @@ internal static partial class PdfWriter {
         }
 
         private (double X, double Width, double ReservedHeight) GetRunningBodyContinuationFrame(PdfCreateOptions source, int sequenceDepth) {
-            double frameX = source.MarginLeft;
-            double frameWidth = source.PageWidth - source.MarginLeft - source.MarginRight;
+            double frameX = source.MarginLeft.ToPoints();
+            double frameWidth = source.PageWidth.ToPoints() - source.MarginLeft.ToPoints() - source.MarginRight.ToPoints();
             double reserved = 0D;
             foreach (ContainerRenderScope scope in activeContainerScopes) {
                 int ownerDepth = 0;

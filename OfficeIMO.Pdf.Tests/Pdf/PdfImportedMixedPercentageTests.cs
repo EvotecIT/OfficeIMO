@@ -96,8 +96,8 @@ public class PdfImportedMixedPercentageTests {
 
     private static (double First, double Second) RenderWidths(PdfTableStyle style) {
         var options = new PdfCreateOptions {
-            PageWidth = 340D, PageHeight = 200D,
-            MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
+            PageWidth = global::OfficeIMO.OfficeLength.Points(340D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
         };
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
             .Table(new[] { new[] { "A", "B", "C" } }, style: style).ToBytes());

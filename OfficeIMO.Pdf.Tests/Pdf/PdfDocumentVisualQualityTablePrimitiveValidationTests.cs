@@ -128,12 +128,12 @@ public partial class PdfDocumentVisualQualityTests {
 
         var leftIndentWidthException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = 180,
-                    PageHeight = 180,
-                    MarginLeft = 30,
-                    MarginRight = 30,
-                    MarginTop = 30,
-                    MarginBottom = 30
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(180),
+                    PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                    MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                    MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                    MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                    MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
                 })
                 .Table(new[] {
                     new[] { "Only" }

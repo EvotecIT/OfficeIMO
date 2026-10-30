@@ -16,9 +16,9 @@ public sealed class PdfReusableContentLayoutTests {
     }
 
     private static PdfCreateOptions Options() => new PdfCreateOptions {
-        PageWidth = 300, PageHeight = 220,
-        MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20,
-        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10
+        PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
     };
 
     [Fact]

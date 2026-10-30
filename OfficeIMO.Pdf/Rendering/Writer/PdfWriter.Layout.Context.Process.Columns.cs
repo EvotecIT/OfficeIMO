@@ -8,8 +8,8 @@ internal static partial class PdfWriter {
         private void RenderMultiColumnBlock(MultiColumnBlock columns) {
             if (activeColumnFlow != null) throw new NotSupportedException("Columns blocks cannot be nested inside another Columns block.");
             ValidateSequentialColumnBlocks(columns.Blocks);
-            if (HasFloatingTables) AvoidFloatingBlock(Math.Max(1D, y - currentOpts.MarginBottom));
-            if (y - currentOpts.MarginBottom <= 0.5D) NewPage();
+            if (HasFloatingTables) AvoidFloatingBlock(Math.Max(1D, y - currentOpts.MarginBottom.ToPoints()));
+            if (y - currentOpts.MarginBottom.ToPoints() <= 0.5D) NewPage();
             PdfMultiColumnOptions options = columns.Options;
             double[] gaps = Enumerable.Range(0, options.ColumnCount - 1)
                 .Select(index => options.ColumnDefinitions.Count > 0 ? options.ColumnDefinitions[index].GapAfter ?? options.Gap : options.Gap).ToArray();
@@ -27,7 +27,7 @@ internal static partial class PdfWriter {
                 ProcessBlocks(columns.Blocks, columns);
                 // Terminal spacing follows the last fragment without changing the content's balanced breakpoints.
                 if (y >= scope.Top - 0.001D) y = scope.LastOccupiedColumnBottom;
-                y -= Math.Min(options.FinalColumnSpacingAfter, Math.Max(0D, y - scope.ParentOptions.MarginBottom));
+                y -= Math.Min(options.FinalColumnSpacingAfter, Math.Max(0D, y - scope.ParentOptions.MarginBottom.ToPoints()));
                 FinishColumnFrame(scope);
                 DrawColumnFlowSeparators(scope);
             } finally {
@@ -48,13 +48,13 @@ internal static partial class PdfWriter {
         }
 
         private void EnterColumnFrame(ColumnFlowScope scope) {
-            double left = scope.ParentOptions.MarginLeft;
+            double left = scope.ParentOptions.MarginLeft.ToPoints();
             for (int index = 0; index < scope.ColumnIndex; index++) left += scope.Widths[index] + scope.Gaps[index];
             // Reuse one options object. Asset and font maps must not be copied for every continuation.
-            scope.FrameOptions.MarginLeft = left;
-            scope.FrameOptions.MarginRight = scope.FrameOptions.PageWidth - left - scope.Widths[scope.ColumnIndex];
-            scope.FrameOptions.MarginTop = scope.FrameOptions.PageHeight - scope.Top;
-            scope.FrameOptions.MarginBottom = Math.Max(scope.ParentOptions.MarginBottom, scope.Top - scope.TargetHeight);
+            scope.FrameOptions.MarginLeft = global::OfficeIMO.OfficeLength.Points(left);
+            scope.FrameOptions.MarginRight = global::OfficeIMO.OfficeLength.Points(scope.FrameOptions.PageWidth.ToPoints() - left - scope.Widths[scope.ColumnIndex]);
+            scope.FrameOptions.MarginTop = global::OfficeIMO.OfficeLength.Points(scope.FrameOptions.PageHeight.ToPoints() - scope.Top);
+            scope.FrameOptions.MarginBottom = global::OfficeIMO.OfficeLength.Points(Math.Max(scope.ParentOptions.MarginBottom.ToPoints(), scope.Top - scope.TargetHeight));
             currentOpts = scope.FrameOptions;
             width = scope.Widths[scope.ColumnIndex];
             yStart = scope.Top;
@@ -96,7 +96,7 @@ internal static partial class PdfWriter {
             scope.Top = y;
             scope.LowestY = y;
             scope.LastOccupiedColumnBottom = y;
-            scope.TargetHeight = scope.PendingBalanceContent == null ? y - currentOpts.MarginBottom :
+            scope.TargetHeight = scope.PendingBalanceContent == null ? y - currentOpts.MarginBottom.ToPoints() :
                 ResolveBalancedColumnHeight(scope.PendingBalanceContent, scope);
             scope.PendingBalanceContent = null;
             scope.ColumnIndex = 0;
@@ -107,7 +107,7 @@ internal static partial class PdfWriter {
 
         private void DrawColumnFlowSeparators(ColumnFlowScope scope) {
             if (scope.Options.SeparatorColor is not { } color || scope.Options.SeparatorWidth <= 0D || scope.Top - scope.LowestY <= 0.001D) return;
-            double x = scope.ParentOptions.MarginLeft;
+            double x = scope.ParentOptions.MarginLeft.ToPoints();
             for (int index = 0; index < scope.Widths.Length - 1; index++) {
                 x += scope.Widths[index];
                 DrawVLine(sb, color, scope.Options.SeparatorWidth, x + scope.Gaps[index] / 2D, scope.Top, scope.LowestY, emitGeneratedStructure);

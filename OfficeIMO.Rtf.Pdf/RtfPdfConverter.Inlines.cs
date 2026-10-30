@@ -228,7 +228,7 @@ internal static partial class RtfPdfConverter {
             linkDestinationName: linkDestinationName,
             backgroundColor: background);
         if (run.KerningHalfPoints is > 0) {
-            double fontSize = run.FontSize ?? state.FontOptions.DefaultFontSize;
+            double fontSize = run.FontSize ?? state.FontOptions.DefaultFontSize.ToPoints();
             pdfRun = pdfRun.WithFeatureSettings(state.FontOptions.DefaultTextFeatureSettings.With("kern",
                 fontSize >= run.KerningHalfPoints.Value / 2D ? 1 : 0));
         }

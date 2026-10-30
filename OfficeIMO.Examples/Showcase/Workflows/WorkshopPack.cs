@@ -8,10 +8,10 @@ internal static class WorkshopPack {
     internal static void Create(string folder) {
         global::OfficeIMO.OfficeColor accent = global::OfficeIMO.OfficeColor.FromRgb(103, 58, 140);
         var options = new PdfCreateOptions {
-            DefaultFontSize = 11, ShowHeader = true, HeaderFormat = "NORTHWIND / SERVICE DESIGN",
-            HeaderFontSize = 8, HeaderAlign = PdfAlign.Left,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11), ShowHeader = true, HeaderFormat = "NORTHWIND / SERVICE DESIGN",
+            HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8), HeaderAlign = PdfAlign.Left,
             ShowPageNumbers = true, FooterFormat = "Workshop pack | {page} / {pages}",
-            FooterFontSize = 8, FooterAlign = PdfAlign.Right
+            FooterFontSize = global::OfficeIMO.OfficeLength.Points(8), FooterAlign = PdfAlign.Right
         };
         PdfDocument.Create(pdf => pdf.Content(content => content
             .H1("Service design workshop", PdfAlign.Left, accent)

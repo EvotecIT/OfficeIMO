@@ -19,8 +19,8 @@ public partial class PdfDocumentVisualQualityTests {
             style.ColumnWidthPoints = new List<double?> { 80 };
             style.ConsumesVerticalFlow = consumesVerticalFlow;
             PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 260, PageHeight = 180,
-                MarginLeft = 30, MarginRight = 30, MarginTop = 30, MarginBottom = 30
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30), MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
             });
             if (rowColumn) {
                 document.Compose(compose => compose.Page(page => page.Content(content => content.Row(row =>
@@ -49,8 +49,8 @@ public partial class PdfDocumentVisualQualityTests {
         style.ConsumesVerticalFlow = false;
         style.FixedRowHeights = new List<double?> { 38, 38, 38, 38, 38 };
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 260, PageHeight = 180,
-            MarginLeft = 30, MarginRight = 30, MarginTop = 30, MarginBottom = 30
+            PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30), MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
         });
         document.Compose(compose => compose.Page(page => page.Content(content => content.Row(row =>
             row.PercentColumn(100, column => {
@@ -73,14 +73,14 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(true)]
     public void ExactHeightTableRowsDoNotEmitClippedHiddenText(bool rowColumn) {
         var options = new PdfCreateOptions {
-            PageWidth = 260,
-            PageHeight = 180,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 9
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
@@ -123,14 +123,14 @@ public partial class PdfDocumentVisualQualityTests {
     public void NoWrapTableRunLinksStayInsideCellClip(bool rowColumn) {
         const string uri = "https://example.com/no-wrap";
         var options = new PdfCreateOptions {
-            PageWidth = 260,
-            PageHeight = 180,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 9
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
@@ -167,14 +167,14 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(true)]
     public void NoWrapTableParagraphTextDoesNotPaintAcrossAdjacentCells(bool rowColumn) {
         var options = new PdfCreateOptions {
-            PageWidth = 260,
-            PageHeight = 180,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 12
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
         };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
@@ -220,13 +220,13 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RightAlignedNoWrapTableParagraphRemainsVisibleInsideItsCell() {
         var options = new PdfCreateOptions {
-            PageWidth = 360,
-            PageHeight = 180,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
-            DefaultFontSize = 10
+            PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;

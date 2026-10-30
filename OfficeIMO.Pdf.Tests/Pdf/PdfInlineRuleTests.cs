@@ -252,8 +252,8 @@ public sealed class PdfInlineRuleTests {
         byte[] Render(bool rule) {
             var source = PdfTextRun.Normal("R", fontSize: 24D, font: PdfStandardFont.Helvetica);
             var document = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
-                PageWidth = 140D, PageHeight = 80D, MarginLeft = 20D, MarginRight = 20D,
-                MarginTop = 20D, MarginBottom = 20D, DefaultFontSize = 8D,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(140D), PageHeight = global::OfficeIMO.OfficeLength.Points(80D), MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8D),
                 DefaultFont = PdfStandardFont.Courier, CompressContentStreams = false
             });
             return document.Paragraph(p => p.Runs(new[] {
@@ -285,9 +285,9 @@ public sealed class PdfInlineRuleTests {
     }
 
     private static PdfDocument Create(double frameWidth) => PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
-        PageWidth = frameWidth + 40D, PageHeight = 240D, MarginLeft = 20D, MarginRight = 20D,
-        MarginTop = 20D, MarginBottom = 20D, DefaultFont = PdfStandardFont.Courier,
-        DefaultFontSize = 10D, CompressContentStreams = false
+        PageWidth = global::OfficeIMO.OfficeLength.Points(frameWidth + 40D), PageHeight = global::OfficeIMO.OfficeLength.Points(240D), MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
+        MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D), DefaultFont = PdfStandardFont.Courier,
+        DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D), CompressContentStreams = false
     });
 
     private static PdfParagraphStyle Style() => new() {
@@ -297,9 +297,9 @@ public sealed class PdfInlineRuleTests {
     private static byte[] RenderBuilderFontMetrics(bool rule, PdfStandardFont font, bool boldItalic,
         double pageHeight, PdfEmbeddedFontFamily? family = null) {
         var options = new PdfCreateOptions { BackgroundColor = null,
-            DefaultFontSize = 12, DefaultParagraphStyle = new PdfParagraphStyle(),
-            PageWidth = 200D, PageHeight = pageHeight, MarginLeft = 10D, MarginRight = 10D,
-            MarginTop = 10D, MarginBottom = 10D, CompressContentStreams = false
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), DefaultParagraphStyle = new PdfParagraphStyle(),
+            PageWidth = global::OfficeIMO.OfficeLength.Points(200D), PageHeight = global::OfficeIMO.OfficeLength.Points(pageHeight), MarginLeft = global::OfficeIMO.OfficeLength.Points(10D), MarginRight = global::OfficeIMO.OfficeLength.Points(10D),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(10D), MarginBottom = global::OfficeIMO.OfficeLength.Points(10D), CompressContentStreams = false
         };
         if (family is not null) options.RegisterNamedFontFamily(family);
         var document = PdfDocument.Create(options);

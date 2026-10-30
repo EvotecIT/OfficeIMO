@@ -8,8 +8,8 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfColumnFrameRegressionTests {
     [Fact]
     public void Columns_KeptPanelAndCaptionStayTogetherAfterWidthDrivenReadmission() {
-        var options = new PdfCreateOptions { BackgroundColor = null, PageWidth = 612, PageHeight = 792,
-            MarginLeft = 72, MarginRight = 72, MarginTop = 72, MarginBottom = 72, MaxGeneratedPages = 3 };
+        var options = new PdfCreateOptions { BackgroundColor = null, PageWidth = global::OfficeIMO.OfficeLength.Points(612), PageHeight = global::OfficeIMO.OfficeLength.Points(792),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(72), MarginRight = global::OfficeIMO.OfficeLength.Points(72), MarginTop = global::OfficeIMO.OfficeLength.Points(72), MarginBottom = global::OfficeIMO.OfficeLength.Points(72), MaxGeneratedPages = 3 };
         var columns = new PdfMultiColumnOptions { BalanceLastPage = false, ColumnDefinitions = new[] {
             new PdfFlowColumn(PdfColumnWidth.Fixed(100), 36), new PdfFlowColumn(PdfColumnWidth.Fixed(332), 0)
         } };
@@ -43,15 +43,15 @@ public sealed class PdfColumnFrameRegressionTests {
         double imageHeight = 400D * imageWidth / 332D;
         Assert.All(images, placement => {
             Assert.Equal(2, placement.PageNumber);
-            Assert.Equal(options.MarginLeft, placement.X, 3);
+            Assert.Equal(options.MarginLeft.ToPoints(), placement.X, 3);
             Assert.Equal(imageWidth, placement.Width, 3);
             Assert.Equal(imageHeight, placement.Height, 3);
-            Assert.InRange(placement.Y, options.MarginBottom,
-                options.PageHeight - options.MarginTop - placement.Height + .001D);
-            Assert.True(placement.X + placement.Width <= options.PageWidth - options.MarginRight + .001D);
+            Assert.InRange(placement.Y, options.MarginBottom.ToPoints(),
+                options.PageHeight.ToPoints() - options.MarginTop.ToPoints() - placement.Height + .001D);
+            Assert.True(placement.X + placement.Width <= options.PageWidth.ToPoints() - options.MarginRight.ToPoints() + .001D);
             if (placement.Clip is { } clip) {
                 Assert.True(clip.IsRectangle && clip.IsExact);
-                double top = options.PageHeight - placement.Y - placement.Height;
+                double top = options.PageHeight.ToPoints() - placement.Y - placement.Height;
                 double visibleWidth = Math.Max(0D, Math.Min(placement.X + placement.Width, clip.X + clip.Width) -
                     Math.Max(placement.X, clip.X));
                 double visibleHeight = Math.Max(0D, Math.Min(top + placement.Height, clip.Y + clip.Height) -
@@ -60,13 +60,13 @@ public sealed class PdfColumnFrameRegressionTests {
                 Assert.Equal(placement.Height, visibleHeight, 3);
             }
         });
-        Assert.Equal(options.PageHeight - options.MarginTop, images[0].Y + images[0].Height, 3);
+        Assert.Equal(options.PageHeight.ToPoints() - options.MarginTop.ToPoints(), images[0].Y + images[0].Height, 3);
         Assert.Equal(images[0].Y, images[1].Y + images[1].Height, 3);
         Assert.Empty(pdf.GetPage(1).GetImages());
         Assert.Equal(2, pdf.GetPage(2).GetImages().Count());
-        Assert.InRange(caption.BoundingBox.Left, options.MarginLeft - .001D, options.MarginLeft + imageWidth);
+        Assert.InRange(caption.BoundingBox.Left, options.MarginLeft.ToPoints() - .001D, options.MarginLeft.ToPoints() + imageWidth);
         Assert.InRange(caption.BoundingBox.Top, images[1].Y - 20D, images[1].Y + .001D);
-        Assert.True(caption.BoundingBox.Bottom >= options.MarginBottom);
+        Assert.True(caption.BoundingBox.Bottom >= options.MarginBottom.ToPoints());
     }
 
     [Fact]
@@ -259,8 +259,8 @@ public sealed class PdfColumnFrameRegressionTests {
 
     private static PdfCreateOptions Options() => new() {
         BackgroundColor = null,
-        PageWidth = 460, PageHeight = 300, MarginLeft = 20, MarginRight = 20,
-        MarginTop = 20, MarginBottom = 20, DefaultFontSize = 12, CompressContentStreams = false
+        PageWidth = global::OfficeIMO.OfficeLength.Points(460), PageHeight = global::OfficeIMO.OfficeLength.Points(300), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+        MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false
     };
     private static PdfParagraphStyle Paragraph() => new() {
         LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false

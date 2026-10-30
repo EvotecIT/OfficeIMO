@@ -137,7 +137,7 @@ public sealed class PdfWordCompressionAdmissionTests {
         double natural = Span(Assert.Single(Lines(Render(runs, 300D, false), "columns-natural")));
         double narrow = natural - 1D, wide = natural - 0.5D;
         var options = Options(narrow + wide + 20D);
-        options.PageHeight = 100D;
+        options.PageHeight = global::OfficeIMO.OfficeLength.Points(100D);
         var document = PdfDocument.Create(options);
         document.Content.Columns(content => content.Paragraph(p => p.Text(string.Join("\n", Enumerable.Repeat("Alpha beta gamma", 8))),
                 PdfAlign.Justify, style: new PdfParagraphStyle { UseWordJustificationSpacing = true,
@@ -179,9 +179,9 @@ public sealed class PdfWordCompressionAdmissionTests {
         PdfJustificationMode mode = PdfJustificationMode.Words) =>
         PdfDocument.Create(Options(width)).Paragraph(p => p.Runs(runs), PdfAlign.Justify,
             style: new PdfParagraphStyle { UseWordJustificationSpacing = native, TextWhitespaceMode = whitespace, JustificationMode = mode }).ToBytes();
-    private static PdfCreateOptions Options(double width) => new() { PageWidth = width + 40D, PageHeight = 300D,
-        MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D,
-        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12D, CompressContentStreams = false };
+    private static PdfCreateOptions Options(double width) => new() { PageWidth = global::OfficeIMO.OfficeLength.Points(width + 40D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
+        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), CompressContentStreams = false };
     private static double Span(IReadOnlyList<Letter> letters) => letters[letters.Count - 1].EndBaseLine.X - letters[0].StartBaseLine.X;
     private static double Gap(IReadOnlyList<Letter> letters, int left, int right) => letters[right].StartBaseLine.X - letters[left].EndBaseLine.X;
     private static List<List<Letter>> Lines(byte[] bytes, string label) {

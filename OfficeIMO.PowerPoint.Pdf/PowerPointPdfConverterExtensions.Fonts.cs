@@ -13,14 +13,14 @@ public static partial class PowerPointPdfConverterExtensions {
         pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.PowerPoint.Pdf");
 
         if (options.PageLayout == PowerPointPdfPageLayout.NotesPages) {
-            pdfOptions.PageWidth = 612D;
-            pdfOptions.PageHeight = 792D;
+            pdfOptions.PageWidth = global::OfficeIMO.OfficeLength.Points(612D);
+            pdfOptions.PageHeight = global::OfficeIMO.OfficeLength.Points(792D);
         } else if (options.PageLayout == PowerPointPdfPageLayout.Handouts) {
-            pdfOptions.PageWidth = 792D;
-            pdfOptions.PageHeight = 612D;
+            pdfOptions.PageWidth = global::OfficeIMO.OfficeLength.Points(792D);
+            pdfOptions.PageHeight = global::OfficeIMO.OfficeLength.Points(612D);
         } else {
-            pdfOptions.PageWidth = presentation.SlideSize.Width.ToPoints();
-            pdfOptions.PageHeight = presentation.SlideSize.Height.ToPoints();
+            pdfOptions.PageWidth = presentation.SlideSize.Width;
+            pdfOptions.PageHeight = presentation.SlideSize.Height;
         }
         pdfOptions.Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0));
         bool preserveConfiguredFontSlots = options.HasExplicitPdfFontConfiguration;

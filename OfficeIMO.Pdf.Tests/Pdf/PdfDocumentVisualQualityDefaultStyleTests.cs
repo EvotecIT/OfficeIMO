@@ -233,12 +233,12 @@ public partial class PdfDocumentVisualQualityTests {
             SpacingAfter = 0
         };
         var options = new PdfCreateOptions {
-            PageWidth = 260,
-            PageHeight = 180,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             DefaultPanelStyle = style
         };
 
@@ -394,7 +394,7 @@ public partial class PdfDocumentVisualQualityTests {
         PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(PdfStandardFont.Helvetica, options.DefaultFont);
-        Assert.Equal(16, options.DefaultFontSize);
+        Assert.Equal(16, options.DefaultFontSize.ToPoints());
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30), options.DefaultTextColor);
         Assert.Equal(24, options.DefaultParagraphStyle!.FirstLineIndent);
         Assert.Equal(22, options.DefaultTableStyle!.CellPaddingX);
@@ -417,7 +417,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(6, options.DefaultRowStyle.SpacingAfter);
         Assert.True(options.DefaultRowStyle.KeepTogether);
         Assert.True(options.DefaultRowStyle.KeepWithNext);
-        Assert.Equal(16, clone.DefaultFontSize);
+        Assert.Equal(16, clone.DefaultFontSize.ToPoints());
         Assert.Equal(24, clone.DefaultParagraphStyle!.FirstLineIndent);
         Assert.Equal(22, clone.DefaultTableStyle!.CellPaddingX);
         Assert.True(clone.DefaultTableStyle.KeepWithNext);

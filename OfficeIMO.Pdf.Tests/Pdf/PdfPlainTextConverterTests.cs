@@ -88,7 +88,7 @@ public sealed class PdfPlainTextConverterTests {
     public void GeneratedPageLimitIsEnforcedByTheRealWriter() {
         var conversion = PdfPlainTextConverter.ToPdfDocumentResult(new string('x', 4000), new PdfTextImportOptions {
             MaximumPages = 1,
-            PdfOptions = new PdfCreateOptions { PageWidth = 120, PageHeight = 120, MarginLeft = 12, MarginRight = 12, MarginTop = 12, MarginBottom = 12 }
+            PdfOptions = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(120), PageHeight = global::OfficeIMO.OfficeLength.Points(120), MarginLeft = global::OfficeIMO.OfficeLength.Points(12), MarginRight = global::OfficeIMO.OfficeLength.Points(12), MarginTop = global::OfficeIMO.OfficeLength.Points(12), MarginBottom = global::OfficeIMO.OfficeLength.Points(12) }
         });
         Assert.Throws<System.IO.InvalidDataException>(() => conversion.ToBytes());
     }

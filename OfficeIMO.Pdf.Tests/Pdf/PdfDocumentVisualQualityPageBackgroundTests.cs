@@ -111,12 +111,12 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] legacyJpegLikeImage = { 0xFF, 0xD8, 0xFF, 0xD9 };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             })
             .BackgroundImage(legacyJpegLikeImage, OfficeImageFit.Cover, opacity: 0.3)
             .Paragraph(p => p.Text("Background image proof"))
@@ -239,12 +239,12 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void BackgroundBands_ComputePageAnchoredGeometry() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 300,
-                PageHeight = 400,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 40,
-                MarginBottom = 40
+                PageWidth = global::OfficeIMO.OfficeLength.Points(300),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(400),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(40),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(40)
             })
             .BackgroundTopBand(50, global::OfficeIMO.OfficeColor.FromRgb(238, 242, 255), insetX: 12, offsetY: 8, stroke: global::OfficeIMO.OfficeColor.FromRgb(96, 165, 250), strokeWidth: 0.8, fillOpacity: 0.42, strokeOpacity: 0.7, fillGradient: OfficeLinearGradient.Horizontal(OfficeColor.LightBlue, OfficeColor.WhiteSmoke))
             .BackgroundBottomBand(30, global::OfficeIMO.OfficeColor.FromRgb(240, 253, 244), insetX: 20, offsetY: 10)

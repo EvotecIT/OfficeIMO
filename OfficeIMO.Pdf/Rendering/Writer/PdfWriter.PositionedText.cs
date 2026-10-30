@@ -5,7 +5,7 @@ internal static partial class PdfWriter {
 
     internal static double? MeasurePositionedText(PdfTextRun run, PdfCreateOptions options) {
         List<PdfTextRun>? parts = GetPositionedTextMeasurementRuns(run, options);
-        return parts?.Sum(part => GetRichSegmentWidth(CreatePositionedTextSegment(part, options.DefaultFontSize, options)));
+        return parts?.Sum(part => GetRichSegmentWidth(CreatePositionedTextSegment(part, options.DefaultFontSize.ToPoints(), options)));
     }
 
     /// <summary>Measures advances and baseline extents using the same resolved fallback fonts as painting.</summary>
@@ -14,7 +14,7 @@ internal static partial class PdfWriter {
         if (parts == null) return null;
         double width = 0D, ascent = 0D, descent = 0D;
         foreach (PdfTextRun part in parts) {
-            RichSeg segment = CreatePositionedTextSegment(part, options.DefaultFontSize, options);
+            RichSeg segment = CreatePositionedTextSegment(part, options.DefaultFontSize.ToPoints(), options);
             width += GetRichSegmentWidth(segment);
             double size = EffectiveRichFontSize(segment.FontSize, segment.Baseline);
             double rise = TextRiseForBaseline(segment.FontSize, segment.Baseline);

@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 .H2("Review discipline", PdfAlign.Left, navy)
                 .Bullets(new[] { "Revisit ratings when evidence changes.", "Keep the control, owner and verification date together.", "Close a risk only after the control is observed." })
                 .Paragraph(p => p.Text("Fictional project example. This is not a workplace safety assessment or compliance certification."))),
-                new PdfCreateOptions { DefaultFontSize = 11, ShowPageNumbers = true }.SetDefaultHeadingStyle(2, new PdfHeadingStyle { SpacingBefore = 14, SpacingAfter = 8 }))
+                new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11), ShowPageNumbers = true }.SetDefaultHeadingStyle(2, new PdfHeadingStyle { SpacingBefore = 14, SpacingAfter = 8 }))
                 .Meta(title: "Pilot delivery risk review", author: "OfficeIMO").Save(Path.Combine(folder, "example.pdf"));
         }
     }

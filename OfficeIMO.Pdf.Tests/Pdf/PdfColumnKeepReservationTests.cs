@@ -16,8 +16,8 @@ public sealed class PdfColumnKeepReservationTests {
     [InlineData("panel", false, false)]
     public void Columns_BalancedKeepNextLeadersRetainTheirTerminalGroupWithoutEmptyPageRetries(
         string kind, bool interveningBookmark, bool balanceKeptLines) {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = 500, PageHeight = 400,
-            MarginLeft = 40, MarginRight = 40, MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40), MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
             MaxGeneratedPages = 4 }).Columns(content => {
                 if (kind == "heading") content.H1("Heading001", style: new PdfHeadingStyle {
                     FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0,

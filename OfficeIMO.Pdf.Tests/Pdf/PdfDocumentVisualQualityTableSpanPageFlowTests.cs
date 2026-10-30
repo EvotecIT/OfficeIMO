@@ -24,8 +24,8 @@ public partial class PdfDocumentVisualQualityTests {
             new[] { PdfTableCell.TextCell("AfterSpan"), PdfTableCell.TextCell("AfterNeighbour") }
         };
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 300, PageHeight = 120, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, DefaultFontSize = 12
+            PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(120), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
         });
         if (inRowColumn)
             document.Compose(builder => builder.Page(page => page.Content(content =>
@@ -65,8 +65,8 @@ public partial class PdfDocumentVisualQualityTests {
             new[] { PdfTableCell.TextCell("Neighbour2") }
         };
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 300, PageHeight = 120, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, DefaultFontSize = 12
+            PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(120), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
         });
         if (inRowColumn)
             document.Compose(builder => builder.Page(page => page.Content(content =>

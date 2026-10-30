@@ -9,7 +9,7 @@ internal static class PdfReportVisualFixtureStyles {
     /// Page frames, body sizes, table styles and block colors remain supplied by each fixture.
     /// </summary>
     internal static PdfCreateOptions Apply(PdfCreateOptions options) {
-        double leading = options.DefaultFontSize * 1.4D;
+        double leading = options.DefaultFontSize.ToPoints() * 1.4D;
         options.DefaultTextColor ??= OfficeColor.Black;
         options.FooterTextColor = OfficeColor.Black;
         return options.ApplyTheme(new PdfTheme {
@@ -23,7 +23,7 @@ internal static class PdfReportVisualFixtureStyles {
                 Level3 = Heading(14D, options)
             },
             ListStyle = new PdfListStyle {
-                FontSize = options.DefaultFontSize,
+                FontSize = options.DefaultFontSize.ToPoints(),
                 LineHeight = 1.4D,
                 LeftIndent = 0D,
                 SpacingBefore = 0D,

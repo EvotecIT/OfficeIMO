@@ -251,12 +251,12 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static double GetNativeHeaderOffset(WordPdfExportOptions? options, double headerMarginExpansion) {
-            double configuredOffset = options?.PdfOptions?.HeaderOffsetY ?? NativeHeaderFooterDefaultOffset;
+            double configuredOffset = options?.PdfOptions?.HeaderOffsetY.ToPoints() ?? NativeHeaderFooterDefaultOffset;
             return configuredOffset + headerMarginExpansion;
         }
 
         private static double GetNativeFooterOffset(WordPdfExportOptions? options) {
-            return options?.PdfOptions?.FooterOffsetY ?? NativeFooterDefaultOffset;
+            return options?.PdfOptions?.FooterOffsetY.ToPoints() ?? NativeFooterDefaultOffset;
         }
 
         private static void AddNativeHeaderImages(PdfCore.PdfHeaderBuilder header, IReadOnlyList<NativeHeaderFooterImage> images, W.HeaderFooterValues variant) {

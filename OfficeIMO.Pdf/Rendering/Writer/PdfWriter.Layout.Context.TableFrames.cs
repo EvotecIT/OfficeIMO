@@ -36,7 +36,7 @@ internal static partial class PdfWriter {
             int headers = Math.Min(tableStyle.HeaderRowCount, table.Rows.Count);
             int footerStart = table.Rows.Count - Math.Min(tableStyle.FooterRowCount, table.Rows.Count - headers);
             double contentWidth = ResolveTableColumnLayout(table, currentOpts, tableStyle, columns, available,
-                GetTableBodyFontSize(tableStyle, fontSize ?? currentOpts.DefaultFontSize), headers, footerStart).Width;
+                GetTableBodyFontSize(tableStyle, fontSize ?? currentOpts.DefaultFontSize.ToPoints()), headers, footerStart).Width;
             double outerWidth = contentWidth + 2D * style.PaddingX;
             ValidatePanelStyle(style, outerWidth);
             PdfTableStyle placement = tableStyle.Clone();

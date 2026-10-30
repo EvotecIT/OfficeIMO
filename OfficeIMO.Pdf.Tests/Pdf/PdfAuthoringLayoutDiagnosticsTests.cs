@@ -229,9 +229,9 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     }
 
     private static PdfCreateOptions CreateOptions(PdfConversionReport report) => new PdfCreateOptions {
-        PageWidth = 260, PageHeight = 180,
-        MarginLeft = 24, MarginRight = 24, MarginTop = 24, MarginBottom = 24,
-        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9
+        PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24), MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
+        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
     }.ReportDiagnosticsTo(report, "AuthoringProbe");
 
     private static PdfTableStyle CreateTableStyle(double? fixedHeight) {

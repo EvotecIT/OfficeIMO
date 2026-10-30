@@ -154,8 +154,8 @@ public sealed class PdfDrawingTextOpacityTests {
     }
 
     private static byte[] CreatePdf(OfficeDrawing drawing) => PdfDocument.Create(new PdfCreateOptions {
-        PageWidth = drawing.Width, PageHeight = drawing.Height,
-        MarginLeft = 0D, MarginTop = 0D, MarginRight = 0D, MarginBottom = 0D,
+        PageWidth = global::OfficeIMO.OfficeLength.Points(drawing.Width), PageHeight = global::OfficeIMO.OfficeLength.Points(drawing.Height),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D),
         CompressContentStreams = false
     }).Compose(composer => composer.Page(page => page.Content(content => content.Drawing(drawing)))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
@@ -184,8 +184,8 @@ public sealed class PdfDrawingTextOpacityTests {
             OfficeColor.FromRgba(255, 0, 0, alpha), wrapText: wrap);
         drawing.AddText("FOLLOW", 0D, 60D, 180D, 40D, new OfficeFontInfo("Arial", 24D), OfficeColor.FromRgb(0, 0, 255));
         var document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 220D, PageHeight = 150D,
-            MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
+            PageWidth = global::OfficeIMO.OfficeLength.Points(220D), PageHeight = global::OfficeIMO.OfficeLength.Points(150D),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
         });
         document.Content.Canvas(canvas => canvas.Drawing(drawing, 0D, 0D, 180D, 110D));
         byte[] bytes = document.ToBytes();
@@ -225,8 +225,8 @@ public sealed class PdfDrawingTextOpacityTests {
             null, null, OfficeTextDecorationStyle.Single, OfficeTextDecorationStyle.Single,
             OfficeTextBaseline.Normal, 0, 1D, 0D, OfficeColor.FromRgba(0, 0, 255, decorationAlpha));
         var document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 220D, PageHeight = 150D,
-            MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
+            PageWidth = global::OfficeIMO.OfficeLength.Points(220D), PageHeight = global::OfficeIMO.OfficeLength.Points(150D),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
         });
         document.Content.Canvas(canvas => canvas.Drawing(drawing, 0D, 0D, 180D, 110D));
         OfficeDrawing scene = PdfPageImageRenderer.RenderPage(document.ToBytes());
@@ -255,8 +255,8 @@ public sealed class PdfDrawingTextOpacityTests {
             null, null, OfficeTextDecorationStyle.Single, OfficeTextDecorationStyle.Single,
             OfficeTextBaseline.Normal, 0, 1D, 0D, OfficeColor.FromRgba(0, 0, 255, strokeAlpha));
         var document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 220D, PageHeight = 150D, MarginLeft = 20D, MarginRight = 20D,
-            MarginTop = 20D, MarginBottom = 20D, CompressContentStreams = false,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(220D), PageHeight = global::OfficeIMO.OfficeLength.Points(150D), MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D), CompressContentStreams = false,
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
         });
         document.Content.Canvas(canvas => canvas.Drawing(drawing, 0D, 0D, 180D, 110D));

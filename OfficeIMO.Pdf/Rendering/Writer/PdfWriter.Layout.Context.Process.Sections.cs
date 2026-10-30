@@ -32,7 +32,7 @@ internal static partial class PdfWriter {
                             PdfAlign.Left,
                             color: null,
                             style: section.Options.HeadingStyle);
-                    if (HasFloatingTables) AvoidFloatingBlock(Math.Max(1, MeasureHeadingBlockHeight(heading, currentOpts.MarginLeft, width)));
+                    if (HasFloatingTables) AvoidFloatingBlock(Math.Max(1, MeasureHeadingBlockHeight(heading, currentOpts.MarginLeft.ToPoints(), width)));
                     RenderHeadingFlowBlock(heading, null, new IPdfBlock[] { heading }, 0, CaptureSectionPlacement);
                 } else CaptureSectionPlacement(y);
 

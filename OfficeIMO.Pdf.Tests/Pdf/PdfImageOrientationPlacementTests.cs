@@ -189,8 +189,8 @@ public sealed partial class PdfImageOrientationPlacementTests {
     }
 
     private static PdfCreateOptions Options() => new() {
-        FileVersion = PdfFileVersion.Pdf17, PageWidth = 300, PageHeight = 300,
-        MarginLeft = 60, MarginRight = 60, MarginTop = 60, MarginBottom = 60
+        FileVersion = PdfFileVersion.Pdf17, PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(300),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(60), MarginRight = global::OfficeIMO.OfficeLength.Points(60), MarginTop = global::OfficeIMO.OfficeLength.Points(60), MarginBottom = global::OfficeIMO.OfficeLength.Points(60)
     };
 
     private static void AssertLinear(OfficeTransform expected, PdfImagePlacement placement) {

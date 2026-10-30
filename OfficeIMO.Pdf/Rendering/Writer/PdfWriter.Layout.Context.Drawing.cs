@@ -280,7 +280,7 @@ internal static partial class PdfWriter {
         }
 
         private OfficeTransform ToTopLeftPageTransform(OfficeTransform localTransform, double originX, double originTopY) {
-            double pageTopY = currentOpts.PageHeight - originTopY;
+            double pageTopY = currentOpts.PageHeight.ToPoints() - originTopY;
             return OfficeTransform
                 .Translate(-originX, -pageTopY)
                 .Then(localTransform)
@@ -402,14 +402,14 @@ internal static partial class PdfWriter {
         }
 
         private void RenderShapeBlock(ShapeBlock block, double containerX, double containerWidth) {
-            double frameMarginLeft = currentOpts.MarginLeft;
+            double frameMarginLeft = currentOpts.MarginLeft.ToPoints();
             PdfDrawingStyle style = ResolveDrawingStyle(block, currentOpts);
             PdfDocument.ValidateDrawingStyle(style, "Shape");
             double spacingBefore = PlaceFixedFlowBlock("Shape", block.Shape.Width, block.Shape.Height,
                 style.SpacingBefore, style.SpacingAfter, ref containerWidth);
             if (spacingBefore > 0) y -= spacingBefore;
             RecordFlowPlacement(y);
-            containerX += currentOpts.MarginLeft - frameMarginLeft;
+            containerX += currentOpts.MarginLeft.ToPoints() - frameMarginLeft;
             int? structElementIndex = DrawShapeAt(block, style, containerX, containerWidth, y);
             AddShapeLinkAnnotation(block, style, containerX, containerWidth, y, structElementIndex);
             DrawDebugFlowObjectBox(GetAlignedObjectX(containerX, containerWidth, block.Shape.Width, style.Align), y - block.Shape.Height, block.Shape.Width, block.Shape.Height);
@@ -417,13 +417,13 @@ internal static partial class PdfWriter {
         }
 
         private void RenderDrawingBlock(DrawingBlock block, double containerX, double containerWidth) {
-            double frameMarginLeft = currentOpts.MarginLeft;
+            double frameMarginLeft = currentOpts.MarginLeft.ToPoints();
             PdfDrawingStyle style = ResolveDrawingStyle(block, currentOpts);
             PdfDocument.ValidateDrawingStyle(style, "Drawing");
             var box = PlaceDrawingFlowBlock(block, style, ref containerWidth);
             if (box.SpacingBefore > 0) y -= box.SpacingBefore;
             RecordFlowPlacement(y);
-            containerX += currentOpts.MarginLeft - frameMarginLeft;
+            containerX += currentOpts.MarginLeft.ToPoints() - frameMarginLeft;
             int? structElementIndex = DrawDrawingAt(block, style, containerX, containerWidth, y);
             AddDrawingLinkAnnotation(block, style, containerX, containerWidth, y, structElementIndex);
             DrawDebugFlowObjectBox(GetAlignedObjectX(containerX, containerWidth, box.Width, style.Align), y - box.Height, box.Width, box.Height);
@@ -439,8 +439,8 @@ internal static partial class PdfWriter {
                     NewBlockFrame();
                     continue;
                 }
-                double nextHeight = MeasureKeepWithNextChainHeight(blocks, blockIndex + 1, currentOpts.MarginLeft,
-                    width, currentOpts.DefaultFontSize, needed);
+                double nextHeight = MeasureKeepWithNextChainHeight(blocks, blockIndex + 1, currentOpts.MarginLeft.ToPoints(),
+                    width, currentOpts.DefaultFontSize.ToPoints(), needed);
                 double keepHeight = needed + nextHeight;
                 if (nextHeight <= .001D || keepHeight > GetMaximumBlockContinuationHeight() + .001D || !ShouldAdvanceForBlockHeight(keepHeight)) break;
                 NewBlockFrame();

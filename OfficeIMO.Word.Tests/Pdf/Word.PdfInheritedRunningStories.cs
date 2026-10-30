@@ -46,8 +46,8 @@ public partial class Word {
         WordPdfExportOptions options = EmptyRunningOptions();
         options.IncludePageNumbers = false;
         if (mode == "override") options.PdfOptions = new PdfCreateOptions {
-            HeaderFont = PdfStandardFont.Courier, HeaderFontSize = 18D, HeaderAlign = PdfAlign.Left,
-            FooterFont = PdfStandardFont.Courier, FooterFontSize = 18D, FooterAlign = PdfAlign.Left
+            HeaderFont = PdfStandardFont.Courier, HeaderFontSize = global::OfficeIMO.OfficeLength.Points(18D), HeaderAlign = PdfAlign.Left,
+            FooterFont = PdfStandardFont.Courier, FooterFontSize = global::OfficeIMO.OfficeLength.Points(18D), FooterAlign = PdfAlign.Left
         };
         using WordDocument? explicitDocument = mode == "override" ? CreateExplicitRunningStoryControl(document) : null;
         using var explicitPdf = explicitDocument == null ? null : PdfPigDocument.Open(explicitDocument.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));

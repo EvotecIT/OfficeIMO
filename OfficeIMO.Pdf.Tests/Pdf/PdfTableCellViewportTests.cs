@@ -158,9 +158,9 @@ public sealed partial class PdfTableCellViewportTests {
     }
 
     private static byte[] Render(string mode, PdfTableCell cell, PdfCellVerticalAlign alignment, Action<PdfTableStyle>? configure = null, PdfTableCell? adjacentCell = null) {
-        var options = new PdfCreateOptions { PageWidth = 240, PageHeight = 180,
-            MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24,
-            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.FontSize = 10;

@@ -4503,12 +4503,12 @@ public partial class PdfPageImageRendererTests {
         rectangle.ClipPath = OfficeClipPath.Rectangle(45, 20);
 
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
             })
             .Shape(rectangle)
             .ToBytes();
@@ -4527,12 +4527,12 @@ public partial class PdfPageImageRendererTests {
     [Fact]
     public void RenderPage_ProjectsGeneratedImageClipPathAsCroppedProjection() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
             })
             .Image(PdfPngTestImages.CreateRgbPng(2, 2), 24, 24, clipPath: OfficeClipPath.Rectangle(12, 12))
             .ToBytes();

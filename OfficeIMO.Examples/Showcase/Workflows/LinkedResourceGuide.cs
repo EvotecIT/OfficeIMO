@@ -36,7 +36,7 @@ internal static class LinkedResourceGuide {
                 "Describe the expected result and attach a safe sample of the actual output."
             })
             .Paragraph(p => p.Text("The resource names are clickable annotations. A static image shows their labels; open the PDF to follow them."))),
-            new PdfCreateOptions { DefaultFontSize = 11 })
+            new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11) })
             .Meta(title: "Document automation reading list", author: "OfficeIMO")
             .Save(Path.Combine(folder, "example.pdf"));
     }

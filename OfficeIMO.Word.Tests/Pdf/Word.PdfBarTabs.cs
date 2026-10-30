@@ -152,7 +152,7 @@ public sealed class WordPdfBarTabTests {
         ConfigureParagraph(paragraph, "FIRST");
         SetTabs(paragraph, Tab(W.TabStopValues.Bar));
         WordPdfExportOptions options = Options();
-        options.PdfOptions!.HeaderFontSize = 10D;
+        options.PdfOptions!.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(10D);
 
         PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
         PdfConversionWarning warning = Assert.Single(result.Warnings,

@@ -53,12 +53,12 @@ public class PdfTextShapingProviderTests {
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = 180D,
-                PageHeight = 240D,
-                MarginLeft = 20D,
-                MarginRight = 20D,
-                MarginTop = 20D,
-                MarginBottom = 20D
+                PageWidth = global::OfficeIMO.OfficeLength.Points(180D),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(240D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
             }
             .ReportDiagnosticsTo(report, "OfficeIMO.Pdf.Tests")
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
@@ -153,8 +153,8 @@ public class PdfTextShapingProviderTests {
                 new OfficeFontInfo(evidence.Family, 20D));
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions {
-                CompressContentStreams = false, PageWidth = 120D, PageHeight = 180D,
-                MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D
+                CompressContentStreams = false, PageWidth = global::OfficeIMO.OfficeLength.Points(120D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
             }
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
             .SetTextShapingProvider(provider)
@@ -255,12 +255,12 @@ public class PdfTextShapingProviderTests {
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = 140D,
-                PageHeight = 200D,
-                MarginLeft = 20D,
-                MarginRight = 20D,
-                MarginTop = 20D,
-                MarginBottom = 20D
+                PageWidth = global::OfficeIMO.OfficeLength.Points(140D),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(200D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
             }
             .ReportDiagnosticsTo(report, "OfficeIMO.Pdf.Tests")
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData));
@@ -331,12 +331,12 @@ public class PdfTextShapingProviderTests {
             PixelBounds svgBounds = GetInkBounds(OfficeDrawingRasterRenderer.Render(svgDrawing!, rasterOptions));
 
             var pdfOptions = new PdfCreateOptions {
-                    PageWidth = 600D,
-                    PageHeight = 140D,
-                    MarginLeft = 0D,
-                    MarginRight = 0D,
-                    MarginTop = 0D,
-                    MarginBottom = 0D
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(600D),
+                    PageHeight = global::OfficeIMO.OfficeLength.Points(140D),
+                    MarginLeft = global::OfficeIMO.OfficeLength.Points(0D),
+                    MarginRight = global::OfficeIMO.OfficeLength.Points(0D),
+                    MarginTop = global::OfficeIMO.OfficeLength.Points(0D),
+                    MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
                 }
                 .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
                 .SetLanguage(evidence.Language)
@@ -735,7 +735,7 @@ public class PdfTextShapingProviderTests {
             });
         var options = new PdfCreateOptions {
                 CompressContentStreams = false,
-                DefaultFontSize = 12D
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D)
             }
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Positioned Superscript Font")
             .SetTextShapingProvider(provider);

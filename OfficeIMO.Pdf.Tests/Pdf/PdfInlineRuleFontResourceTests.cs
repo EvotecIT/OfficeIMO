@@ -85,8 +85,8 @@ public sealed class PdfInlineRuleFontResourceTests {
     private static PdfCreateOptions Options() {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, ' ', '.', 'A', 'B');
         return new PdfCreateOptions {
-            PageWidth = 140D, PageHeight = 160D, MarginLeft = 20D, MarginRight = 20D,
-            MarginTop = 20D, MarginBottom = 20D, DefaultFontSize = 10D, DefaultFont = PdfStandardFont.Helvetica
+            PageWidth = global::OfficeIMO.OfficeLength.Points(140D), PageHeight = global::OfficeIMO.OfficeLength.Points(160D), MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D), DefaultFont = PdfStandardFont.Helvetica
         }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(Family, font, bold: font));
     }
 

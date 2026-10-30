@@ -73,7 +73,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
         OfficeShape backdrop = OfficeShape.Rectangle(90D, 35D);
         backdrop.FillColor = OfficeColor.Black;
         backdrop.StrokeColor = null;
-        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = 400D, PageHeight = 300D })
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
             .Canvas(canvas => canvas.Shape(backdrop, 10D, 20D)
                 .Text("Name:", 20D, 28D, 70D, 20D, color: global::OfficeIMO.OfficeColor.FromRgb(0, 0, 0))
                 .Shape(Box(140D, 20D), 100D, 28D)).ToBytes();
@@ -187,7 +187,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
     [InlineData(true)]
     public void NativeLabelOverImageNeedsSeparateVisibilityEvidence(bool supplyOcr) {
         byte[] image = PdfPngTestImages.CreateRgbPng(80, 30);
-        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = 400D, PageHeight = 300D })
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
             .Canvas(canvas => canvas.Image(image, 10D, 20D, 85D, 35D)
                 .Text("Name:", 20D, 28D, 70D, 20D)
                 .Shape(Box(140D, 20D), 100D, 28D)).ToBytes();
@@ -313,7 +313,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
 
     [Fact]
     public void ReadingOrderGroupsSlightlyOffsetRightToLeftFieldsIntoOneRow() {
-        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = 400D, PageHeight = 300D })
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
             .Canvas(canvas => canvas.Shape(Box(80D, 20D), 70D, 82D)
                 .Shape(Box(80D, 20D), 250D, 80D)).ToBytes();
         var labels = new[] {
@@ -459,7 +459,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
         OfficeShape outline = Box(140D, 20D);
         outline.FillColor = null;
         outline.StrokeColor = OfficeColor.Black;
-        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = 400D, PageHeight = 300D })
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
             .Canvas(canvas => canvas.Shape(backdrop, 0D, 0D).Shape(outline, 100D, 28D)).ToBytes();
         var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 20D, 28D, 70D, 48D, 1D) };
 
@@ -494,7 +494,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
         OfficeShape outline = Box(140D, 20D);
         outline.FillColor = null;
         outline.StrokeColor = OfficeColor.White;
-        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = 400D, PageHeight = 300D })
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
             .Canvas(canvas => canvas.Shape(backing, 100D, 28D).Shape(outline, 100D, 28D)).ToBytes();
         var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 20D, 28D, 70D, 48D, 1D) };
 
@@ -596,7 +596,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
     [Fact]
     public void OpaqueImageOverNativeLabelDoesNotSupportAFieldProposal() {
         byte[] image = PdfPngTestImages.CreateRgbPng(80, 30);
-        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = 400D, PageHeight = 300D })
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
             .Canvas(canvas => canvas.Text("Name:", 20D, 28D, 70D, 20D)
                 .Shape(Box(140D, 20D), 100D, 28D)
                 .Image(image, 10D, 20D, 95D, 35D)).ToBytes();

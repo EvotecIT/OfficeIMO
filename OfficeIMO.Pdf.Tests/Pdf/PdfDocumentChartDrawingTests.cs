@@ -1918,12 +1918,12 @@ height: global::OfficeIMO.OfficeLength.Points(210D),
         Assert.False(report.HasIssues, string.Join("; ", report.Issues.Select(issue => issue.ToString())));
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 460,
-                PageHeight = 310,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(460),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(310),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 CompressContentStreams = false
             })
             .Drawing(drawing, PdfAlign.Left)
@@ -2057,12 +2057,12 @@ height: global::OfficeIMO.OfficeLength.Points(190D),
         Assert.False(axisTitle.Font.IsItalic);
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 280,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(280),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 CompressContentStreams = false
             })
             .Drawing(drawing, PdfAlign.Left)
@@ -2260,12 +2260,12 @@ height: global::OfficeIMO.OfficeLength.Points(190D)));
         Assert.Equal(0, horizontalGridLines);
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 280,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(280),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 CompressContentStreams = false
             })
             .Drawing(drawing, PdfAlign.Left)
@@ -2298,12 +2298,12 @@ width: global::OfficeIMO.OfficeLength.Points(340D),
 height: global::OfficeIMO.OfficeLength.Points(210D)));
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 440,
-                PageHeight = 300,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(440),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(300),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 CompressContentStreams = false
             })
             .Drawing(drawing, PdfAlign.Left)

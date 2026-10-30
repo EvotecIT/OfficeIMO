@@ -7,7 +7,7 @@ internal static class EvaluationCorpus {
     public const string Version = "officeimo.ai.corpus.v4";
 
     public static IReadOnlyList<EvaluationCase> Create() {
-        var fontOptions = new PdfCreateOptions { DefaultFontSize = 14 };
+        var fontOptions = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(14) };
         if (!fontOptions.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true))
             throw new InvalidOperationException("The evaluation corpus requires an embeddable system font.");
         byte[] Pdf(string text) => PdfDocument.Create(builder => builder.Content(content => content.Text(text)), fontOptions).ToBytes();

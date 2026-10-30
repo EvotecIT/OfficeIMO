@@ -453,6 +453,34 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "validation": "Current front-door source compiles against the existing native net10.0 dependency graph;78source-linkedbatch/nativecases pass, including two filesystem-transition regressions. Normal full graph, other frameworks and phase gates remain pending."
+    },
+    {
+      "phase": "B",
+      "action": "internalize",
+      "old": "OfficeBatchReport.TryDeleteFinished(string path)",
+      "new": null,
+      "reason": "Report-store cleanup is cross-assembly plumbing used through existing Studio/test friend access. It is not part of the documented batch result contract.",
+      "files": [
+        "OfficeIMO/Batches/OfficeBatchReport.Persistence.cs",
+        "OfficeIMO/PublicAPI.Shipped.txt"
+      ],
+      "applied": "phase-b-applied"
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "PDF numeric settings serialized into batch and workflow rendering fingerprints",
+      "new": "Physical lengths serialize as exact signed EMUs; colors retain symbolic roles and normalized literal precision in batch and workflow rendering identities",
+      "reason": "Distinct physical settings must reject checkpoint reuse even when their display formatting is equal. Both raw PDF metadata and outer settings use one internal converter.",
+      "files": [
+        "OfficeIMO/Batches/OfficeBatchExecutor.Configuration.cs",
+        "OfficeIMO/Batches/OfficeBatchConfigurationJsonContext.cs",
+        "OfficeIMO.Workflows/OfficeWorkflowCheckpointSettings.cs",
+        "OfficeIMO.Workflows/OfficeWorkflowCheckpointJsonContext.cs",
+        "OfficeIMO.Tests/OfficeConverter.RegistrationTests.cs"
+      ],
+      "applied": "phase-b-applied",
+      "note": "Both raw PDF metadata and outer settings register the shared internal converters. Existing built-in settings-change proof remains; registered RTF covers a theme, one-EMU and sub-byte color changes while preserving saved artifacts. Source-format imports retain neutral defaults."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
@@ -491,6 +519,16 @@
         "source": "SurfaceAnalysis",
         "membersHiddenWithType": 5
       }
+    },
+    {
+      "member": "OfficeIMO.OfficeBatchReport.TryDeleteFinished(string path)",
+      "file": "OfficeIMO/Batches/OfficeBatchReport.Persistence.cs",
+      "analysis": {
+        "id": "M:OfficeIMO.OfficeBatchReport.TryDeleteFinished(System.String)",
+        "source": "Build/ApiMap/SurfaceAnalysis"
+      },
+      "why": "Undocumented report-store cleanup used by Studio and persistence tests through existing friend assemblies; documented report inspection and serialization remain public.",
+      "applied": "phase-b-applied"
     }
   ]
 }

@@ -42,7 +42,7 @@ internal static partial class PdfWriter {
                     });
                 } else if (cb is RichParagraphBlock rpb2) {
                     PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(rpb2);
-                    double size = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize;
+                    double size = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize.ToPoints();
                     double leading = GetParagraphLeading(paragraphStyle, size);
                     var textFrame = GetParagraphTextFrame(paragraphStyle, 0, columnWidth);
                     var wrap = WrapRichRunsCoreWithFirstLineOrigin(rpb2.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb2.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
@@ -51,7 +51,7 @@ internal static partial class PdfWriter {
                     PreparedListLayout prepared = PrepareListLayout(
                         list,
                         columnWidth,
-                        currentOpts.DefaultFontSize,
+                        currentOpts.DefaultFontSize.ToPoints(),
                         topLevelSpacing: false);
                     int listGroupId = nextListGroupId++;
                     var listItems = new System.Collections.Generic.List<ColListItem>(prepared.Items.Count);
@@ -129,7 +129,7 @@ internal static partial class PdfWriter {
                     double cellSpacing = GetTableCellSpacing(style);
                     double columnGap = cellSpacing;
                     double tableRowGap = cellSpacing;
-                    double size = currentOpts.DefaultFontSize;
+                    double size = currentOpts.DefaultFontSize.ToPoints();
                     ValidateTableRoleRowCounts(style, tb2.Rows.Count);
                     int headerRowCount = style.HeaderRowCount;
                     int repeatHeaderRowCount = GetTableRepeatHeaderRowCount(style);
@@ -177,7 +177,7 @@ internal static partial class PdfWriter {
                         captionLineHeights = captionWrap.LineHeights;
                         captionHeight = MeasureRichLinesHeight(captionLineHeights, captionLines.Count, captionLeading) + style.CaptionSpacingAfter;
                         double firstRowHeight = rowHeights.Length > 0 ? rowHeights[0] : 0;
-                        double maxContentHeightForCaption = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+                        double maxContentHeightForCaption = currentOpts.PageHeight.ToPoints() - currentOpts.MarginTop.ToPoints() - currentOpts.MarginBottom.ToPoints();
                         if (captionHeight + firstRowHeight > maxContentHeightForCaption + 0.001) {
                             throw new ArgumentException("Table caption and first row exceed the available page content height.");
                         }

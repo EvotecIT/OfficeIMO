@@ -21,7 +21,7 @@ internal static partial class PdfWriter {
         OfficeOpenTypeDecorationMetrics? metrics = ResolveFontDecorationMetrics(font, namedFont, options);
         OfficeOpenTypeDecorationMetrics.Metric? selected = underline ? metrics?.Underline : metrics?.Strikethrough;
         if (selected is not { } metric) return null;
-        double size = run.FontSize ?? options.DefaultFontSize;
+        double size = run.FontSize ?? options.DefaultFontSize.ToPoints();
         metric.GetDeviceMetrics(EffectiveRichFontSize(size, run.Baseline), pointsPerPixel,
             out double position, out double thickness);
         return new TextDecorationMeasurement(position + TextRiseForBaseline(size, run.Baseline), thickness);

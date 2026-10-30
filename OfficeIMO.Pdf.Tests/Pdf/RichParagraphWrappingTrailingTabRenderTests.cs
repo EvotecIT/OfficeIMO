@@ -292,8 +292,8 @@ public partial class RichParagraphWrappingTests {
     public void ParagraphTabs_WidowCarriedLeaderRefreshesItsFontBox(bool exact, double stop) {
         byte[] Render(int count, bool floating) {
             PdfCreateOptions options = TrailingTabInkOptions();
-            options.PageWidth = 400D; options.PageHeight = 240D;
-            options.MarginLeft = options.MarginRight = options.MarginTop = options.MarginBottom = 40D;
+            options.PageWidth = global::OfficeIMO.OfficeLength.Points(400D); options.PageHeight = global::OfficeIMO.OfficeLength.Points(240D);
+            options.MarginLeft = options.MarginRight = options.MarginTop = options.MarginBottom = global::OfficeIMO.OfficeLength.Points(40D);
             var document = PdfDocument.Create(options);
             if (floating) document.Table(new[] { new[] { "T" } }, style: new PdfTableStyle {
                 HeaderRowCount = 0, FontSize = 2D, CellPaddingX = 0D, CellPaddingY = 0D,
@@ -386,8 +386,8 @@ public partial class RichParagraphWrappingTests {
     }
     private static PdfCreateOptions TrailingTabOptions() => new PdfCreateOptions {
         BackgroundColor = null,
-        PageWidth = 360D, PageHeight = 220D,
-        MarginLeft = 36D, MarginRight = 36D, MarginTop = 36D, MarginBottom = 36D,
-        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12D
+        PageWidth = global::OfficeIMO.OfficeLength.Points(360D), PageHeight = global::OfficeIMO.OfficeLength.Points(220D),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(36D), MarginRight = global::OfficeIMO.OfficeLength.Points(36D), MarginTop = global::OfficeIMO.OfficeLength.Points(36D), MarginBottom = global::OfficeIMO.OfficeLength.Points(36D),
+        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D)
     };
 }

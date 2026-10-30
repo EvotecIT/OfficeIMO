@@ -6,8 +6,8 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfPanelContinuationTests {
     [Fact]
     public void Panel_ParagraphRelaxesUnavoidableWidowsWhenOnlyOneLineFits() {
-        var options = new PdfCreateOptions { PageWidth = 300, PageHeight = 60, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(60), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), MaxGeneratedPages = 3 };
         byte[] bytes = PdfDocument.Create(options).Panel(panel => panel
             .Paragraph(p => p.Text("Marker001\nMarker002\nMarker003"), style: new PdfParagraphStyle {
                 LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0, WidowControl = true
@@ -23,8 +23,8 @@ public class PdfPanelContinuationTests {
 
     [Fact]
     public void Panel_KeptTogetherAlsoMovesWithItsFollowingParagraph() {
-        var options = new PdfCreateOptions { PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 2 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(200), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), MaxGeneratedPages = 2 };
         var paragraphStyle = new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0,
             LineSpacing = PdfLineSpacing.Exactly(20), WidowControl = false };
         byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.Text("Lead"), style: paragraphStyle).Spacer(100)
@@ -42,8 +42,8 @@ public class PdfPanelContinuationTests {
 
     [Fact]
     public void Panel_SectionHeadingUsesIntermediateFragmentCapacity() {
-        var options = new PdfCreateOptions { PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(200), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), MaxGeneratedPages = 3 };
         byte[] bytes = PdfDocument.Create(options).Panel(panel => panel
             .Paragraph(p => p.Text(string.Join("\n", Enumerable.Range(1, 4).Select(i => $"Marker{i:D3}"))), style: new PdfParagraphStyle {
                 LineSpacing = PdfLineSpacing.Exactly(32), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false })
@@ -60,8 +60,8 @@ public class PdfPanelContinuationTests {
 
     [Fact]
     public void Panel_TableOfContentsRetainsClosingSpaceAfterItsFinalEntry() {
-        var options = new PdfCreateOptions { PageWidth = 300, PageHeight = 196, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, DefaultFontSize = 20, MaxGeneratedPages = 4 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(196), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(20), MaxGeneratedPages = 4 };
         PdfDocument document = PdfDocument.Create(options).Panel(panel => panel.TableOfContents(new PdfTableOfContentsOptions { Title = null }),
             new PdfPanelStyle { PaddingX = 0, PaddingY = 4, SpacingBefore = 0, SpacingAfter = 0, RepeatFragmentDecoration = false });
         for (int i = 1; i <= 5; i++) document.Section($"Marker{i:D3}", _ => { }, new PdfSectionOptions { IncludeHeading = false });
@@ -72,8 +72,8 @@ public class PdfPanelContinuationTests {
 
     [Fact]
     public void Panel_FinalParagraphSpacingMovesWithItsClosingPadding() {
-        var options = new PdfCreateOptions { PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(200), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), MaxGeneratedPages = 3 };
         byte[] bytes = PdfDocument.Create(options).Panel(panel => panel
             .Paragraph(p => p.Text(string.Join("\n", Enumerable.Range(1, 4).Select(i => $"Marker{i:D3}"))), style: new PdfParagraphStyle {
                 LineSpacing = PdfLineSpacing.Exactly(32), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false })
@@ -92,8 +92,8 @@ public class PdfPanelContinuationTests {
     [InlineData("row")]
     public void Panel_UnscaledFinalImageRejectsInsufficientClosingSpace(string layout) {
         var options = new PdfCreateOptions {
-            PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3
+            PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(200), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), MaxGeneratedPages = 3
         };
         var panelStyle = new PdfPanelStyle { PaddingX = 0, PaddingY = 4, SpacingBefore = 0, SpacingAfter = 0, RepeatFragmentDecoration = false };
         void Compose(PdfContentBuilder content) => content.Panel(panel => panel
@@ -122,8 +122,8 @@ public class PdfPanelContinuationTests {
     [InlineData("body", "section")]
     public void Panel_FinalContentKeepsClosingSpaceAcrossSupportedChildren(string layout, string child) {
         var options = new PdfCreateOptions {
-            PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3
+            PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(200), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), MaxGeneratedPages = 3
         };
         var panelStyle = new PdfPanelStyle { PaddingX = 0, PaddingY = 4, SpacingBefore = 0, SpacingAfter = 0, RepeatFragmentDecoration = false };
         string[] markers = Enumerable.Range(1, 6).Select(i => $"Marker{i:D3}").ToArray();
@@ -168,8 +168,8 @@ public class PdfPanelContinuationTests {
     [InlineData(2)]
     public void Columns_ContinuedPanelImageUsesContinuationCapacityDuringBalancing(int depth) {
         var options = new PdfCreateOptions {
-            PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 4
+            PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(200), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), MaxGeneratedPages = 4
         };
         var panelStyle = new PdfPanelStyle { PaddingX = 0, PaddingY = 4, FragmentBottomInset = 4, SpacingBefore = 0, SpacingAfter = 0, RepeatFragmentDecoration = false };
         void Content(PdfContentBuilder panel) => panel
@@ -193,8 +193,8 @@ public class PdfPanelContinuationTests {
     [InlineData(true, 2)]
     public void Row_ContinuedPanelImageUsesItsAvailableCapacity(bool scale, int depth) {
         var options = new PdfCreateOptions {
-            PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3
+            PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(200), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), MaxGeneratedPages = 3
         };
         var panelStyle = new PdfPanelStyle { PaddingX = 0, PaddingY = 4, FragmentBottomInset = 4, SpacingBefore = 0, SpacingAfter = 0, RepeatFragmentDecoration = false };
         void Content(PdfContentBuilder panel) => panel
@@ -216,8 +216,8 @@ public class PdfPanelContinuationTests {
     [InlineData("row")]
     public void Panel_ContinuousDecorationRetainsFullClosingPadding(string layout) {
         var options = new PdfCreateOptions {
-            PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3
+            PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(200), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), MaxGeneratedPages = 3
         };
         var style = new PdfPanelStyle { PaddingX = 0, PaddingY = 4, SpacingBefore = 0, SpacingAfter = 0, RepeatFragmentDecoration = false };
         string text = string.Join("\n", Enumerable.Range(1, 6).Select(i => $"Marker{i:D3}"));
@@ -242,8 +242,8 @@ public class PdfPanelContinuationTests {
     [InlineData(6D)]
     public void Panel_BorderOffsetsMovePaintWithoutMovingText(double radius) {
         var options = new PdfCreateOptions {
-            PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20
+            PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(200), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
         };
         var style = new PdfPanelStyle {
             PaddingX = 0, PaddingY = 4, SpacingBefore = 0, SpacingAfter = 0, CornerRadius = radius,
@@ -270,8 +270,8 @@ public class PdfPanelContinuationTests {
     [InlineData("row")]
     public void Panel_ContinuousDecorationScalesImageWithinItsFragmentInset(string layout) {
         var options = new PdfCreateOptions {
-            PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3
+            PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(200), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), MaxGeneratedPages = 3
         };
         var panelStyle = new PdfPanelStyle {
             PaddingX = 0, PaddingY = 4, FragmentBottomInset = 4,
@@ -306,8 +306,8 @@ public class PdfPanelContinuationTests {
     [InlineData("row", false, 4D)]
     public void Panel_ContinuationPreservesItsChosenPaddingPolicy(string layout, bool repeat, double inset) {
         var options = new PdfCreateOptions {
-            PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, DefaultFontSize = 12, MaxGeneratedPages = 6
+            PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(200), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), MaxGeneratedPages = 6
         };
         var panelStyle = new PdfPanelStyle {
             PaddingX = 0, PaddingY = 4, SpacingBefore = 0, SpacingAfter = 0,

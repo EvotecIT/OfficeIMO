@@ -12,22 +12,22 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void PdfDocumentCreate_SnapshotsInputOptionsBeforeRendering() {
             var options = new PdfCreateOptions {
-                PageWidth = 300,
-                PageHeight = 400,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(300),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(400),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 12
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
             };
 
             var doc = PdfDocument.Create(options)
                 .Paragraph(p => p.Text("Options snapshot"));
 
-            options.PageWidth = 612;
-            options.PageHeight = 792;
-            options.DefaultFontSize = 30;
+            options.PageWidth = global::OfficeIMO.OfficeLength.Points(612);
+            options.PageHeight = global::OfficeIMO.OfficeLength.Points(792);
+            options.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(30);
             options.DefaultFont = PdfStandardFont.Courier;
 
             byte[] bytes = doc.ToBytes();
@@ -248,14 +248,14 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void HeaderFooterText_RendersLineBreaksOnSeparateLines() {
             var doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 320,
-                MarginLeft = 50,
-                MarginRight = 50,
-                MarginTop = 60,
-                MarginBottom = 60,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(320),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(50),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(50),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(60),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(60),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             });
 
             doc.Compose(c => {
@@ -437,9 +437,9 @@ namespace OfficeIMO.Tests.Pdf {
             var report = new PdfConversionReport();
             var options = new PdfCreateOptions {
                 HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = 12,
+                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(12),
                 FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = 12
+                FooterFontSize = global::OfficeIMO.OfficeLength.Points(12)
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
@@ -488,9 +488,9 @@ namespace OfficeIMO.Tests.Pdf {
             var report = new PdfConversionReport();
             var options = new PdfCreateOptions {
                 HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = 12,
+                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(12),
                 FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = 12
+                FooterFontSize = global::OfficeIMO.OfficeLength.Points(12)
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
@@ -522,16 +522,16 @@ namespace OfficeIMO.Tests.Pdf {
         public void HeaderFooterTextBeyondPhysicalPageReportsVerticalClipping(bool useZones) {
             var report = new PdfConversionReport();
             var options = new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 220,
-                MarginLeft = 40,
-                MarginRight = 40,
-                MarginTop = 40,
-                MarginBottom = 40,
-                HeaderOffsetY = 40,
-                FooterOffsetY = 40,
-                HeaderFontSize = 12,
-                FooterFontSize = 12
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(40),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(40),
+                HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(40),
+                FooterOffsetY = global::OfficeIMO.OfficeLength.Points(40),
+                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(12),
+                FooterFontSize = global::OfficeIMO.OfficeLength.Points(12)
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             PdfDocument document = PdfDocument.Create(options);
@@ -555,7 +555,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .ToArray();
             Assert.Contains(clippingWarnings, warning =>
                 warning.Source == "Header" &&
-                (warning.LayoutDiagnostic?.Y ?? 0D) + (warning.LayoutDiagnostic?.Height ?? 0D) > options.PageHeight &&
+                (warning.LayoutDiagnostic?.Y ?? 0D) + (warning.LayoutDiagnostic?.Height ?? 0D) > options.PageHeight.ToPoints() &&
                 warning.LayoutDiagnostic?.Height > 0D);
             Assert.Contains(clippingWarnings, warning =>
                 warning.Source == "Footer" &&
@@ -568,14 +568,14 @@ namespace OfficeIMO.Tests.Pdf {
         public void HeaderFooterRichTextDecorationsUsePaintedVerticalBoundsForClippingDiagnostics() {
             var backgroundReport = new PdfConversionReport();
             var backgroundOptions = new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 220,
-                MarginLeft = 40,
-                MarginRight = 40,
-                MarginTop = 10,
-                MarginBottom = 40,
-                HeaderOffsetY = 1,
-                HeaderFontSize = 12
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(10),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(40),
+                HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(1),
+                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(12)
             }.ReportDiagnosticsTo(backgroundReport, "OfficeIMO.Tests");
 
             byte[] backgroundBytes = PdfDocument.Create(backgroundOptions)
@@ -588,14 +588,14 @@ namespace OfficeIMO.Tests.Pdf {
 
             var underlineReport = new PdfConversionReport();
             var underlineOptions = new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 220,
-                MarginLeft = 40,
-                MarginRight = 40,
-                MarginTop = 40,
-                MarginBottom = 1,
-                FooterOffsetY = 0,
-                FooterFontSize = 1
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(40),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(1),
+                FooterOffsetY = global::OfficeIMO.OfficeLength.Points(0),
+                FooterFontSize = global::OfficeIMO.OfficeLength.Points(1)
             }.ReportDiagnosticsTo(underlineReport, "OfficeIMO.Tests");
 
             byte[] underlineBytes = PdfDocument.Create(underlineOptions)
@@ -607,7 +607,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Contains(backgroundReport.Warnings, warning =>
                 warning.Code == "header-footer-page-bounds-clipped" &&
                 warning.Source == "Header" &&
-                (warning.LayoutDiagnostic?.Y ?? 0D) + (warning.LayoutDiagnostic?.Height ?? 0D) > backgroundOptions.PageHeight);
+                (warning.LayoutDiagnostic?.Y ?? 0D) + (warning.LayoutDiagnostic?.Height ?? 0D) > backgroundOptions.PageHeight.ToPoints());
             Assert.True(backgroundReport.HasLoss);
 
             Assert.NotEmpty(underlineBytes);
@@ -726,14 +726,14 @@ namespace OfficeIMO.Tests.Pdf {
         public void HeaderFooterImages_RenderInsideMarginAreasWithoutImplicitFooterText() {
             byte[] png = CreateMinimalRgbPng();
             var doc = PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = 300,
-                    PageHeight = 200,
-                    MarginLeft = 30,
-                    MarginRight = 30,
-                    MarginTop = 40,
-                    MarginBottom = 40,
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(300),
+                    PageHeight = global::OfficeIMO.OfficeLength.Points(200),
+                    MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                    MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                    MarginTop = global::OfficeIMO.OfficeLength.Points(40),
+                    MarginBottom = global::OfficeIMO.OfficeLength.Points(40),
                     DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 10
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
                 })
                 .Header(header => header.Image(png, 24, 12, PdfAlign.Left).Text("HeaderImageText"))
                 .Footer(footer => footer.Image(png, 30, 10, PdfAlign.Center))
@@ -755,13 +755,13 @@ namespace OfficeIMO.Tests.Pdf {
         public void HeaderFooterImages_SharingAnAlignmentFormOneNonOverlappingGroupWithText() {
             byte[] png = CreateMinimalRgbPng();
             var doc = PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = 300,
-                    PageHeight = 200,
-                    MarginLeft = 30,
-                    MarginRight = 30,
-                    MarginTop = 40,
-                    MarginBottom = 40,
-                    HeaderFontSize = 9
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(300),
+                    PageHeight = global::OfficeIMO.OfficeLength.Points(200),
+                    MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                    MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                    MarginTop = global::OfficeIMO.OfficeLength.Points(40),
+                    MarginBottom = global::OfficeIMO.OfficeLength.Points(40),
+                    HeaderFontSize = global::OfficeIMO.OfficeLength.Points(9)
                 })
                 .Header(header => header
                     .Zones(null, "Centered header", null)
@@ -796,14 +796,14 @@ namespace OfficeIMO.Tests.Pdf {
             footerShape.FillColor = OfficeColor.Blue;
             var report = new PdfConversionReport();
             var options = new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 220,
-                MarginLeft = 80,
-                MarginRight = 80,
-                MarginTop = 50,
-                MarginBottom = 50,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(80),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(80),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(50),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(50),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
@@ -836,12 +836,12 @@ namespace OfficeIMO.Tests.Pdf {
             shape.Transform = OfficeTransform.Scale(1.5D, 1D).Then(OfficeTransform.Translate(220D, 0D));
             var report = new PdfConversionReport();
             var options = new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 220,
-                MarginLeft = 40,
-                MarginRight = 40,
-                MarginTop = 50,
-                MarginBottom = 50
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(50),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(50)
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
@@ -854,7 +854,7 @@ namespace OfficeIMO.Tests.Pdf {
                 warning.Code == "header-footer-page-bounds-clipped" &&
                 warning.Source == "Header");
             Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic?.Kind);
-            Assert.True((warning.LayoutDiagnostic?.X ?? 0D) + (warning.LayoutDiagnostic?.Width ?? 0D) > options.PageWidth);
+            Assert.True((warning.LayoutDiagnostic?.X ?? 0D) + (warning.LayoutDiagnostic?.Width ?? 0D) > options.PageWidth.ToPoints());
             Assert.InRange(warning.LayoutDiagnostic?.Width ?? 0D, 35.999D, 36.001D);
             Assert.True(report.HasLoss);
         }
@@ -872,12 +872,12 @@ namespace OfficeIMO.Tests.Pdf {
 
             var report = new PdfConversionReport();
             var options = new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 220,
-                MarginLeft = 40,
-                MarginRight = 40,
-                MarginTop = 50,
-                MarginBottom = 50
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(50),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(50)
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
@@ -900,12 +900,12 @@ namespace OfficeIMO.Tests.Pdf {
             var report = new PdfConversionReport();
             var options = new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = 260,
-                PageHeight = 220,
-                MarginLeft = 40,
-                MarginRight = 40,
-                MarginTop = 50,
-                MarginBottom = 50
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(50),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(50)
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
@@ -933,12 +933,12 @@ namespace OfficeIMO.Tests.Pdf {
             shape.StrokeWidth = 4;
             var report = new PdfConversionReport();
             var options = new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 220,
-                MarginLeft = 1,
-                MarginRight = 40,
-                MarginTop = 50,
-                MarginBottom = 50
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(1),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(50),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(50)
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
@@ -969,12 +969,12 @@ namespace OfficeIMO.Tests.Pdf {
             shape.Shadow = new OfficeShadow(OfficeColor.Black, 0.5D, 30D, 0D);
             var report = new PdfConversionReport();
             var options = new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 220,
-                MarginLeft = 40,
-                MarginRight = 40,
-                MarginTop = 50,
-                MarginBottom = 50
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(50),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(50)
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
@@ -987,7 +987,7 @@ namespace OfficeIMO.Tests.Pdf {
                 warning.Code == "header-footer-page-bounds-clipped" &&
                 warning.Source == "Header");
             Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic?.Kind);
-            Assert.True((warning.LayoutDiagnostic?.X ?? 0D) + (warning.LayoutDiagnostic?.Width ?? 0D) > options.PageWidth);
+            Assert.True((warning.LayoutDiagnostic?.X ?? 0D) + (warning.LayoutDiagnostic?.Width ?? 0D) > options.PageWidth.ToPoints());
             Assert.True(report.HasLoss);
         }
 
@@ -1001,12 +1001,12 @@ namespace OfficeIMO.Tests.Pdf {
             emptyClippedShape.Shadow = new OfficeShadow(OfficeColor.Black, 0.5D, 300D, 0D);
             var report = new PdfConversionReport();
             var options = new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 220,
-                MarginLeft = 40,
-                MarginRight = 40,
-                MarginTop = 50,
-                MarginBottom = 50
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(50),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(50)
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
@@ -1029,12 +1029,12 @@ namespace OfficeIMO.Tests.Pdf {
             byte[] png = CreateMinimalRgbPng();
             var report = new PdfConversionReport();
             var options = new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 220,
-                MarginLeft = 80,
-                MarginRight = 80,
-                MarginTop = 50,
-                MarginBottom = 50
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(80),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(80),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(50),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(50)
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
@@ -1055,12 +1055,12 @@ namespace OfficeIMO.Tests.Pdf {
             byte[] portraitPng = PdfPngTestImages.CreateRgbPng(1, 4);
             var report = new PdfConversionReport();
             var options = new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 220,
-                MarginLeft = 80,
-                MarginRight = 80,
-                MarginTop = 50,
-                MarginBottom = 50
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(80),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(80),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(50),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(50)
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
@@ -1079,12 +1079,12 @@ namespace OfficeIMO.Tests.Pdf {
             byte[] portraitPng = PdfPngTestImages.CreateRgbPng(1, 4);
             var report = new PdfConversionReport();
             var options = new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 220,
-                MarginLeft = 80,
-                MarginRight = 80,
-                MarginTop = 50,
-                MarginBottom = 50
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(80),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(80),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(50),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(50)
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
@@ -1104,12 +1104,12 @@ namespace OfficeIMO.Tests.Pdf {
             byte[] png = CreateMinimalRgbPng();
             var report = new PdfConversionReport();
             var options = new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 220,
-                MarginLeft = 40,
-                MarginRight = 40,
-                MarginTop = 50,
-                MarginBottom = 50
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(50),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(50)
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
@@ -1140,14 +1140,14 @@ namespace OfficeIMO.Tests.Pdf {
             footerShape.StrokeWidth = 1.5;
 
             var doc = PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = 300,
-                    PageHeight = 200,
-                    MarginLeft = 30,
-                    MarginRight = 30,
-                    MarginTop = 40,
-                    MarginBottom = 40,
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(300),
+                    PageHeight = global::OfficeIMO.OfficeLength.Points(200),
+                    MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                    MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                    MarginTop = global::OfficeIMO.OfficeLength.Points(40),
+                    MarginBottom = global::OfficeIMO.OfficeLength.Points(40),
                     DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 10
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
                 })
                 .Header(header => header.Shape(headerShape, PdfAlign.Center).Text("HeaderShapeText"))
                 .Footer(footer => footer.Shape(footerShape, PdfAlign.Right))

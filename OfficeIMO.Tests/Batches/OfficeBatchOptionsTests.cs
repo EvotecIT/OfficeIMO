@@ -78,7 +78,7 @@ public sealed class OfficeBatchOptionsTests {
         Assert.Throws<NotSupportedException>(() => request.ToJson(scope.Root)); request.ConversionOptions.PdfLoad = null;
         request.ConversionOptions.Word = new() { Title = "A custom title" };
         Assert.Throws<NotSupportedException>(() => request.ToJson(scope.Root)); request.ConversionOptions.Word = null;
-        request.ConversionOptions.PlainText = new() { PdfOptions = new PdfCreateOptions { DefaultFontSize = 16 } };
+        request.ConversionOptions.PlainText = new() { PdfOptions = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(16) } };
         Assert.Throws<NotSupportedException>(() => request.ToJson(scope.Root)); request.ConversionOptions.PlainText = null;
         request.PdfPasswordEnvironmentVariable = "OFFICEIMO_TEST_PASSWORD";
         string json = request.ToJson(scope.Root); Assert.Contains("OFFICEIMO_TEST_PASSWORD", json); Assert.DoesNotContain("runtime-value", json);

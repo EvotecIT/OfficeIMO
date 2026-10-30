@@ -56,7 +56,7 @@ internal static partial class PdfWriter {
             double cellSpacing = GetTableCellSpacing(style);
             double colGapPx = cellSpacing;
             double rowGapPx = cellSpacing;
-            double size = GetTableBodyFontSize(style, currentOpts.DefaultFontSize);
+            double size = GetTableBodyFontSize(style, currentOpts.DefaultFontSize.ToPoints());
             ValidateFlowTable(tb, style, cols);
             int headerRowCount = style.HeaderRowCount;
             int repeatHeaderRowCount = GetTableRepeatHeaderRowCount(style);
@@ -65,7 +65,7 @@ internal static partial class PdfWriter {
 
             style = preparedPairedStyle ?? PreparePairedTableBorders(tb, style);
             StringBuilder? pairedBorders = deferredPairedBorders;
-            double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
+            double contentWidth = currentOpts.PageWidth.ToPoints() - currentOpts.MarginLeft.ToPoints() - currentOpts.MarginRight.ToPoints();
             PreparedTableGeometry initialGeometry = PrepareTableGeometry(tb, style, contentWidth, logicalTopBoundary, logicalBottomBoundary);
             double tableWidth = initialGeometry.Width;
             double[] colPixel = initialGeometry.Widths;
@@ -83,11 +83,11 @@ internal static partial class PdfWriter {
                 remainingRowHeights[row] = rowHeights[row] +
                     GetTableRowGapAfter(row, rowHeights.Length, rowGapPx) + remainingRowHeights[row + 1];
             double tableCornerRadius = initialGeometry.CornerRadius;
-            double xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft, contentWidth, tableWidth);
+            double xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft.ToPoints(), contentWidth, tableWidth);
             if (style.Position is { } horizontalPosition) xOrigin = PositionTableX(horizontalPosition, tableWidth) + style.HorizontalOffset;
 
             double TableBottom() => style.Position?.VerticalAnchor == PdfTableAnchor.Page ? 0 : FootnoteBodyBottom;
-            double maxContentHeight = style.Position?.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight : GetFullPageContentHeight();
+            double maxContentHeight = style.Position?.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight.ToPoints() : GetFullPageContentHeight();
             bool tableFrameHasBodyContent = y < GetCurrentFramePageStartY() - .001D;
             if (style.Position is { VerticalAnchor: not PdfTableAnchor.Flow, VerticalAlignment: PdfTableVerticalAlignment.Top, VerticalOffset: > 0 } capacityPosition) {
                 // Offset-preserving anchors cannot use space above their resolved top.
@@ -116,8 +116,8 @@ internal static partial class PdfWriter {
             for (int header = 0; header < repeatHeaderRowCount; header++)
                 repeatHeaderHeight += rowHeights[header] + GetTableRowGapAfter(header, tb.Rows.Count, rowGapPx);
             void ReflowTableForCurrentFrame(int rowIndex = 0, int startLine = 0, bool paddingChanged = false) {
-                maxContentHeight = style.Position?.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight : GetFullPageContentHeight();
-                double newContentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
+                maxContentHeight = style.Position?.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight.ToPoints() : GetFullPageContentHeight();
+                double newContentWidth = currentOpts.PageWidth.ToPoints() - currentOpts.MarginLeft.ToPoints() - currentOpts.MarginRight.ToPoints();
                 if (!paddingChanged && (activeColumnFlow == null || Math.Abs(contentWidth - newContentWidth) <= 0.001D)) return;
                 contentWidth = newContentWidth;
                 TableColumnLayout preparedColumns = ResolveTableColumnLayout(tb, currentOpts, style, cols, contentWidth, size, headerRowCount, footerStartRowIndex);
@@ -155,7 +155,7 @@ internal static partial class PdfWriter {
                 NewPage(preserveEmptyPage: preserveEmptyPage);
                 tableFrameHasBodyContent = false;
                 ReflowTableForCurrentFrame();
-                xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft, contentWidth, tableWidth);
+                xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft.ToPoints(), contentWidth, tableWidth);
                 if (style.Position is { } position) {
                     flowYBeforeTable = y;
                     pageBeforeTable = currentPage;
@@ -234,8 +234,8 @@ internal static partial class PdfWriter {
             if (style.KeepWithNext && nextBlock != null && style.Position == null) {
                 double tableHeight = tableSpacingBefore + tableContentHeight + (style.Position == null ? style.SpacingAfter : 0D);
                 bool restoresFlow = RestoresMeasuredTableFlow(style, tableHeight, y - TableBottom());
-                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width,
-                    currentOpts.DefaultFontSize, restoresFlow ? 0D : tableHeight);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft.ToPoints(), width,
+                    currentOpts.DefaultFontSize.ToPoints(), restoresFlow ? 0D : tableHeight);
                 double keepHeight = restoresFlow ? Math.Max(tableHeight, nextHeight) : tableHeight + nextHeight;
                 double groupTop = y - tableSpacingBefore - (captionLines == null ? 0D : captionHeight + style.CaptionSpacingAfter);
                 if (nextHeight > 0.001 && tableHeight <= maxContentHeight + 0.001 && keepHeight <= maxContentHeight + 0.001 &&
@@ -245,8 +245,8 @@ internal static partial class PdfWriter {
                     tableSpacingBefore = 0D;
                     tableHeight = tableContentHeight + style.SpacingAfter;
                     restoresFlow = RestoresMeasuredTableFlow(style, tableHeight, y - TableBottom());
-                    nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width,
-                        currentOpts.DefaultFontSize, restoresFlow ? 0D : tableHeight);
+                    nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft.ToPoints(), width,
+                        currentOpts.DefaultFontSize.ToPoints(), restoresFlow ? 0D : tableHeight);
                     keepHeight = restoresFlow ? Math.Max(tableHeight, nextHeight) : tableHeight + nextHeight;
                     groupTop = y - (captionLines == null ? 0D : captionHeight + style.CaptionSpacingAfter);
                 }
@@ -262,10 +262,10 @@ internal static partial class PdfWriter {
                 double keepHeight;
                 try {
                     y = flowYBeforeTable;
-                    keepHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, 0);
+                    keepHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex, currentOpts.MarginLeft.ToPoints(), width, currentOpts.DefaultFontSize.ToPoints(), 0);
                 } finally { y = anchoredY; }
                 if (keepHeight <= GetFullPageContentHeight() + 0.001 && flowYBeforeTable < GetCurrentFramePageStartY() - 0.001 &&
-                    flowYBeforeTable - keepHeight < currentOpts.MarginBottom) NewInitialTablePage();
+                    flowYBeforeTable - keepHeight < currentOpts.MarginBottom.ToPoints()) NewInitialTablePage();
             }
 
             int minimumFirstPageBodyRows = Math.Min(
@@ -390,7 +390,7 @@ internal static partial class PdfWriter {
                         xOrigin, Math.Max(0D, MaximumContinuationHeight() - repeatHeaderHeight), GetClosingTextPadding(style.SpacingAfter));
                     if (!TryReserveFootnotes(references, y - requiredFirstSegmentHeight, commit: false, out double reservedHeight))
                         return;
-                    available -= Math.Max(0D, reservedHeight - (FootnoteBodyBottom - currentOpts.MarginBottom));
+                    available -= Math.Max(0D, reservedHeight - (FootnoteBodyBottom - currentOpts.MarginBottom.ToPoints()));
                 }
                 double spacingThatFits = Math.Min(spacing, Math.Max(0D, available - requiredFirstSegmentHeight));
                 if (spacingThatFits > 0.001D) {
@@ -465,7 +465,7 @@ internal static partial class PdfWriter {
                     repeatHeaderHeight = 0D;
                     for (int header = 0; header < repeatHeaderRowCount; header++)
                         repeatHeaderHeight += rowHeights[header] + GetTableRowGapAfter(header, tb.Rows.Count, rowGapPx);
-                    xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft, contentWidth, tableWidth);
+                    xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft.ToPoints(), contentWidth, tableWidth);
                     if (style.Position is { } continuationPosition) {
                         flowYBeforeTable = y;
                         pageBeforeTable = currentPage;

@@ -35,8 +35,8 @@ public sealed class PdfRunningContentTests {
                 Assert.Equal(14D, pdf.GetPage(page).Letters.Single(letter => letter.Value == "F").StartBaseLine.Y, 3);
             }
         }
-        Assert.Equal(32D, document.Options.MarginBottom);
-        Assert.Equal(18D, document.Options.FooterOffsetY);
+        Assert.Equal(32D, document.Options.MarginBottom.ToPoints());
+        Assert.Equal(18D, document.Options.FooterOffsetY.ToPoints());
     }
 
     [Theory]
@@ -44,7 +44,7 @@ public sealed class PdfRunningContentTests {
     [InlineData(true, 2)]
     public void ImportedFooterFirstLineOverlapRetainsHeaderWithoutChangingOrdinaryFlow(bool allowOverlap, int pages) {
         var options = Options();
-        options.PageHeight = 300; options.MarginTop = options.MarginBottom = 72;
+        options.PageHeight = global::OfficeIMO.OfficeLength.Points(300); options.MarginTop = options.MarginBottom = global::OfficeIMO.OfficeLength.Points(72);
         var document = PdfDocument.Create(options);
         document.Header(header => header.Text("FALLBACK").Content(content => content.Spacer(96), 36));
         document.Footer(footer => footer.Content(content => content.Spacer(96), 36));
@@ -203,9 +203,9 @@ public sealed class PdfRunningContentTests {
     }
 
     private static PdfCreateOptions Options(long memoryLimit = 1024 * 1024) => new() {
-        PageWidth = 240, PageHeight = 320, MarginTop = 32, MarginBottom = 32,
-        MarginLeft = 24, MarginRight = 24, DefaultFont = PdfStandardFont.Helvetica,
-        DefaultFontSize = 11, PageContentMemoryLimitBytes = memoryLimit
+        PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(320), MarginTop = global::OfficeIMO.OfficeLength.Points(32), MarginBottom = global::OfficeIMO.OfficeLength.Points(32),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24), DefaultFont = PdfStandardFont.Helvetica,
+        DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11), PageContentMemoryLimitBytes = memoryLimit
     };
 
     private static PdfTableStyle TableStyle(double height) {

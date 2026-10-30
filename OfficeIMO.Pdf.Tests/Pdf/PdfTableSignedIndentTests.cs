@@ -10,8 +10,8 @@ public class PdfTableSignedIndentTests {
     [InlineData("row")]
     public void SignedIndent_PreservesTableOriginAndColumnWidthsAcrossPageContinuation(string frame) {
         var options = new PdfCreateOptions {
-            PageWidth = 360, PageHeight = 240, MarginLeft = 30, MarginRight = 30,
-            MarginTop = 30, MarginBottom = 30, DefaultFontSize = 9
+            PageWidth = global::OfficeIMO.OfficeLength.Points(360), PageHeight = global::OfficeIMO.OfficeLength.Points(240), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         var style = new PdfTableStyle {
             LeftIndent = -12, MaxWidth = 120, PreserveWidth = true,

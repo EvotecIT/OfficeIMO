@@ -48,7 +48,7 @@ public class RtfPdfTableImportDefaultsTests {
     public void CallerTableStyleOverridesImportFallbackWithoutMutation() {
         var caller = new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,
-            DefaultFontSize = 12D,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D),
             DefaultTableStyle = new PdfCore.PdfTableStyle {
                 BorderColor = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255),
                 BorderWidth = 1D,
@@ -84,7 +84,7 @@ public class RtfPdfTableImportDefaultsTests {
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
         PdfOptions = includePdfOptions ? new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,
-            DefaultFontSize = 12D
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D)
         } : null
     };
 }

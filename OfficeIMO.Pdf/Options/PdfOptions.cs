@@ -53,9 +53,9 @@ public sealed partial class PdfCreateOptions {
     private PdfStandardFont _defaultFont = PdfStandardFont.Helvetica;
     private PdfStandardFont _headerFont = PdfStandardFont.Helvetica;
     private PdfStandardFont _footerFont = PdfStandardFont.Helvetica;
-    private double _defaultFontSize = 11;
-    private double _headerFontSize = 9;
-    private double _footerFontSize = 9;
+    private OfficeLength _defaultFontSize = OfficeLength.Points(11);
+    private OfficeLength _headerFontSize = OfficeLength.Points(9);
+    private OfficeLength _footerFontSize = OfficeLength.Points(9);
     private string? _headerFontFamily;
     private string? _footerFontFamily;
     private bool _hasExplicitDefaultFont;

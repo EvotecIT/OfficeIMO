@@ -142,8 +142,8 @@ public partial class PdfDocumentVisualQualityTests {
     public void MergedTailReflowsAcrossUnequalSequentialColumns() {
         string[] tokens = Enumerable.Range(1, 200).Select(n => $"Word{n:D3}").ToArray();
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 460, PageHeight = 140, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, DefaultFontSize = 12
+            PageWidth = global::OfficeIMO.OfficeLength.Points(460), PageHeight = global::OfficeIMO.OfficeLength.Points(140), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
         }).Columns(content => content.Table(new[] {
             new[] { PdfTableCell.Merge(string.Join(" ", tokens), rowSpan: 3), PdfTableCell.TextCell("Ready") },
             new[] { PdfTableCell.TextCell("Next") },
@@ -188,8 +188,8 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     private static PdfCreateOptions Options(double height) => new() {
-        PageWidth = 300, PageHeight = height, MarginLeft = 20, MarginRight = 20,
-        MarginTop = 20, MarginBottom = 20, DefaultFontSize = 12, CompressContentStreams = false
+        PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(height), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+        MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false
     };
 
     private static PdfTableStyle Style() => new() {

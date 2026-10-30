@@ -336,7 +336,6 @@ static OfficeIMO.OfficeBatchPlanItem.operator ==(OfficeIMO.OfficeBatchPlanItem? 
 static OfficeIMO.OfficeBatchReport.IsActive(string! path) -> bool
 static OfficeIMO.OfficeBatchReport.Load(string! path) -> OfficeIMO.OfficeBatchReport!
 static OfficeIMO.OfficeBatchReport.Parse(string! json) -> OfficeIMO.OfficeBatchReport!
-static OfficeIMO.OfficeBatchReport.TryDeleteFinished(string! path) -> bool
 static OfficeIMO.OfficeBatchReport.operator !=(OfficeIMO.OfficeBatchReport? left, OfficeIMO.OfficeBatchReport? right) -> bool
 static OfficeIMO.OfficeBatchReport.operator ==(OfficeIMO.OfficeBatchReport? left, OfficeIMO.OfficeBatchReport? right) -> bool
 static OfficeIMO.OfficeBatchSummary.operator !=(OfficeIMO.OfficeBatchSummary? left, OfficeIMO.OfficeBatchSummary? right) -> bool

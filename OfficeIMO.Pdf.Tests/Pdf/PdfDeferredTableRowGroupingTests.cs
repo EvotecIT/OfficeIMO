@@ -44,8 +44,8 @@ public class PdfDeferredTableRowGroupingTests {
             MinimumBodyRowsOnLastPage = mode == "first" ? 0 : 2
         };
         var document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 320, PageHeight = roles ? 160 : 120,
-            MarginLeft = 30, MarginRight = 30, MarginTop = 30, MarginBottom = 30
+            PageWidth = global::OfficeIMO.OfficeLength.Points(320), PageHeight = global::OfficeIMO.OfficeLength.Points(roles ? 160 : 120),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30), MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
         });
         document.Compose(root => root.Page(page => page.Content(content => {
             if (mode != "last") content.Paragraph(paragraph => paragraph.Text("Preamble\nContinuation"),

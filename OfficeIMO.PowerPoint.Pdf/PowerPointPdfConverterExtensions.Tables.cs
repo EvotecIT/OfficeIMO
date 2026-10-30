@@ -20,7 +20,7 @@ public static partial class PowerPointPdfConverterExtensions {
             ? ResolveTableDefaultFontFamily(table)
             : null;
         PdfCore.PdfTableStyle style = CreateTableStyle(table, options);
-        double bodyFontSize = style.FontSize ?? (options.PdfOptions ?? new PdfCore.PdfCreateOptions()).DefaultFontSize;
+        double bodyFontSize = style.FontSize ?? (options.PdfOptions ?? new PdfCore.PdfCreateOptions()).DefaultFontSize.ToPoints();
         var rowCells = Enumerable.Range(0, table.Rows).Select(_ => new List<PdfCore.PdfTableCell>()).ToArray();
         foreach (var anchor in table.EnumerateAnchorCells()) {
             int rowIndex = anchor.Row;

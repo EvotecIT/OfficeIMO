@@ -81,7 +81,7 @@ internal static class DocumentDelivery {
     }
 
     private static void WritePdf(string path, IReadOnlyList<VisualSpecimen> specimens) {
-        var options = new PdfCreateOptions { PageSize = PdfPageSizes.A4, DefaultFontSize = Style.CaptionSizePoints };
+        var options = new PdfCreateOptions { PageSize = PdfPageSizes.A4, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(Style.CaptionSizePoints) };
         options.EnableTaggedPdfCatalogMarkers();
         PdfDocument.Create(document => document.Content(content => {
             for (int index = 0; index < specimens.Count; index++) {

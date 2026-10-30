@@ -28,10 +28,10 @@ internal static partial class PdfWriter {
             global::OfficeIMO.OfficeColor? color = prepared.Block.Color ?? prepared.Style?.Color;
             global::OfficeIMO.OfficeColor? markerColor = prepared.Style?.MarkerColor ?? color;
             var markerPlacement = GetListMarkerPlacement(prepared, preparedItem);
-            double markerX = currentOpts.MarginLeft + markerPlacement.X;
+            double markerX = currentOpts.MarginLeft.ToPoints() + markerPlacement.X;
             double markerWidth = markerPlacement.Width;
             PdfAlign markerAlign = markerPlacement.Align;
-            double textX = currentOpts.MarginLeft + prepared.ListLeftIndent + prepared.MarkerWidth + prepared.MarkerGap;
+            double textX = currentOpts.MarginLeft.ToPoints() + prepared.ListLeftIndent + prepared.MarkerWidth + prepared.MarkerGap;
             double textWidth = prepared.AlignmentWidth;
             PdfAlign textAlign = prepared.Block.Align;
             double size = prepared.Size;
@@ -41,8 +41,8 @@ internal static partial class PdfWriter {
             string? bookmarkName = item.BookmarkName;
             PdfLineSpacing? lineSpacing = prepared.Style?.LineSpacing;
 
-            double markerOffset = markerX - currentOpts.MarginLeft;
-            double textOffset = textX - currentOpts.MarginLeft;
+            double markerOffset = markerX - currentOpts.MarginLeft.ToPoints();
+            double textOffset = textX - currentOpts.MarginLeft.ToPoints();
             double rightInset = width - textOffset - textWidth;
             double wrappedWidth = width;
             int lineIndex = 0;
@@ -146,7 +146,7 @@ internal static partial class PdfWriter {
 
                     var markerLines = new System.Collections.Generic.List<string>(1) { marker };
                     int? labelMarkedContentId = RegisterTextStructureElement("Lbl", listItemElementIndex);
-                    if (!WriteListMarkerFallback(preparedItem.MarkerFallback, currentOpts.MarginLeft + markerOffset,
+                    if (!WriteListMarkerFallback(preparedItem.MarkerFallback, currentOpts.MarginLeft.ToPoints() + markerOffset,
                             markerWidth, AdjustRichLineBaseline(baselineY, segmentLines[0], currentOpts, size),
                             markerSize, leading, markerAlign, markerColor ?? color, labelMarkedContentId)) {
                         if (markerNamedFont.HasValue) {
@@ -159,7 +159,7 @@ internal static partial class PdfWriter {
                             GetFontResourceName(markerFont, markerNamedFont, ChooseNormal(currentOpts.DefaultFont)),
                             markerSize,
                             leading,
-                            currentOpts.MarginLeft + markerOffset,
+                            currentOpts.MarginLeft.ToPoints() + markerOffset,
                             markerWidth,
                             AdjustRichLineBaseline(baselineY, segmentLines[0], currentOpts, size) +
                                 ResolveFontLineAlignmentRise(markerFont, markerNamedFont, markerSize, currentOpts, lineSpacing),
@@ -179,7 +179,7 @@ internal static partial class PdfWriter {
                 int? bodyMarkedContentId = firstSegment || listItemElement == null
                     ? RegisterTextStructureElement("LBody", listItemElementIndex)
                     : RegisterTextStructureElement("LBody", listItemElement);
-                WriteRichParagraph(sb, new RichParagraphBlock(runs, textAlign, color), segmentLines, segmentHeights, currentOpts, baselineY, size, leading, currentPage!.Annotations, currentOpts.MarginLeft + textOffset, textWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage,
+                WriteRichParagraph(sb, new RichParagraphBlock(runs, textAlign, color), segmentLines, segmentHeights, currentOpts, baselineY, size, leading, currentPage!.Annotations, currentOpts.MarginLeft.ToPoints() + textOffset, textWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage,
                     hasFollowingParagraphLines: lineIndex + take < lines.Count);
                 MarkRichFonts(runs);
                 y -= heightSum;

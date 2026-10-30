@@ -11,7 +11,7 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void SplitTableRowReservesTheNoteOnlyOnItsActualReferencePage() {
         var options = Options();
-        options.PageHeight = 260;
+        options.PageHeight = global::OfficeIMO.OfficeLength.Points(260);
         var document = PdfDocument.Create(options);
         var note = document.Content.DefineFootnote(body => {
             body.Text("TableNoteFirst", style: Style());
@@ -58,7 +58,7 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void KeptTableAdmitsBothReferencesBeforeGreedilyExpandingItsFirstNote() {
         var options = Options();
-        options.PageHeight = 260;
+        options.PageHeight = global::OfficeIMO.OfficeLength.Points(260);
         var document = PdfDocument.Create(options);
         var first = document.Content.DefineFootnote(body => {
             for (int index = 0; index < 20; index++) body.Text("LongTableNote" + index.ToString("00"), style: Style());
@@ -86,7 +86,7 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void MergedTableCellSchedulesItsLateReferenceFromTheAdmittedSpanFragment() {
         var options = Options();
-        options.PageHeight = 260;
+        options.PageHeight = global::OfficeIMO.OfficeLength.Points(260);
         var document = PdfDocument.Create(options);
         var note = document.Content.DefineFootnote(body => {
             body.Text("MergedNoteFirst", style: Style());

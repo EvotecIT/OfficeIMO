@@ -136,8 +136,8 @@ public sealed class MarkdownPdfPageDecoration {
 
     private static IEnumerable<PdfCore.PdfPageBackgroundShape> CreateReportBackgroundShapes(PdfCore.PdfCreateOptions options) {
         yield return PdfCore.PdfPageBackgroundShape.TopBand(
-            options.PageWidth,
-            options.PageHeight,
+            options.PageWidth.ToPoints(),
+            options.PageHeight.ToPoints(),
             110,
             fill: global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255),
             insetX: 34,
@@ -150,8 +150,8 @@ public sealed class MarkdownPdfPageDecoration {
             fillGradient: HorizontalGradient(global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255), global::OfficeIMO.OfficeColor.White));
 
         yield return PdfCore.PdfPageBackgroundShape.RightBand(
-            options.PageWidth,
-            options.PageHeight,
+            options.PageWidth.ToPoints(),
+            options.PageHeight.ToPoints(),
             54,
             fill: global::OfficeIMO.OfficeColor.FromRgb(219, 234, 254),
             insetY: 58,
@@ -160,8 +160,8 @@ public sealed class MarkdownPdfPageDecoration {
             fillOpacity: 0.24);
 
         yield return PdfCore.PdfPageBackgroundShape.Ellipse(
-            Math.Max(0, options.PageWidth - 160),
-            Math.Max(0, options.PageHeight - 152),
+            Math.Max(0, options.PageWidth.ToPoints() - 160),
+            Math.Max(0, options.PageHeight.ToPoints() - 152),
             112,
             112,
             fill: global::OfficeIMO.OfficeColor.FromRgb(191, 219, 254),
@@ -170,8 +170,8 @@ public sealed class MarkdownPdfPageDecoration {
 
     private static IEnumerable<PdfCore.PdfPageBackgroundShape> CreateTechnicalDocumentBackgroundShapes(PdfCore.PdfCreateOptions options) {
         yield return PdfCore.PdfPageBackgroundShape.TopBand(
-            options.PageWidth,
-            options.PageHeight,
+            options.PageWidth.ToPoints(),
+            options.PageHeight.ToPoints(),
             78,
             fill: global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
             insetX: 36,
@@ -184,8 +184,8 @@ public sealed class MarkdownPdfPageDecoration {
             fillGradient: HorizontalGradient(global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252), global::OfficeIMO.OfficeColor.White));
 
         yield return PdfCore.PdfPageBackgroundShape.LeftBand(
-            options.PageWidth,
-            options.PageHeight,
+            options.PageWidth.ToPoints(),
+            options.PageHeight.ToPoints(),
             8,
             fill: global::OfficeIMO.OfficeColor.FromRgb(9, 105, 218),
             insetY: 54,
@@ -194,8 +194,8 @@ public sealed class MarkdownPdfPageDecoration {
             fillOpacity: 0.18);
 
         yield return PdfCore.PdfPageBackgroundShape.Rectangle(
-            options.PageWidth - 120,
-            options.PageHeight - 88,
+            options.PageWidth.ToPoints() - 120,
+            options.PageHeight.ToPoints() - 88,
             48,
             6,
             fill: global::OfficeIMO.OfficeColor.FromRgb(9, 105, 218),

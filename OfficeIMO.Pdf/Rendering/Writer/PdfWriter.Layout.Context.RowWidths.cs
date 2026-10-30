@@ -125,7 +125,7 @@ internal static partial class PdfWriter {
                 case CheckBoxBlock checkBox:
                     return checkBox.Size;
                 case RadioButtonGroupBlock radioButtons:
-                    return radioButtons.Options.Max(option => EstimateSimpleTextWidthForOptions(option, currentOpts.DefaultFont, currentOpts.DefaultFontSize, currentOpts)) + radioButtons.Size + radioButtons.Gap;
+                    return radioButtons.Options.Max(option => EstimateSimpleTextWidthForOptions(option, currentOpts.DefaultFont, currentOpts.DefaultFontSize.ToPoints(), currentOpts)) + radioButtons.Size + radioButtons.Gap;
                 case TextAnnotationBlock annotation:
                     return annotation.Width;
                 case FreeTextAnnotationBlock annotation:
@@ -137,7 +137,7 @@ internal static partial class PdfWriter {
                 case DeferredTableBlock:
                     return availableWidth;
                 default:
-                    return Math.Min(availableWidth, currentOpts.DefaultFontSize * 4D);
+                    return Math.Min(availableWidth, currentOpts.DefaultFontSize.ToPoints() * 4D);
             }
         }
 
@@ -151,11 +151,11 @@ internal static partial class PdfWriter {
                 preferred = Math.Max(preferred, MeasureRunsPreferredWidth(list.RichItems[itemIndex].Runs));
             }
 
-            return preferred + currentOpts.DefaultFontSize * list.PreferredMarkerWidthFactor;
+            return preferred + currentOpts.DefaultFontSize.ToPoints() * list.PreferredMarkerWidthFactor;
         }
 
         private double MeasureRunsPreferredWidth(IReadOnlyList<PdfTextRun> runs, double? fontSize = null) {
-            double size = fontSize ?? currentOpts.DefaultFontSize;
+            double size = fontSize ?? currentOpts.DefaultFontSize.ToPoints();
             var layout = WrapRichRunsIntrinsic(
                 runs, double.MaxValue, size, ChooseNormal(currentOpts.DefaultFont), size * 1.4D,
                 null, DefaultParagraphTabStopWidth, currentOpts);

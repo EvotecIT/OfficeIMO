@@ -18,8 +18,8 @@ public class PdfImportedSpacerWrappingTests {
             PdfTextRun.Normal(text, fontSize: 1D, font: PdfStandardFont.Helvetica)
         });
         var options = new PdfCreateOptions {
-            PageWidth = 200D, PageHeight = 200D,
-            MarginLeft = 40D, MarginRight = 40D, MarginTop = 40D, MarginBottom = 40D
+            PageWidth = global::OfficeIMO.OfficeLength.Points(200D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(40D), MarginRight = global::OfficeIMO.OfficeLength.Points(40D), MarginTop = global::OfficeIMO.OfficeLength.Points(40D), MarginBottom = global::OfficeIMO.OfficeLength.Points(40D)
         };
         var style = new PdfTableStyle {
             HeaderRowCount = 0, ColumnWidthPoints = new List<double?> { 5D },

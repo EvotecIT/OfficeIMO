@@ -41,9 +41,9 @@ public class PdfDelimitedTokenFrameTests {
     private static byte[] Create(string text, double innerWidth, int route) {
         double frameWidth = innerWidth + (route == 0 ? 0D : 4D);
         var options = new PdfCreateOptions {
-            PageWidth = frameWidth + 40D, PageHeight = 400D,
-            MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D,
-            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10D
+            PageWidth = global::OfficeIMO.OfficeLength.Points(frameWidth + 40D), PageHeight = global::OfficeIMO.OfficeLength.Points(400D),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
+            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D)
         };
         var document = PdfDocument.Create(options);
         if (route == 0) document.Content.Text(text, style: new PdfParagraphStyle {

@@ -138,7 +138,7 @@ public partial class PdfDocumentVisualQualityTests {
             new[] { new PdfTableCell("gypC"), new PdfTableCell("gypD") }
         };
         var document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 520, PageHeight = 220, MarginLeft = 30, MarginRight = 30, MarginTop = 30, MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(520), PageHeight = global::OfficeIMO.OfficeLength.Points(220), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30), MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             CompressContentStreams = false
         });
         document.Compose(root => root.Page(page => page.Content(content => {

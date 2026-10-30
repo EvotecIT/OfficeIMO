@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests.Pdf {
                 1000, -500, 0, 500, Enumerable.Range(32, 95).ToArray());
             byte[] Render(bool strut) {
                 var options = new PdfCreateOptions {
-                    PageWidth = 300D, PageHeight = 300D,
-                    MarginTop = 30D, MarginBottom = 30D, MarginLeft = 30D, MarginRight = 30D
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(300D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D),
+                    MarginTop = global::OfficeIMO.OfficeLength.Points(30D), MarginBottom = global::OfficeIMO.OfficeLength.Points(30D), MarginLeft = global::OfficeIMO.OfficeLength.Points(30D), MarginRight = global::OfficeIMO.OfficeLength.Points(30D)
                 };
                 options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Strut grid metrics", font));
                 var ascentOnly = PdfTextRun.Normal(strut ? string.Empty : "X", fontSize: 40D,

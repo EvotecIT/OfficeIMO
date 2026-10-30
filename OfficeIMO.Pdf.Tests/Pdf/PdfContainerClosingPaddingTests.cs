@@ -28,8 +28,8 @@ namespace OfficeIMO.Tests.Pdf {
 
         internal static byte[] CreateFixture(double bodyHeight, double padding, double lineAdvance) {
             var options = new PdfCreateOptions { BackgroundColor = null,
-                PageWidth = 200D, PageHeight = bodyHeight + 40D, DefaultFontSize = 10D,
-                MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
+                PageWidth = global::OfficeIMO.OfficeLength.Points(200D), PageHeight = global::OfficeIMO.OfficeLength.Points(bodyHeight + 40D), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
             };
             var paragraphStyle = new PdfParagraphStyle {
                 FontSize = 10D, SpacingBefore = 0D, SpacingAfter = 0D, WidowControl = false,

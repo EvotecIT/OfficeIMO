@@ -17,34 +17,34 @@ internal static partial class RtfPdfConverter {
 
     private static void ApplyPageSetup(RtfDocument document, RtfPageSetup setup, PdfCore.PdfCreateOptions options) {
         if (setup.PaperWidthTwips.HasValue && setup.PaperWidthTwips.Value > 0) {
-            options.PageWidth = RtfPdfMapping.TwipsToPoints(setup.PaperWidthTwips.Value);
+            options.PageWidth = global::OfficeIMO.OfficeLength.Points(RtfPdfMapping.TwipsToPoints(setup.PaperWidthTwips.Value));
         }
 
         if (setup.PaperHeightTwips.HasValue && setup.PaperHeightTwips.Value > 0) {
-            options.PageHeight = RtfPdfMapping.TwipsToPoints(setup.PaperHeightTwips.Value);
+            options.PageHeight = global::OfficeIMO.OfficeLength.Points(RtfPdfMapping.TwipsToPoints(setup.PaperHeightTwips.Value));
         }
 
         if ((setup.DirectLandscape == true && options.PageWidth < options.PageHeight) ||
             (setup.DirectLandscape == false && options.PageWidth > options.PageHeight)) {
-            double width = options.PageWidth;
+            OfficeLength width = options.PageWidth;
             options.PageWidth = options.PageHeight;
             options.PageHeight = width;
         }
 
         if (setup.MarginLeftTwips.HasValue) {
-            options.MarginLeft = RtfPdfMapping.TwipsToPoints(setup.MarginLeftTwips.Value);
+            options.MarginLeft = global::OfficeIMO.OfficeLength.Points(RtfPdfMapping.TwipsToPoints(setup.MarginLeftTwips.Value));
         }
 
         if (setup.MarginRightTwips.HasValue) {
-            options.MarginRight = RtfPdfMapping.TwipsToPoints(setup.MarginRightTwips.Value);
+            options.MarginRight = global::OfficeIMO.OfficeLength.Points(RtfPdfMapping.TwipsToPoints(setup.MarginRightTwips.Value));
         }
 
         if (setup.MarginTopTwips.HasValue) {
-            options.MarginTop = RtfPdfMapping.TwipsToPoints(setup.MarginTopTwips.Value);
+            options.MarginTop = global::OfficeIMO.OfficeLength.Points(RtfPdfMapping.TwipsToPoints(setup.MarginTopTwips.Value));
         }
 
         if (setup.MarginBottomTwips.HasValue) {
-            options.MarginBottom = RtfPdfMapping.TwipsToPoints(setup.MarginBottomTwips.Value);
+            options.MarginBottom = global::OfficeIMO.OfficeLength.Points(RtfPdfMapping.TwipsToPoints(setup.MarginBottomTwips.Value));
         }
 
         if (setup.PageNumberStart.HasValue) {

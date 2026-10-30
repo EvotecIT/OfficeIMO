@@ -29,15 +29,15 @@ public sealed class PdfPageBuilder {
     public PdfPageBuilder Size(double width, double height) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
-        Options.PageWidth = width;
-        Options.PageHeight = height;
+        Options.PageWidth = global::OfficeIMO.OfficeLength.Points(width);
+        Options.PageHeight = global::OfficeIMO.OfficeLength.Points(height);
         return this;
     }
     /// <summary>Sets page orientation while preserving the current page size dimensions.</summary>
     public PdfPageBuilder Orientation(OfficePageOrientation orientation) {
-        var oriented = new PdfPageSize(OfficeIMO.OfficeLength.Points(Options.PageWidth),OfficeIMO.OfficeLength.Points(Options.PageHeight)).WithOrientation(orientation);
-        Options.PageWidth = oriented.Width.ToPoints();
-        Options.PageHeight = oriented.Height.ToPoints();
+        var oriented = new PdfPageSize(Options.PageWidth, Options.PageHeight).WithOrientation(orientation);
+        Options.PageWidth = oriented.Width;
+        Options.PageHeight = oriented.Height;
         return this;
     }
     /// <summary>Sets or clears the page background color.</summary>
@@ -226,16 +226,16 @@ public sealed class PdfPageBuilder {
         BackgroundShape(PdfPageBackgroundShape.Ellipse(x, y, width, height, fill, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
     /// <summary>Adds a page-scoped top background band using the current page size.</summary>
     public PdfPageBuilder BackgroundTopBand(double height, global::OfficeIMO.OfficeColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
-        BackgroundShape(PdfPageBackgroundShape.TopBand(Options.PageWidth, Options.PageHeight, height, fill, insetX, offsetY, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+        BackgroundShape(PdfPageBackgroundShape.TopBand(Options.PageWidth.ToPoints(), Options.PageHeight.ToPoints(), height, fill, insetX, offsetY, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
     /// <summary>Adds a page-scoped bottom background band using the current page size.</summary>
     public PdfPageBuilder BackgroundBottomBand(double height, global::OfficeIMO.OfficeColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
-        BackgroundShape(PdfPageBackgroundShape.BottomBand(Options.PageWidth, Options.PageHeight, height, fill, insetX, offsetY, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+        BackgroundShape(PdfPageBackgroundShape.BottomBand(Options.PageWidth.ToPoints(), Options.PageHeight.ToPoints(), height, fill, insetX, offsetY, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
     /// <summary>Adds a page-scoped left background band using the current page size.</summary>
     public PdfPageBuilder BackgroundLeftBand(double width, global::OfficeIMO.OfficeColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
-        BackgroundShape(PdfPageBackgroundShape.LeftBand(Options.PageWidth, Options.PageHeight, width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+        BackgroundShape(PdfPageBackgroundShape.LeftBand(Options.PageWidth.ToPoints(), Options.PageHeight.ToPoints(), width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
     /// <summary>Adds a page-scoped right background band using the current page size.</summary>
     public PdfPageBuilder BackgroundRightBand(double width, global::OfficeIMO.OfficeColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
-        BackgroundShape(PdfPageBackgroundShape.RightBand(Options.PageWidth, Options.PageHeight, width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+        BackgroundShape(PdfPageBackgroundShape.RightBand(Options.PageWidth.ToPoints(), Options.PageHeight.ToPoints(), width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
     /// <summary>Sets page orientation to portrait while preserving the current page size dimensions.</summary>
     public PdfPageBuilder Portrait() => Orientation(OfficePageOrientation.Portrait);
     /// <summary>Sets page orientation to landscape while preserving the current page size dimensions.</summary>
@@ -243,7 +243,7 @@ public sealed class PdfPageBuilder {
     /// <summary>Sets uniform page margins (all sides in points).</summary>
     public PdfPageBuilder Margin(double all) {
         Guard.NonNegative(all, nameof(all));
-        Options.MarginLeft = Options.MarginRight = Options.MarginTop = Options.MarginBottom = all;
+        Options.MarginLeft = Options.MarginRight = Options.MarginTop = Options.MarginBottom = global::OfficeIMO.OfficeLength.Points(all);
         return this;
     }
     /// <summary>Sets page margins from a reusable margin value.</summary>
@@ -262,10 +262,10 @@ public sealed class PdfPageBuilder {
         Guard.NonNegative(top, nameof(top));
         Guard.NonNegative(right, nameof(right));
         Guard.NonNegative(bottom, nameof(bottom));
-        Options.MarginLeft = left;
-        Options.MarginTop = top;
-        Options.MarginRight = right;
-        Options.MarginBottom = bottom;
+        Options.MarginLeft = global::OfficeIMO.OfficeLength.Points(left);
+        Options.MarginTop = global::OfficeIMO.OfficeLength.Points(top);
+        Options.MarginRight = global::OfficeIMO.OfficeLength.Points(right);
+        Options.MarginBottom = global::OfficeIMO.OfficeLength.Points(bottom);
         return this;
     }
 

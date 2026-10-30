@@ -27,8 +27,8 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     private static byte[] CreateTableWithRequiredRowHeight(bool inColumn, bool fixedHeight, int lineCount) {
-        var options = new PdfCreateOptions { PageWidth = 360, PageHeight = 210, MarginLeft = 30, MarginRight = 30,
-            MarginTop = 30, MarginBottom = 30, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(360), PageHeight = global::OfficeIMO.OfficeLength.Points(210), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9) };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0; style.RepeatHeaderRowCount = 0;
         style.MinimumBodyRowsOnFirstPage = 0; style.MinimumBodyRowsOnLastPage = 0;
@@ -47,8 +47,8 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Table_RowHeightRequirementCannotOverflowItsContinuationFrame(bool inColumn) {
-        var options = new PdfCreateOptions { PageWidth = 260, PageHeight = 180, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(180), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20) };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0; style.RepeatHeaderRowCount = 0; style.MinRowHeight = 141;
         var document = PdfDocument.Create(options);
@@ -64,8 +64,8 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Table_PartiallyRenderedRowDoesNotRestartOnItsContinuationPage(bool inColumn) {
-        var options = new PdfCreateOptions { PageWidth = 360, PageHeight = 210, MarginLeft = 30, MarginRight = 30,
-            MarginTop = 30, MarginBottom = 30, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(360), PageHeight = global::OfficeIMO.OfficeLength.Points(210), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9) };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1; style.RepeatHeaderRowCount = 1;
         style.CellPaddingY = 2;
@@ -105,8 +105,8 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     private static byte[] CreateTableWithFirstSegmentImage(bool inColumn) {
-        var options = new PdfCreateOptions { PageWidth = 260, PageHeight = 180, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(180), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9) };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1; style.RepeatHeaderRowCount = 1;
         style.CellPaddingX = 2; style.CellPaddingY = 2;

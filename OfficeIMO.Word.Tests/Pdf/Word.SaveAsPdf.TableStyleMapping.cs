@@ -869,7 +869,7 @@ public partial class Word {
 
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new WordPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions {
-                DefaultFontSize = 9D
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9D)
             }
         });
 

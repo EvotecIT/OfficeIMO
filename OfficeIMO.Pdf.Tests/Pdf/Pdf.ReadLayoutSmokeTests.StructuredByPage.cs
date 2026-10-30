@@ -11,13 +11,13 @@ public sealed partial class PdfReadLayoutSmokeTests {
     [Fact]
     public void PdfTextExtractor_ExtractStructuredByPage_DetectsGeneratedTableRows() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 320,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(320),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Paragraph(p => p.Text("Structured table readback marker."))
             .Table(new[] {
@@ -112,13 +112,13 @@ public sealed partial class PdfReadLayoutSmokeTests {
     [Fact]
     public void PdfTextExtractor_ExtractStructuredByPage_GroupsParagraphLines() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Paragraph(p => p.Text("This structured paragraph should wrap across multiple nearby PDF text lines so wrappers can start from paragraph-like objects."))
             .Table(new[] {
@@ -158,13 +158,13 @@ public sealed partial class PdfReadLayoutSmokeTests {
     [Fact]
     public void PdfTextExtractor_ExtractStructuredByPage_DoesNotDuplicateFallbackTableRowsAsParagraphs() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 360,
-                PageHeight = 180,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultParagraphStyle = new PdfParagraphStyle {
                     DefaultTabStopWidth = 160,
                     SpacingAfter = 0
@@ -186,13 +186,13 @@ public sealed partial class PdfReadLayoutSmokeTests {
     [Fact]
     public void PdfTextExtractor_ExtractStructuredByPage_DetectsHeadingLines() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 360,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("Structured Heading")
             .Paragraph(p => p.Text("Body copy for heading detection."))
@@ -248,13 +248,13 @@ public sealed partial class PdfReadLayoutSmokeTests {
     [Fact]
     public void PdfTextExtractor_ExtractStructuredByPage_DetectsListItems() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 360,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Bullets(new[] { "First bullet", "Second bullet" })
             .Numbered(new[] { "First numbered", "Second numbered" }, startNumber: 3)

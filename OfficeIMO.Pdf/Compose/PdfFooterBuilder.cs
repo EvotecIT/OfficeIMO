@@ -20,9 +20,9 @@ public sealed partial class PdfFooterBuilder {
     /// <summary>Uses a registered named font family for footer text.</summary>
     public PdfFooterBuilder FontFamily(string familyName) { _opts.FooterFontFamily = familyName; return this; }
     /// <summary>Sets footer font size in points.</summary>
-    public PdfFooterBuilder FontSize(double size) { Guard.Positive(size, nameof(size)); _opts.FooterFontSize = size; return this; }
+    public PdfFooterBuilder FontSize(double size) { Guard.Positive(size, nameof(size)); _opts.FooterFontSize = global::OfficeIMO.OfficeLength.Points(size); return this; }
     /// <summary>Sets footer baseline offset below the bottom margin in points.</summary>
-    public PdfFooterBuilder Offset(double points) { Guard.NonNegative(points, nameof(points)); _opts.FooterOffsetY = points; return this; }
+    public PdfFooterBuilder Offset(double points) { Guard.NonNegative(points, nameof(points)); _opts.FooterOffsetY = global::OfficeIMO.OfficeLength.Points(points); return this; }
     /// <summary>Renders the current page number in the footer.</summary>
     public PdfFooterBuilder PageNumber() { _opts.ClearFooterSegmentsForCompose(); _opts.ClearFooterZonesForCompose(); _opts.ShowPageNumbers = true; _opts.FooterFormat = "{page}"; return this; }
     /// <summary>Renders the current page number and total pages in the footer.</summary>

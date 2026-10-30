@@ -55,9 +55,9 @@ public sealed partial class PdfCreateOptions {
             AddInt64((int)DefaultFont);
             AddInt64((int)_headerFont);
             AddInt64((int)_footerFont);
-            AddInt64(BitConverter.DoubleToInt64Bits(DefaultFontSize));
-            AddInt64(BitConverter.DoubleToInt64Bits(HeaderFontSize));
-            AddInt64(BitConverter.DoubleToInt64Bits(FooterFontSize));
+            AddInt64(BitConverter.DoubleToInt64Bits(DefaultFontSize.ToPoints()));
+            AddInt64(BitConverter.DoubleToInt64Bits(HeaderFontSize.ToPoints()));
+            AddInt64(BitConverter.DoubleToInt64Bits(FooterFontSize.ToPoints()));
             AddByte(_hasExplicitDefaultFont ? (byte)1 : (byte)0);
             AddByte(_hasExplicitHeaderFont ? (byte)1 : (byte)0);
             AddByte(_hasExplicitFooterFont ? (byte)1 : (byte)0);

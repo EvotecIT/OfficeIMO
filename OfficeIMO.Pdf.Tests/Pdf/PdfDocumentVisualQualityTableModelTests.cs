@@ -112,14 +112,14 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void PdfDocument_DefaultTableStyleAppliesToFollowingTablesAndSnapshotsInput() {
         var options = new PdfCreateOptions {
-            PageWidth = 300,
-            PageHeight = 220,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(300),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
         var style = PdfTableStyles.Minimal();
         style.CellPaddingX = 22;
@@ -139,20 +139,20 @@ public partial class PdfDocumentVisualQualityTests {
 
         double markerX = FindWordStartX(page, "DefaultPad");
 
-        Assert.True(markerX - options.MarginLeft >= 20, $"Expected fluent default table style padding to affect following tables and snapshot caller input. Marker x: {markerX:0.##}, margin: {options.MarginLeft:0.##}.");
+        Assert.True(markerX - options.MarginLeft.ToPoints() >= 20, $"Expected fluent default table style padding to affect following tables and snapshot caller input. Marker x: {markerX:0.##}, margin: {options.MarginLeft.ToPoints():0.##}.");
     }
 
     [Fact]
     public void PdfDocument_ExplicitTableStyleOverridesDefaultTableStyle() {
         var options = new PdfCreateOptions {
-            PageWidth = 300,
-            PageHeight = 220,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(300),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
         var defaultStyle = PdfTableStyles.Minimal();
         defaultStyle.CellPaddingX = 24;
@@ -172,7 +172,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         double markerX = FindWordStartX(page, "ExplicitPad");
 
-        Assert.True(markerX - options.MarginLeft <= 6, $"Expected explicit table style padding to override the document default. Marker x: {markerX:0.##}, margin: {options.MarginLeft:0.##}.");
+        Assert.True(markerX - options.MarginLeft.ToPoints() <= 6, $"Expected explicit table style padding to override the document default. Marker x: {markerX:0.##}, margin: {options.MarginLeft.ToPoints():0.##}.");
     }
 
     [Fact]

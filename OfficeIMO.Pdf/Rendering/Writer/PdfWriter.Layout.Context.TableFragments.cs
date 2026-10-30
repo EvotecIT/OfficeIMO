@@ -225,7 +225,7 @@ internal static partial class PdfWriter {
             TableBlock table = geometry.Table;
             PdfTableStyle style = geometry.Style;
             TableSpanFlow spans = plan.Start.Spans.CloneCursor();
-            double left = ResolveTableX(table.Align, style, (originX ?? currentOpts.MarginLeft) + frameX, frameWidth, geometry.Width);
+            double left = ResolveTableX(table.Align, style, (originX ?? currentOpts.MarginLeft.ToPoints()) + frameX, frameWidth, geometry.Width);
             int? parent = structureParent ?? (noteContext ? RegisterStructureContainer("Note") : null);
             int? structure = RegisterStructureContainer("Table", parent, alternativeText: style.AlternativeText);
             StringBuilder? paired = null;

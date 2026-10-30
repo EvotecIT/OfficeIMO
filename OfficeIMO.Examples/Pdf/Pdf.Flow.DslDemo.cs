@@ -8,12 +8,12 @@ namespace OfficeIMO.Examples.Pdf {
 
             var options = new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10,
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
                 HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = 8,
+                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
                 FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = 8
+                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8)
             };
 
             var doc = PdfDocument.Create(document => {

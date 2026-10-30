@@ -61,15 +61,15 @@ namespace OfficeIMO.Examples.Pdf {
                 .Table(rows, PdfAlign.Left, style)
                 .Paragraph(p => p.Text("End of lists and tables sample."), PdfAlign.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80))), new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 10,
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                     DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
                     HeaderFont = PdfStandardFont.Helvetica,
-                    HeaderFontSize = 8,
+                    HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
                     HeaderFormat = "OfficeIMO.Pdf lists and tables",
                     HeaderAlign = PdfAlign.Left,
                     ShowHeader = true,
                     FooterFont = PdfStandardFont.Helvetica,
-                    FooterFontSize = 8,
+                    FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
                     FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
                     FooterAlign = PdfAlign.Right,
                     ShowPageNumbers = true

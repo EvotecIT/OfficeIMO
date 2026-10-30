@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 .Paragraph(p => p.Text("Use the named event coordinator for venue changes. Keep booking references and personal contact details in the traveller's private copy."))
                 .H2("Bring", PdfAlign.Left, navy)
                 .Bullets(new[] { "Travel documents and confirmed bookings", "Workshop notes and laptop charger", "The agreed accessibility and dietary arrangements" })),
-                new PdfCreateOptions { DefaultFontSize = 11, ShowPageNumbers = true }.SetDefaultHeadingStyle(2, new PdfHeadingStyle { SpacingBefore = 14, SpacingAfter = 8 }))
+                new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11), ShowPageNumbers = true }.SetDefaultHeadingStyle(2, new PdfHeadingStyle { SpacingBefore = 14, SpacingAfter = 8 }))
                 .Meta(title: "Workshop travel itinerary", author: "OfficeIMO").Save(Path.Combine(folder, "example.pdf"));
         }
     }

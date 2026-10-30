@@ -15,7 +15,7 @@ internal static partial class PdfWriter {
             ValidateTableRowSpansWithinRoleBoundaries(table, columns, style.HeaderRowCount, footerStart);
             style = PreparePairedTableBorders(table, style);
             double gap = GetTableCellSpacing(style);
-            double fontSize = GetTableBodyFontSize(style, currentOpts.DefaultFontSize);
+            double fontSize = GetTableBodyFontSize(style, currentOpts.DefaultFontSize.ToPoints());
             TableColumnLayout layout = ResolveTableColumnLayout(table, currentOpts, style, columns, frameWidth, fontSize,
                 style.HeaderRowCount, footerStart);
             PreparedFlowTableRows rows = PrepareFlowTableRows(table, style, columns, layout.Widths, gap, gap, style.HeaderRowCount, footerStart);

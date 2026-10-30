@@ -282,8 +282,8 @@ public class PdfDocumentWorkflowTests {
     public void TableStyle_CanShrinkTextToFitInsideRowColumnLayout() {
         const string longValue = "ThisIdentifierShouldShrinkToFit";
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180)
             })
             .Compose(document =>
                 document.Page(page =>
@@ -321,8 +321,8 @@ public class PdfDocumentWorkflowTests {
     public void TableStyle_CanShrinkTextToFitInsideCanvasTable() {
         const string longValue = "ThisIdentifierShouldShrinkToFit";
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180)
             })
             .Canvas(canvas => canvas.Table(new[] {
                 new[] { "Name", "Value" },

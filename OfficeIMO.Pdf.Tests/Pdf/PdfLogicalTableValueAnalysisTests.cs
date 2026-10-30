@@ -19,13 +19,13 @@ public sealed class PdfLogicalTableValueAnalysisTests {
     [Fact]
     public void Extract_ProfilesRichTableValueKindsForAllAdapters() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 760,
-                PageHeight = 360,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20,
-                DefaultFontSize = 9
+                PageWidth = global::OfficeIMO.OfficeLength.Points(760),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(new[] {
                 new[] { "Active", "Completion", "Due Date", "Start Time", "Quantity", "Owner" },

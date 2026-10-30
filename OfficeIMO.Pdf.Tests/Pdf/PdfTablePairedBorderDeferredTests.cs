@@ -77,7 +77,7 @@ public partial class PdfDocumentVisualQualityTests {
             ? new[] { new PdfTableCell("gyp00A", columnSpan: 2) }
             : new[] { new PdfTableCell($"gyp{row:D2}A"), new PdfTableCell($"gyp{row:D2}B") }).ToArray();
         var document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 320, PageHeight = pageHeight, MarginLeft = 30, MarginRight = 30, MarginTop = 30, MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(320), PageHeight = global::OfficeIMO.OfficeLength.Points(pageHeight), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30), MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             CompressContentStreams = false
         });
         document.Compose(root => root.Page(page => page.Content(content => content.TableDeferred(() => rows, batchSize, style: style))));

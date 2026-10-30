@@ -71,8 +71,8 @@ public sealed class PdfMirroredMarginFlowTests {
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(70, pdf.GetPage(1).GetWords().Single().BoundingBox.Left, 3);
         Assert.Equal(40, pdf.GetPage(2).GetWords().Single().BoundingBox.Left, 3);
-        Assert.Equal(40, options.MarginLeft);
-        Assert.Equal(70, options.MarginRight);
+        Assert.Equal(40, options.MarginLeft.ToPoints());
+        Assert.Equal(70, options.MarginRight.ToPoints());
     }
 
     [Fact]
@@ -149,9 +149,9 @@ public sealed class PdfMirroredMarginFlowTests {
     }
 
     private static PdfCreateOptions MirroredOptions() => new() {
-        PageWidth = 300, PageHeight = 200,
-        MarginLeft = 40, MarginRight = 70, MarginTop = 20, MarginBottom = 20,
-        MirrorMargins = true, DefaultFontSize = 10, CompressContentStreams = false
+        PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(200),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(70), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+        MirrorMargins = true, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10), CompressContentStreams = false
     };
 
     private static double? FindMarkerX(UglyToad.PdfPig.Content.Page page, string marker) {

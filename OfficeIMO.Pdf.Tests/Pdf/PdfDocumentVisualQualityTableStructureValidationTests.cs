@@ -37,7 +37,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 // The 800-point authored grid must compress into this 468-point content frame.
-                PageWidth = 612, MarginLeft = 72, MarginRight = 72
+                PageWidth = global::OfficeIMO.OfficeLength.Points(612), MarginLeft = global::OfficeIMO.OfficeLength.Points(72), MarginRight = global::OfficeIMO.OfficeLength.Points(72)
             })
             .Table(new[] {
                 new[] { "A", "B" },

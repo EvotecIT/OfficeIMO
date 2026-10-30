@@ -211,7 +211,7 @@ internal static partial class PdfWriter {
         private void WriteDrawingPositionedRun(PdfTextRun run, double x, double baseline, double advance,
             double clipX, double clipY, double clipWidth, double clipHeight, OfficeColor foregroundColor,
             OfficeColor? decorationColor, bool clipToFrame = true) {
-            double size = run.FontSize ?? currentOpts.DefaultFontSize;
+            double size = run.FontSize ?? currentOpts.DefaultFontSize.ToPoints();
             var runs = new[] { run };
             var line = CreatePositionedTextLine(runs, size, size * 1.2D, currentOpts);
             double actualWidth = MeasureRichLineWidth(line.Lines[0], currentOpts);

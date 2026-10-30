@@ -46,7 +46,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RichParagraph_FontSize_AppliesOnlyToScopedRuns() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                DefaultFontSize = 11
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11)
             })
             .Paragraph(p => p
                 .Text("Small")
@@ -127,7 +127,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_RichTextCell_RendersScopedRunStyles() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                DefaultFontSize = 11
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11)
             })
             .Table(new[] {
                 new[] {
@@ -203,7 +203,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RichText_RendersSuperscriptAndSubscriptWithTextRise() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                DefaultFontSize = 14
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(14)
             })
             .Paragraph(p => p
                 .Text("Base")

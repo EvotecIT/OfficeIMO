@@ -11,7 +11,7 @@ internal static partial class PdfWriter {
             for (int row = 0; row < table.Rows.Count; row++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 bool continued = row == continuingRow && consumedLines > 0 && previous != null;
-                double originalSize = GetTableRowFontSize(style, row, headerCount, footerStart, fallbackFontSize ?? currentOpts.DefaultFontSize);
+                double originalSize = GetTableRowFontSize(style, row, headerCount, footerStart, fallbackFontSize ?? currentOpts.DefaultFontSize.ToPoints());
                 bool bold = GetTableRowBold(style, row, headerCount, footerStart);
                 TableRowTextSizing sizing = ResolveTableRowTextSizing(table, style, row, columns, columnWidths, columnGap, originalSize, bold, currentOpts);
                 double size = continued ? Math.Min(previous!.Sizes[row], sizing.FontSize) : sizing.FontSize;

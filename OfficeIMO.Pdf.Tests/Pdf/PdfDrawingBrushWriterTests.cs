@@ -77,8 +77,8 @@ public sealed class PdfDrawingBrushWriterTests {
     }
 
     private static byte[] Write(OfficeDrawing drawing) => PdfDocument.Create(new PdfCreateOptions {
-        PageWidth = drawing.Width, PageHeight = drawing.Height, CompressContentStreams = false,
-        MarginLeft = 0, MarginTop = 0, MarginRight = 0, MarginBottom = 0
+        PageWidth = global::OfficeIMO.OfficeLength.Points(drawing.Width), PageHeight = global::OfficeIMO.OfficeLength.Points(drawing.Height), CompressContentStreams = false,
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
     }).Drawing(drawing).ToBytes();
 
 }

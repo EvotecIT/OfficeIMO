@@ -132,10 +132,10 @@ public partial class Word {
         WordPdfExportOptions options = EmptyRunningOptions();
         options.IncludePageNumbers = true;
         options.PageNumberFormat = "NUMBER {page}/{pages}";
-        options.PdfOptions = new PdfCreateOptions { FooterOffsetY = typography ? 18D : 24D };
+        options.PdfOptions = new PdfCreateOptions { FooterOffsetY = global::OfficeIMO.OfficeLength.Points(typography ? 18D : 24D) };
         if (typography) {
             options.PdfOptions.FooterFont = PdfStandardFont.Courier;
-            options.PdfOptions.FooterFontSize = 24D;
+            options.PdfOptions.FooterFontSize = global::OfficeIMO.OfficeLength.Points(24D);
             options.PdfOptions.FooterAlign = PdfAlign.Left;
             options.PdfOptions.FooterTextColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
         }

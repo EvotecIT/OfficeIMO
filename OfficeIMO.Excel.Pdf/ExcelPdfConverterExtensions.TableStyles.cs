@@ -170,7 +170,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static double GetDefaultTableFontSize(ExcelPdfExportOptions options) {
-            return options.PdfOptions?.DefaultFontSize ?? 11D;
+            return options.PdfOptions?.DefaultFontSize.ToPoints() ?? 11D;
         }
 
         private static double ScaleFontSize(double? value, double defaultFontSize, double scale) {

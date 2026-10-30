@@ -220,7 +220,7 @@ public partial class Excel {
                 HeaderRowCount = 1,
                 WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable,
                 PdfOptions = new PdfCore.PdfCreateOptions {
-                    DefaultFontSize = 9D
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9D)
                 }
             });
         }

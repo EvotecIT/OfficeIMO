@@ -163,10 +163,10 @@ public sealed class PdfContinuousRunningStoryTests {
     }
 
     private static PdfCreateOptions Presentation(string header) => new() {
-        PageWidth = 240, PageHeight = 320,
-        MarginTop = 32, MarginBottom = 32, MarginLeft = 24, MarginRight = 24,
-        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10,
-        ShowHeader = true, HeaderFormat = header, HeaderOffsetY = 18
+        PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(320),
+        MarginTop = global::OfficeIMO.OfficeLength.Points(32), MarginBottom = global::OfficeIMO.OfficeLength.Points(32), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
+        ShowHeader = true, HeaderFormat = header, HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(18)
     };
 
     private static PdfParagraphStyle Style() => new() {

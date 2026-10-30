@@ -30,7 +30,7 @@ internal static partial class PdfWriter {
                 double closingPadding = GetClosingContainerPadding();
                 EnsureDrawingFitsAFlowFrame(block, style, containerWidth, closingPadding);
                 if (box.Width <= containerWidth + .001D &&
-                    before + box.Height + style.SpacingAfter + closingPadding <= y - currentOpts.MarginBottom + .001D) {
+                    before + box.Height + style.SpacingAfter + closingPadding <= y - currentOpts.MarginBottom.ToPoints() + .001D) {
                     return (box.Width, box.Height, before);
                 }
                 AdvanceFixedFlowFrame(ref containerWidth);
@@ -48,8 +48,8 @@ internal static partial class PdfWriter {
                     NewBlockFrame();
                     continue;
                 }
-                double nextHeight = MeasureKeepWithNextChainHeight(blocks, blockIndex + 1, currentOpts.MarginLeft,
-                    width, currentOpts.DefaultFontSize, needed);
+                double nextHeight = MeasureKeepWithNextChainHeight(blocks, blockIndex + 1, currentOpts.MarginLeft.ToPoints(),
+                    width, currentOpts.DefaultFontSize.ToPoints(), needed);
                 double keepHeight = needed + nextHeight;
                 if (nextHeight <= .001D || keepHeight > GetMaximumBlockContinuationHeight() + .001D || !ShouldAdvanceForBlockHeight(keepHeight)) break;
                 NewBlockFrame();

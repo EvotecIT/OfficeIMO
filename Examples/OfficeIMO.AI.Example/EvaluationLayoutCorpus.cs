@@ -5,7 +5,7 @@ using OfficeIMO.Pdf;
 
 internal static class EvaluationLayoutCorpus {
     public static IReadOnlyList<EvaluationCase> Create() {
-        var font = new PdfCreateOptions { DefaultFontSize = 16 };
+        var font = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(16) };
         if (!font.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true)) throw new InvalidOperationException("Evaluation requires an embeddable font.");
         byte[] columns = PdfDocument.Create(builder => builder.Content(content => content.Canvas(canvas => {
             canvas.Text("Regional dispatches", 50, 40, 480, 40, 22);

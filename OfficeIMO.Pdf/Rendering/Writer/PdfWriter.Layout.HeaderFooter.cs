@@ -141,8 +141,8 @@ internal static partial class PdfWriter {
     private static void AddHeaderFooterImage(LayoutResult.Page page, PdfCreateOptions options, PdfHeaderFooterImage image, double x, bool isHeader) {
         string source = isHeader ? "Header" : "Footer";
         double y = isHeader
-            ? options.PageHeight - options.MarginTop + options.HeaderOffsetY - image.Height
-            : options.MarginBottom - options.FooterOffsetY;
+            ? options.PageHeight.ToPoints() - options.MarginTop.ToPoints() + options.HeaderOffsetY.ToPoints() - image.Height
+            : options.MarginBottom.ToPoints() - options.FooterOffsetY.ToPoints();
         ImageBlock block = image.ToImageBlock();
         PdfImageStyle style = block.Style ?? new PdfImageStyle();
         PageImage pageImage = CreatePageImage(block, style, x, y);
@@ -205,8 +205,8 @@ internal static partial class PdfWriter {
     }
 
     private static double AlignHeaderFooterGroup(PdfCreateOptions options, double groupWidth, PdfAlign align) {
-        double contentLeft = options.MarginLeft;
-        double contentWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
+        double contentLeft = options.MarginLeft.ToPoints();
+        double contentWidth = options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints();
         return GetHeaderFooterAlignedObjectX(contentLeft, contentWidth, groupWidth, align);
     }
 
@@ -298,8 +298,8 @@ internal static partial class PdfWriter {
 
         string source = isHeader ? "Header" : "Footer";
         double bottomY = isHeader
-            ? options.PageHeight - options.MarginTop + options.HeaderOffsetY - block.Shape.Height
-            : options.MarginBottom - options.FooterOffsetY;
+            ? options.PageHeight.ToPoints() - options.MarginTop.ToPoints() + options.HeaderOffsetY.ToPoints() - block.Shape.Height
+            : options.MarginBottom.ToPoints() - options.FooterOffsetY.ToPoints();
         RunningShapePaint paint = paintCache.Get(headerFooterShape, block.Shape);
         foreach (string message in paint.UnmeasuredMessages)
             options.AddUnassessedLayoutWarning("header-footer-paint-bounds-unmeasured", source,
@@ -448,8 +448,8 @@ internal static partial class PdfWriter {
         double? height) {
         const double tolerance = 0.001D;
         bool outsideVerticalBounds = y.HasValue && height.HasValue &&
-            (y.Value < -tolerance || y.Value + height.Value > options.PageHeight + tolerance);
-        if (x < -tolerance || x + width > options.PageWidth + tolerance || outsideVerticalBounds) {
+            (y.Value < -tolerance || y.Value + height.Value > options.PageHeight.ToPoints() + tolerance);
+        if (x < -tolerance || x + width > options.PageWidth.ToPoints() + tolerance || outsideVerticalBounds) {
             options.AddLayoutDiagnostic(
                 "header-footer-page-bounds-clipped",
                 source,

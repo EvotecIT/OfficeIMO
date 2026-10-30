@@ -18,8 +18,8 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         (byte[] Bytes, string[] Warnings) Render(int first, int count, bool diagnose) {
             var report = new PdfConversionReport();
             var options = new PdfCreateOptions {
-                PageWidth = 260, PageHeight = 180, MarginLeft = 24, MarginRight = 24,
-                MarginTop = 24, MarginBottom = 24, DefaultFontSize = 9,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(180), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9),
                 CompressEmbeddedFonts = false, CompressContentStreams = false
             }.EmbedStandardFont(PdfStandardFont.Helvetica, font, "Alternating contour probe");
             if (diagnose) options.ReportDiagnosticsTo(report, "AlternatingGlyphProbe");
@@ -54,8 +54,8 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         var report = new PdfConversionReport();
         byte[] Render(bool diagnose) {
             var options = new PdfCreateOptions {
-                PageWidth = 260, PageHeight = 180, MarginLeft = 24, MarginRight = 24,
-                MarginTop = 24, MarginBottom = 24, DefaultFontSize = 9,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(180), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9),
                 CompressEmbeddedFonts = false, CompressContentStreams = false
             };
             options.RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Carlito", regular, bold));
@@ -82,8 +82,8 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         var report = new PdfConversionReport();
         byte[] Render(bool diagnose) {
             var options = new PdfCreateOptions {
-                PageWidth = 260, PageHeight = 180, MarginLeft = 24, MarginRight = 24,
-                MarginTop = 24, MarginBottom = 24, DefaultFontSize = 9,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(180), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9),
                 CompressEmbeddedFonts = false, CompressContentStreams = false
             };
             if (diagnose) options.ReportDiagnosticsTo(report, "ContainedGlyphProbe");

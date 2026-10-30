@@ -125,10 +125,10 @@ public static partial class WordPdfConverterExtensions {
     /// </summary>
     private static bool HasNativeRunningStoryOverrides(PdfCore.PdfCreateOptions? options, bool isFooter) => options != null &&
         (isFooter
-            ? options.FooterOffsetY != 18D || options.HasExplicitFooterFont || options.FooterFontFamily != null ||
-                options.FooterFontSize != 9D || options.FooterTextColor.HasValue || options.FooterAlign != PdfCore.PdfAlign.Center
-            : options.HeaderOffsetY != 18D || options.HasExplicitHeaderFont || options.HeaderFontFamily != null ||
-                options.HeaderFontSize != 9D || options.HeaderTextColor.HasValue || options.HeaderAlign != PdfCore.PdfAlign.Center);
+            ? options.FooterOffsetY.ToPoints() != 18D || options.HasExplicitFooterFont || options.FooterFontFamily != null ||
+                options.FooterFontSize.ToPoints() != 9D || options.FooterTextColor.HasValue || options.FooterAlign != PdfCore.PdfAlign.Center
+            : options.HeaderOffsetY.ToPoints() != 18D || options.HasExplicitHeaderFont || options.HeaderFontFamily != null ||
+                options.HeaderFontSize.ToPoints() != 9D || options.HeaderTextColor.HasValue || options.HeaderAlign != PdfCore.PdfAlign.Center);
 
     private static void ConfigureNativeRunningHeaderFooter(PdfCore.PdfPageBuilder page, WordSection section,
         WordPdfExportOptions? options, NativeFontMap fontMap,

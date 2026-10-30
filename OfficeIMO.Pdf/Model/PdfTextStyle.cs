@@ -40,7 +40,7 @@ public sealed class PdfTextStyle {
     internal void ApplyTo(PdfCreateOptions options) {
         Guard.NotNull(options, nameof(options));
         options.DefaultFont = Font;
-        options.DefaultFontSize = FontSize;
+        options.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(FontSize);
         options.DefaultTextColor = Color;
     }
 }

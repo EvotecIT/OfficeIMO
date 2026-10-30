@@ -44,7 +44,7 @@ internal static partial class PdfWriter {
             int columns = GetTableColumnCount(table);
             ValidateFlowTable(table, style, columns);
             var columnLayout = ResolveTableColumnLayout(table, currentOpts, style, columns, frameWidth,
-                GetTableBodyFontSize(style, currentOpts.DefaultFontSize), style.HeaderRowCount,
+                GetTableBodyFontSize(style, currentOpts.DefaultFontSize.ToPoints()), style.HeaderRowCount,
                 table.Rows.Count - style.FooterRowCount);
             double gap = GetTableCellSpacing(style);
             var rows = PrepareFlowTableRows(table, style, columns, columnLayout.Widths, gap, gap,

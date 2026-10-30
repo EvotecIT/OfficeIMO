@@ -18,8 +18,8 @@ public sealed partial class PdfImageOrientationPlacementTests {
         byte[] jpeg = CreateJpeg(orientation);
         Assert.True(OfficeRasterImageDecoder.TryDecode(jpeg, out OfficeRasterImage? reference));
         int width = reference!.Width * 20, height = reference.Height * 20;
-        var options = new PdfCreateOptions { PageWidth = width, PageHeight = height,
-            MarginLeft = 0, MarginRight = 0, MarginTop = 0, MarginBottom = 0 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(width), PageHeight = global::OfficeIMO.OfficeLength.Points(height),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0) };
         byte[] pdf = PdfDocument.Create(builder => builder.Content(content => content.Image(jpeg, width, height,
             style: new PdfImageStyle { ClipPath = clip ? OfficeClipPath.RoundedRectangle(width, height, Math.Min(width, height) / 4D) : null })), options).ToBytes();
         var document = PdfDocument.Load(pdf);

@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Layout and resource bounds for literal text. Text is never interpreted as markup.</summary>
 public sealed class PdfTextImportOptions {
     /// <summary>PDF settings, including fonts and page geometry. The default is 10-point Courier.</summary>
-    public PdfCreateOptions PdfOptions { get; set; } = new() { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 10 };
+    public PdfCreateOptions PdfOptions { get; set; } = new() { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = OfficeLength.Points(10) };
     /// <summary>Explicit input encoding, or null for BOM detection followed by strict UTF-8.</summary>
     public string? EncodingName { get; set; }
     /// <summary>Tab columns counted from the start of each source line, from 1 through 32.</summary>

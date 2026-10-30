@@ -120,8 +120,8 @@ namespace OfficeIMO.Tests.Pdf {
                 Margins = PdfPageMargins.Moderate
             };
 
-            Assert.InRange(options.PageWidth, 841.0, 843.0);
-            Assert.InRange(options.PageHeight, 594.0, 596.0);
+            Assert.InRange(options.PageWidth.ToPoints(), 841.0, 843.0);
+            Assert.InRange(options.PageHeight.ToPoints(), 594.0, 596.0);
             Assert.Equal(OfficePageOrientation.Landscape, options.PageOrientation);
             AssertMargins(options.Margins, 54, 72, 54, 72);
 

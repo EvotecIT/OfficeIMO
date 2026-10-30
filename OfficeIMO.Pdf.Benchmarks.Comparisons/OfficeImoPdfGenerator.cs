@@ -8,7 +8,7 @@ internal static class OfficeImoPdfGenerator {
     internal static byte[] Generate(PdfBenchmarkScenario scenario) {
         var options = new PdfCreateOptions {
             CompressContentStreams = true,
-            DefaultFontSize = 9,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9),
             FileVersion = PdfFileVersion.Pdf17,
             ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly
         };

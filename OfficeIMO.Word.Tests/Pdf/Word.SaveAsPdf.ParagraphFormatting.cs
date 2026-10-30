@@ -1548,7 +1548,7 @@ namespace OfficeIMO.Tests {
                 WordDocumentTraversal.BuildListMarkers(document)
             }));
 
-            Assert.Equal(18D, effective.DefaultFontSize);
+            Assert.Equal(18D, effective.DefaultFontSize.ToPoints());
             Assert.Equal(PdfStandardFont.TimesRoman, effective.DefaultFont);
             Assert.Same(
                 OfficeIMO.Drawing.OfficeManagedTextShapingProvider.Instance,

@@ -39,7 +39,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
             new[] { "Review next month", "Service team" }
         })), new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 11
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11)
         })
     .Meta(title: "Monthly service review", author: "Operations")
     .Save("service-review.pdf");
@@ -271,7 +271,7 @@ The existing `PreserveTextWhitespace` property remains available. Setting it to
 Paragraphs can use a fallback font size independently of the document default:
 
 ```csharp
-var document = PdfDocument.Create(new PdfCreateOptions { DefaultFontSize = 12 });
+var document = PdfDocument.Create(new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) });
 document.Content.Paragraph(p => p.Text("First line\nSecond line"), style: new PdfParagraphStyle {
     FontSize = 8,
     LineSpacing = PdfLineSpacing.Exactly(14),
@@ -895,7 +895,7 @@ as `m-1 tail` followed by `H2O`:
 ```csharp
 using OfficeIMO.Pdf;
 
-byte[] bytes = PdfDocument.Create(new PdfCreateOptions { DefaultFontSize = 18 })
+byte[] bytes = PdfDocument.Create(new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(18) })
     .Compose(document => document.Content(content => content
         .Paragraph(p => p.Text("m").Superscript("-1").Text(" tail"))
         .Paragraph(p => p.Text("H").Subscript("2").Text("O"))))
@@ -1059,7 +1059,7 @@ PdfDocument.Create(pdf => pdf.Page(page => page
             PageSize = PdfPageSizes.A4,
             Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Centimeters(1.6)),
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         })
     .Meta(
         title: "Service report",

@@ -2659,8 +2659,8 @@ public partial class PdfFontFamilyTests {
             new[] { PdfStandardFont.TimesRoman });
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 180,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
@@ -2694,8 +2694,8 @@ public partial class PdfFontFamilyTests {
             new[] { PdfStandardFont.TimesRoman });
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 180
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180)
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
             .Canvas(canvas => canvas.Text(marker, 18, 16, 180, 28, fontSize: 12))
@@ -3208,9 +3208,9 @@ public partial class PdfFontFamilyTests {
             try {
                 bytes = PdfDocument.Create(new PdfCreateOptions {
                     CompressContentStreams = false,
-                    PageWidth = 120,
-                    MarginLeft = 24,
-                    MarginRight = 24
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(120),
+                    MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
+                    MarginRight = global::OfficeIMO.OfficeLength.Points(24)
                 })
                 .UseFontFamily("OfficeIMO NonBmp Font", fontPath)
                 .Paragraph(paragraph => paragraph.Text("AAAAAAAAAAAA😀BBBBBBBBBBBB"))

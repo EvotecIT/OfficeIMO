@@ -12,7 +12,7 @@ public sealed class ReaderMixedPdfOcrTests {
     [InlineData(true, 180, 120, true)]
     [InlineData(true, 20, 10, false)]
     public void MixedPagePolicyRetainsNativeTextAndOffersSubstantialImagesForOcr(bool includeMixed, int width, int height, bool candidateExpected) {
-        var pdf = PdfDocument.Create(new PdfCreateOptions { PageWidth = 300, PageHeight = 220, MarginLeft = 24, MarginRight = 24, MarginTop = 24, MarginBottom = 24 });
+        var pdf = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(220), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24), MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24) });
         pdf.Content.Image(PdfPngTestImages.CreateRgbPng(230, 230, 230), width, height);
         pdf.Content.Paragraph(paragraph => paragraph.Text("Footer 1"));
         var reader = new OfficeDocumentReaderBuilder().AddPdfHandler(new ReaderPdfOptions { IncludeMixedPageOcrCandidates = includeMixed }).Build();

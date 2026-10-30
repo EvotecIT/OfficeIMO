@@ -41,7 +41,7 @@ internal static partial class PdfWriter {
             Array.Copy(ancestors, panels, ancestors.Length);
             panels[ancestors.Length] = panel;
             IReadOnlyList<IPdfBlock> children = ResolveContainerContentBlocks(container, style,
-                currentOpts.MarginLeft + frame.X + style.PaddingX, frame.ContentWidth, currentOpts.DefaultFontSize);
+                currentOpts.MarginLeft.ToPoints() + frame.X + style.PaddingX, frame.ContentWidth, currentOpts.DefaultFontSize.ToPoints());
             AppendFootnoteUnits(children, frame.X + style.PaddingX, frame.ContentWidth, panels, units);
             // Empty static panels still have a measurable decoration/padding box.
             if (start == units.Count) units.Add(new FootnoteUnit { Panels = panels });
@@ -119,11 +119,11 @@ internal static partial class PdfWriter {
             bool final = panel.Style.RepeatFragmentDecoration || !continues;
             var decoration = new StringBuilder();
             if (panel.Style.Background is { } background)
-                DrawRoundedRowFill(decoration, background, (originX ?? currentOpts.MarginLeft) + panel.X, bottom, panel.Width,
+                DrawRoundedRowFill(decoration, background, (originX ?? currentOpts.MarginLeft.ToPoints()) + panel.X, bottom, panel.Width,
                     height, panel.Style.CornerRadius, first, first, final, final, emitGeneratedStructure);
-            DrawPanelBorder(decoration, panel.Style, (originX ?? currentOpts.MarginLeft) + panel.X, bottom, panel.Width, height,
+            DrawPanelBorder(decoration, panel.Style, (originX ?? currentOpts.MarginLeft.ToPoints()) + panel.X, bottom, panel.Width, height,
                 emitGeneratedStructure, first, final);
-            DrawContainerTableFrame(decoration, panel.Container, (originX ?? currentOpts.MarginLeft) + panel.X, panel.Width,
+            DrawContainerTableFrame(decoration, panel.Container, (originX ?? currentOpts.MarginLeft.ToPoints()) + panel.X, panel.Width,
                 bottom, height, first, final);
             if (decoration.Length > 0) sb.Insert(paint.Insertion, decoration.ToString());
         }

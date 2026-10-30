@@ -47,9 +47,9 @@ public sealed class PdfCrossRunKerningTests {
             return new[] { 2, 4, 6 };
         }
         var options = new PdfCreateOptions {
-            DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 20D,
-            PageWidth = 100D, PageHeight = 250D,
-            MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
+            DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(20D),
+            PageWidth = global::OfficeIMO.OfficeLength.Points(100D), PageHeight = global::OfficeIMO.OfficeLength.Points(250D),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
         };
         if (hyphenate) options.SetTextHyphenation(Points); else options.SetTextLineBreaks(Points);
         byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.Runs(new[] {
@@ -212,9 +212,9 @@ public sealed class PdfCrossRunKerningTests {
 
     private static byte[] Create(double width, PdfAlign align, PdfTextRun[] runs, byte[] font) {
         var options = new PdfCreateOptions {
-            DefaultFontSize = 20D, PageWidth = width + 40D, PageHeight = 250D,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(20D), PageWidth = global::OfficeIMO.OfficeLength.Points(width + 40D), PageHeight = global::OfficeIMO.OfficeLength.Points(250D),
             TextShapingMode = PdfTextShapingMode.OpenTypeLigatures,
-            MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
         };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName, font));
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("OtherFace", font));

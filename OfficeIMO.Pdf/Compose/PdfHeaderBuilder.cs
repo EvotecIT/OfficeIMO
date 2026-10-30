@@ -20,9 +20,9 @@ public sealed partial class PdfHeaderBuilder {
     /// <summary>Uses a registered named font family for header text.</summary>
     public PdfHeaderBuilder FontFamily(string familyName) { _opts.HeaderFontFamily = familyName; return this; }
     /// <summary>Sets header font size in points.</summary>
-    public PdfHeaderBuilder FontSize(double size) { Guard.Positive(size, nameof(size)); _opts.HeaderFontSize = size; return this; }
+    public PdfHeaderBuilder FontSize(double size) { Guard.Positive(size, nameof(size)); _opts.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(size); return this; }
     /// <summary>Sets header baseline offset above the top margin in points.</summary>
-    public PdfHeaderBuilder Offset(double points) { Guard.NonNegative(points, nameof(points)); _opts.HeaderOffsetY = points; return this; }
+    public PdfHeaderBuilder Offset(double points) { Guard.NonNegative(points, nameof(points)); _opts.HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(points); return this; }
     /// <summary>Renders the current page number in the header.</summary>
     public PdfHeaderBuilder PageNumber() { _opts.ClearHeaderSegmentsForCompose(); _opts.ClearHeaderZonesForCompose(); _opts.ShowHeader = true; _opts.HeaderFormat = "{page}"; return this; }
     /// <summary>Renders the current page number and total pages in the header.</summary>

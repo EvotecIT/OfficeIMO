@@ -219,7 +219,7 @@ public sealed class WordPdfKerningTests {
     }
 
     private static PdfCreateOptions FontOptions(byte[] font) {
-        var options = new PdfCreateOptions { DefaultFontSize = 10D };
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D) };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName, font));
         return options;
     }

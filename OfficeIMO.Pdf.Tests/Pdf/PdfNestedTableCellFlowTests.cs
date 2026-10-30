@@ -378,7 +378,7 @@ public class PdfNestedTableCellFlowTests {
     };
 
     private static PdfCreateOptions Options(double height = 400D) => new() {
-        PageWidth = 320D, PageHeight = height, MarginLeft = 20D, MarginRight = 20D,
-        MarginTop = 20D, MarginBottom = 20D, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 8D
+        PageWidth = global::OfficeIMO.OfficeLength.Points(320D), PageHeight = global::OfficeIMO.OfficeLength.Points(height), MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
+        MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D), DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8D)
     };
 }

@@ -14,9 +14,9 @@ public sealed partial class PdfCreateOptions {
     }
     /// <summary>Gets whether the default paragraph font slot was explicitly supplied by the caller or a theme.</summary>
     public bool HasExplicitDefaultFont => _hasExplicitDefaultFont;
-    /// <summary>Default paragraph font size in points; new composition inherits the theme body size unless assigned.</summary>
-    public double DefaultFontSize {
-        get => !_hasExplicitDefaultFontSize && _useOfficeThemeDefaults ? EffectiveTheme.TypeScale.Body.ToPoints() : _defaultFontSize;
+    /// <summary>Default paragraph font size; new composition inherits the theme body size unless assigned.</summary>
+    public OfficeLength DefaultFontSize {
+        get => !_hasExplicitDefaultFontSize && _useOfficeThemeDefaults ? EffectiveTheme.TypeScale.Body : _defaultFontSize;
         set {
             _defaultFontSize = value;
             _hasExplicitDefaultFontSize = true;

@@ -196,19 +196,19 @@ public sealed partial class PdfDocument {
 
     /// <summary>Adds a document-wide default top page background band using the current page size.</summary>
     internal PdfDocument BackgroundTopBand(double height, global::OfficeIMO.OfficeColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
-        BackgroundShape(PdfPageBackgroundShape.TopBand(_options.PageWidth, _options.PageHeight, height, fill, insetX, offsetY, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+        BackgroundShape(PdfPageBackgroundShape.TopBand(_options.PageWidth.ToPoints(), _options.PageHeight.ToPoints(), height, fill, insetX, offsetY, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
 
     /// <summary>Adds a document-wide default bottom page background band using the current page size.</summary>
     internal PdfDocument BackgroundBottomBand(double height, global::OfficeIMO.OfficeColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
-        BackgroundShape(PdfPageBackgroundShape.BottomBand(_options.PageWidth, _options.PageHeight, height, fill, insetX, offsetY, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+        BackgroundShape(PdfPageBackgroundShape.BottomBand(_options.PageWidth.ToPoints(), _options.PageHeight.ToPoints(), height, fill, insetX, offsetY, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
 
     /// <summary>Adds a document-wide default left page background band using the current page size.</summary>
     internal PdfDocument BackgroundLeftBand(double width, global::OfficeIMO.OfficeColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
-        BackgroundShape(PdfPageBackgroundShape.LeftBand(_options.PageWidth, _options.PageHeight, width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+        BackgroundShape(PdfPageBackgroundShape.LeftBand(_options.PageWidth.ToPoints(), _options.PageHeight.ToPoints(), width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
 
     /// <summary>Adds a document-wide default right page background band using the current page size.</summary>
     internal PdfDocument BackgroundRightBand(double width, global::OfficeIMO.OfficeColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
-        BackgroundShape(PdfPageBackgroundShape.RightBand(_options.PageWidth, _options.PageHeight, width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+        BackgroundShape(PdfPageBackgroundShape.RightBand(_options.PageWidth.ToPoints(), _options.PageHeight.ToPoints(), width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
 
     /// <summary>Sets the document-wide default page orientation to portrait.</summary>
     internal PdfDocument Portrait() => Orientation(OfficePageOrientation.Portrait);

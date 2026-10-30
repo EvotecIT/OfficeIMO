@@ -12,8 +12,8 @@ public sealed class PdfGraphicsGradientResourceTests {
     [InlineData(false, PdfObjectSerializationMode.ForwardOnly)]
     [InlineData(true, PdfObjectSerializationMode.ForwardOnly)]
     public void DifferentCoordinateShadingsShareColorAndAlphaFunctions(bool radial, PdfObjectSerializationMode mode) {
-        var document = PdfDocument.Create(new PdfCreateOptions { PageWidth = 220D, PageHeight = 160D,
-            MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D,
+        var document = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(220D), PageHeight = global::OfficeIMO.OfficeLength.Points(160D),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D),
             FileVersion = PdfFileVersion.Pdf17, ObjectSerializationMode = mode });
         var start = OfficeColor.FromRgba(255, 0, 0, 64);
         var end = OfficeColor.FromRgba(0, 0, 255, 192);

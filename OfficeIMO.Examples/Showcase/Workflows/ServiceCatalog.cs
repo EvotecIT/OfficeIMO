@@ -35,7 +35,7 @@ internal static class ServiceCatalog {
             });
             content.H2("Before choosing", PdfAlign.Left, navy);
             content.Paragraph(p => p.Text("Confirm the service owner, support hours, and expected response process. These are sample offerings rather than a commercial contract."));
-        }), new PdfCreateOptions { DefaultFontSize = 10 })
+        }), new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) })
             .Meta(title: "Northwind service catalog", author: "OfficeIMO")
             .Save(Path.Combine(folder, "example.pdf"));
     }

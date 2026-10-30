@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests.Pdf {
             };
             var doc = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10,
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 // The second page inherits this document style, not the page-one override.
                 DefaultHeadingStyles = new PdfHeadingStyles {
                     Level2 = new PdfHeadingStyle { Font = PdfStandardFont.Helvetica, FontSize = 18 }
@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests.Pdf {
             };
             var doc = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10,
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 // Keep a distinct document fallback to detect page-style leakage.
                 DefaultListStyle = new PdfListStyle { FontSize = 10, LeftIndent = 0, MarkerGap = 2.78 }
             });
@@ -203,10 +203,10 @@ namespace OfficeIMO.Tests.Pdf {
                 Background = global::OfficeIMO.OfficeColor.FromRgb(240, 248, 255)
             };
             var doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 360,
-                PageHeight = 240,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(240),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10,
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 // Page two measures the document's six-point panel inset.
                 DefaultPanelStyle = new PdfPanelStyle { PaddingX = 6, PaddingY = 6 }
             });
@@ -254,10 +254,10 @@ namespace OfficeIMO.Tests.Pdf {
                 SpacingAfter = 16
             };
             var doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             });
 
             doc.Compose(c => {
@@ -306,10 +306,10 @@ namespace OfficeIMO.Tests.Pdf {
                 SpacingAfter = 12
             };
             var doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             });
 
             doc.Compose(c => {
@@ -357,10 +357,10 @@ namespace OfficeIMO.Tests.Pdf {
             var shape = OfficeShape.Rectangle(40, 20);
             shape.FillColor = OfficeColor.WhiteSmoke;
             var doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             });
 
             doc.Compose(c => {
@@ -413,7 +413,7 @@ namespace OfficeIMO.Tests.Pdf {
             };
             var doc = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             });
 
             doc.Compose(c => {
@@ -471,7 +471,7 @@ namespace OfficeIMO.Tests.Pdf {
             style.CellPaddingX = 22;
             var doc = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             });
 
             doc.Compose(c => {

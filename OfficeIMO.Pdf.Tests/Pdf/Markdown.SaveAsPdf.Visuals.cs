@@ -1445,9 +1445,9 @@ _Figure 2. Revenue chart_
     [Fact]
     public void ToPdfDocument_MarkdownChartFence_WarnsWhenPageIsTooNarrowForNativeChartRenderer() {
         var options = CreateVisualOptions();
-        options.PdfOptions!.PageWidth = 220;
-        options.PdfOptions.MarginLeft = 36;
-        options.PdfOptions.MarginRight = 36;
+        options.PdfOptions!.PageWidth = global::OfficeIMO.OfficeLength.Points(220);
+        options.PdfOptions.MarginLeft = global::OfficeIMO.OfficeLength.Points(36);
+        options.PdfOptions.MarginRight = global::OfficeIMO.OfficeLength.Points(36);
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
   "type": "bar",
@@ -1470,9 +1470,9 @@ _Figure 2. Revenue chart_
     [Fact]
     public void ToPdfDocument_MarkdownChartFence_WarnsWhenPageIsTooShortForNativeChartRenderer() {
         var options = CreateVisualOptions();
-        options.PdfOptions!.PageHeight = 180;
-        options.PdfOptions.MarginTop = 36;
-        options.PdfOptions.MarginBottom = 36;
+        options.PdfOptions!.PageHeight = global::OfficeIMO.OfficeLength.Points(180);
+        options.PdfOptions.MarginTop = global::OfficeIMO.OfficeLength.Points(36);
+        options.PdfOptions.MarginBottom = global::OfficeIMO.OfficeLength.Points(36);
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
   "type": "bar",
@@ -1495,9 +1495,9 @@ _Figure 2. Revenue chart_
     [Fact]
     public void ToPdfDocument_MarkdownChartFence_WarnsWhenFigureSpacingLeavesPageTooShortForNativeChartRenderer() {
         var options = CreateVisualOptions();
-        options.PdfOptions!.PageHeight = 226;
-        options.PdfOptions.MarginTop = 36;
-        options.PdfOptions.MarginBottom = 36;
+        options.PdfOptions!.PageHeight = global::OfficeIMO.OfficeLength.Points(226);
+        options.PdfOptions.MarginTop = global::OfficeIMO.OfficeLength.Points(36);
+        options.PdfOptions.MarginBottom = global::OfficeIMO.OfficeLength.Points(36);
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
   "type": "bar",
@@ -2494,12 +2494,12 @@ _Figure 3. Flow fallback_
         Style = MarkdownPdfStyle.Report(),
         PdfOptions = new PdfCore.PdfCreateOptions {
             CompressContentStreams = false,
-            PageWidth = 420,
-            PageHeight = 420,
-            MarginLeft = 36,
-            MarginRight = 36,
-            MarginTop = 36,
-            MarginBottom = 36
+            PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(420),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
         }
     };
 

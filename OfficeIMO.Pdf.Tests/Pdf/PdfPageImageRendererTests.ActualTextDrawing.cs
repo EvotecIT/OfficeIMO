@@ -14,8 +14,8 @@ public partial class PdfPageImageRendererTests {
     public void PathActualTextCanvasSurvivesDrawingAndAccessibleSvgWithoutChangingPaint() {
         OfficeShape ink = OfficeShape.Rectangle(30D, 15D);
         ink.FillColor = OfficeColor.Red;
-        var options = new PdfCreateOptions { PageWidth = 100D, PageHeight = 80D,
-            MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(100D), PageHeight = global::OfficeIMO.OfficeLength.Points(80D),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D) };
         byte[] labelled = PdfDocument.Create(options)
             .Canvas(canvas => canvas
                 .Shape(ink, 5D, 5D)

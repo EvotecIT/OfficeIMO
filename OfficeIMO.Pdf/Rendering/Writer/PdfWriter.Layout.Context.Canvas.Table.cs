@@ -38,7 +38,7 @@ internal static partial class PdfWriter {
             var rowLeadings = new double[rows];
             for (int rowIndex = 0; rowIndex < rows; rowIndex++) {
                 bool rowUsesBold = GetTableRowBold(style, rowIndex, headerRowCount, footerStart);
-                double originalRowFontSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStart, currentOpts.DefaultFontSize);
+                double originalRowFontSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStart, currentOpts.DefaultFontSize.ToPoints());
                 TableRowTextSizing sizing = ResolveTableRowTextSizing(table, style, rowIndex, columns, columnWidths, columnGap, originalRowFontSize, rowUsesBold, currentOpts);
                 rowFontSizes[rowIndex] = sizing.FontSize;
                 rowFontSizeScales[rowIndex] = sizing.RunFontSizeScale;
@@ -55,7 +55,7 @@ internal static partial class PdfWriter {
                 columnWidths[0],
                 columnWidths[columnWidths.Length - 1]);
             double xOrigin = item.X;
-            double topY = currentOpts.PageHeight - item.Y;
+            double topY = currentOpts.PageHeight.ToPoints() - item.Y;
             double bottomY = topY - item.Height;
             int annotationStart = currentPage!.Annotations.Count;
             int imageStart = currentPage.Images.Count;
@@ -344,7 +344,7 @@ internal static partial class PdfWriter {
                 int? orientedId = RegisterTextStructureElement(orientedRole, _canvasStructureParentElement, rowIsHeader ? "Column" : string.Empty, cell.ColumnSpan, cell.RowSpan);
                 RenderOrientedTableCellContent(cell, style, rowIndex, columnIndex, contentFrame, cellX, cellTop, cellWidth, cellHeight,
                     GetTableRowFont(currentOpts, rowUsesBold), fontSize, leading, runFontSizeScale, orientedParagraph, orientedRole, orientedId,
-                    diagnosticTransform: CreateCanvasRotationTransform(item.X, currentOpts.PageHeight - item.Y - item.Height, item.Width, item.Height, item.RotationAngle));
+                    diagnosticTransform: CreateCanvasRotationTransform(item.X, currentOpts.PageHeight.ToPoints() - item.Y - item.Height, item.Width, item.Height, item.RotationAngle));
                 MarkRichFonts(cell.Runs, forceBold: rowUsesBold);
                 AddTableCellNamedDestinationName(cell.NamedDestinationName, cellTop, orientedId);
                 if (HasCellLinkTarget(cell.LinkUri, cell.LinkDestinationName))
@@ -415,7 +415,7 @@ internal static partial class PdfWriter {
                 new TableCellContentFrame(inkClip.Left - textClipBleed, inkClip.Top + textClipBleed,
                     inkClip.Width + 2D * textClipBleed, inkClip.Height + 2D * textClipBleed),
                 alignments: visibleAlignments, offsets: visibleXOffsets, widths: visibleWidths, baselineFont: cellFont,
-                localTransform: CreateCanvasRotationTransform(item.X, currentOpts.PageHeight - item.Y - item.Height, item.Width, item.Height, item.RotationAngle));
+                localTransform: CreateCanvasRotationTransform(item.X, currentOpts.PageHeight.ToPoints() - item.Y - item.Height, item.Width, item.Height, item.RotationAngle));
             if (cell.Viewport != null || style.PreservePartialCellLines)
                 OmitInvisibleTableCellViewportLines(visibleLines, visibleHeights, visibleAlignments, visibleXOffsets, visibleWidths,
                     paragraph.Align, firstBaseline, contentFrame.Left + padLeft, innerWidth,

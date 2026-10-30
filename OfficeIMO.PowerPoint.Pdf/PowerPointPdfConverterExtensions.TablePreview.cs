@@ -30,8 +30,8 @@ public static partial class PowerPointPdfConverterExtensions {
             width = Math.Max(width, item.X + item.Width);
             height = Math.Max(height, item.Y + item.Height);
         }
-        pdfOptions.PageWidth = width;
-        pdfOptions.PageHeight = height;
+        pdfOptions.PageWidth = global::OfficeIMO.OfficeLength.Points(width);
+        pdfOptions.PageHeight = global::OfficeIMO.OfficeLength.Points(height);
         PdfCore.PdfDocument document = PdfCore.PdfDocument.CreateForImportedLayout(pdfOptions);
         document.Canvas(target => target.AddItems(canvas.Items));
         return PdfCore.PdfReadDocument.Open(document.ToBytes()).Pages[0].ToDrawing();

@@ -22,8 +22,8 @@ public class PdfOcrTests {
     public async Task RecognizeAndMergeAsync_NormalizesFiltersAndMergesProviderWords() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 // The provider's Native box is authored over this eleven-point, 72-point-origin line.
-                DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 11,
-                MarginLeft = 72, MarginRight = 72, MarginTop = 72, MarginBottom = 72,
+                DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(72), MarginRight = global::OfficeIMO.OfficeLength.Points(72), MarginTop = global::OfficeIMO.OfficeLength.Points(72), MarginBottom = global::OfficeIMO.OfficeLength.Points(72),
                 DefaultParagraphStyle = new PdfParagraphStyle { LineHeight = 1.4, SpacingBefore = 0, SpacingAfter = 0 }
             })
             .Paragraph(paragraph => paragraph.Text("Native text"))

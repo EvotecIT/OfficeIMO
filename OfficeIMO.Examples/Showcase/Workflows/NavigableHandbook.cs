@@ -29,7 +29,7 @@ internal static class NavigableHandbook {
                 .H2("Review the workshop", PdfAlign.Left, navy)
                 .Paragraph(p => p.Text("Compare the planned outcome with what participants completed. Separate problems with the exercise from problems with the room or equipment."))
                 .Paragraph(p => p.Text("Use the PDF table of contents or bookmarks to return to a section.")))),
-            new PdfCreateOptions { DefaultFontSize = 11, ShowPageNumbers = true, CreateOutlineFromHeadings = true })
+            new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11), ShowPageNumbers = true, CreateOutlineFromHeadings = true })
             .Meta(title: "Community workshop handbook", author: "OfficeIMO")
             .Save(Path.Combine(folder, "example.pdf"));
     }

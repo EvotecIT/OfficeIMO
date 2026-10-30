@@ -24,7 +24,7 @@ public partial class Word {
         if (table) paragraph = word.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0];
         else paragraph = word.AddParagraph();
         paragraph.Text = "  ALPHA   BETA"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12); paragraph.FontFamily = "Arial";
-        PdfCreateOptions? pdfOptions = policy == "none" ? null : new PdfCreateOptions { DefaultFontSize = 12D };
+        PdfCreateOptions? pdfOptions = policy == "none" ? null : new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D) };
         if (policy == "collapse") pdfOptions!.PreserveTextWhitespace = false;
         if (policy == "preformatted") pdfOptions!.PreserveTextWhitespace = true;
         bool? callerValue = pdfOptions?.PreserveTextWhitespace;
@@ -45,7 +45,7 @@ public partial class Word {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph("ALPHA" + new string(' ', 60) + "BETA");
         paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12); paragraph.FontFamily = "Arial";
-        PdfCreateOptions unconfigured = new PdfCreateOptions { DefaultFontSize = 12D }.Clone();
+        PdfCreateOptions unconfigured = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D) }.Clone();
         var options = new WordPdfExportOptions { IncludePageNumbers = false, FontFamily = "Arial",
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = unconfigured,
             PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(240D),OfficeIMO.OfficeLength.Points(792D)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72D)) };
@@ -53,7 +53,7 @@ public partial class Word {
         var letters = normal.GetPage(1).Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToArray();
         Assert.InRange(letters[0].StartBaseLine.Y - letters[5].StartBaseLine.Y, 12D, 16D);
         Assert.InRange(Math.Abs(letters[5].StartBaseLine.X - 72D), 0, .02D);
-        PdfCreateOptions explicitOptions = new PdfCreateOptions { DefaultFontSize = 12D, PreserveTextWhitespace = false }.Clone();
+        PdfCreateOptions explicitOptions = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), PreserveTextWhitespace = false }.Clone();
         options.PdfOptions = explicitOptions;
         using var collapsed = PdfPigDocument.Open(word.ToPdf(options).ToBytes());
         var collapsedLetters = collapsed.GetPage(1).Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToArray();

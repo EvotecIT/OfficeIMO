@@ -31,7 +31,7 @@ internal static class PdfRuntimeCorpus {
 
     internal static PdfDocument Create(int pages, PdfObjectSerializationMode mode, bool textOnly = false) {
         var options = new PdfCreateOptions {
-            DefaultFontSize = 12,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
             CompressContentStreams = true,
             FileVersion = mode == PdfObjectSerializationMode.ForwardOnly ? PdfFileVersion.Pdf17 : PdfFileVersion.Pdf14,
             ObjectSerializationMode = mode

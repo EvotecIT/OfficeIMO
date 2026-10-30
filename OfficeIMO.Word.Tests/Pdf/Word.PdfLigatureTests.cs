@@ -139,7 +139,7 @@ public sealed class WordPdfLigatureTests {
                 defaults.Append(element);
             }
         }
-        var options = new PdfCreateOptions { DefaultFontSize = 10D };
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D) };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', featureTag: feature, scriptTag: "latn")));
         using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx })));

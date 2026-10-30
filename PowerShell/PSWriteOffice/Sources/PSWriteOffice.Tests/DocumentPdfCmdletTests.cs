@@ -193,7 +193,7 @@ public sealed class DocumentPdfCmdletTests {
             runspace.SessionStateProxy.SetVariable("source", root);
             runspace.SessionStateProxy.SetVariable("destination", Path.Combine(root, "output"));
             runspace.SessionStateProxy.SetVariable("textSettings", new PdfTextImportOptions {
-                PdfOptions = new PdfCreateOptions { PageWidth = 240, PageHeight = 180, DefaultFontSize = 14 }
+                PdfOptions = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(180), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(14) }
             });
             shell.AddScript("$htmlSettings = New-OfficeHtmlPdfOptions -Margin 12 -InteractiveFormControls $false; Get-ChildItem -LiteralPath $source -File | Export-OfficeDocumentPdf -OutputDirectory $destination -TextOptions $textSettings -HtmlOptions $htmlSettings -ItemResults -SummaryVariable summary");
             var results = shell.Invoke();

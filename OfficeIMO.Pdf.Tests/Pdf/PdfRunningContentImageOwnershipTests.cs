@@ -32,8 +32,8 @@ public sealed class PdfRunningContentImageOwnershipTests {
     [InlineData(true)]
     public void Dynamic_story_image_payloads_are_shared_across_pages_and_variants(bool footer) {
         byte[] bytes = PdfPngTestImages.CreateRgbPng(2, 2);
-        var document = PdfDocument.Create(new PdfCreateOptions { PageWidth = 240, PageHeight = 320,
-            MarginTop = 40, MarginBottom = 40, MarginLeft = 24, MarginRight = 24,
+        var document = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(320),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
             PageContentMemoryLimitBytes = 0 });
         Action<PdfContentBuilder> Compose(PdfRunningContentContext context) => content => {
             // New input arrays deliberately miss the source-array prepared-image cache.

@@ -83,7 +83,7 @@ public sealed class PdfRotatedFragmentExtractionTests {
     }
 
     private static byte[] CreatePdf(Action<PdfPageCanvas> build) => PdfDocument.Create(new PdfCreateOptions {
-        PageWidth = 600D, PageHeight = 800D, CompressContentStreams = false
+        PageWidth = global::OfficeIMO.OfficeLength.Points(600D), PageHeight = global::OfficeIMO.OfficeLength.Points(800D), CompressContentStreams = false
     }).Canvas(build).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
     private static void AddGlyphs(PdfPageCanvas canvas, string text, double x, double y) {

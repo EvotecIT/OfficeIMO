@@ -69,7 +69,21 @@ public sealed class PdfCreationOfficeThemeTests {
         var options = new PdfCreateOptions {
             Theme = OfficeTheme.Classic,
             DefaultFont = PdfStandardFont.Courier,
-            DefaultFontSize = 11, // Explicitly assigning the legacy value still wins.
+            DefaultFontSize = OfficeLength.Inches(11D / 72D), // Explicitly assigning the legacy value still wins.
+            PageWidth = OfficeLength.Inches(6),
+            PageHeight = OfficeLength.Inches(8),
+            MarginLeft = OfficeLength.Millimeters(12.7),
+            MarginRight = OfficeLength.Zero,
+            MarginTop = OfficeLength.Centimeters(1.905),
+            MarginBottom = OfficeLength.Inches(0.5),
+            ShowHeader = true,
+            HeaderFormat = "HeaderAnchor",
+            HeaderFontSize = OfficeLength.Inches(0.125),
+            HeaderOffsetY = OfficeLength.Zero,
+            ShowPageNumbers = true,
+            FooterFormat = "FooterAnchor",
+            FooterFontSize = OfficeLength.Millimeters(3.175),
+            FooterOffsetY = OfficeLength.Inches(0.125),
             DefaultTextColor = OfficeColor.FromRgb(12, 34, 56),
             DefaultHeadingStyles = headings,
             DefaultTableStyle = tableStyle,
@@ -82,7 +96,11 @@ public sealed class PdfCreationOfficeThemeTests {
             .Paragraph(paragraph => paragraph.FontSize(7).Color(OfficeColor.Black).Text("RunBody"))
             .Table(new[] { new { Item = "TableBody" } });
         options.Theme = OfficeTheme.Dark;
-        options.DefaultFontSize = 40;
+        options.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(40);
+        options.PageWidth = OfficeLength.Inches(9);
+        options.Margins = PdfPageMargins.Uniform(OfficeLength.Inches(1));
+        options.HeaderOffsetY = OfficeLength.Inches(0.25);
+        options.FooterFontSize = OfficeLength.Points(20);
         headings.Level1 = new PdfHeadingStyle { FontSize = 60 };
         tableStyle.FontSize = 60;
         PdfHeadingStyles detached = document.Options.DefaultHeadingStyles!;
@@ -96,6 +114,16 @@ public sealed class PdfCreationOfficeThemeTests {
         AssertColor(body, OfficeColor.FromRgb(12, 34, 56));
         Assert.Equal(7D, Word(independent, "RunBody")[0].PointSize, 2);
         Assert.Equal(13D, Word(independent, "TableBody")[0].PointSize, 2);
+        Assert.Equal(432D, (double)independent.GetPage(1).Width, 2);
+        Assert.Equal(576D, (double)independent.GetPage(1).Height, 2);
+        Assert.Equal(36D, body.StartBaseLine.X, 2);
+        Assert.Equal(OfficeLength.Zero, document.Options.MarginRight);
+        Letter header = Word(independent, "HeaderAnchor")[0];
+        Letter footer = Word(independent, "FooterAnchor")[0];
+        Assert.Equal(9D, header.PointSize, 2);
+        Assert.Equal(522D, header.StartBaseLine.Y, 2);
+        Assert.Equal(9D, footer.PointSize, 2);
+        Assert.Equal(27D, footer.StartBaseLine.Y, 2);
     }
 
     [Fact]
@@ -103,25 +131,32 @@ public sealed class PdfCreationOfficeThemeTests {
         OfficeTheme first = OfficeTheme.Modern.WithTypeScale(OfficeTheme.Modern.TypeScale.With(body: OfficeLength.Points(14)))
             .WithPage(new OfficeThemePage(OfficeLength.Points(21), OfficeLength.Points(22), OfficeLength.Points(23), OfficeLength.Points(24)));
         OfficeTheme second = OfficeTheme.Classic.WithTypeScale(OfficeTheme.Classic.TypeScale.With(body: OfficeLength.Points(16)));
-        var inherited = new PdfCreateOptions { Theme = first, MarginRight = 72 }.CreateDocumentSnapshot(useThemeDefaults: true);
+        var inherited = new PdfCreateOptions { Theme = first, MarginRight = global::OfficeIMO.OfficeLength.Points(72) }.CreateDocumentSnapshot(useThemeDefaults: true);
         PdfCreateOptions copy = inherited.Clone();
         _ = copy.DefaultTableStyle; // Populate the derived cache before changing the theme.
         PdfCreateOptions measured = copy.CreateTextMeasurementSnapshot();
         copy.Theme = second;
-        Assert.Equal(16D, copy.DefaultFontSize);
-        Assert.Equal(second.Page.MarginLeft.ToPoints(), copy.MarginLeft);
-        Assert.Equal(72D, copy.MarginRight);
-        Assert.Equal(14D, inherited.DefaultFontSize);
-        Assert.Equal(14D, measured.DefaultFontSize);
+        Assert.Equal(16D, copy.DefaultFontSize.ToPoints());
+        Assert.Equal(second.Page.MarginLeft.ToPoints(), copy.MarginLeft.ToPoints());
+        Assert.Equal(72D, copy.MarginRight.ToPoints());
+        Assert.Equal(14D, inherited.DefaultFontSize.ToPoints());
+        Assert.Equal(14D, measured.DefaultFontSize.ToPoints());
+        PdfCreateOptions zeroCopy = copy.Clone();
+        zeroCopy.MarginLeft = OfficeLength.Zero;
+        PdfCreateOptions zeroMeasured = zeroCopy.CreateTextMeasurementSnapshot();
+        zeroCopy = zeroCopy.Clone();
+        zeroCopy.Theme = first;
+        Assert.Equal(OfficeLength.Zero, zeroCopy.MarginLeft);
+        Assert.Equal(OfficeLength.Zero, zeroMeasured.MarginLeft);
         Assert.False(measured.HasSameMeasurementFonts(copy));
         var explicitValues = new PdfCreateOptions {
-            Theme = first, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 11, FooterFontSize = 9
+            Theme = first, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11), FooterFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         PdfCreateOptions explicitCopy = explicitValues.CreateDocumentSnapshot(useThemeDefaults: true);
         explicitCopy.Theme = second;
         Assert.Equal(PdfStandardFont.Helvetica, explicitCopy.DefaultFont);
-        Assert.Equal(11D, explicitCopy.DefaultFontSize);
-        Assert.Equal(9D, explicitCopy.FooterFontSize);
+        Assert.Equal(11D, explicitCopy.DefaultFontSize.ToPoints());
+        Assert.Equal(9D, explicitCopy.FooterFontSize.ToPoints());
         using var document = PdfDocument.Create(copy);
         document.Content.Text("CloneAnchor");
         using var independent = PdfPigDocument.Open(document.ToBytes());
@@ -158,7 +193,7 @@ public sealed class PdfCreationOfficeThemeTests {
         Assert.Equal(8D, footer.PointSize, 2);
         AssertColor(footer, OfficeColor.FromRgb(10, 20, 30));
         using var explicitDocument = PdfDocument.Create(new PdfCreateOptions {
-            Theme = theme, ShowPageNumbers = true, FooterFormat = "ExplicitFooter", FooterFontSize = 9, FooterTextColor = OfficeColor.Black
+            Theme = theme, ShowPageNumbers = true, FooterFormat = "ExplicitFooter", FooterFontSize = global::OfficeIMO.OfficeLength.Points(9), FooterTextColor = OfficeColor.Black
         });
         explicitDocument.Content.Text("Body");
         using var explicitPdf = PdfPigDocument.Open(explicitDocument.ToBytes());
@@ -168,16 +203,16 @@ public sealed class PdfCreationOfficeThemeTests {
 
     [Fact]
     public void ImportedLayoutKeepsNeutralDefaultsAndExplicitSourceFormatting() {
-        var sourceOptions = new PdfCreateOptions { Theme = OfficeTheme.Dark, MarginRight = 17, DefaultFontSize = 15 };
+        var sourceOptions = new PdfCreateOptions { Theme = OfficeTheme.Dark, MarginRight = global::OfficeIMO.OfficeLength.Points(17), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(15) };
         Assert.Null(sourceOptions.DefaultHeadingStyles);
-        Assert.Equal(72D, sourceOptions.MarginLeft);
+        Assert.Equal(72D, sourceOptions.MarginLeft.ToPoints());
         using var imported = PdfDocument.CreateForImportedLayout(sourceOptions);
         Assert.Null(imported.Options.DefaultHeadingStyles);
         Assert.Null(imported.Options.DefaultParagraphStyle);
         Assert.Null(imported.Options.DefaultListStyle);
-        Assert.Equal(72D, imported.Options.MarginLeft);
-        Assert.Equal(17D, imported.Options.MarginRight);
-        Assert.Equal(15D, imported.Options.DefaultFontSize);
+        Assert.Equal(72D, imported.Options.MarginLeft.ToPoints());
+        Assert.Equal(17D, imported.Options.MarginRight.ToPoints());
+        Assert.Equal(15D, imported.Options.DefaultFontSize.ToPoints());
         Assert.Equal(PdfStandardFont.Helvetica, imported.Options.DefaultFont);
         Assert.Null(imported.Options.DefaultTextColor);
         Assert.Null(imported.Options.EffectiveFooterTextColor);
@@ -213,8 +248,8 @@ public sealed class PdfCreationOfficeThemeTests {
         using var loaded = await PdfDocument.LoadAsync(input);
         Assert.Equal("SavedIdentity", loaded.Metadata.Title);
         _ = loaded.Inspect();
-        Assert.Equal(11D, loaded.Options.DefaultFontSize);
-        Assert.Equal(72D, loaded.Options.MarginLeft);
+        Assert.Equal(11D, loaded.Options.DefaultFontSize.ToPoints());
+        Assert.Equal(72D, loaded.Options.MarginLeft.ToPoints());
         Assert.Null(loaded.Options.DefaultHeadingStyles);
         loaded.Options.Theme = OfficeTheme.Dark; // Even an internal options read/change must not restyle source bytes.
         Assert.Throws<InvalidOperationException>(() => loaded.Content.Text("Forbidden"));

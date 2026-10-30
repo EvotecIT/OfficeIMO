@@ -98,7 +98,7 @@ public partial class Word {
             IncludePageNumbers = false,
             // An explicit projection typography override keeps the bounded
             // header-image path. Its oversized source box must report clipping.
-            PdfOptions = new PdfCore.PdfCreateOptions { HeaderFontSize = 10D }
+            PdfOptions = new PdfCore.PdfCreateOptions { HeaderFontSize = global::OfficeIMO.OfficeLength.Points(10D) }
         });
         byte[] bytes = result.ToBytes();
         Assert.NotEmpty(bytes);

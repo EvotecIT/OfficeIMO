@@ -26,7 +26,7 @@ public sealed class PdfProductionPreflightTests {
 
     [Fact]
     public void ProposedPageBoxesRequireSelectionAndAreReinspectedAfterRewrite() {
-        PdfDocument source = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = 300D, PageHeight = 200D })
+        PdfDocument source = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D) })
             .Paragraph(paragraph => paragraph.Text("Print proof"))
             .ToBytes());
         PdfProductionPreflightReport report = source.Proof.PreflightProduction(
@@ -48,7 +48,7 @@ public sealed class PdfProductionPreflightTests {
 
     [Fact]
     public void SelectedPageBoxFixupsApplyAcrossPagesInOneResult() {
-        PdfDocument source = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = 300D, PageHeight = 200D })
+        PdfDocument source = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D) })
             .Paragraph(paragraph => paragraph.Text("First"))
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Second"))
@@ -67,7 +67,7 @@ public sealed class PdfProductionPreflightTests {
 
     [Fact]
     public void PageBoxFixupReopensGrowthBeyondSourceInputLimit() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = 300D, PageHeight = 200D })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D) })
             .Paragraph(paragraph => paragraph.Text("Trim proof")).ToBytes();
         var limits = new PdfLoadOptions { Limits = new PdfReadLimits { MaxInputBytes = bytes.LongLength } };
         PdfProductionPreflightReport report = PdfDocument.Load(bytes, limits).Proof.PreflightProduction();
@@ -83,7 +83,7 @@ public sealed class PdfProductionPreflightTests {
     [Fact]
     public void SelectedPageReportsLowImageResolutionAndDeviceColorWithPageGeometry() {
         byte[] image = PdfPngTestImages.CreateRgbPng(30, 90, 180);
-        PdfDocument source = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = 240D, PageHeight = 180D })
+        PdfDocument source = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
             .Paragraph(paragraph => paragraph.Text("First page"))
             .PageBreak()
             .Canvas(canvas => canvas.Image(image, 20D, 20D, 100D, 100D))
@@ -108,7 +108,7 @@ public sealed class PdfProductionPreflightTests {
     [Fact]
     public void EffectiveImageResolutionAccountsForPageUserUnit() {
         byte[] image = PdfPngTestImages.CreateRgbPng(30, 30);
-        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = 240D, PageHeight = 180D })
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
             .Canvas(canvas => canvas.Image(image, 20D, 20D, 72D, 72D)).ToBytes();
         byte[] scaled = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
             PdfIndirectObject page = Assert.Single(objects.Values, static item =>

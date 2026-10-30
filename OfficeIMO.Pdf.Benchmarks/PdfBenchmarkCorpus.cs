@@ -30,7 +30,7 @@ internal static class PdfBenchmarkCorpus {
         byte[] image = CreateImage();
         var options = new PdfCreateOptions {
             CompressContentStreams = true,
-            DefaultFontSize = 10,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
             FileVersion = objectSerializationMode == PdfObjectSerializationMode.ForwardOnly
                 ? PdfFileVersion.Pdf17
                 : PdfFileVersion.Pdf14,
@@ -85,7 +85,7 @@ internal static class PdfBenchmarkCorpus {
         byte[] fontData = CarlitoRegular.Value;
         var options = new PdfCreateOptions {
             CompressContentStreams = true,
-            DefaultFontSize = 10,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
             FileVersion = PdfFileVersion.Pdf17,
             ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly,
             TextShapingMode = PdfTextShapingMode.LatinLigatures

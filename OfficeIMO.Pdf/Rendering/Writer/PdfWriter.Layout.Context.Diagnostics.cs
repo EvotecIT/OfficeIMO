@@ -91,7 +91,7 @@ internal static partial class PdfWriter {
             PdfLayoutDiagnosticKind kind, double x, double top, double itemWidth, double itemHeight,
             PdfConversionWarningSeverity severity = PdfConversionWarningSeverity.Warning) {
             if (!currentOpts.HasDiagnosticsReport) return;
-            double yFromTop = currentOpts.PageHeight - top;
+            double yFromTop = currentOpts.PageHeight.ToPoints() - top;
             string occurrence = FormattableString.Invariant($"{source} on page {pages.Count + 1} at {x:0.###},{yFromTop:0.###}");
             currentOpts.AddLayoutDiagnostic(code, occurrence, message, kind, severity,
                 x, yFromTop, itemWidth, itemHeight);

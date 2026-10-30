@@ -2049,7 +2049,7 @@ public sealed class PdfRenderingProfileTests {
 
         Assert.False(Assert.IsType<bool>(state.GetValue(options)));
 
-        options.PdfOptions!.DefaultFontSize = 13;
+        options.PdfOptions!.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(13);
 
         Assert.True(Assert.IsType<bool>(state.GetValue(options)));
     }
@@ -2489,7 +2489,7 @@ public sealed class PdfRenderingProfileTests {
         var fontless = new OfficeRenderingProfile("shaping-only");
         var options = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions()
             .UseRenderingProfile(fontless);
-        options.PdfOptions!.DefaultFontSize = 13;
+        options.PdfOptions!.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(13);
 
         options.UseRenderingProfile(
             fontless,
@@ -2497,7 +2497,7 @@ public sealed class PdfRenderingProfileTests {
 
         Assert.True(options.HasExplicitPdfFontConfiguration);
         Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
-        Assert.Equal(13, options.PdfOptions.DefaultFontSize);
+        Assert.Equal(13, options.PdfOptions.DefaultFontSize.ToPoints());
     }
 
     [Fact]
@@ -2562,7 +2562,7 @@ public sealed class PdfRenderingProfileTests {
             letter => letter.Value == "A").PointSize;
         Assert.InRange(pointSize, 17.9D, 18.1D);
 
-        options.PdfOptions!.DefaultFontSize = 13D;
+        options.PdfOptions!.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(13D);
         Assert.True(options.HasExplicitPdfDefaultFontSizeConfiguration);
         Assert.True(
             options.CloneForConversion()

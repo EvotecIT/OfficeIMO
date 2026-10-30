@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void ComposeContent_ItemAndSpacerProvideDirectWordLikeFlow() {
             byte[] pdfBytes = PdfDocument.Create(new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 12
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
                 })
                 .Compose(compose => compose.Page(page => page
                     .Margin(72)
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void ComposeContent_PageBreaksProvideDirectWordLikeFlow() {
             byte[] pdfBytes = PdfDocument.Create(new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 12
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
                 })
                 .Compose(compose => compose.Page(page => page
                     .Margin(72)
@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void ComposeItem_ElementPageBreakProvidesNestedWordLikeFlow() {
             byte[] pdfBytes = PdfDocument.Create(new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 12
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
                 })
                 .Compose(compose => compose.Page(page => page
                     .Margin(72)

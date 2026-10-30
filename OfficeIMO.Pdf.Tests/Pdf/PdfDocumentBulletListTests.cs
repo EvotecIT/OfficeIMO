@@ -339,7 +339,7 @@ public class PdfDocumentBulletListTests {
     [Fact]
     public void Bullets_RespectAlignmentOptions() {
         // Compare alignment against the same explicit frame before and after option snapshotting.
-        var options = new PdfCreateOptions { MarginLeft = 72, MarginRight = 72 };
+        var options = new PdfCreateOptions { MarginLeft = global::OfficeIMO.OfficeLength.Points(72), MarginRight = global::OfficeIMO.OfficeLength.Points(72) };
         var doc = PdfDocument.Create(options);
         doc.Bullets(new[] { "Left aligned" }, PdfAlign.Left);
         doc.Bullets(new[] { "Centered bullet" }, PdfAlign.Center);
@@ -379,7 +379,7 @@ public class PdfDocumentBulletListTests {
         Assert.InRange(centerGap, leftGap - 1, leftGap + 1);
         Assert.InRange(rightGap, leftGap - 1, leftGap + 1);
 
-        double contentRight = options.PageWidth - options.MarginRight;
+        double contentRight = options.PageWidth.ToPoints() - options.MarginRight.ToPoints();
         double rightmostTextX = rightLine.Where(letter => letter.Value != "•").Max(letter => letter.EndBaseLine.X);
         Assert.InRange(rightmostTextX, contentRight - 1.5, contentRight + 0.5);
     }
@@ -414,14 +414,14 @@ public class PdfDocumentBulletListTests {
     [Fact]
     public void DefaultListStyle_AppliesFontColorIndentAndSpacingToFollowingLists() {
         var options = new PdfCreateOptions {
-            PageWidth = 320,
-            PageHeight = 260,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(260),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
         var style = new PdfListStyle {
             FontSize = 13,
@@ -459,7 +459,7 @@ public class PdfDocumentBulletListTests {
         string rawPdf = PdfTestContentText.ReadDecoded(bytes);
 
         Assert.InRange(bulletPointSize, 12.5, 13.5);
-        Assert.InRange(bulletX, options.MarginLeft + 15, options.MarginLeft + 17);
+        Assert.InRange(bulletX, options.MarginLeft.ToPoints() + 15, options.MarginLeft.ToPoints() + 17);
         Assert.InRange(textX - bulletX, 14, 16);
         Assert.InRange(afterGap, 28, 36);
         Assert.Contains("0.039 0.078 0.118 rg", rawPdf, StringComparison.Ordinal);
@@ -480,14 +480,14 @@ public class PdfDocumentBulletListTests {
     [Fact]
     public void Bullets_SplitLongItemsAcrossPagesWithoutCrossingBottomMargin() {
         var options = new PdfCreateOptions {
-            PageWidth = 320,
-            PageHeight = 170,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(170),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 9
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         string longItem = string.Join(" ", Enumerable.Range(1, 150).Select(i => "bullet" + i.ToString("000")));
 
@@ -505,14 +505,14 @@ public class PdfDocumentBulletListTests {
     [Fact]
     public void Numbered_SplitLongItemsAcrossPagesWithoutCrossingBottomMargin() {
         var options = new PdfCreateOptions {
-            PageWidth = 320,
-            PageHeight = 170,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(170),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 9
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         string longItem = string.Join(" ", Enumerable.Range(1, 150).Select(i => "step" + i.ToString("000")));
 
@@ -530,10 +530,10 @@ public class PdfDocumentBulletListTests {
     [Fact]
     public void Bullets_WithIndentWiderThanContent_DoesNotShiftBulletPastMargin() {
         var options = new PdfCreateOptions {
-            PageWidth = 110,
-            MarginLeft = 50,
-            MarginRight = 50,
-            DefaultFontSize = 11
+            PageWidth = global::OfficeIMO.OfficeLength.Points(110),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(50),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(50),
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11)
         };
 
         var doc = PdfDocument.Create(options);
@@ -554,7 +554,7 @@ public class PdfDocumentBulletListTests {
         double bulletX = bulletLine.First(letter => letter.Value == "•").StartBaseLine.X;
         double textX = bulletLine.First(letter => letter.Value != "•").StartBaseLine.X;
 
-        Assert.InRange(bulletX, options.MarginLeft - 0.5, options.MarginLeft + 0.5);
+        Assert.InRange(bulletX, options.MarginLeft.ToPoints() - 0.5, options.MarginLeft.ToPoints() + 0.5);
         Assert.True(textX > bulletX);
     }
 
@@ -564,7 +564,7 @@ public class PdfDocumentBulletListTests {
             double bottomMost = page.Letters
                 .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
                 .Min(letter => letter.StartBaseLine.Y);
-            Assert.True(bottomMost >= options.MarginBottom - 2, $"Expected list text to stay above the bottom margin on page {pageNumber}.");
+            Assert.True(bottomMost >= options.MarginBottom.ToPoints() - 2, $"Expected list text to stay above the bottom margin on page {pageNumber}.");
         }
     }
 

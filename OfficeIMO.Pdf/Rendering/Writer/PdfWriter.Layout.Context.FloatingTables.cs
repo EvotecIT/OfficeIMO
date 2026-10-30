@@ -50,9 +50,9 @@ internal static partial class PdfWriter {
 
         private double PositionTableX(PdfTablePosition position, double tableWidth) {
             double left = position.HorizontalAnchor == PdfTableAnchor.Page ? 0
-                : position.HorizontalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.MarginLeft : currentOpts.MarginLeft;
-            double available = position.HorizontalAnchor == PdfTableAnchor.Page ? PageAnchorOptions.PageWidth
-                : position.HorizontalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.PageWidth - PageAnchorOptions.MarginLeft - PageAnchorOptions.MarginRight : width;
+                : position.HorizontalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.MarginLeft.ToPoints() : currentOpts.MarginLeft.ToPoints();
+            double available = position.HorizontalAnchor == PdfTableAnchor.Page ? PageAnchorOptions.PageWidth.ToPoints()
+                : position.HorizontalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.PageWidth.ToPoints() - PageAnchorOptions.MarginLeft.ToPoints() - PageAnchorOptions.MarginRight.ToPoints() : width;
             PdfAlign horizontal = position.HorizontalAlignment;
             if (position.MirrorHorizontalOnEvenPages && (pages.Count + 1) % 2 == 0)
                 horizontal = horizontal == PdfAlign.Left ? PdfAlign.Right : horizontal == PdfAlign.Right ? PdfAlign.Left : horizontal;
@@ -62,10 +62,10 @@ internal static partial class PdfWriter {
         }
 
         private double PositionTableY(PdfTablePosition position, double tableHeight) {
-            double top = position.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight
-                : position.VerticalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.PageHeight - PageAnchorOptions.MarginTop : y;
+            double top = position.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight.ToPoints()
+                : position.VerticalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.PageHeight.ToPoints() - PageAnchorOptions.MarginTop.ToPoints() : y;
             double bottom = position.VerticalAnchor == PdfTableAnchor.Page ? 0
-                : position.VerticalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.MarginBottom : currentOpts.MarginBottom;
+                : position.VerticalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.MarginBottom.ToPoints() : currentOpts.MarginBottom.ToPoints();
             PdfTableVerticalAlignment vertical = position.VerticalAlignment;
             bool evenPage = (pages.Count + 1) % 2 == 0;
             if (vertical == PdfTableVerticalAlignment.Inside) vertical = evenPage ? PdfTableVerticalAlignment.Bottom : PdfTableVerticalAlignment.Top;
@@ -105,7 +105,7 @@ internal static partial class PdfWriter {
                 moved = false;
                 foreach (var region in floatingTables) {
                     if (!ReferenceEquals(region.Page, currentPage) || y <= region.Bottom || y - height >= region.Top ||
-                        region.Right <= currentOpts.MarginLeft || region.Left >= currentOpts.MarginLeft + width) continue;
+                        region.Right <= currentOpts.MarginLeft.ToPoints() || region.Left >= currentOpts.MarginLeft.ToPoints() + width) continue;
                     y = region.Bottom;
                     moved = true;
                 }
@@ -127,7 +127,7 @@ internal static partial class PdfWriter {
                         .Select(interval => (Left: interval.X, Right: interval.X + interval.Width)).ToList();
                 }
                 var best = intervals.OrderByDescending(interval => interval.Right - interval.Left).FirstOrDefault();
-                if (best.Right - best.Left >= Math.Min(lineWidth, Math.Max(minimumWidth, Math.Max(24, currentOpts.DefaultFontSize * 2))))
+                if (best.Right - best.Left >= Math.Min(lineWidth, Math.Max(minimumWidth, Math.Max(24, currentOpts.DefaultFontSize.ToPoints() * 2))))
                     return (best.Left, best.Right - best.Left, originalTop - top);
                 if (nextBottom >= top) break;
                 top = nextBottom;

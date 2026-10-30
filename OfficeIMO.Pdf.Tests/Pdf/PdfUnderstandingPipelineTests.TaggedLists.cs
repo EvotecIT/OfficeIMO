@@ -80,8 +80,8 @@ public partial class PdfUnderstandingPipelineTests {
     public void StructuredRead_RetainsEveryPageFragmentOfOneTaggedListItem() {
         const string phrase = "Continuation text keeps one logical list item";
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            CompressContentStreams = false, PageWidth = 170, PageHeight = 150,
-            MarginLeft = 24, MarginRight = 24, MarginTop = 24, MarginBottom = 24, DefaultFontSize = 10
+            CompressContentStreams = false, PageWidth = global::OfficeIMO.OfficeLength.Points(170), PageHeight = global::OfficeIMO.OfficeLength.Points(150),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24), MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         }).TaggedPdfCatalogMarkers().Bullets(new[] { string.Join(" ", Enumerable.Repeat(phrase, 18)) }).ToBytes();
         PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(bytes)).Read();
         Assert.True(result.Pages.Count > 1);

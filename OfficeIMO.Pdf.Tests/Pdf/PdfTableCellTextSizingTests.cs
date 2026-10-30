@@ -20,8 +20,8 @@ public sealed class PdfTableCellTextSizingTests {
             FixedRowHeights = new() { 30 }, BorderColor = null
         };
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            DefaultFont = PdfStandardFont.Courier, PageWidth = 200, PageHeight = 150,
-            MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20
+            DefaultFont = PdfStandardFont.Courier, PageWidth = global::OfficeIMO.OfficeLength.Points(200), PageHeight = global::OfficeIMO.OfficeLength.Points(150),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
         });
         PdfTableCell[][] rows = new[] { new[] { cell } };
         if (canvas) document.Canvas(surface => surface.Table(rows, 20, 20, 50, 30, style));
@@ -74,9 +74,9 @@ public sealed class PdfTableCellTextSizingTests {
             PreserveWidth = true, MaxWidth = 190, SpacingBefore = 0, SpacingAfter = 0
         };
         var document = PdfDocument.Create(new PdfCreateOptions {
-            DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 12,
-            PageWidth = 300, PageHeight = 200,
-            MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20
+            DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
+            PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(200),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
         });
         if (canvas) document.Canvas(surface => surface.Table(rows, 20, 20, 190, 40, style));
         else document.Table(rows, style: style);

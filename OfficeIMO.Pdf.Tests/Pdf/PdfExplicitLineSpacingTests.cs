@@ -81,7 +81,7 @@ public sealed class PdfExplicitLineSpacingTests {
 
     [Fact]
     public void Exact_spacing_measurement_keeps_a_fitting_paragraph_together() {
-        var options = Options(); options.PageHeight = 130; options.MarginTop = 20; options.MarginBottom = 20;
+        var options = Options(); options.PageHeight = global::OfficeIMO.OfficeLength.Points(130); options.MarginTop = global::OfficeIMO.OfficeLength.Points(20); options.MarginBottom = global::OfficeIMO.OfficeLength.Points(20);
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p => p.Text("A\nB\nC\nD\nE\nF"),
             style: new PdfParagraphStyle { FontSize = 8, KeepTogether = true, SpacingAfter = 0, LineSpacing = PdfLineSpacing.Exactly(14) }).ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
@@ -99,8 +99,8 @@ public sealed class PdfExplicitLineSpacingTests {
             letters.First(letter => letter.Value == "B").StartBaseLine.Y, 13.99, 14.01);
     }
 
-    private static PdfCreateOptions Options() => new() { PageWidth = 300, PageHeight = 300,
-        MarginTop = 30, MarginBottom = 30, MarginLeft = 30, MarginRight = 30, DefaultFontSize = 12 };
+    private static PdfCreateOptions Options() => new() { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(300),
+        MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) };
 
     private static byte[] Render(string frame, PdfParagraphStyle style, bool mixed) {
         Action<PdfParagraphBuilder> text = p => p.Text("A\n").FontSize(mixed ? 32 : 8).Text("B\n").FontSize(8).Text("C");
