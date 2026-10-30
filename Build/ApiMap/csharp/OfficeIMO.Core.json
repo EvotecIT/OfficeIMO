@@ -1453,6 +1453,17 @@
         "OfficeIMO.OpenDocument/Drawing/OdgPage.DrawingTabs.cs"
       ],
       "note": "Saved ODG line/text controls fail before the fix. Preserve source XML, body text and tab positions; finite zero/negative and nonfinite validation is unchanged. Native values outside OfficeLength range retain the existing explicit unsupported path."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "PDF image capability entries describe byte-array page results.",
+      "new": "Both PDF image entries describe IReadOnlyList<OfficeImageExportResult>.",
+      "reason": "The executable capability contract must match the canonical PDF export facade.",
+      "files": [
+        "OfficeIMO.Core/Compatibility/OfficeConversionCapabilityCatalog.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

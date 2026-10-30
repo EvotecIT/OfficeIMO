@@ -59,6 +59,6 @@ internal static class EvaluationLayoutCorpus {
         using var document = PdfDocument.Load(new MemoryStream(pdf));
         return document.ExportImages(new PdfImageExportOptions {
             Format = OfficeImageExportFormat.Png, TargetDpi = 120, MaximumOutputCount = 1, MaximumRasterPixels = 5_000_000
-        }).Single();
+        }).Single().Bytes;
     }
 }

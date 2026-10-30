@@ -73,13 +73,13 @@ internal static partial class NativeAdapters {
                 var details = new List<string>();
                 NativeExport exported = Capture(bytes, format => {
                     imageOptions.Format = format;
-                    IReadOnlyList<byte[]> pages = document.ExportImages(imageOptions, out var report, token);
+                    IReadOnlyList<OfficeImageExportResult> pages = document.ExportImages(imageOptions, out var report, token);
                     diagnostics.AddRange(report.Diagnostics.Select(item => item.Code));
                     details.AddRange(report.Diagnostics.Select(item => item.Code + ": " + item.Message + " [" + item.Location + "]"));
                     return pages.Select((page, index) => {
-                        if (!OfficeImageReader.TryValidateContent(page, format.GetFileExtension(), out OfficeImageInfo info))
+                        if (!OfficeImageReader.TryValidateContent(page.Bytes, format.GetFileExtension(), out OfficeImageInfo info))
                             throw new InvalidDataException("The PDF image export returned an invalid " + format + " payload.");
-                        return new OfficeImageExportResult(format, info.Width, info.Height, page, name: "Page " + (index + 1));
+                        return new OfficeImageExportResult(format, info.Width, info.Height, page.Bytes, name: "Page " + (index + 1));
                     }).ToArray();
                 }, diagnostics, token);
                 return exported with { DiagnosticDetails = details };

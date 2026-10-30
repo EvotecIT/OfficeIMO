@@ -116,7 +116,7 @@ public sealed class SourceAndArtifactTests {
     public async Task DetectedPdfRetainsNativeTextAndRendersPagesUnderAnyLogicalName(string name, bool images) {
         byte[] page = PdfDocument.Create(builder => builder.Content(content => content.Text("SCANNED"))).ToBytes();
         using var pageDocument = PdfDocument.Load(new MemoryStream(page));
-        byte[] scan = pageDocument.ExportImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png }).Single();
+        byte[] scan = pageDocument.ExportImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png }).Single().Bytes;
         byte[] source = PdfDocument.Create(builder => builder.Content(content => content.Text("NATIVE")
             .PageBreak().Image(scan, global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(566)))).ToBytes();
         var document = await DocumentInputs.ReadAsync(source, name, images, Array.Empty<int>(), new(), CancellationToken.None);
@@ -126,7 +126,7 @@ public sealed class SourceAndArtifactTests {
             Assert.Equal(new[] { 1, 2 }, document.Images.Select(image => image.Page));
             using var expectedDocument = PdfDocument.Load(new MemoryStream(source));
             var expected = expectedDocument.ExportImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png, TargetDpi = 120 });
-            Assert.Equal(expected[1], document.Images[1].CopyBytes());
+            Assert.Equal(expected[1].Bytes, document.Images[1].CopyBytes());
         } else Assert.Empty(document.Images);
     }
 
@@ -169,8 +169,8 @@ public sealed class SourceAndArtifactTests {
         using var sourceDocument = PdfDocument.Load(new MemoryStream(bytes));
         var direct = sourceDocument.ExportImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png, TargetDpi = 120 });
         Assert.Equal(new[] { 2, 1 }, document.Images.Select(image => image.Page));
-        Assert.Equal(direct[1], document.Images[0].CopyBytes());
-        Assert.Equal(direct[0], document.Images[1].CopyBytes());
+        Assert.Equal(direct[1].Bytes, document.Images[0].CopyBytes());
+        Assert.Equal(direct[0].Bytes, document.Images[1].CopyBytes());
     }
 
     [Fact]

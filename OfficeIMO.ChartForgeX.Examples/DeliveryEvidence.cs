@@ -32,11 +32,11 @@ internal static class DeliveryEvidence {
     }
 
     private static void SavePdfImages(string output, PdfDocument document) {
-        IReadOnlyList<byte[]> images = document.ExportImages(null, out var report);
+        IReadOnlyList<OfficeImageExportResult> images = document.ExportImages(null, out var report);
         if (images.Count == 0) throw new InvalidOperationException("The saved PDF did not render an image.");
         var pages = new List<object>();
         for (int index = 0; index < images.Count; index++) {
-            byte[] bytes = images[index];
+            byte[] bytes = images[index].Bytes;
             if (!OfficeImageReader.TryValidateContent(bytes, ".png", out OfficeImageInfo info))
                 throw new InvalidDataException("The saved PDF preview is not a valid PNG.");
             string fileName = "saved-pdf-" + (index + 1).ToString("D2") + ".png";

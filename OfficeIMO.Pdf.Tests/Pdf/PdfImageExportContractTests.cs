@@ -200,7 +200,7 @@ public sealed class PdfImageExportContractTests {
             .Paragraph(paragraph => paragraph.Text("Authored page"));
 
         OfficeImageExportResult direct = Assert.Single(document.ExportImages(OfficeImageExportFormat.Webp));
-        byte[] png = Assert.Single(document.ExportImages());
+        byte[] png = Assert.Single(document.ExportImages()).Bytes;
 
         Assert.Equal(OfficeImageExportFormat.Webp, direct.Format);
         Assert.Equal("image/webp", OfficeImageReader.Identify(direct.Bytes).MimeType);
@@ -320,19 +320,23 @@ public sealed class PdfImageExportContractTests {
             Format = OfficeImageExportFormat.Svg, PageSelector = PdfPageSelector.Parse("last,1"),
             MaximumOutputWidth = 160, MaximumOutputHeight = 160
         };
-        Task<OfficeIMO.OfficeConversionResult<IReadOnlyList<byte[]>>> pending = document.ExportImagesAsync(options);
+        Task<OfficeIMO.OfficeConversionResult<IReadOnlyList<OfficeImageExportResult>>> pending = document.ExportImagesAsync(options);
         options.Format = OfficeImageExportFormat.Jpeg;
         options.PageSelector = PdfPageSelector.Parse("1");
         var exported = await pending;
         Assert.Equal(2, exported.Value.Count);
+        Assert.Equal(new[] { "Page 2", "Page 1" }, exported.Value.Select(result => result.Name));
         Assert.Equal(2, exported.Report.ItemsWritten);
         Assert.Equal("Svg", exported.Report.Target);
         Assert.Equal(document.ExportImages(new PdfImageExportOptions {
             Format = OfficeImageExportFormat.Svg, PageSelector = PdfPageSelector.Parse("2"),
             MaximumOutputWidth = 160, MaximumOutputHeight = 160
-        }).Single(), exported.Value[0]);
-        Assert.All(exported.Value, bytes => {
-            var image = OfficeImageReader.Identify(bytes);
+        }).Single().Bytes, exported.Value[0].Bytes);
+        Assert.All(exported.Value, result => {
+            var image = OfficeImageReader.Identify(result.Bytes);
+            Assert.Equal(OfficeImageExportFormat.Svg, result.Format);
+            Assert.Equal(image.Width, result.Width);
+            Assert.Equal(image.Height, result.Height);
             Assert.Equal("image/svg+xml", image.MimeType);
             Assert.InRange(image.Width, 1, 160);
             Assert.InRange(image.Height, 1, 160);

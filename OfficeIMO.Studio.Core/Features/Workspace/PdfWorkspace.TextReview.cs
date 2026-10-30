@@ -73,8 +73,8 @@ internal sealed partial class PdfWorkspace {
         var options = new PdfImageExportOptions { Scale = 2, ThumbnailMaxDimension = 1600, MaximumOutputCount = 1, PageSelector = PdfPageSelector.Parse(page.ToString(System.Globalization.CultureInfo.InvariantCulture)) };
         async Task<byte[]> RenderAsync(byte[] bytes) {
             using PdfDocument document = LoadDocument(bytes);
-            OfficeConversionResult<IReadOnlyList<byte[]>> result = await document.ExportImagesAsync(options, token).ConfigureAwait(false);
-            return result.Value.Single();
+            OfficeConversionResult<IReadOnlyList<OfficeImageExportResult>> result = await document.ExportImagesAsync(options, token).ConfigureAwait(false);
+            return result.Value.Single().Bytes;
         }
         byte[] before = await RenderAsync(prepared.SourceBytes).ConfigureAwait(false);
         byte[] after = await RenderAsync(prepared.OutputBytes).ConfigureAwait(false);

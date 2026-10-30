@@ -964,10 +964,11 @@ Convert a source document to `PdfDocument` and use the same paged-image bridge:
 using OfficeIMO.Drawing;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
+using OfficeIMO.Pdf;
 
 using var markdown = MarkdownDocument.Parse("# Page images");
 using var converted = markdown.ToPdf(null, out OfficeIMO.OfficeConversionReport report);
-IReadOnlyList<byte[]> pages = converted.ExportImages(null, out OfficeIMO.OfficeConversionReport imageReport);
+IReadOnlyList<OfficeImageExportResult> pages = converted.ExportImages(null, out OfficeIMO.OfficeConversionReport imageReport);
 ```
 
 Inspect `report.Diagnostics` for source conversion findings; each page result contains rendering findings. Use `PdfReadPage.ToDrawing()` only when an intermediate `OfficeDrawing` is needed. The returned `OfficeDrawingText.Text` keeps decoded, editable text, including multi-letter ligatures. Raster and SVG rendering use the PDF's painted glyphs where the embedded font requires them, preserving the painted order of shaped Arabic text.

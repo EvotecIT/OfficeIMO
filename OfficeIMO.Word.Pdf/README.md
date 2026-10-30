@@ -170,7 +170,7 @@ conversion.Save("document.pdf", new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = t
 conversion.SaveAsImages("pages", new PdfImageExportOptions { TargetDpi = 144 });
 ```
 
-Set `PdfImageExportOptions.Format` to select JPEG or SVG, or call `conversion.ExportImages(options, out imageReport)` for in-memory bytes and rendering findings. The shared PDF renderer projects the laid-out pages into Drawing scenes and reports rendering diagnostics; the earlier conversion report describes Word-to-PDF findings. It does not lay out the Word document again or shorten paragraphs with an ellipsis. Managed PDF rendering still has the [PDF renderer's supported-feature limits](../OfficeIMO.Pdf/README.md).
+Set `PdfImageExportOptions.Format` to select JPEG or SVG, or call `conversion.ExportImages(options, out imageReport)` for in-memory `OfficeImageExportResult` pages and rendering findings; each page exposes its encoded payload through `Bytes`. The shared PDF renderer projects the laid-out pages into Drawing scenes and reports rendering diagnostics; the earlier conversion report describes Word-to-PDF findings. It does not lay out the Word document again or shorten paragraphs with an ellipsis. Managed PDF rendering still has the [PDF renderer's supported-feature limits](../OfficeIMO.Pdf/README.md).
 
 High-resolution nearest-neighbour pictures can exceed the SVG rectangle-vectorization budget. Use PNG or JPEG for those pages until bounded SVG image fallback is supported.
 

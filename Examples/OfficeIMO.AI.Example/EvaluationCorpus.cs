@@ -19,7 +19,7 @@ internal static class EvaluationCorpus {
         using var tableDocument = PdfDocument.Load(new MemoryStream(table));
         byte[] scan = tableDocument.ExportImages(new PdfImageExportOptions {
             Format = OfficeImageExportFormat.Png, TargetDpi = 120, MaximumOutputCount = 1, MaximumRasterPixels = 5_000_000
-        }).Single();
+        }).Single().Bytes;
         byte[] scannedPdf = PdfDocument.Create(builder => builder.Content(content => content.Image(scan, global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(566))), fontOptions).ToBytes();
         using PdfDocument rotated = PdfDocument.Load(new MemoryStream(scannedPdf));
         rotated.Pages.Rotate(90, 1);

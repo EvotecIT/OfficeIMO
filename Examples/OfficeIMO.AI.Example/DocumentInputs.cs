@@ -31,7 +31,7 @@ internal static class DocumentInputs {
                 Limits = new PdfReadLimits { MaxInputBytes = limits.MaxInputBytes }, PermissionPolicy = PdfPermissionPolicy.Enforce
             });
             PdfPageSelector? selection = pages.Count == 0 ? null : PdfPageSelector.Parse(string.Join(",", pages));
-            IReadOnlyList<byte[]> rendered = document.ExportImages(
+            IReadOnlyList<OfficeImageExportResult> rendered = document.ExportImages(
                 new PdfImageExportOptions {
                     Format = OfficeImageExportFormat.Png, PageSelector = selection,
                     TargetDpi = 120, MaximumOutputCount = limits.MaxPages, MaximumRasterPixels = limits.MaxImagePixels,
@@ -39,7 +39,7 @@ internal static class DocumentInputs {
                     MaximumTotalEncodedBytes = limits.MaxInputBytes, RenderTimeout = limits.Timeout
                 }, out OfficeIMO.OfficeConversionReport renderReport, cancellationToken);
             for (int index = 0; index < rendered.Count; index++) {
-                byte[] page = rendered[index];
+                byte[] page = rendered[index].Bytes;
                 if (!OfficeImageReader.TryValidateContent(page, ".png", out OfficeImageInfo info))
                     throw new InvalidDataException("The exported PDF page has no valid raster metadata.");
                 int number = pages.Count == 0 ? index + 1 : pages[index];

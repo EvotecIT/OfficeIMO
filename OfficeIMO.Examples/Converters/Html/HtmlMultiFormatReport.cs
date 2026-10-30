@@ -84,7 +84,8 @@ internal static partial class Html {
             var pages = pdfDocument.ExportImages(null, out var imageReport);
             foreach (var diagnostic in imageReport.Diagnostics)
                 conversionNotes.Add("Saved PDF pages: " + diagnostic.Code + ": " + diagnostic.Message);
-            foreach (var bytes in pages) {
+            foreach (var image in pages) {
+                byte[] bytes = image.Bytes;
                 if (!OfficeImageReader.TryValidateContent(bytes, ".png", out OfficeImageInfo info))
                     throw new InvalidDataException("The saved PDF preview is not a valid PNG.");
                 consume(new OfficeImageExportResult(OfficeImageExportFormat.Png, info.Width, info.Height, bytes));

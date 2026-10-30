@@ -49,7 +49,7 @@ public sealed class XpsUnboundedRadialSpreadTests {
         using var pdf = PdfDocument.Load(pdfBytes);
         byte[] rendered = Assert.Single(pdf.ExportImages(new PdfImageExportOptions {
             Format = OfficeImageExportFormat.Png, Scale = 4D / 3D, PageSelector = PdfPageSelector.Parse("1")
-        }));
+        })).Bytes;
         Assert.True(OfficeRasterImageDecoder.TryDecode(rendered, out var reopened));
         foreach (var point in points) {
             var expected = native!.GetPixel(point.X, point.Y); var actual = reopened!.GetPixel(point.X, point.Y);
