@@ -70,7 +70,8 @@ byte[] detachedBytes = result.Value;
 `ToPubBytes`, `ToPubBytesResult`, `Save` and `SaveAsync` use the same bounded native
 codec. Unchanged semantic content produces a byte-exact copy of the original
 source. Supported edits include existing ordinary frame/shape/picture bounds,
-existing solid scalar paint slots, and ordinary text stories with bounded
+existing solid scalar paint slots, qualified frame columns/full intercolumn gap,
+insets and vertical alignment, and ordinary text stories with bounded
 size, bold, italic, underline pattern, single strikethrough, baseline, font family
 and opaque RGB color changes. Paragraph counts can change when the source paragraphs have
 uniform projected formatting and matching native definitions. A changed story
@@ -79,6 +80,9 @@ untransformed document-page frames. Native links, ownership and frame identities
 remain fixed. Known chained Quill layouts are supported; formatting and directory
 pages can be allocated or retired, and font/color resources can grow while existing
 entries retain their identities and bytes.
+Frame-layout saves retain links and page/master ownership. They can add missing
+default fields and relocate native records; changed distances must be exact
+nonnegative EMU values. This API's gap is the full distance between columns.
 Paragraph edits include alignment, before/after spacing, margins, first-line or
 hanging indents, explicit absolute/multiple line spacing, and ordinary left tabs.
 For native center/right paragraphs, use tab settings with

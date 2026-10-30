@@ -68,7 +68,7 @@ references do not report missing images.
 | Table creation | Empty unmerged borderless grids on qualified document/master pages; copied positive finite tracks, one new complete story, shared table/story identifier allocation and current SVG/PDF/Reader projection | No merged-cell authoring, cell decoration or native PUB records; text/model/projection limits and transactional failure behavior apply |
 | Page/master authoring | Source-free `Create` with one empty physical page; appended same-size physical pages and centered single-page masters; explicit qualified direct master assignment or clearing; immutable native-source/page provenance | No resize, deletion, reorder, object moves, paired-master creation or master inheritance; unassessed backgrounds and registrations reject assignment; these changes cannot be saved as native PUB |
 | Ordinary text creation | `AddTextFrame` creates a complete independent styled story and resolved one-frame chain on a qualified document/master page; one column, zero gap/insets, top alignment, no paint/transform/wrap; existing continuation API handles document-page chains | Authored ordinary stories have no implicit final terminator; full overflow is retained. Frame/story IDs reserve atomically; master-owned stories cannot continue across physical pages; no native text records are authored |
-| Text-frame layout edits | `SetTextFrameLayout` replaces equal-width columns/gap, Core padding and Top/Center/Bottom alignment on qualified resolved document/master frames, including mixed text artwork; snapshots expose padding/alignment and operation-specific eligibility | No table stories/aliases, grouped/transformed/unresolved placement, native balancing, distributed alignment or vertical writing. Unqualified native layout overrides remain read-only for this operation; bounds/read behavior stays separate. Changed values are refused by internal native preparation |
+| Text-frame layout edits | `SetTextFrameLayout` replaces equal-width columns/full intercolumn gap, Core padding and Top/Center/Bottom alignment on qualified resolved document/master frames, including mixed text artwork. Imported frames can use the bounded native source-save profile; snapshots expose operation-specific eligibility | No table stories/aliases, grouped/transformed/unresolved placement, native balancing, distributed alignment or vertical writing. Unqualified native layout overrides remain read-only for this operation; bounds/read behavior stays separate. Native saving requires exact distances and safely editable local properties/chunk-directory records; fidelity remains Unassessed |
 | Continuation-frame creation | Append an ordinary untransformed text frame to a resolved non-table story's tail on an existing document page; one complete styled story, current links/ranges/overflow, copied columns/padding/alignment, no fill/outline, and shared SVG/PDF/Reader projection | The source chain must contain ordinary visible untransformed document-page frames; master chains, ambiguous links and non-tail insertion are rejected; this is in-memory model creation, not native PUB creation |
 | Native source saving | `ToPubBytes(Result)`, `Save` and `SaveAsync` with detached bytes, explicit `.pub` paths or caller-owned streams; exact unchanged source copies and bounded existing-source edits described below | Default strict loss policy blocks unassessed edits. Explicit `Allow` does not enable refused profiles. No source-free writer, general image/table/page topology changes or earlier-generation output |
 | Rendered output | SVG per document page and multi-page PDF through shared engines | Reconstructed output carries source and rendering losses independently of native saving |
@@ -111,7 +111,8 @@ unchanged. Native bytes and compound metadata are retained privately and remain
 inert. The import-time semantic baseline and exact source OfficeArt bindings
 support the native source-save path: unchanged content copies the
 original bytes; bounded existing anchor and solid-scalar edits replace the
-OfficeArt stream. Admitted ordinary-story profiles can
+OfficeArt stream. Frame-layout edits can grow local property tables and Contents
+shape records while relocating dependent native offsets. Admitted ordinary-story profiles can
 replace text of different
 lengths and edit supported character attributes through retained per-run OPLs, Quill text, story lengths,
 formatting endpoints and page indexes. A single original run can split into
@@ -222,6 +223,32 @@ tokens, resources and storage remain unchanged; native PDF pixels and spans
 match before/after resave. Forty-two earlier saves remain byte-identical.
 Source-built PSWriteOffice converts four paragraph-edited publications through
 `publisher-pdf`, with eight reopened output pages.
+
+Frame-layout saving retains frame/story identities, links, page/master ownership,
+unrelated properties and complete text. Columns, full intercolumn gap and insets
+use the local OfficeArt property tables; vertical alignment uses the Contents
+shape record. Missing default fields can be added. Unrelated rows, complex-data
+tails, native separators and chunk payloads are retained, and enclosing lengths,
+chunk-directory offsets and mirrored header pointers are updated when records
+grow. Existing bounds and solid paint edits can be combined with layout edits.
+Changed distances must have exact nonnegative signed-EMU representations
+(12,700 EMUs per point). Publisher's automation
+[`ColumnSpacing`](https://learn.microsoft.com/en-us/office/vba/api/publisher.textframe.columnspacing)
+is half the full gap used by this API and the native OfficeArt property. Ambiguous local overrides,
+flagged scalar targets, incomplete complex payloads and unqualified Contents
+relocation headers refuse output, including with `Allow`.
+
+The `sourceEditing.frameLayout` qualification record covers eleven public-save
+specimens over 44 native physical page states. They include default-field growth,
+fractional insets/gap, multiple frames, linked overflow, master frames, mixed
+text artwork, reset and combined text/bounds/paint operations. Independent native
+getters and raw decoding verify layout after resave; complete native Quill text,
+unrelated records, streams and compound metadata remain retained. Native PDF
+pixels and spans match before/after resave. Sixty-three earlier saves remain
+byte-identical. Source-built PSWriteOffice converts five edited publications
+through `publisher-pdf`, with twelve reopened output pages. Native column
+balancing, managed/native rendering parity, repair-free opening and broader
+producer/profile coverage remain unqualified.
 
 Two independent reading controls cover 17 whole-frame profiles over five pages,
 including indexed arrays with two tabs and left/center/right tabbed lines. The

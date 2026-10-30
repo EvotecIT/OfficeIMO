@@ -22,6 +22,7 @@ font sizes to produce multiple character-formatting pages.
 TextCharacterAttributes isolates native fonts, colors, italic, underline,
 strikethrough and baseline attributes in twelve independent frames on two pages.
 TextUnderlinePatterns records all eighteen automation underline choices on three pages.
+TextFrameLayout covers nine column, gap, inset and vertical-alignment profiles on three pages.
 ZeroAnchors places each of the four client-anchor coordinates at native zero.
 Brochure has two landscape sides with three panels each. MultipleMasters and
 TwoPageMaster exercise explicit native single-page and paired master assignments.

@@ -69,6 +69,13 @@ control for complete tabbed-line alignment. The native API may canonicalize a
 multiple of 1.5 to its preset rule; the contracts retain the observed values.
 These controls qualify paragraph recovery and the separately recorded save
 operations, with exact native font metrics and rendering parity still unassessed.
+TextFrameLayout supplies nine profiles across three pages: zero/default insets,
+explicit insets, two/three columns, top/center/bottom alignment, combined settings,
+mixed text/rectangle artwork and fractional point values. Native whole-frame
+getters and independently decoded records establish that automation column
+spacing is half the full native gap. Top alignment is omitted; center/bottom use
+Contents field `0x35`. Its PUB, PDF and contract support the separately recorded
+source-save qualification, including growth from omitted default fields.
 Newsletter adds a two-page linked story
 and a picture. TableLabel adds a custom page size, styled 2-by-2 table, picture
 and Polish/Greek characters. Brochure adds two 792-by-612-point landscape sides,
