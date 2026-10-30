@@ -620,7 +620,7 @@ count once. Over-budget admission or save throws `InvalidDataException`.
 Standalone `PdfEmbeddedFile` constructors retain their existing behavior.
 Read/edit operations continue to use their explicit `PdfLoadOptions` limits.
 The authoring limits bound admitted and emitted payload bytes, not defensive
-copies or peak process memory. See [attachment authoring limits](OfficeIMO.Pdf/README.md#attachment-authoring-limits)
+copies or peak process memory. See [attachment authoring limits](Docs/officeimo.pdf-guide.md#attachment-authoring-limits)
 for configuration and destination-preservation behavior.
 
 ## Excel bubble chart snapshots
