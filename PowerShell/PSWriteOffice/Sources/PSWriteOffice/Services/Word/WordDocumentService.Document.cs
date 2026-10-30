@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 
@@ -139,7 +140,8 @@ public static partial class WordDocumentService
     private static WordLoadOptions CreateLoadOptions(bool readOnly, bool autoSave) => new()
     {
         AccessMode = readOnly ? DocumentAccessMode.ReadOnly : DocumentAccessMode.ReadWrite,
-        PersistenceMode = autoSave ? DocumentPersistenceMode.SaveOnDispose : DocumentPersistenceMode.Explicit
+        PersistenceMode = autoSave ? DocumentPersistenceMode.SaveOnDispose : DocumentPersistenceMode.Explicit,
+        PackageSecurity = OfficePackageSecurityOptions.SecureDefaults
     };
 
     /// <summary>Returns the most recently tracked Word document for the current runspace.</summary>

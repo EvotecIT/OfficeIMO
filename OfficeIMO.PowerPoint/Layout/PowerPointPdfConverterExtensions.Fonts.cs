@@ -349,16 +349,14 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static void RegisterPresentationTableFonts(PptCore.PowerPointTable table, int slideNumber, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointToPdfOptions options) {
-        for (int row = 0; row < table.Rows; row++) {
-            for (int column = 0; column < table.Columns; column++) {
-                PptCore.PowerPointTableCell cell = table.GetCell(row, column);
-                if (!cell.IsMergedCell) {
-                    RegisterPresentationFontCandidate(cell.FontName, pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
-                    IReadOnlyList<A.TextCharacterPropertiesType> defaults = options.PdfOptions?.HasExplicitDefaultTableStyle == true
-                        ? Array.Empty<A.TextCharacterPropertiesType>() : CreateTableTextDefaults(table, row, column);
-                    RegisterPresentationTableCellRunFonts(cell, slideNumber, pdfOptions, registeredFamilies, registeredFontSlots, options, defaults);
-                }
-            }
+        EnsureTableExportSize(table);
+        foreach (var anchor in table.EnumerateAnchorCells()) {
+            options.CancellationToken.ThrowIfCancellationRequested();
+            PptCore.PowerPointTableCell cell = anchor.Cell;
+            RegisterPresentationFontCandidate(cell.FontName, pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
+            IReadOnlyList<A.TextCharacterPropertiesType> defaults = options.PdfOptions?.HasExplicitDefaultTableStyle == true
+                ? Array.Empty<A.TextCharacterPropertiesType>() : CreateTableTextDefaults(table, anchor.Row, anchor.Column);
+            RegisterPresentationTableCellRunFonts(cell, slideNumber, pdfOptions, registeredFamilies, registeredFontSlots, options, defaults);
         }
     }
 

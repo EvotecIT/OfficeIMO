@@ -446,6 +446,13 @@ internal static partial class PdfSyntax {
             return;
         }
 
+        const int maxTraversalItems = 8_192;
+        // Permissions are only grants. If an input exceeds the semantic work
+        // budget, retain no partial grant from earlier arrays.
+        if (references.Items.Count > maxTraversalItems) return;
+        int remainingItems = maxTraversalItems - references.Items.Count;
+        var visitedArrays = new HashSet<PdfArray>();
+        var uniquePermissions = new HashSet<string>(formPermissions, StringComparer.Ordinal);
         for (int i = 0; i < references.Items.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             if (ResolveObject(objects, references.Items[i]) is not PdfDictionary reference) {
@@ -470,6 +477,12 @@ internal static partial class PdfSyntax {
                 ResolveObject(objects, formObject) is not PdfArray formArray) {
                 continue;
             }
+            if (!visitedArrays.Add(formArray)) continue;
+            if (formArray.Items.Count > remainingItems) {
+                formPermissions.Clear();
+                return;
+            }
+            remainingItems -= formArray.Items.Count;
 
             // Form is an array of names, not the name-or-text shape used by signature seed values.
             // A malformed array cannot establish a grant that permits changing signed input.
@@ -483,7 +496,7 @@ internal static partial class PdfSyntax {
                 granted.Add(name.Name);
             }
             for (int j = 0; j < granted.Count; j++) {
-                if (!formPermissions.Contains(granted[j])) {
+                if (uniquePermissions.Add(granted[j])) {
                     formPermissions.Add(granted[j]);
                 }
             }

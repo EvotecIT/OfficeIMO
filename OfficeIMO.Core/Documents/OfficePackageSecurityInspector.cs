@@ -143,6 +143,7 @@ namespace OfficeIMO {
             long largestPart = 0;
             double highestRatio = 0;
             int externalCount = 0;
+            int relationshipCount = 0;
             int signatureCount = 0;
             var partNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var partIdentities = new ZipPartIdentityIndex();
@@ -239,7 +240,10 @@ namespace OfficeIMO {
                             embeddedParts,
                             activeXParts,
                             options.MaxXmlCharactersInPart,
+                            options.MaxRelationships,
+                            ref relationshipCount,
                             findings);
+                        if (relationshipCount > options.MaxRelationships) break;
                     }
                 }
             } catch (Exception exception) when (exception is InvalidDataException || exception is IOException
@@ -356,6 +360,8 @@ namespace OfficeIMO {
             ISet<string> embeddedParts,
             ISet<string> activeXParts,
             long maxXmlCharactersInPart,
+            int maxRelationships,
+            ref int relationshipCount,
             ICollection<OfficePackageSecurityFinding> findings) {
             int externalCount = 0;
             try {
@@ -364,6 +370,12 @@ namespace OfficeIMO {
                 while (reader.Read()) {
                     if (reader.NodeType != XmlNodeType.Element
                         || !string.Equals(reader.LocalName, "Relationship", StringComparison.Ordinal)) continue;
+                    if (++relationshipCount > maxRelationships) {
+                        findings.Add(Error(OfficePackageSecurityRule.RelationshipCount,
+                            $"Package relationship count exceeds the configured maximum of {maxRelationships}.",
+                            partName, relationshipCount, maxRelationships));
+                        break;
+                    }
                     string? targetMode = reader.GetAttribute("TargetMode");
                     if (string.Equals(targetMode, "External", StringComparison.OrdinalIgnoreCase)) {
                         externalCount++;
@@ -389,6 +401,7 @@ namespace OfficeIMO {
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (options.MaxPackageBytes < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxPackageBytes));
             if (options.MaxPartCount < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxPartCount));
+            if (options.MaxRelationships < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxRelationships));
             if (options.MaxPartUncompressedBytes < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxPartUncompressedBytes));
             if (options.MaxXmlCharactersInPart < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxXmlCharactersInPart));
             if (options.MaxTotalUncompressedBytes < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalUncompressedBytes));

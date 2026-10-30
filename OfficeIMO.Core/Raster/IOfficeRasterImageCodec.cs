@@ -26,6 +26,8 @@ public sealed class OfficeDrawingRasterRenderOptions {
     public string? DiagnosticSource { get; set; }
     /// <summary>Maximum pixels allowed for the output and every nested raster surface.</summary>
     public long MaximumRasterPixels { get; set; } = OfficeImageExportOptions.DefaultMaximumRasterPixels;
+    /// <summary>Maximum polygon edge checks while painting through non-antialiased clips on one raster canvas.</summary>
+    public long MaximumClipEdgeChecks { get; set; } = 100_000_000L;
     /// <summary>Cancellation observed between drawing elements and nested render stages.</summary>
     public System.Threading.CancellationToken CancellationToken { get; set; }
     /// <summary>
@@ -34,6 +36,8 @@ public sealed class OfficeDrawingRasterRenderOptions {
     /// </summary>
     internal bool PdfRasterConventions { get; set; }
     internal OfficeRasterTransformedTextBudget? TransformedTextBudget { get; set; }
+    /// <summary>Bounds cumulative paint work for untrusted SVG image normalization.</summary>
+    internal bool LimitRasterPaintWork { get; set; }
     /// <summary>Decoded and prefiltered images kept between renders of the same drawing.</summary>
     internal OfficeRasterImageCache? ImageCache { get; set; }
 }

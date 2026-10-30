@@ -13,7 +13,7 @@ public sealed partial class PdfReadPage {
     }
 
     /// <summary>Replays closed path-only replacement scopes in their original paint order.</summary>
-    private static void ReplayDrawingElements(OfficeDrawing drawing, List<PdfPageDrawingElement> elements,
+    private void ReplayDrawingElements(OfficeDrawing drawing, List<PdfPageDrawingElement> elements,
         List<TextContentParser.DrawingActualTextScope> scopes,
         Action<OfficeDrawing, PdfPageDrawingElement> paint, CancellationToken cancellationToken) {
         if (scopes.Count == 0 || elements.Any(static element => element.ContentOrderKey == null)) {
@@ -39,6 +39,8 @@ public sealed partial class PdfReadPage {
                 if (scope.End.CompareTo(key) <= 0 || scope.Owner.HasVisibleDrawingText) continue;
                 // Locally balanced scopes are nested or disjoint. Never relabel crossing/unowned paint.
                 if (stack.Count > 0 && scope.End.CompareTo(stack.Peek().Scope.End) > 0) continue;
+                if (stack.Count >= _limits.MaxContentNestingDepth)
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.ContentNestingDepth, _limits.MaxContentNestingDepth, (long)stack.Count + 1);
                 OfficeDrawing parent = stack.Count > 0 ? stack.Peek().Drawing : drawing;
                 var child = new OfficeDrawing(drawing.Width, drawing.Height);
                 child.Fonts.AddRange(parent.Fonts);

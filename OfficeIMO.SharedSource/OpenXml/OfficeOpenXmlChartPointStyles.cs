@@ -135,12 +135,20 @@ internal static class OfficeOpenXmlChartPointStyles {
 
     /// <summary>Projects qualified ribbon paint into the shared flat stroke without confusing its fill and border.</summary>
     internal static (OfficeChartPointStyle Paint, OfficeColor? Color, bool Automatic) ReadRibbonPaint(
-        OpenXmlElement series, A.ColorScheme? scheme, bool useSpreadsheetDefaultTheme = false) {
+        OpenXmlElement series, A.ColorScheme? scheme, bool useSpreadsheetDefaultTheme = false) =>
+        ReadRibbonPaint(series, scheme, new OfficeOpenXmlChartAutomaticColors.SeriesResolutionContext(),
+            useSpreadsheetDefaultTheme);
+
+    internal static (OfficeChartPointStyle Paint, OfficeColor? Color, bool Automatic) ReadRibbonPaint(
+        OpenXmlElement series, A.ColorScheme? scheme,
+        OfficeOpenXmlChartAutomaticColors.SeriesResolutionContext colorContext,
+        bool useSpreadsheetDefaultTheme = false) {
         var native = ReadStyle(series.GetFirstChild<C.ChartShapeProperties>(), scheme);
         var inherited = ReadSeriesStyle(series, scheme);
         bool fill = native?.NoFill != true, outline = native?.ShowOutline != false;
         OfficeColor? automatic = (fill && native?.FillColor == null || outline && native?.OutlineColor == null)
-            ? OfficeOpenXmlChartAutomaticColors.ResolveSeries(series, scheme, useSpreadsheetDefaultTheme) : null;
+            ? OfficeOpenXmlChartAutomaticColors.ResolveSeries(series, scheme, colorContext,
+                useSpreadsheetDefaultTheme) : null;
         OfficeColor? body = native?.FillColor ?? (fill ? automatic : null);
         OfficeColor? border = native?.OutlineColor ?? (outline ? automatic : null);
         bool visibleFill = fill && (!body.HasValue || body.Value.A > 0);

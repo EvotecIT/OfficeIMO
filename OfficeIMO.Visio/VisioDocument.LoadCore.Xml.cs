@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.IO.Packaging;
 using System.Xml;
@@ -10,18 +11,18 @@ namespace OfficeIMO.Visio {
         internal const long MaxPackageXmlPartBytes = 32_000_000;
         internal const long MaxPackageXmlCharacters = 30_000_000;
 
-        private static readonly XmlReaderSettings PackageXmlReaderSettings = new() {
-            DtdProcessing = DtdProcessing.Prohibit,
-            XmlResolver = null,
-            MaxCharactersInDocument = MaxPackageXmlCharacters,
-            MaxCharactersFromEntities = 0,
-        };
-
-        private static XDocument LoadPackageXml(PackagePart part, string description, CancellationToken cancellationToken = default) {
+        private static XDocument LoadPackageXml(PackagePart part, string description, CancellationToken cancellationToken = default,
+            long maxCharacters = MaxPackageXmlCharacters) {
+            if (maxCharacters < 1) throw new ArgumentOutOfRangeException(nameof(maxCharacters));
             cancellationToken.ThrowIfCancellationRequested();
             using Stream stream = part.GetStream();
             using Stream boundedStream = new BoundedReadStream(stream, MaxPackageXmlPartBytes, description);
-            using XmlReader reader = XmlReader.Create(boundedStream, PackageXmlReaderSettings);
+            using XmlReader reader = XmlReader.Create(boundedStream, new XmlReaderSettings {
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null,
+                MaxCharactersInDocument = Math.Min(maxCharacters, MaxPackageXmlCharacters),
+                MaxCharactersFromEntities = 0
+            });
             using var cancellable = new OfficeXmlLimitingReader(reader, description,
                 int.MaxValue, int.MaxValue, int.MaxValue, cancellationToken);
             return XDocument.Load(cancellable, LoadOptions.None);

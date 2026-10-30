@@ -505,6 +505,7 @@ public sealed partial class OfficeRasterCanvas {
         int bottom = Clamp((int)Math.Ceiling(maxY), 0, Height - 1);
         ImageBoundaryCoverage? boundary = interpolate ? new ImageBoundaryCoverage(inverseTransform, 1D, 1D) : null;
         _cancellationToken.ThrowIfCancellationRequested();
+        _transformedTextBudget.ChargePaintPixels((long)(right - left + 1) * (bottom - top + 1));
         for (int py = top; py <= bottom; py++) {
             _cancellationToken.ThrowIfCancellationRequested();
             for (int px = left; px <= right; px++) {
@@ -554,6 +555,7 @@ public sealed partial class OfficeRasterCanvas {
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
         int right = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
         int bottom = Clamp((int)Math.Ceiling(maxY), 0, Height - 1);
+        _transformedTextBudget.ChargePaintPixels((long)(right - left + 1) * (bottom - top + 1));
         for (int py = top; py <= bottom; py++) {
             _cancellationToken.ThrowIfCancellationRequested();
             for (int px = left; px <= right; px++) {

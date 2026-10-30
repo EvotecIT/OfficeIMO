@@ -7,7 +7,7 @@ internal static partial class PdfWriter {
             double[] columnWidths, double columnGap, double rowGap, int headerCount, int footerStart,
             PreparedFlowTableRows? previous = null, int continuingRow = -1, int consumedLines = 0, double? fallbackFontSize = null, TableSpanFlow? spanFlow = null) {
             var result = new PreparedFlowTableRows(table.Rows.Count);
-            var textLayouts = new TableTextLayoutReuse(currentOpts);
+            var textLayouts = new TableTextLayoutReuse(currentOpts, cancellationToken);
             for (int row = 0; row < table.Rows.Count; row++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 bool continued = row == continuingRow && consumedLines > 0 && previous != null;
@@ -40,7 +40,8 @@ internal static partial class PdfWriter {
                     int cellConsumed = mergedCursor ? spanConsumed : consumedLines;
                     TableCellTextLayout lines = continueCell
                         ? ContinueTableCellTextLayout(cell, previous!.Lines[row][cell.Column], cellConsumed, innerWidth, font, size, leading,
-                            currentOpts, continuationScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum)
+                            currentOpts, continuationScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum,
+                            cancellationToken)
                         : textLayouts.Create(cell, innerWidth, font, size, leading, runScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum);
                     result.Lines[row][cell.Column] = lines;
                     if (cell.RowSpan <= 1 && cell.Viewport == null) {

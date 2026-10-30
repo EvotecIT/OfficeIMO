@@ -54,14 +54,14 @@ namespace OfficeIMO.Core.Internal {
                     KeyDataSaltSize = ReadRequiredInt(keyData, "saltSize"),
                     KeyDataKeyBits = ReadRequiredInt(keyData, "keyBits"),
                     KeyDataHashAlgorithm = ReadRequiredString(keyData, "hashAlgorithm"),
-                    KeyDataSaltValue = Convert.FromBase64String(ReadRequiredString(keyData, "saltValue")),
+                    KeyDataSaltValue = ReadSalt(keyData),
                     EncryptedHmacKey = Convert.FromBase64String(ReadRequiredString(dataIntegrity, "encryptedHmacKey")),
                     EncryptedHmacValue = Convert.FromBase64String(ReadRequiredString(dataIntegrity, "encryptedHmacValue")),
                     SpinCount = ReadRequiredInt(encryptedKey, "spinCount"),
                     PasswordKeyBits = ReadRequiredInt(encryptedKey, "keyBits"),
                     PasswordHashSize = ReadRequiredInt(encryptedKey, "hashSize"),
                     PasswordHashAlgorithm = ReadRequiredString(encryptedKey, "hashAlgorithm"),
-                    PasswordSaltValue = Convert.FromBase64String(ReadRequiredString(encryptedKey, "saltValue")),
+                    PasswordSaltValue = ReadSalt(encryptedKey),
                     EncryptedVerifierHashInput = Convert.FromBase64String(ReadRequiredString(encryptedKey, "encryptedVerifierHashInput")),
                     EncryptedVerifierHashValue = Convert.FromBase64String(ReadRequiredString(encryptedKey, "encryptedVerifierHashValue")),
                     EncryptedKeyValue = Convert.FromBase64String(ReadRequiredString(encryptedKey, "encryptedKeyValue"))
@@ -74,6 +74,20 @@ namespace OfficeIMO.Core.Internal {
 
             private static int ReadRequiredInt(XElement element, string name) {
                 return int.Parse(ReadRequiredString(element, name), CultureInfo.InvariantCulture);
+            }
+
+            private static byte[] ReadSalt(XElement element) {
+                int size = ReadRequiredInt(element, "saltSize");
+                if (size < 1 || size > 65536) {
+                    throw new InvalidDataException("EncryptionInfo saltSize is outside the supported range.");
+                }
+
+                byte[] salt = Convert.FromBase64String(ReadRequiredString(element, "saltValue"));
+                if (salt.Length != size) {
+                    throw new InvalidDataException("EncryptionInfo saltValue length does not match saltSize.");
+                }
+
+                return salt;
             }
         }
     }

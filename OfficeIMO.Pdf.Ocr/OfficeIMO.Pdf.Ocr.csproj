@@ -39,6 +39,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.DjVu.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Studio.Core" />
   </ItemGroup>
 
   <ItemGroup>

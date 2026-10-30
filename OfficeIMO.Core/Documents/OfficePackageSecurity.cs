@@ -48,7 +48,9 @@ namespace OfficeIMO {
         /// <summary>The package contains external relationships while external targets are rejected.</summary>
         ExternalRelationships,
         /// <summary>The ZIP or compound container is malformed.</summary>
-        MalformedPackage
+        MalformedPackage,
+        /// <summary>The package contains more relationship records than allowed.</summary>
+        RelationshipCount
     }
 
     /// <summary>Severity of a package security finding.</summary>
@@ -68,6 +70,9 @@ namespace OfficeIMO {
 
         /// <summary>Maximum number of raw ZIP entries (including directories) or compound directory entries. Defaults to 10,000.</summary>
         public int MaxPartCount { get; set; } = 10_000;
+
+        /// <summary>Maximum number of relationship records across all parts. Defaults to 10,000.</summary>
+        public int MaxRelationships { get; set; } = 10_000;
 
         /// <summary>Maximum uncompressed size of one part. Defaults to 256 MiB.</summary>
         public long MaxPartUncompressedBytes { get; set; } = 256L * 1024L * 1024L;

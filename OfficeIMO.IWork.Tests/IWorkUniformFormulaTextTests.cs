@@ -82,6 +82,26 @@ public sealed partial class IWorkBoundaryTests {
         else Assert.Equal(first, Assert.Single(sheet.GetHyperlinks()).Value.Target);
     }
 
+    [Fact]
+    public void Formula_result_file_link_requires_partial_acceptance_and_is_omitted_from_saved_XLSX() {
+        const string unsafeTarget = "file://server/share/private";
+        using var package = CreateNumbersWithPartialRichCell(true, richText: "Styled",
+            richAttributes: AttributeTable(11, AttributeEntry(0, ReferenceField(2, 30))),
+            additionalRecords: ArchiveRecord(30, 2032, StringField(2, unsafeTarget)));
+
+        Assert.Throws<InvalidDataException>(() => ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
+            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly }));
+        package.Position = 0;
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
+            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL"
+            && d.LossKind == OfficeConversionLossKind.Omission);
+        using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
+        using var reopened = ExcelDocument.Load(saved);
+        Assert.Equal("1", reopened.Sheets[0].GetFormulaText(1, 1));
+        Assert.Empty(reopened.Sheets[0].GetHyperlinks());
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

@@ -109,12 +109,14 @@ public static partial class HtmlContentSafety {
         allowComputedStyleCleanup &= !HasUnmodeledCascadeResetStyles(document);
         cancellationToken.ThrowIfCancellationRequested();
         IElement? root = document.DocumentElement ?? document.Body;
+        IReadOnlyDictionary<IElement, int>? siblingPositions = root == null ? null : BuildSiblingPositions(document, root, cancellationToken);
         if (root != null) Traverse(
             root,
             styles,
             styleSet,
             builder,
             targets,
+            siblingPositions!,
             ancestorConcealed: false,
             locationPrefix,
             ignoredElements,
@@ -130,6 +132,7 @@ public static partial class HtmlContentSafety {
         HtmlComputedStyleSet styleSet,
         OfficeContentSafetyBuilder builder,
         IDictionary<string, HtmlCleanupTarget>? targets,
+        IReadOnlyDictionary<IElement, int> siblingPositions,
         bool ancestorConcealed,
         string? locationPrefix,
         ISet<IElement>? ignoredElements,
@@ -137,7 +140,7 @@ public static partial class HtmlContentSafety {
         bool allowComputedStyleCleanup) {
         cancellationToken.ThrowIfCancellationRequested();
         if (ignoredElements != null && ignoredElements.Contains(element)) return;
-        string location = PrefixLocation(locationPrefix, BuildLocation(element));
+        string location = PrefixLocation(locationPrefix, BuildLocation(element, siblingPositions));
         styles.TryGetValue(element, out HtmlComputedStyle? style);
         InspectMachineOnlyAttributes(element, styleSet, location, builder, targets, allowComputedStyleCleanup);
 
@@ -200,7 +203,7 @@ public static partial class HtmlContentSafety {
             }
             if (!concealment.DescendantsMayOverride) return;
             foreach (IElement child in element.Children) {
-                Traverse(child, styles, styleSet, builder, targets, ancestorConcealed: false, locationPrefix, ignoredElements, cancellationToken, allowComputedStyleCleanup);
+                Traverse(child, styles, styleSet, builder, targets, siblingPositions, ancestorConcealed: false, locationPrefix, ignoredElements, cancellationToken, allowComputedStyleCleanup);
             }
             return;
         }
@@ -281,7 +284,7 @@ public static partial class HtmlContentSafety {
         }
 
         foreach (IElement child in element.Children) {
-            Traverse(child, styles, styleSet, builder, targets, ancestorConcealed: false, locationPrefix, ignoredElements, cancellationToken, allowComputedStyleCleanup);
+            Traverse(child, styles, styleSet, builder, targets, siblingPositions, ancestorConcealed: false, locationPrefix, ignoredElements, cancellationToken, allowComputedStyleCleanup);
         }
     }
 
@@ -581,13 +584,24 @@ public static partial class HtmlContentSafety {
         }
     }
 
-    private static string BuildLocation(IElement element) {
+    private static IReadOnlyDictionary<IElement, int> BuildSiblingPositions(IHtmlDocument document, IElement root, CancellationToken token) {
+        var positions = new Dictionary<IElement, int> { [root] = 1 };
+        foreach (IElement parent in document.All) {
+            token.ThrowIfCancellationRequested();
+            var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (IElement child in parent.Children) {
+                counts.TryGetValue(child.LocalName, out int count);
+                positions[child] = count + 1;
+                counts[child.LocalName] = count + 1;
+            }
+        }
+        return positions;
+    }
+
+    private static string BuildLocation(IElement element, IReadOnlyDictionary<IElement, int> siblingPositions) {
         var segments = new Stack<string>();
         for (IElement? current = element; current != null; current = current.ParentElement) {
-            int index = 1;
-            for (IElement? sibling = current.PreviousElementSibling; sibling != null; sibling = sibling.PreviousElementSibling) {
-                if (string.Equals(sibling.LocalName, current.LocalName, StringComparison.OrdinalIgnoreCase)) index++;
-            }
+            int index = siblingPositions[current];
             segments.Push(current.LocalName + "[" + index.ToString(CultureInfo.InvariantCulture) + "]");
         }
         return "HTML/" + string.Join("/", segments);

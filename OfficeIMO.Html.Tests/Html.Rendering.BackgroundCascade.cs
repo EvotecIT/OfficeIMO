@@ -220,6 +220,17 @@ public sealed class HtmlBackgroundCascadeTests {
     }
 
     [Fact]
+    public void BackgroundProviderLengthMarkersAvoidAuthoredNumericLengths() {
+        foreach (string prefix in new[] { string.Empty, "/*" + new string('a', 5_000) + "*/" }) {
+            HtmlComputedStyle computed = Compute(ForDeclaration(
+                "background:" + prefix + "900001px 0 / min(10px,20px) auto no-repeat red", inline: true));
+
+            Assert.Contains("900001px", computed.GetValue("background-position"), StringComparison.Ordinal);
+            Assert.Contains("min(10px,20px)", computed.GetValue("background-size"), StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void BackgroundSyntaxAdmissionDoesNotConsumeTheGradientRenderStopLimit() {
         const string html = "<div style='width:40px;height:20px;background:linear-gradient(red,lime,blue) blue'></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { MaxGradientStops = 2 });

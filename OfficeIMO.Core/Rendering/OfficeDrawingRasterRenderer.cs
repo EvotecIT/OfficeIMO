@@ -65,6 +65,9 @@ public static partial class OfficeDrawingRasterRenderer {
         if (options.MaximumRasterPixels <= 0L) {
             throw new ArgumentOutOfRangeException(nameof(options.MaximumRasterPixels), "Maximum raster pixels must be positive.");
         }
+        if (options.MaximumClipEdgeChecks <= 0L) {
+            throw new ArgumentOutOfRangeException(nameof(options.MaximumClipEdgeChecks), "Maximum clip edge checks must be positive.");
+        }
 
         bool uniform = scaleX == scale && scaleY == scale;
         OfficeRasterExportPlan? plan = pixelWidth > 0 ? null : allocationPlan ?? OfficeRasterExportPlanner.Resolve(
@@ -94,11 +97,13 @@ public static partial class OfficeDrawingRasterRenderer {
         canvas.PdfRasterConventions = options.PdfRasterConventions;
         canvas.SetCoordinateScale(scaleX / scale, scaleY / scale);
         if (options.TransformedTextBudget != null) canvas.ShareTransformedTextBudget(options.TransformedTextBudget);
+        else if (options.LimitRasterPaintWork) canvas.TransformedTextBudget.LimitPaintWork((long)width * height);
         canvas.ImageCache = options.ImageCache;
         IOfficeRasterImageCodec? imageCodec = options.ThrowOnImageDecodeFailure
             ? new RequiredImageCodec(options.ImageCodec, options.MaximumRasterPixels, options.CancellationToken)
             : options.ImageCodec;
         canvas.MaximumClipRasterPixels = options.MaximumRasterPixels;
+        canvas.MaximumClipEdgeChecks = options.MaximumClipEdgeChecks;
         RenderElements(canvas, drawing.Elements, scale, imageCodec, options.MaximumRasterPixels, options.CancellationToken);
 
         return image;

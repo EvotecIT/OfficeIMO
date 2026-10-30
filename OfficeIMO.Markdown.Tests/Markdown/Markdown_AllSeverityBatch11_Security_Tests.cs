@@ -44,6 +44,15 @@ public sealed class MarkdownAllSeverityBatch11SecurityTests {
         Assert.Contains("safe", document.ToMarkdown(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void MarkdownReader_LinkLabelWrapperSkipsLongUnmatchedBacktickRun() {
+        string markdown = "[<u>" + new string('`', 12_000) + "</u>](https://example.com)";
+
+        MarkdownDoc document = MarkdownReader.Parse(markdown);
+
+        Assert.Single(document.Blocks);
+    }
+
     [Theory]
     [InlineData("<u><sup>x</u></sup>")]
     [InlineData("<q><ins>x</q></ins>")]

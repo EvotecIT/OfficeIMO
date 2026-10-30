@@ -168,6 +168,27 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void RenderPage_AlternatingRenderingIntentsReachRepeatedFormInvocationsInSourceOrder() {
+        byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+        const string formContent = "/CsIcc cs 0 0 0 0 scn 0 0 10 10 re f";
+        string formObject = "7 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Length " +
+            Encoding.ASCII.GetByteCount(formContent).ToString(CultureInfo.InvariantCulture) +
+            " >>\nstream\n" + formContent + "\nendstream\nendobj\n";
+        string content = string.Concat(Enumerable.Range(0, 64).Select(index =>
+            (index % 2 == 0 ? "/Perceptual ri " : "/RelativeColorimetric ri ") + "/Fm Do\n"));
+
+        OfficeColor[] colors = PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile, "/N 4", string.Empty, extraObjects: formObject,
+            extraResourceEntries: "/XObject << /Fm 7 0 R >>", contentOverride: content))
+            .Shapes.Select(shape => shape.Shape.FillColor!.Value).ToArray();
+
+        Assert.Equal(64, colors.Length);
+        Assert.NotEqual(colors[0], colors[1]);
+        for (int index = 2; index < colors.Length; index++)
+            Assert.Equal(colors[index % 2], colors[index]);
+    }
+
+    [Fact]
     public void GetTextSpans_AppliesRenderingIntentToIccTextPaint() {
         byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
         const string text = "BT /F1 12 Tf /CsIcc cs 0 0 0 0 scn /Perceptual ri 40 80 Td (X) Tj ET";

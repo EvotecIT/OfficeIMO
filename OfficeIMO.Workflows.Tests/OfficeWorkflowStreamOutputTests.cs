@@ -161,9 +161,8 @@ public sealed class OfficeWorkflowStreamOutputTests {
             using var lease = await store.CreateAsync([1], "content://provider/selected", "selected.pdf", default);
             Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(artifact));
             Assert.True(File.Exists(claim));
-            // A failed multi-claim admission must release any earlier claim it
-            // acquired; this probe would fail if that coordination handle leaked.
-            using (AcquireCommitClaim(otherTarget)) { }
+            // A failed multi-claim admission must release any earlier handle.
+            using var probe = new FileStream(CreateCommitClaimPath(otherTarget), FileMode.Open, FileAccess.Read, FileShare.None);
         } finally { activeClaim.Dispose(); }
         var restarted = new OfficeWorkflowOutputRecoveryStore(directory);
         using var next = await restarted.CreateAsync([2], "content://provider/selected", "next.pdf", default);

@@ -1,11 +1,40 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Provenance;
+using OfficeIMO.Word;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Workflows.Tests;
 
 public sealed class OfficeProvenanceDocumentTextTests {
+    [Fact]
+    public async Task WordAssessmentSkipsFormattingChainsWhileFullInspectionBoundsThem() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
+        try {
+            using (var document = WordprocessingDocument.Create(path, WordprocessingDocumentType.Document)) {
+                var main = document.AddMainDocumentPart();
+                main.Document = new W.Document(new W.Body(new W.Paragraph(
+                    new W.ParagraphProperties(new W.ParagraphStyleId { Val = "s256" }),
+                    new W.Run(new W.Text("body\u200B")))));
+                var styles = new W.Styles();
+                for (int index = 0; index <= 256; index++) {
+                    var style = new W.Style { StyleId = "s" + index };
+                    if (index > 0) style.Append(new W.BasedOn { Val = "s" + (index - 1) });
+                    styles.Append(style);
+                }
+                main.AddNewPart<StyleDefinitionsPart>().Styles = styles;
+            }
+
+            var result = await new OfficeWorkflowRunner().RunProvenanceAsync(new OfficeProvenanceWorkflowRequest {
+                InputPath = path,
+                Operation = OfficeProvenanceWorkflowOperation.Assess
+            });
+            Assert.True(result.Succeeded, result.Summary);
+            Assert.Contains(result.Assessment!.TextIntegrity!.Findings, finding => finding.CodePoint == 0x200B);
+            Assert.Throws<InvalidDataException>(() => WordDocument.InspectContentSafety(path));
+        } finally { File.Delete(path); }
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]

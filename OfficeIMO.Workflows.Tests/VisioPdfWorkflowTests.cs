@@ -5,6 +5,38 @@ using OfficeIMO.Visio.Pdf;
 namespace OfficeIMO.Workflows.Tests;
 
 public sealed class VisioPdfWorkflowTests {
+    [Fact]
+    public async Task VsdxWorkflowAppliesXmlLimitToPageContent() {
+        string root = CreateDirectory();
+        try {
+            string input = Path.Combine(root, "source.vsdx"), output = Path.Combine(root, "result.pdf");
+            WriteSource(input);
+            using (var archive = System.IO.Compression.ZipFile.Open(input, System.IO.Compression.ZipArchiveMode.Update)) {
+                var page = archive.GetEntry("visio/pages/page1.xml")!;
+                page.Delete();
+                using var writer = new StreamWriter(archive.CreateEntry("visio/pages/page1.xml").Open());
+                writer.Write("<PageContents xmlns=\"http://schemas.microsoft.com/office/visio/2012/main\"><!--");
+                writer.Write(new string('x', 24_000));
+                writer.Write("--></PageContents>");
+            }
+            byte[] sentinel = [7, 3, 1];
+            File.WriteAllBytes(output, sentinel);
+            var result = await new OfficeWorkflowRunner().RunAsync(new() {
+                Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output,
+                ConversionRouteId = "visio-pdf", ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                Limits = new() { MaximumXmlCharactersInPart = 20_000 }
+            });
+            Assert.False(result.Succeeded);
+            Assert.Equal(sentinel, File.ReadAllBytes(output));
+            var accepted = await new OfficeWorkflowRunner().RunAsync(new() {
+                Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output,
+                ConversionRouteId = "visio-pdf", ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                Limits = new() { MaximumXmlCharactersInPart = 30_000 }
+            });
+            Assert.True(accepted.Succeeded, accepted.Summary);
+        } finally { Directory.Delete(root, true); }
+    }
+
     [Theory]
     [InlineData(".vsdx")]
     [InlineData(".vdx")]

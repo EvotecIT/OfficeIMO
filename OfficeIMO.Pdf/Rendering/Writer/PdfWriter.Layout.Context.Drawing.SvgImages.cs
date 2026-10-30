@@ -58,7 +58,7 @@ internal static partial class PdfWriter {
             return OfficeDrawingRasterRenderer.ToPng(vector, new OfficeDrawingRasterRenderOptions {
                 Scale = plan.Limit.Scale, Background = OfficeColor.Transparent,
                 CancellationToken = cancellationToken, MaximumRasterPixels = 16_000_000L,
-                ThrowOnImageDecodeFailure = true
+                ThrowOnImageDecodeFailure = true, LimitRasterPaintWork = true
             });
         }
 

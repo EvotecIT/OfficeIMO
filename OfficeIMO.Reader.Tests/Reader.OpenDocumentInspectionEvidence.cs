@@ -97,6 +97,19 @@ public sealed class ReaderOpenDocumentInspectionEvidenceTests {
         Assert.Equal("OpenDocument.MaxLinks", Assert.Throws<ReaderResourceLimitException>(() => noLinks.ReadDocument(linked.ToBytes(), "links.odt")).LimitName);
     }
 
+    [Fact]
+    public void DrawingRichDiagnosticsHaveAnAggregateLimit() {
+        OdgDocument source = OdgDocument.Create();
+        OdgShape group = source.AddPage("Many grouped shapes").Shapes.AddGroup();
+        for (int index = 0; index <= 4096; index++) group.Children.AddRectangle(Box);
+
+        byte[] bytes = source.ToBytes();
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddOpenDocumentHandler().Build();
+        ReaderResourceLimitException error = Assert.Throws<ReaderResourceLimitException>(() => reader.ReadDocument(bytes, "many-shapes.odg", Inspection()));
+        Assert.Equal("OpenDocument.MaxRichDiagnostics", error.LimitName);
+        Assert.Equal(4096, error.Maximum);
+    }
+
     private static byte[] Rewrite(byte[] source, string entryName, Action<XDocument> mutate) {
         using var memory = new MemoryStream(); memory.Write(source, 0, source.Length); memory.Position = 0;
         using (var archive = new ZipArchive(memory, ZipArchiveMode.Update, leaveOpen: true)) {

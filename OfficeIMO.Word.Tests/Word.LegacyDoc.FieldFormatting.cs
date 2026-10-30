@@ -7,6 +7,21 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Fact]
+    public void LegacyDoc_FieldComparisonRefreshesStylesBetweenSaves() {
+        using WordDocument source = WordDocument.Create();
+        AppendSplitFormattingField(source.AddParagraph()._paragraph, complex: false, automaticColor: false, "FIRST", "SECOND");
+        source.ToBytes(WordFileFormat.Doc);
+
+        W.Style normal = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+            .Elements<W.Style>().Single(style => style.StyleId?.Value == "Normal");
+        normal.StyleRunProperties ??= new W.StyleRunProperties();
+        normal.StyleRunProperties.Vanish = new W.Vanish();
+
+        NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
+        Assert.Contains("display runs use one formatting set", error.Message);
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
