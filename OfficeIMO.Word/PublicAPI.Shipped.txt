@@ -778,7 +778,6 @@ OfficeIMO.Word.WordChart.Title.get -> string?
 OfficeIMO.Word.WordChart.Title.set -> void
 OfficeIMO.Word.WordChart.TryGetLayoutSnapshot(out OfficeIMO.Word.WordDrawingLayoutInfo! snapshot) -> bool
 OfficeIMO.Word.WordChart.TryGetOfficeSnapshot(out OfficeIMO.Drawing.OfficeChartSnapshot! snapshot) -> bool
-OfficeIMO.Word.WordChart.TryGetSnapshot(out OfficeIMO.Word.WordChartInfo! snapshot) -> bool
 OfficeIMO.Word.WordChart.TrySetCategories(System.Collections.Generic.IEnumerable<string!>! categories) -> bool
 OfficeIMO.Word.WordChart.TrySetSeriesName(uint seriesIndex, string! name) -> bool
 OfficeIMO.Word.WordChart.TrySetSeriesValues(uint seriesIndex, System.Collections.Generic.IEnumerable<double>! values) -> bool
@@ -800,17 +799,6 @@ OfficeIMO.Word.WordChartBarGrouping.Clustered = 1 -> OfficeIMO.Word.WordChartBar
 OfficeIMO.Word.WordChartBarGrouping.PercentStacked = 0 -> OfficeIMO.Word.WordChartBarGrouping
 OfficeIMO.Word.WordChartBarGrouping.Stacked = 3 -> OfficeIMO.Word.WordChartBarGrouping
 OfficeIMO.Word.WordChartBarGrouping.Standard = 2 -> OfficeIMO.Word.WordChartBarGrouping
-OfficeIMO.Word.WordChartData
-OfficeIMO.Word.WordChartData.Categories.get -> System.Collections.Generic.IReadOnlyList<string!>!
-OfficeIMO.Word.WordChartData.Series.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordChartSeries!>!
-OfficeIMO.Word.WordChartInfo
-OfficeIMO.Word.WordChartInfo.ChartKind.get -> OfficeIMO.Word.WordChartSnapshotKind
-OfficeIMO.Word.WordChartInfo.Data.get -> OfficeIMO.Word.WordChartData!
-OfficeIMO.Word.WordChartInfo.HeightPoints.get -> double
-OfficeIMO.Word.WordChartInfo.Name.get -> string!
-OfficeIMO.Word.WordChartInfo.RadialLayout.get -> OfficeIMO.Drawing.OfficeChartRadialLayout!
-OfficeIMO.Word.WordChartInfo.Title.get -> string?
-OfficeIMO.Word.WordChartInfo.WidthPoints.get -> double
 OfficeIMO.Word.WordChartLegend
 OfficeIMO.Word.WordChartLegend.Chart.get -> OfficeIMO.Word.WordChart!
 OfficeIMO.Word.WordChartLegend.Overlay.get -> bool
@@ -833,23 +821,6 @@ OfficeIMO.Word.WordChartSeries.Remove() -> void
 OfficeIMO.Word.WordChartSeries.ToOfficeSeries() -> OfficeIMO.OfficeSeries!
 OfficeIMO.Word.WordChartSeries.Values.get -> System.Collections.Generic.IReadOnlyList<double>!
 OfficeIMO.Word.WordChartSeries.XValues.get -> System.Collections.Generic.IReadOnlyList<double>?
-OfficeIMO.Word.WordChartSnapshotKind
-OfficeIMO.Word.WordChartSnapshotKind.Area = 9 -> OfficeIMO.Word.WordChartSnapshotKind
-OfficeIMO.Word.WordChartSnapshotKind.ClusteredBar = 3 -> OfficeIMO.Word.WordChartSnapshotKind
-OfficeIMO.Word.WordChartSnapshotKind.ClusteredColumn = 0 -> OfficeIMO.Word.WordChartSnapshotKind
-OfficeIMO.Word.WordChartSnapshotKind.Doughnut = 15 -> OfficeIMO.Word.WordChartSnapshotKind
-OfficeIMO.Word.WordChartSnapshotKind.Line = 6 -> OfficeIMO.Word.WordChartSnapshotKind
-OfficeIMO.Word.WordChartSnapshotKind.Pie = 14 -> OfficeIMO.Word.WordChartSnapshotKind
-OfficeIMO.Word.WordChartSnapshotKind.Radar = 12 -> OfficeIMO.Word.WordChartSnapshotKind
-OfficeIMO.Word.WordChartSnapshotKind.Scatter = 13 -> OfficeIMO.Word.WordChartSnapshotKind
-OfficeIMO.Word.WordChartSnapshotKind.StackedArea = 10 -> OfficeIMO.Word.WordChartSnapshotKind
-OfficeIMO.Word.WordChartSnapshotKind.StackedArea100 = 11 -> OfficeIMO.Word.WordChartSnapshotKind
-OfficeIMO.Word.WordChartSnapshotKind.StackedBar = 4 -> OfficeIMO.Word.WordChartSnapshotKind
-OfficeIMO.Word.WordChartSnapshotKind.StackedBar100 = 5 -> OfficeIMO.Word.WordChartSnapshotKind
-OfficeIMO.Word.WordChartSnapshotKind.StackedColumn = 1 -> OfficeIMO.Word.WordChartSnapshotKind
-OfficeIMO.Word.WordChartSnapshotKind.StackedColumn100 = 2 -> OfficeIMO.Word.WordChartSnapshotKind
-OfficeIMO.Word.WordChartSnapshotKind.StackedLine = 7 -> OfficeIMO.Word.WordChartSnapshotKind
-OfficeIMO.Word.WordChartSnapshotKind.StackedLine100 = 8 -> OfficeIMO.Word.WordChartSnapshotKind
 OfficeIMO.Word.WordCheckBox
 OfficeIMO.Word.WordCheckBox.Alias.get -> string?
 OfficeIMO.Word.WordCheckBox.IsChecked.get -> bool
@@ -1528,29 +1499,6 @@ OfficeIMO.Word.WordDocumentStatistics.Shapes.get -> int
 OfficeIMO.Word.WordDocumentStatistics.Tables.get -> int
 OfficeIMO.Word.WordDocumentStatistics.WordDocumentStatistics(OfficeIMO.Word.WordDocument! document) -> void
 OfficeIMO.Word.WordDocumentStatistics.Words.get -> int
-OfficeIMO.Word.WordDocumentTraversal
-OfficeIMO.Word.WordDocumentTraversal.ListInfo
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.HangingIndentTwips.get -> int?
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.LeftIndentTwips.get -> int?
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.Level.get -> int
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.LevelJustification.get -> OfficeIMO.Word.WordListLevelAlignment?
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.LevelSuffix.get -> OfficeIMO.Word.WordListLevelSuffix?
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.LevelText.get -> string?
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.ListInfo() -> void
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.ListInfo(int level, bool ordered, int start, OfficeIMO.Word.WordNumberFormat? format, string? text, int? leftIndentTwips = null, int? hangingIndentTwips = null, string? markerFontFamily = null, bool? markerBold = null, bool? markerItalic = null, string? markerColorHex = null, OfficeIMO.Word.WordListLevelAlignment? levelJustification = null, OfficeIMO.Word.WordListLevelSuffix? levelSuffix = null) -> void
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.ListInfo(int level, bool ordered, int start, OfficeIMO.Word.WordNumberFormat? format, string? text, int? leftIndentTwips, int? hangingIndentTwips) -> void
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.MarkerBold.get -> bool?
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.MarkerCharacterScale.get -> long?
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.MarkerCharacterSpacingTwips.get -> int?
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.MarkerColorHex.get -> string?
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.MarkerFontFamily.get -> string?
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.MarkerFontSize.get -> double?
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.MarkerItalic.get -> bool?
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.MarkerVisible.get -> bool
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.NumberFormat.get -> OfficeIMO.Word.WordNumberFormat?
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.Ordered.get -> bool
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.PictureBulletId.get -> int?
-OfficeIMO.Word.WordDocumentTraversal.ListInfo.Start.get -> int
 OfficeIMO.Word.WordDocumentType
 OfficeIMO.Word.WordDocumentType.Document = 0 -> OfficeIMO.Word.WordDocumentType
 OfficeIMO.Word.WordDocumentType.MacroEnabledDocument = 2 -> OfficeIMO.Word.WordDocumentType
@@ -5021,10 +4969,6 @@ static OfficeIMO.Word.WordDocumentComparer.CompareStructure(string! sourcePath, 
 static OfficeIMO.Word.WordDocumentComparer.CompareStructure(string! sourcePath, string! targetPath, OfficeIMO.Word.WordComparisonOptions? options) -> OfficeIMO.Word.WordComparisonResult!
 static OfficeIMO.Word.WordDocumentComparer.CreateRedlineDocument(string! sourcePath, string! targetPath, string! outputPath, OfficeIMO.Word.WordComparisonRedlineOptions? options = null) -> OfficeIMO.Word.WordComparisonResult!
 static OfficeIMO.Word.WordDocumentRegexExtensions.Find(this OfficeIMO.Word.WordDocument! document, System.Text.RegularExpressions.Regex! regex) -> OfficeIMO.Word.WordSearchResult!
-static OfficeIMO.Word.WordDocumentTraversal.BuildListIndices(OfficeIMO.Word.WordDocument! document) -> System.Collections.Generic.Dictionary<OfficeIMO.Word.WordParagraph!, (int Level, int Index)>!
-static OfficeIMO.Word.WordDocumentTraversal.BuildListMarkers(OfficeIMO.Word.WordDocument! document) -> System.Collections.Generic.Dictionary<OfficeIMO.Word.WordParagraph!, (int Level, string! Marker)>!
-static OfficeIMO.Word.WordDocumentTraversal.EnumerateSections(OfficeIMO.Word.WordDocument! document) -> System.Collections.Generic.IEnumerable<OfficeIMO.Word.WordSection!>!
-static OfficeIMO.Word.WordDocumentTraversal.GetListInfo(OfficeIMO.Word.WordParagraph! paragraph) -> OfficeIMO.Word.WordDocumentTraversal.ListInfo?
 static OfficeIMO.Word.WordEmbeddedObjectOptions.Icon(string? iconPath = null, double? width = null, double? height = null) -> OfficeIMO.Word.WordEmbeddedObjectOptions!
 static OfficeIMO.Word.WordField.AddField(OfficeIMO.Word.WordParagraph! paragraph, OfficeIMO.Word.WordFieldBuilder! builder, bool advanced = false) -> OfficeIMO.Word.WordField!
 static OfficeIMO.Word.WordField.AddField(OfficeIMO.Word.WordParagraph! paragraph, OfficeIMO.Word.WordFieldCode! fieldCode, OfficeIMO.Word.WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false) -> OfficeIMO.Word.WordField!

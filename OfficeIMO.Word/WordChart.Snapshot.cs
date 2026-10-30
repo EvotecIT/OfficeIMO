@@ -14,7 +14,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Tries to create a dependency-free chart snapshot from cached Word chart data.
         /// </summary>
-        public bool TryGetSnapshot(out WordChartInfo snapshot) {
+        internal bool TryGetSnapshot(out WordChartInfo snapshot) {
             snapshot = null!;
             try {
                 C.Chart? chart = _chartPart?.ChartSpace?.GetFirstChild<C.Chart>() ?? _chart;

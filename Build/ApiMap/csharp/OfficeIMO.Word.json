@@ -2,12 +2,12 @@
   "package": "OfficeIMO.Word",
   "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
   "summary": {
-    "changes": 354,
+    "changes": 360,
     "byAction": {
-      "change": 136,
-      "internalize": 41,
+      "change": 137,
+      "internalize": 51,
       "keep": 1,
-      "merge": 134,
+      "merge": 129,
       "move": 1,
       "remove": 26,
       "rename": 15
@@ -19,8 +19,8 @@
       "naming": 11,
       "options": 4,
       "package": 1,
-      "units": 146,
-      "visibility": 41
+      "units": 147,
+      "visibility": 46
     },
     "packageMoves": 3
   },
@@ -2911,88 +2911,88 @@
     {
       "old": "OfficeIMO.Word.WordChartSnapshot.HeightPoints",
       "kind": "property",
-      "action": "merge",
-      "new": "OfficeIMO.Word.WordChartSnapshot.Height : OfficeLength",
+      "action": "internalize",
+      "new": null,
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordChartSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The Phase A WordChartInfo projection is now internal legacy chart plumbing; use the documented shared OfficeChartSnapshot route."
     },
     {
       "old": "OfficeIMO.Word.WordChartSnapshot.WidthPoints",
       "kind": "property",
-      "action": "merge",
-      "new": "OfficeIMO.Word.WordChartSnapshot.Width : OfficeLength",
+      "action": "internalize",
+      "new": null,
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordChartSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The Phase A WordChartInfo projection is now internal legacy chart plumbing; use the documented shared OfficeChartSnapshot route."
     },
     {
       "old": "OfficeIMO.Word.WordDocumentTraversal+ListInfo.HangingIndentTwips",
       "kind": "property",
-      "action": "merge",
-      "new": "OfficeIMO.Word.WordDocumentTraversal+ListInfo.HangingIndent : OfficeLength",
+      "action": "internalize",
+      "new": null,
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/Converters/WordDocumentTraversal.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The containing traversal helper and native marker records are internal conversion plumbing. Inspect() is the public structural and resolved-marker projection; raw native measurements are not retained on the public surface."
     },
     {
       "old": "OfficeIMO.Word.WordDocumentTraversal+ListInfo.LeftIndentTwips",
       "kind": "property",
-      "action": "merge",
-      "new": "OfficeIMO.Word.WordDocumentTraversal+ListInfo.LeftIndent : OfficeLength",
+      "action": "internalize",
+      "new": null,
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/Converters/WordDocumentTraversal.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The containing traversal helper and native marker records are internal conversion plumbing. Inspect() is the public structural and resolved-marker projection; raw native measurements are not retained on the public surface."
     },
     {
       "old": "OfficeIMO.Word.WordDocumentTraversal+ListInfo.MarkerCharacterSpacingTwips",
       "kind": "property",
-      "action": "merge",
-      "new": "OfficeIMO.Word.WordDocumentTraversal+ListInfo.MarkerCharacterSpacing : OfficeLength",
+      "action": "internalize",
+      "new": null,
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/Converters/WordDocumentTraversal.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The containing traversal helper and native marker records are internal conversion plumbing. Inspect() is the public structural and resolved-marker projection; raw native measurements are not retained on the public surface."
     },
     {
       "old": "OfficeIMO.Word.WordDrawingLayoutSnapshot.HeightPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordDrawingLayoutInfo.Height : OfficeLength",
+      "new": "OfficeIMO.Word.WordDrawingLayoutInfo.Height : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordDrawingLayoutSnapshot.cs",
       "category": "units",
@@ -3040,7 +3040,7 @@
       "old": "OfficeIMO.Word.WordDrawingLayoutSnapshot.WidthPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordDrawingLayoutInfo.Width : OfficeLength",
+      "new": "OfficeIMO.Word.WordDrawingLayoutInfo.Width : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordDrawingLayoutSnapshot.cs",
       "category": "units",
@@ -3474,81 +3474,81 @@
       "old": "OfficeIMO.Word.WordParagraphSnapshot.IndentEndPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordParagraphSnapshot.IndentEnd : OfficeLength",
+      "new": "OfficeIMO.Word.WordParagraphInfo.IndentEnd : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Applied to the Phase A Info result-model names. Public inspection lengths preserve absence and native precision; the design overrides numeric font-size placeholders."
     },
     {
       "old": "OfficeIMO.Word.WordParagraphSnapshot.IndentFirstLinePoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordParagraphSnapshot.IndentFirstLine : OfficeLength",
+      "new": "OfficeIMO.Word.WordParagraphInfo.IndentFirstLine : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Applied to the Phase A Info result-model names. Public inspection lengths preserve absence and native precision; the design overrides numeric font-size placeholders."
     },
     {
       "old": "OfficeIMO.Word.WordParagraphSnapshot.IndentStartPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordParagraphSnapshot.IndentStart : OfficeLength",
+      "new": "OfficeIMO.Word.WordParagraphInfo.IndentStart : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Applied to the Phase A Info result-model names. Public inspection lengths preserve absence and native precision; the design overrides numeric font-size placeholders."
     },
     {
       "old": "OfficeIMO.Word.WordParagraphSnapshot.SpaceAbovePoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordParagraphSnapshot.SpaceAbove : OfficeLength",
+      "new": "OfficeIMO.Word.WordParagraphInfo.SpaceAbove : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Applied to the Phase A Info result-model names. Public inspection lengths preserve absence and native precision; the design overrides numeric font-size placeholders."
     },
     {
       "old": "OfficeIMO.Word.WordParagraphSnapshot.SpaceBelowPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordParagraphSnapshot.SpaceBelow : OfficeLength",
+      "new": "OfficeIMO.Word.WordParagraphInfo.SpaceBelow : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Applied to the Phase A Info result-model names. Public inspection lengths preserve absence and native precision; the design overrides numeric font-size placeholders."
     },
     {
       "old": "OfficeIMO.Word.WordParagraphStyleDefinition.FontSizePoints",
@@ -3618,17 +3618,17 @@
       "old": "OfficeIMO.Word.WordRunSnapshot.FontSizePoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordRunSnapshot.FontSize : double (points)",
+      "new": "OfficeIMO.Word.WordRunInfo.FontSize : OfficeLength?",
       "reason": "Parameter and property names never carry a unit suffix; font sizes stay numeric points.",
       "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Applied to the Phase A Info result-model names. Public inspection lengths preserve absence and native precision; the design overrides numeric font-size placeholders."
     },
     {
       "old": "OfficeIMO.Word.WordSectionColumn(int widthTwips, int? spaceAfterTwips = null)",
@@ -3682,145 +3682,145 @@
       "old": "OfficeIMO.Word.WordSectionSnapshot.ColumnSpacingPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordSectionSnapshot.ColumnSpacing : OfficeLength",
+      "new": "OfficeIMO.Word.WordSectionInfo.ColumnSpacing : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Applied to the Phase A Info result-model names. Public inspection lengths preserve absence and native precision; the design overrides numeric font-size placeholders."
     },
     {
       "old": "OfficeIMO.Word.WordSectionSnapshot.FooterMarginPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordSectionSnapshot.FooterMargin : OfficeLength",
+      "new": "OfficeIMO.Word.WordSectionInfo.FooterMargin : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Applied to the Phase A Info result-model names. Public inspection lengths preserve absence and native precision; the design overrides numeric font-size placeholders."
     },
     {
       "old": "OfficeIMO.Word.WordSectionSnapshot.HeaderMarginPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordSectionSnapshot.HeaderMargin : OfficeLength",
+      "new": "OfficeIMO.Word.WordSectionInfo.HeaderMargin : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Applied to the Phase A Info result-model names. Public inspection lengths preserve absence and native precision; the design overrides numeric font-size placeholders."
     },
     {
       "old": "OfficeIMO.Word.WordSectionSnapshot.MarginBottomPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordSectionSnapshot.MarginBottom : OfficeLength",
+      "new": "OfficeIMO.Word.WordSectionInfo.MarginBottom : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Applied to the Phase A Info result-model names. Public inspection lengths preserve absence and native precision; the design overrides numeric font-size placeholders."
     },
     {
       "old": "OfficeIMO.Word.WordSectionSnapshot.MarginLeftPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordSectionSnapshot.MarginLeft : OfficeLength",
+      "new": "OfficeIMO.Word.WordSectionInfo.MarginLeft : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Applied to the Phase A Info result-model names. Public inspection lengths preserve absence and native precision; the design overrides numeric font-size placeholders."
     },
     {
       "old": "OfficeIMO.Word.WordSectionSnapshot.MarginRightPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordSectionSnapshot.MarginRight : OfficeLength",
+      "new": "OfficeIMO.Word.WordSectionInfo.MarginRight : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Applied to the Phase A Info result-model names. Public inspection lengths preserve absence and native precision; the design overrides numeric font-size placeholders."
     },
     {
       "old": "OfficeIMO.Word.WordSectionSnapshot.MarginTopPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordSectionSnapshot.MarginTop : OfficeLength",
+      "new": "OfficeIMO.Word.WordSectionInfo.MarginTop : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Applied to the Phase A Info result-model names. Public inspection lengths preserve absence and native precision; the design overrides numeric font-size placeholders."
     },
     {
       "old": "OfficeIMO.Word.WordSectionSnapshot.PageHeightPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordSectionSnapshot.PageHeight : OfficeLength",
+      "new": "OfficeIMO.Word.WordSectionInfo.PageHeight : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Applied to the Phase A Info result-model names. Public inspection lengths preserve absence and native precision; the design overrides numeric font-size placeholders."
     },
     {
       "old": "OfficeIMO.Word.WordSectionSnapshot.PageWidthPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordSectionSnapshot.PageWidth : OfficeLength",
+      "new": "OfficeIMO.Word.WordSectionInfo.PageWidth : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Applied to the Phase A Info result-model names. Public inspection lengths preserve absence and native precision; the design overrides numeric font-size placeholders."
     },
     {
       "old": "OfficeIMO.Word.WordShapeGroupItem.HeightPt",
@@ -3890,17 +3890,17 @@
       "old": "OfficeIMO.Word.WordTabStopSnapshot.PositionPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordTabStopSnapshot.Position : OfficeLength",
+      "new": "OfficeIMO.Word.WordTabStopInfo.Position : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Applied to the Phase A Info result-model names. Public inspection lengths preserve absence and native precision; the design overrides numeric font-size placeholders."
     },
     {
       "old": "OfficeIMO.Word.WordTableCell.MarginBottomCentimeters",
@@ -6389,6 +6389,66 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "The complete input is checked for row count, negative values and native integer overflow before any row is changed. Values are rounded at the existing row serialization boundary; null removes a constraint. Native iWork tests, smoke consumers and the Word table example are migrated. Word native geometry/SmartArt closure passes 66 cases; iWork boundary closure passes 2665 cases. The iWork NativePagesBorderSmoke consumer also adopts the previously migrated WordTableWidth and typed grid contract."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocumentTraversal",
+      "new": null,
+      "kind": "type",
+      "action": "internalize",
+      "category": "visibility",
+      "file": "OfficeIMO.Word/Converters/WordDocumentTraversal.cs",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "Keep cross-assembly native conversion plumbing and duplicate legacy projections internal; WordDocument.Sections and WordDocument.Inspect() is the documented public route.",
+      "replacement": "WordDocument.Sections and WordDocument.Inspect()"
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.TryGetSnapshot(out WordChartInfo snapshot)",
+      "new": null,
+      "kind": "method",
+      "action": "internalize",
+      "category": "visibility",
+      "file": "OfficeIMO.Word/WordChart.Snapshot.cs",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "Keep cross-assembly native conversion plumbing and duplicate legacy projections internal; WordChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot) is the documented public route.",
+      "replacement": "WordChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot)"
+    },
+    {
+      "old": "OfficeIMO.Word.WordChartInfo",
+      "new": null,
+      "kind": "type",
+      "action": "internalize",
+      "category": "visibility",
+      "file": "OfficeIMO.Word/WordChartSnapshot.cs",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "Keep cross-assembly native conversion plumbing and duplicate legacy projections internal; OfficeChartSnapshot is the documented public route.",
+      "replacement": "OfficeChartSnapshot"
+    },
+    {
+      "old": "OfficeIMO.Word.WordChartData",
+      "new": null,
+      "kind": "type",
+      "action": "internalize",
+      "category": "visibility",
+      "file": "OfficeIMO.Word/WordChartSnapshot.cs",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "Keep cross-assembly native conversion plumbing and duplicate legacy projections internal; OfficeChartData is the documented public route.",
+      "replacement": "OfficeChartData"
+    },
+    {
+      "old": "OfficeIMO.Word.WordChartSnapshotKind",
+      "new": null,
+      "kind": "enum",
+      "action": "internalize",
+      "category": "visibility",
+      "file": "OfficeIMO.Word/WordChartSnapshot.cs",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "Keep cross-assembly native conversion plumbing and duplicate legacy projections internal; OfficeChartType is the documented public route.",
+      "replacement": "OfficeChartType"
     }
   ],
   "packageMoves": [
@@ -7598,6 +7658,29 @@
         "OfficeIMO.Word.GoogleDocs/GoogleDocsBatchCompiler.cs",
         "OfficeIMO.Word.GoogleDocs/GoogleDocsDiffPlan.cs",
         "OfficeIMO.Word.Tests/Word.Inspection.PhysicalLengths.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "action": "internalize",
+      "applied": "phase-b-applied",
+      "old": "WordDocumentTraversal, its native marker records, WordChartInfo/WordChartData/WordChartSnapshotKind and WordChart.TryGetSnapshot.",
+      "new": "Use WordDocument.Sections or Inspect() for public traversal and WordChart.TryGetOfficeSnapshot(out OfficeChartSnapshot) for supported chart snapshots.",
+      "reason": "Cross-assembly conversion kernels and the older duplicate chart projection are implementation plumbing. Existing adapters retain internal access; the example uses document.Sections and no new public alias or duplicate projection is added.",
+      "note": "Three test/smoke friends retain existing native semantic coverage. Remove the reflection test that only pinned the former public native ListInfo constructor; existing marker/rendering and chart snapshot behavior tests remain.",
+      "files": [
+        "OfficeIMO.Word/Converters/WordDocumentTraversal.ListCounters.cs",
+        "OfficeIMO.Word/Converters/WordDocumentTraversal.ListTabs.cs",
+        "OfficeIMO.Word/Converters/WordDocumentTraversal.MarkerFormatting.cs",
+        "OfficeIMO.Word/Converters/WordDocumentTraversal.NoteListMarkers.cs",
+        "OfficeIMO.Word/Converters/WordDocumentTraversal.cs",
+        "OfficeIMO.Word/WordChart.Snapshot.cs",
+        "OfficeIMO.Word/WordChartSnapshot.cs",
+        "OfficeIMO.Word/PublicAPI.Shipped.txt",
+        "OfficeIMO.Word/OfficeIMO.Word.csproj",
+        "OfficeIMO.Examples/Converters/Shared/Shared.Helpers.cs",
+        "OfficeIMO.Word.Tests/Word.Security.AllSeverityBatch21.cs",
+        "OfficeIMO.Markup.Tests/OfficeMarkupWordChartTests.cs"
       ]
     }
   ],

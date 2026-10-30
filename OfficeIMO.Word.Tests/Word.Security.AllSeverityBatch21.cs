@@ -1,4 +1,3 @@
-using System.Reflection;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
@@ -8,21 +7,6 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
-    [Fact]
-    public void ListInfoUsesOfficeOwnedEnumConstructorSignature() {
-        ConstructorInfo? constructor = typeof(WordDocumentTraversal.ListInfo).GetConstructor(new[] {
-            typeof(int),
-            typeof(bool),
-            typeof(int),
-            typeof(WordNumberFormat?),
-            typeof(string),
-            typeof(int?),
-            typeof(int?)
-        });
-
-        Assert.NotNull(constructor);
-    }
-
     [Fact]
     public void ContinuousSectionWithExplicitRestartStartsNewPdfNumberingGroup() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeContinuousSectionRestart.docx");

@@ -2,7 +2,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word {
-    public static partial class WordDocumentTraversal {
+    internal static partial class WordDocumentTraversal {
         private const int MaximumListMarkerLength = 4096;
         private const int MaximumDocumentListMarkerCharacters = 4 * 1024 * 1024;
 

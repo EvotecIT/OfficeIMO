@@ -6,7 +6,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Supported chart kinds for a dependency-free Word chart snapshot.
     /// </summary>
-    public enum WordChartSnapshotKind {
+    internal enum WordChartSnapshotKind {
         /// <summary>Clustered vertical column chart.</summary>
         ClusteredColumn,
         /// <summary>Stacked vertical column chart.</summary>
@@ -44,7 +44,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Category and series data extracted from cached Word chart data.
     /// </summary>
-    public sealed class WordChartData {
+    internal sealed class WordChartData {
         internal WordChartData(IReadOnlyList<string> categories, IReadOnlyList<WordChartSeries> series) {
             Categories = new ReadOnlyCollection<string>(new List<string>(categories ?? Array.Empty<string>()));
             Series = new ReadOnlyCollection<WordChartSeries>(new List<WordChartSeries>(series ?? Array.Empty<WordChartSeries>()));
@@ -60,7 +60,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Dependency-free Word chart snapshot suitable for export and visual fallback renderers.
     /// </summary>
-    public sealed class WordChartInfo {
+    internal sealed class WordChartInfo {
         internal WordChartInfo(string name, string? title, WordChartSnapshotKind chartKind, WordChartData data, double widthPoints, double heightPoints,
             OfficeIMO.Drawing.OfficeChartRadialLayout? radialLayout = null) {
             Name = name ?? string.Empty;

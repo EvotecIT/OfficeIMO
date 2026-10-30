@@ -103,6 +103,9 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Word.Tests" />
+        <InternalsVisibleTo Include="OfficeIMO.IWork.Tests" />
+        <InternalsVisibleTo Include="OfficeIMO.IWork.AotSmoke" />
+        <InternalsVisibleTo Include="OfficeIMO.Markup.Tests" />
         <InternalsVisibleTo Include="PSWriteOffice" />
         <InternalsVisibleTo Include="OfficeIMO.Markdown.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />

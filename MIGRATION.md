@@ -29,6 +29,13 @@ gutters are rejected before arrangement. Read group bounds from the existing
 
 ## Word inspection lengths
 
+`WordDocumentTraversal` and its native marker records become internal.
+Use `document.Sections` for authoring traversal or `document.Inspect()` for
+detached structure and resolved list markers. The older chart projection
+(`TryGetSnapshot`, `WordChartInfo`, `WordChartData`, `WordChartSnapshotKind`)
+also becomes internal. Use `chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot)`
+for the supported shared chart data and presentation contract.
+
 `WordDocument.Inspect()` returns physical lengths as `OfficeLength`.
 Read `PageWidth`, `PageHeight`, `MarginTop/Bottom/Left/Right`, `HeaderMargin`,
 `FooterMargin`, `ColumnSpacing`, `IndentStart/End/FirstLine`, `SpaceAbove/Below`
@@ -36,6 +43,8 @@ and tab `Position` without the former `Points` suffix. Table snapshots expose
 `ColumnWidths`. Run snapshots have one nullable `FontSize`, retaining half-point
 precision; `FontSizePoints` and the truncated integer twin are removed.
 Inline-image `Width` and `Height` are lengths rather than pixel numbers.
+Paragraph and cell inspection border `Size`, and paragraph border `Space`,
+also become nullable lengths instead of native eighth-point or point integers.
 
 Replace `section.PageWidthPoints` with `section.PageWidth?.ToPoints()` when a
 numeric point value is needed. Use `image.Width?.ToPixels()` at a pixel boundary.
