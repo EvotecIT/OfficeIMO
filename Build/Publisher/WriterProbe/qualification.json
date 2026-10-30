@@ -1,0 +1,198 @@
+{
+  "schema": "officeimo.publisher.native-writer-feasibility.v1",
+  "scope": "Opt-in template-free modern-generation one-page writer feasibility; no public native creation/save API or general producer/fidelity qualification.",
+  "generationSignature": "E8 AC 2C 00",
+  "command": [
+    "create",
+    "combined",
+    "candidate-combined.pub",
+    "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Image/native-image.png"
+  ],
+  "inputImage": {
+    "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Image/native-image.png",
+    "sha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483",
+    "comparison": "RGBA composited over white",
+    "rgbSha256": "5d0e18b939b2c9ea9cfa8a34cb10d593d46df4401d3f6eb78429d179a25219a1"
+  },
+  "candidate": {
+    "sha256": "37e0e91a36c900f2b1a7c73fe3cb606b477464787e60a70375d8985ebd520bcf",
+    "pageCount": 1,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "shapeCount": 3,
+    "storyCount": 2,
+    "visibleText": "Plain 12 | Bold 18 | Plain 12",
+    "shapes": [
+      {
+        "kind": "textBox",
+        "nativeType": 17,
+        "rect": [
+          72,
+          72,
+          360,
+          180
+        ],
+        "text": "Plain 12 | Bold 18 | Plain 12\r"
+      },
+      {
+        "kind": "rectangle",
+        "nativeType": 1,
+        "rect": [
+          72,
+          216,
+          216,
+          288
+        ],
+        "text": "\r"
+      },
+      {
+        "kind": "picture",
+        "nativeType": 13,
+        "rect": [
+          330,
+          216,
+          426,
+          312
+        ],
+        "text": null
+      }
+    ],
+    "visibleRuns": [
+      {
+        "text": "Plain 12 | ",
+        "family": "Arial",
+        "size": 12,
+        "bold": false
+      },
+      {
+        "text": "Bold 18",
+        "family": "Arial",
+        "size": 18,
+        "bold": true
+      },
+      {
+        "text": " | Plain 12",
+        "family": "Arial",
+        "size": 12,
+        "bold": false
+      }
+    ]
+  },
+  "nativeProducer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0.20527.20088",
+    "executableSha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed",
+    "automationSecurity": 3
+  },
+  "observations": {
+    "qualifiedOperations": [
+      "ReadOnlyOpen",
+      "InitialInventory",
+      "InitialPdfExport",
+      "NativeSaveAs",
+      "ReadOnlyReopen",
+      "ResavedInventory",
+      "ResavedPdfExport"
+    ],
+    "sourceUnchanged": true,
+    "nativeTextAndGeometryBeforeAndAfter": true,
+    "pdfCharacterStylesBeforeAndAfter": true,
+    "pdfCharacterOriginsWithin0_1Point": true,
+    "pdfPicturePixelsBeforeAndAfter": true,
+    "pdfObjectGeometryBeforeAndAfter": true,
+    "nativePdfRendersVisuallyInspected": [
+      "initial",
+      "resaved"
+    ],
+    "repair": "Unassessed: successful COM operations do not expose native repair; UI capture was unavailable."
+  },
+  "nativeArtifacts": [
+    {
+      "name": "candidate-input.pub",
+      "sha256": "37e0e91a36c900f2b1a7c73fe3cb606b477464787e60a70375d8985ebd520bcf"
+    },
+    {
+      "name": "native-initial-inventory.json",
+      "sha256": "0de213b1a7757cf699973fe410a50561b41327efdf8b52bd096d9bc7cf1bffa8"
+    },
+    {
+      "name": "native-resaved.pub",
+      "sha256": "6e80f09413ce90245974d50cb284e45e8ea83aec1c4cfabc28434528b3c28f2a"
+    },
+    {
+      "name": "native-resaved-inventory.json",
+      "sha256": "9542a2c307a4008a3f703d89b84085517aec1cc1554c8052192a00f9d8430b60"
+    },
+    {
+      "name": "native-initial.pdf",
+      "sha256": "f5eeef0d6ac48013f7474e6af4002ef08c23dd31c56b9f4d7ab95a4d1ee90e26"
+    },
+    {
+      "name": "native-resaved.pdf",
+      "sha256": "a2156bd168a4d97256b6e4efa0a2e9b9a77c16370d87ca98817657fdb4a0923e"
+    }
+  ],
+  "sourceFiles": [
+    {
+      "path": "CandidateCases.cs",
+      "sha256": "ab04f981980be5480a59f8c95637dfa6a0ca880a541f6698f009b9bf0d14b1f8"
+    },
+    {
+      "path": "CandidateColorScheme.cs",
+      "sha256": "42899b57a1649069d9664c56a78ca67097021f0e2229a6db7e9f301c94607648"
+    },
+    {
+      "path": "CandidateMasterGeometry.cs",
+      "sha256": "24f7b291807ab1e6590b0ebf7f8f84bc2d656dfe46ce98160dbcc3bb58d551a2"
+    },
+    {
+      "path": "CandidateOfficeArt.cs",
+      "sha256": "894ccf19c519c195e0e95da72a1ee1172dbeec1be80c2c25f9e10521e2e8b787"
+    },
+    {
+      "path": "CandidatePublicationSpec.cs",
+      "sha256": "5e5437ab11b7e6cbdd29db52e795f1e8b600d9f78fc7db2f128a2cde51cd18f6"
+    },
+    {
+      "path": "CandidateStyledText.cs",
+      "sha256": "97794f5314a0a77fc219b1476267ea2284f7139260db5f8b5ffc3298c10593d9"
+    },
+    {
+      "path": "CandidateWriter.cs",
+      "sha256": "e2ae0a6664f2797d0bb9ecaace20c69d9052bf270e88ee7682baafa6efbfb387"
+    },
+    {
+      "path": "NativeEncoding.cs",
+      "sha256": "3b57e4dacd9bd06b41f2992e64ee6120b629aebc47e25d72b2a4bb1d88a4362e"
+    },
+    {
+      "path": "NativePublicationGraph.cs",
+      "sha256": "593ee70c3e0258a117ddbc39dd2685bd4e273f4feddd7aaf28bb1fd87bc942ff"
+    },
+    {
+      "path": "NativeSchemaPrefix.cs",
+      "sha256": "73bf4ca8d189f1d90e27fbbb140fcad2369f1972306d33f2baadd62b97520eda"
+    },
+    {
+      "path": "Program.cs",
+      "sha256": "d06500e99d0e28d94c804bf548e5ef41d269ac13d3e16be625b0a201bacfdc2a"
+    },
+    {
+      "path": "QuillCandidate.cs",
+      "sha256": "3f877763234e7396ca73adf452be0031dee11237c005f2322fc18229d482f8fd"
+    },
+    {
+      "path": "QuillCharacterFormatting.cs",
+      "sha256": "26f1e8d34e29450022136a7fa82e7528e20134345c6ce1cf680a50977bcc7c14"
+    },
+    {
+      "path": "QuillDefaultLibraries.cs",
+      "sha256": "a099a8340688cd359f77da75a71074f8c163c4ac726c1e3d6e2dce195851b491"
+    },
+    {
+      "path": "QuillTextFormatting.cs",
+      "sha256": "06f20f9f8fbf7796a7fed2c8842ad8d1d9dfed1031262391f0e9d931e5ce2335"
+    }
+  ],
+  "reproduction": "Build the opt-in probe with the pinned SDK, run the recorded create command with the repository image, then Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full on an isolated copy. Compare native inventories and both PDFs against the explicit candidate expectations. Native artifact hashes identify this observed run; a subsequent native save can include different metadata."
+}

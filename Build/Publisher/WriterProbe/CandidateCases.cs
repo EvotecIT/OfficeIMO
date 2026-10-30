@@ -5,7 +5,7 @@ internal static class CandidateCases {
     private static readonly CandidatePlacement DefaultPlacement = new(72, 72, 288, 108);
 
     internal static CandidatePublicationSpec Create(string kind, string? value) {
-        if (kind is not ("blank" or "text" or "styled-text" or "shape" or "image")) throw new ArgumentException("Unknown candidate kind.");
+        if (kind is not ("blank" or "text" or "styled-text" or "shape" or "image" or "combined")) throw new ArgumentException("Unknown candidate kind.");
         if (kind == "styled-text" && value != null) throw new ArgumentException("The styled-text case uses its fixed three-run sample.");
         CandidateObjectSpec[] objects = kind switch {
             "blank" => Array.Empty<CandidateObjectSpec>(),
@@ -14,6 +14,11 @@ internal static class CandidateCases {
             "styled-text" => new[] { new CandidateObjectSpec(CandidateObjectKind.TextBox, DefaultPlacement,
                 CandidateStorySpec.Styled(CandidateStyledText.Create())) },
             "shape" => new[] { new CandidateObjectSpec(CandidateObjectKind.Rectangle, DefaultPlacement, CandidateStorySpec.Plain("\r")) },
+            "combined" => new[] {
+                new CandidateObjectSpec(CandidateObjectKind.TextBox, DefaultPlacement, CandidateStorySpec.Styled(CandidateStyledText.Create())),
+                new CandidateObjectSpec(CandidateObjectKind.Rectangle, new CandidatePlacement(72, 216, 144, 72), CandidateStorySpec.Plain("\r")),
+                new CandidateObjectSpec(CandidateObjectKind.Picture, new CandidatePlacement(330, 216, 96, 96), Image: ReadImage(value))
+            },
             _ => new[] { new CandidateObjectSpec(CandidateObjectKind.Picture, DefaultPlacement, Image: ReadImage(value)) }
         };
         return new CandidatePublicationSpec(612 * 12700, 792 * 12700, objects);

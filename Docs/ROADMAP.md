@@ -873,8 +873,9 @@ native oracle or unresolved writer holds its dependent criteria and stays visibl
 
 #### PUB00 — Native writer feasibility and comparison corpus
 
-- [ ] Identify the minimum modern-generation stream/storage graph, record relationships, text/style indexes and required metadata using controlled native differences and the existing reader. Reuse the shared compound writer; do not copy a seed publication or hide opaque seed streams inside a new writer.
-- [ ] Create a minimal PUB from scratch with one page, styled text, a shape and an embedded image. Open the exact bytes in Microsoft Publisher without repair before native resave; verify page geometry, content, native resave/reopen and PDF export independently. Keep any unaccepted candidate internal to the opt-in feasibility tooling.
+Use the [native codec structure and qualification record](../Build/Publisher/WriterProbe/README.md#native-codec-structure) as the bounded modern-generation writer baseline.
+
+- [ ] Establish repair-free opening of the exact generated one-page publication containing styled text, a shape and an embedded image before native resave, through direct native UI observation or an independently qualified native repair-path observation. Successful COM open, native save/reopen and PDF export do not establish that no repair occurred. Keep the candidate internal to the opt-in feasibility tooling until this acceptance criterion is satisfied.
 
 #### PUB01 — Editable publication model
 
