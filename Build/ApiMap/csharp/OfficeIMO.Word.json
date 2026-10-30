@@ -8179,6 +8179,18 @@
         "OfficeIMO.Word/WordBackground.cs"
       ],
       "note": "Pass typed lengths directly to AddImage; convert once to pixels only for the internal background WordImage constructor. Existing numeric consumers wrap Pixels. Intrinsic/null/aspect sizing, caller-stream lifetime, control IDs and replacement order remain; an existing saved-background test covers exact native EMUs and mixed units."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "RTF fixtures require TableGrid for a newly authored table and hard-code Consolas font ID 1.",
+      "new": "Expect OfficeIMOModern for the newly authored table and verify the unique Consolas record through model, serialized font table, run reference and Word readback.",
+      "reason": "Retain neutral imported tables, explicit caller TableGrid overrides and exact authored font/color behavior while allowing current default styles and font inventories.",
+      "files": [
+        "OfficeIMO.Rtf.Tests/Rtf/RtfWordTableImportDefaultsTests.cs",
+        "OfficeIMO.Rtf.Tests/Rtf/WordRtfCharacterFormattingTests.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

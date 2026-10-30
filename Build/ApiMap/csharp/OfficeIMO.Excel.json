@@ -11814,6 +11814,17 @@
       "old": "ExcelCellStyleInfo.FontSize, ExcelVisualTextRun.FontSize, ExcelVisualDrawingObject.TextFontSize, ExcelConditionalFormattingInfo.DifferentialFontSize",
       "new": "OfficeLength? font-size properties",
       "applied": "phase-b-applied"
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "The async-only image contract test looks for AddImageFromUrlAsync.",
+      "new": "Check the public AddImageAsync(Uri, ...) overload and reject synchronous AddImage(Uri, ...).",
+      "reason": "The consolidated AddImage naming keeps remote network acquisition asynchronous; header/footer/template/report async policies remain checked.",
+      "files": [
+        "OfficeIMO.Shared.Tests/PublicApiNamingContracts.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

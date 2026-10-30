@@ -204,7 +204,10 @@ public sealed class PublicApiNamingContracts {
         MethodInfo[] composerMethods = typeof(OfficeIMO.Excel.ExcelReportBuilder).GetMethods(
             BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 
-        Assert.Contains(sheetMethods, static method => method.Name == "AddImageFromUrlAsync");
+        Assert.Contains(sheetMethods, static method =>
+            method.Name == "AddImageAsync" && method.GetParameters().Any(parameter => parameter.ParameterType == typeof(Uri)));
+        Assert.DoesNotContain(sheetMethods, static method =>
+            method.Name == "AddImage" && method.GetParameters().Any(parameter => parameter.ParameterType == typeof(Uri)));
         Assert.Contains(sheetMethods, static method => method.Name == "SetHeaderImageFromUrlAsync");
         Assert.Contains(sheetMethods, static method => method.Name == "SetFooterImageFromUrlAsync");
         Assert.DoesNotContain(sheetMethods, static method =>
