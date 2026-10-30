@@ -4364,10 +4364,9 @@ namespace PSWriteOffice.Tests {
         $cleared.Exists | Should -BeFalse
     }
 
-    It 'supports url images and smart hyperlink helpers' {
+    It 'supports local images and smart hyperlink helpers' {
         $path = Join-Path $TestDrive 'DslExcelLinksAndImages.xlsx'
         $imagePath = New-TestOfficeImageFile -Directory $TestDrive
-        $imageUrl = [System.Uri]::new($imagePath).AbsoluteUri
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
@@ -4375,8 +4374,8 @@ namespace PSWriteOffice.Tests {
                 Set-OfficeExcelCell -Address 'B1' -Value 'Host'
                 Set-OfficeExcelSmartHyperlink -Address 'A2' -Url 'https://datatracker.ietf.org/doc/html/rfc7208'
                 Set-OfficeExcelHostHyperlink -Address 'B2' -Url 'https://learn.microsoft.com/office/open-xml/'
-                Add-OfficeExcelImageFromUrl -Address 'D2' -Url $imageUrl -WidthPixels 32 -HeightPixels 32
-                Add-OfficeExcelImage -Address 'E2' -Url $imageUrl -WidthPixels 24 -HeightPixels 24
+                Add-OfficeExcelImage -Address 'D2' -Path $imagePath -WidthPixels 32 -HeightPixels 32
+                Add-OfficeExcelImage -Address 'E2' -Path $imagePath -WidthPixels 24 -HeightPixels 24
             }
         } | Out-Null
 
@@ -4398,6 +4397,22 @@ namespace PSWriteOffice.Tests {
         $sheetXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/worksheets/sheet1.xml'
         $hyperlinks = $sheetXml.SelectNodes("/*[local-name()='worksheet']/*[local-name()='hyperlinks']/*[local-name()='hyperlink']")
         $hyperlinks.Count | Should -Be 2
+    }
+
+    It 'rejects local file URLs in both Excel image URL commands' {
+        $path = Join-Path $TestDrive 'DslExcelFileUrlRejected.xlsx'
+        $imagePath = New-TestOfficeImageFile -Directory $TestDrive
+        $imageUrl = [System.Uri]::new($imagePath).AbsoluteUri
+        New-OfficeExcel -Path $path { Add-OfficeExcelSheet -Name 'Data' } | Out-Null
+
+        $document = Get-OfficeExcel -Path $path
+        try {
+            { Add-OfficeExcelImageFromUrl -Document $document -Sheet 'Data' -Address 'A1' -Url $imageUrl } | Should -Throw '*HTTP or HTTPS*'
+            { Add-OfficeExcelImage -Document $document -Sheet 'Data' -Address 'B1' -Url $imageUrl } | Should -Throw '*HTTP or HTTPS*'
+            $document['Data'].Images.Count | Should -Be 0
+        } finally {
+            $document | Close-OfficeExcel
+        }
     }
 
     It 'supports scaled and range-anchored worksheet images' {

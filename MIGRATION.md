@@ -1,5 +1,12 @@
 # Upgrading OfficeIMO
 
+## PowerShell Excel image URLs
+
+`Add-OfficeExcelImage -Url` and `Add-OfficeExcelImageFromUrl -Url` now accept
+HTTP and HTTPS URLs only. To add a local image, use `Add-OfficeExcelImage -Path`
+with its file path instead of passing a `file:` URL. This keeps local file reads
+behind the explicit path parameter.
+
 ## XML Spreadsheet defined-name limit
 
 XML Spreadsheet import now admits at most 10,000 defined names by default. If
