@@ -171,6 +171,10 @@ namespace OfficeIMO.Excel {
                     int measure = rows.Layout.HasValues ? rowEntry.Measure : columnEntry.Measure;
                     values[dataRow + row, dataColumn + column] = groups.TryGetValue((rowEntry.Node.Id, columnEntry.Node.Id), out var aggregate)
                         ? aggregate[measure].GetValue(functions[measure]) : new ExcelCellData(ExcelCellDataKind.Number, 0d);
+                    // The data field's number format applies to its values, as in a refreshed pivot.
+                    if (measure >= 0 && measure < measures.Length && measures[measure].NumberFormatId?.Value is uint valueFormat && valueFormat != 0U) {
+                        plan.NumberFormatCells[(dataRow + row, dataColumn + column)] = valueFormat;
+                    }
                 }
             }
             plan.Values = values;

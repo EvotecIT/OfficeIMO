@@ -81,7 +81,14 @@ public sealed class PdfHeaderFooterImage {
         Fit = source.Fit;
         Info = source.Info;
         AlternativeText = source.AlternativeText;
+        RestsOnHeaderBaseline = source.RestsOnHeaderBaseline;
     }
+
+    /// <summary>
+    /// When true, a header image stands on the header text baseline, inline with that text, as a
+    /// spreadsheet header picture does. By default a header image hangs below the baseline.
+    /// </summary>
+    internal bool RestsOnHeaderBaseline { get; set; }
 
     internal PdfHeaderFooterImage Clone() => new PdfHeaderFooterImage(this);
 

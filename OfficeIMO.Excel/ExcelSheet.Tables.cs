@@ -555,11 +555,21 @@ namespace OfficeIMO.Excel {
                     bool onlyNumbers = true;
                     for (int row = firstRow + 1; row <= lastSampledRow && onlyNumbers; row++) {
                         Cell? cell = TryGetExistingCell(row, column);
-                        if (cell == null || (cell.CellValue == null && cell.InlineString == null)) continue;
+                        if (cell == null) continue;
                         DocumentFormat.OpenXml.Spreadsheet.CellValues? type = cell.DataType?.Value;
-                        bool numeric = cell.InlineString == null && (type == null ||
+                        bool numericType = type == null ||
                             type == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number ||
-                            type == DocumentFormat.OpenXml.Spreadsheet.CellValues.Date);
+                            type == DocumentFormat.OpenXml.Spreadsheet.CellValues.Date;
+                        bool numeric;
+                        if (cell.CellFormula != null && cell.InlineString == null) {
+                            // A formula without a cached result counts as numeric when the cell
+                            // carries a number format, as calculated money and percentage columns do.
+                            numeric = cell.CellValue != null ? numericType : numericType && (cell.StyleIndex?.Value ?? 0U) != 0U && GetCellStyleByIndex(cell.StyleIndex!.Value).NumberFormatId != 0U;
+                            if (cell.CellValue == null && !numeric) continue;
+                        } else {
+                            if (cell.CellValue == null && cell.InlineString == null) continue;
+                            numeric = cell.InlineString == null && numericType;
+                        }
                         sawNumber |= numeric;
                         onlyNumbers &= numeric;
                     }

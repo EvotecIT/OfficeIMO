@@ -8,11 +8,9 @@ namespace OfficeIMO.Excel.Pdf {
                 page.Size(GetEffectivePageSize(options, pageSetup));
             }
 
-            if (options.Margins.HasValue) {
-                page.Margin(options.Margins.Value);
-            } else if (pageSetup?.Margins != null) {
-                page.Margin(ToPdfMargins(pageSetup.Margins));
-            }
+            // The sheet scene, the header band and the page share one set of margins, so the
+            // body and the running lines line up even when the workbook stores no margins.
+            page.Margin(GetEffectiveMargins(options, pageSetup));
         }
 
         private static bool ShouldApplyPageSize(ExcelPdfExportOptions options, ExcelSheetPageSetup? pageSetup) {

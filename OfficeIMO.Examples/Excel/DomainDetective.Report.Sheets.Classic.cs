@@ -117,6 +117,7 @@ namespace OfficeIMO.Examples.Excel {
 
             // Finish overview
             overview.Finish(autoFitColumns: false);
+            DomainDetectiveReport.SizeSummaryColumns(overview.Sheet, summaryRange);
 
             // Detail sheets (classic)
             foreach (var d in rows) BuildDomainSheet(doc, d);
@@ -199,6 +200,11 @@ namespace OfficeIMO.Examples.Excel {
             if (d.References.Length > 0) s.SectionWithAnchor("References").References(d.References);
 
             s.Finish(autoFitColumns: false);
+            // Label and value columns wide enough for their text, and each domain on one page.
+            foreach ((int column, double width) in new[] { (1, 16d), (2, 30d), (3, 22d), (4, 20d), (5, 12d), (6, 10d) }) {
+                s.Sheet.SetColumnWidth(column, width);
+            }
+            s.Sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 1);
         }
 
         private static List<DomainRow> GenerateFakeData(int count, int seed) {

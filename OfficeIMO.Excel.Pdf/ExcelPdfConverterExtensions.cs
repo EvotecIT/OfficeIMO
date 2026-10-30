@@ -44,6 +44,13 @@ namespace OfficeIMO.Excel.Pdf {
             else pdfOptions.EmbedDefaultFonts = false;
             ApplyWorksheetColumnFontMetrics(document, pdfOptions, options, exportPlans);
             ApplyWorksheetTextLayout(document, pdfOptions, options, exportPlans);
+            // Excel prints header and footer text in the workbook body font unless the text formats it.
+            if (document.GetWorkbookDefaultFontInfo() is OfficeFontInfo bodyFont &&
+                !string.IsNullOrWhiteSpace(bodyFont.FamilyName) &&
+                pdfOptions.TryResolveNamedFontFace(bodyFont.FamilyName, false, false, out _, allowSubstitution: false)) {
+                options.RunningLineFontFamily = bodyFont.FamilyName;
+                options.RunningLineFontSize = bodyFont.Size > 0D ? bodyFont.Size : null;
+            }
             var pdf = PdfCore.PdfDocument.Create(pdfOptions);
             IReadOnlyDictionary<string, string> sheetDestinations = BuildSheetDestinationMap(exportPlans);
             IReadOnlyDictionary<string, string> cellDestinations = BuildCellDestinationMap(exportPlans);

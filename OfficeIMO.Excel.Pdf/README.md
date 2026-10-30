@@ -93,6 +93,8 @@ foreach (OfficeDiagnostic finding in report.Diagnostics) {
 ## What it maps
 
 - Workbook sheets, selected sheet lists, visible used ranges, print areas, page setup, margins, orientation, and worksheet page breaks.
+- A sheet without stored margins prints with Excel's Normal margins: 0.7 inch left and right, 0.75 inch top and bottom, and 0.3 inch header and footer margins. Header and footer text lines up with the sheet's left and right margins. `Margins` or explicit `PdfOptions` margins override this.
+- A single column wider than the printable width prints once, cut at the page edge, rather than continuing on another page.
 - Repeated print-title rows and columns, headers, footers, page/date/time/sheet/workbook tokens, and supported header/footer images.
 - Cell display values, common number formats, fills, font emphasis, alignment, borders, merged cells, links, row heights, column widths, conditional fills/data bars/icons, and table layout primitives. General alignment follows stored cell types: numeric and date values align right, Booleans align center, and text retains its text alignment. Boolean display uses `TRUE` and `FALSE`.
 - Numeric cell text uses the Excel owner's display formatter, including optional decimal placeholders, single-digit scientific mantissas with exponent sign/case/padding, percentage scaling, grouping, negative sections, quoted/escaped numeric literals, literal percent signs, and the `[Red]` format color. Stored numeric precision is preserved before formatting, including values immediately beside a fraction midpoint. Other format colors are not projected. Imported formats use at most four sections; extra sections do not affect display selection.

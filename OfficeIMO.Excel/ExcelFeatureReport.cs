@@ -401,9 +401,10 @@ namespace OfficeIMO.Excel {
                     sparklineDetails.AddRange(sheetSparklines.Select(sparkline => $"{sheet.Name}!{sparkline.CellReference}: sparkline"));
                 }
                 if (isVisibleForDefaultPdfExport) {
-                    pdfUnrenderedPivotCount += sheetPivotCount;
+                    int sheetUnrenderedPivotCount = sheetPivotCount > 0 ? CountPdfUnrenderablePivotTables(excelSheet, worksheetPart) : 0;
+                    pdfUnrenderedPivotCount += sheetUnrenderedPivotCount;
                     pdfUnrenderedSparklineCount += sheetSparklineCount;
-                    if (sheetPivotCount > 0) pdfUnrenderedPivotDetails.Add($"{sheet.Name}: {sheetPivotCount} pivot table(s)");
+                    if (sheetUnrenderedPivotCount > 0) pdfUnrenderedPivotDetails.Add($"{sheet.Name}: {sheetUnrenderedPivotCount} pivot table(s)");
                     if (sheetSparklineCount > 0) {
                         pdfUnrenderedSparklineDetails.AddRange(sheetSparklines.Select(sparkline => $"{sheet.Name}!{sparkline.CellReference}: sparkline"));
                     }
@@ -507,7 +508,7 @@ namespace OfficeIMO.Excel {
             Add(features, "Visualization", "Pivot tables", OfficeFeatureSupportLevel.PartiallyEditable, pivotCount, null,
                 "Source-range pivot creation and inspection are supported, including composable field configuration, filters, calculated fields, grouping metadata, shared-cache source updates, and native slicer/timeline views for supported fields; deeper Excel interoperability remains partial.");
             Add(features, "Visualization", "PDF-unrendered pivot tables", OfficeFeatureSupportLevel.PartiallyEditable, pdfUnrenderedPivotCount, null,
-                "Pivot table metadata is not rendered by the first-party Excel-to-PDF path unless the pivot output is already materialized as ordinary worksheet cells.",
+                "These pivot tables store no output cells and have no pivot cache, so the first-party Excel-to-PDF path cannot calculate them. Pivots with stored output or a cache are printed.",
                 pdfUnrenderedPivotDetails);
             Add(features, "Visualization", "Sparklines", OfficeFeatureSupportLevel.Editable, sparklineCount, null,
                 "Line, column, and win/loss sparklines can be authored.");
@@ -862,6 +863,24 @@ namespace OfficeIMO.Excel {
         private static int CountDescendantsByLocalName(DocumentFormat.OpenXml.OpenXmlElement? root, string localName) {
             if (root == null) return 0;
             return root.Descendants().Count(element => string.Equals(element.LocalName, localName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Pivot tables print when their output is stored as worksheet cells, and the PDF
+        /// exporter calculates the rest from the pivot cache. Only a pivot with neither
+        /// stored output nor a cache stays unrendered.
+        /// </summary>
+        private static int CountPdfUnrenderablePivotTables(ExcelSheet sheet, WorksheetPart worksheetPart) {
+            var withoutCells = new HashSet<string>(sheet.GetPivotTablesWithoutRenderedCells(), StringComparer.Ordinal);
+            int count = 0;
+            foreach (PivotTablePart part in worksheetPart.PivotTableParts) {
+                string? name = part.PivotTableDefinition?.Name?.Value;
+                bool hasCells = name != null && !withoutCells.Contains(name);
+                bool hasCache = part.PivotTableCacheDefinitionPart?.PivotCacheDefinition != null;
+                if (!hasCells && !hasCache) count++;
+            }
+
+            return count;
         }
     }
 }

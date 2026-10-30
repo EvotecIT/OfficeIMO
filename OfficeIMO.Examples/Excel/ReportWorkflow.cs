@@ -71,7 +71,7 @@ namespace OfficeIMO.Examples.Excel {
                     destinationCell: $"A{totalRow + 3}",
                     name: "RevenuePivot",
                     rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Revenue", ExcelPivotDataFunction.Sum, "Total Revenue") },
+                    dataFields: new[] { new ExcelPivotDataField("Revenue", ExcelPivotDataFunction.Sum, "Total Revenue", numberFormat: "#,##0") },
                     pivotStyleName: "PivotStyleMedium9");
 
                 // Fill the {{ReportTitle}} placeholder from an object, then calculate every formula.

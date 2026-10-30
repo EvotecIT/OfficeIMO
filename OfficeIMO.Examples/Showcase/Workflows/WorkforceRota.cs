@@ -7,8 +7,10 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
         internal static void Create(string folder) {
             using var document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
             var sheet = document.AddWorksheet("Rota");
-            sheet.SetColumnWidth(1, 29);
-            for (int column = 2; column <= 7; column++) sheet.SetColumnWidth(column, 22);
+            // Day columns hold one letter; narrow widths keep the rota on one page at full size.
+            sheet.SetColumnWidth(1, 18);
+            for (int column = 2; column <= 6; column++) sheet.SetColumnWidth(column, 9);
+            sheet.SetColumnWidth(7, 12);
             sheet.MergeRange("A1:G1"); sheet.Cell(1, 1, "Weekly support rota");
             sheet.CellFontSize(1, 1, 22); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
             sheet.MergeRange("A2:G2"); sheet.Cell(2, 1, "One assigned shift per day / D = desk / R = remote / - = off");

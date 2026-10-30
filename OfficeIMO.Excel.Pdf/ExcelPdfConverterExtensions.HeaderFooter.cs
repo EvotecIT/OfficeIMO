@@ -10,8 +10,15 @@ namespace OfficeIMO.Excel.Pdf {
 
             PreparedHeaderFooterImages preparedImages = PrepareHeaderFooterImages(headerFooter, sheetName, options);
             PdfCore.PdfPageMargins pageMargins = GetEffectiveMargins(options, pageSetup);
-            double? headerOffset = FitHeaderFooterImagesToMargin(preparedImages, header: true, pageMargins.Top, sheetName, options);
-            double? footerOffset = FitHeaderFooterImagesToMargin(preparedImages, header: false, pageMargins.Bottom, sheetName, options);
+            // Header pictures stand inline on the header line, which starts at the header margin,
+            // so the room they have is the band between the header margin and the sheet.
+            double headerMarginPoints = GetHeaderFooterMarginPoints(pageSetup, header: true);
+            // Keep the line's descent and a small gap clear of the sheet below it.
+            double headerLineClearance = (options.RunningLineFontSize ?? options.PdfOptions?.HeaderFontSize ?? DefaultHeaderFooterFontSize) * 0.25D + 3D;
+            FitHeaderFooterImagesToMargin(preparedImages, header: true, Math.Max(0D, pageMargins.Top - headerMarginPoints - headerLineClearance) + HeaderTextAllowance, sheetName, options);
+            double tallestHeaderImage = new[] { preparedImages.HeaderLeft, preparedImages.HeaderCenter, preparedImages.HeaderRight }
+                .Where(image => image != null).Select(image => image!.HeightPoints).DefaultIfEmpty(0D).Max();
+            double? footerImageOffset = FitHeaderFooterImagesToMargin(preparedImages, header: false, pageMargins.Bottom, sheetName, options);
 
             HeaderFooterZones? headerZones = options.UseWorksheetHeadersAndFooters ? ConvertHeaderFooterZones(headerFooter.HeaderLeft, headerFooter.HeaderCenter, headerFooter.HeaderRight, sheetName, workbookPath, options, "header") : null;
             var firstHeaderZones = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentFirstPage
@@ -23,9 +30,11 @@ namespace OfficeIMO.Excel.Pdf {
             bool hasFirstHeaderVariant = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentFirstPage;
             bool hasEvenHeaderVariant = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentOddEven;
             if (HasAnyText(headerZones) || hasFirstHeaderVariant || hasEvenHeaderVariant || preparedImages.HasHeaderImages) {
+                HeaderFooterLineStyle? headerStyle = WithBodyFont(ResolveSharedHeaderFooterStyle(new[] { headerZones, firstHeaderZones, evenHeaderZones }, sheetName, options, "header"), options);
+                double headerOffset = ResolveHeaderLineOffset(pageMargins.Top, headerMarginPoints, headerStyle?.FontSize ?? options.PdfOptions?.HeaderFontSize, tallestHeaderImage);
                 page.Header(header => {
-                    ApplyHeaderFooterStyle(header, ResolveSharedHeaderFooterStyle(new[] { headerZones, firstHeaderZones, evenHeaderZones }, sheetName, options, "header"));
-                    if (headerOffset.HasValue) header.Offset(headerOffset.Value);
+                    ApplyHeaderFooterStyle(header, headerStyle);
+                    header.Offset(headerOffset);
 
                     if (HasAnyText(headerZones)) {
                         header.Zones(headerZones!.Left, headerZones.Center, headerZones.Right);
@@ -59,9 +68,11 @@ namespace OfficeIMO.Excel.Pdf {
             bool hasFirstFooterVariant = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentFirstPage;
             bool hasEvenFooterVariant = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentOddEven;
             if (HasAnyText(footerZones) || hasFirstFooterVariant || hasEvenFooterVariant || preparedImages.HasFooterImages) {
+                HeaderFooterLineStyle? footerStyle = WithBodyFont(ResolveSharedHeaderFooterStyle(new[] { footerZones, firstFooterZones, evenFooterZones }, sheetName, options, "footer"), options);
+                double footerOffset = ResolveHeaderFooterLineOffset(header: false, pageMargins.Bottom, GetHeaderFooterMarginPoints(pageSetup, header: false), footerStyle?.FontSize ?? options.PdfOptions?.FooterFontSize, footerImageOffset);
                 page.Footer(footer => {
-                    ApplyHeaderFooterStyle(footer, ResolveSharedHeaderFooterStyle(new[] { footerZones, firstFooterZones, evenFooterZones }, sheetName, options, "footer"));
-                    if (footerOffset.HasValue) footer.Offset(footerOffset.Value);
+                    ApplyHeaderFooterStyle(footer, footerStyle);
+                    footer.Offset(footerOffset);
 
                     if (HasAnyText(footerZones)) {
                         footer.Zones(footerZones!.Left, footerZones.Center, footerZones.Right);
@@ -93,18 +104,22 @@ namespace OfficeIMO.Excel.Pdf {
                 bool evenHasImage = HasPicturePlaceholder(evenZone);
                 bool hasSpecificPlaceholder = defaultHasImage || firstHasImage || evenHasImage;
                 if (!hasSpecificPlaceholder || defaultHasImage) {
-                    header.Image(image.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    header.Image(CreateInlineHeaderImage(image, align));
                 }
 
                 if (firstHasImage) {
-                    header.FirstPageImage(image.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    header.FirstPageImage(CreateInlineHeaderImage(image, align));
                 }
 
                 if (evenHasImage) {
-                    header.EvenPagesImage(image.Bytes, image.WidthPoints, image.HeightPoints, align);
+                    header.EvenPagesImage(CreateInlineHeaderImage(image, align));
                 }
             }
         }
+
+        // Excel sets a header picture inline with the section's text, standing on its baseline.
+        private static PdfCore.PdfHeaderFooterImage CreateInlineHeaderImage(PreparedHeaderFooterImage image, PdfCore.PdfAlign align) =>
+            new PdfCore.PdfHeaderFooterImage(image.Bytes, image.WidthPoints, image.HeightPoints, align) { RestsOnHeaderBaseline = true };
 
         private static void AddFooterImage(PdfCore.PdfFooterBuilder footer, PreparedHeaderFooterImage? image, PdfCore.PdfAlign align, string defaultZone, string firstZone, string evenZone) {
             if (image != null) {
@@ -603,6 +618,61 @@ namespace OfficeIMO.Excel.Pdf {
                    (value >= 'a' && value <= 'f') ||
                    (value >= 'A' && value <= 'F');
         }
+
+        /// <summary>Gives header or footer text without its own font the workbook body font.</summary>
+        private static HeaderFooterLineStyle? WithBodyFont(HeaderFooterLineStyle? style, ExcelPdfExportOptions options) {
+            if (string.IsNullOrWhiteSpace(options.RunningLineFontFamily) ||
+                options.PdfOptions?.HeaderFontFamily != null || options.PdfOptions?.FooterFontFamily != null) return style;
+            // Text with its own font, or bold or italic text, keeps the existing font mapping.
+            if (style != null && (!string.IsNullOrWhiteSpace(style.FontFamilyName) || style.FontFamily.HasValue || style.Bold || style.Italic)) return style;
+            return new HeaderFooterLineStyle {
+                FontSize = style?.FontSize ?? options.RunningLineFontSize,
+                Color = style?.Color,
+                FontFamilyName = options.RunningLineFontFamily
+            };
+        }
+
+        private static double GetHeaderFooterMarginPoints(ExcelSheetPageSetup? pageSetup, bool header) {
+            double inches = header ? pageSetup?.Margins?.Header ?? ExcelNormalHeaderFooterMarginInches : pageSetup?.Margins?.Footer ?? ExcelNormalHeaderFooterMarginInches;
+            if (double.IsNaN(inches) || double.IsInfinity(inches) || inches < 0D) inches = ExcelNormalHeaderFooterMarginInches;
+            return inches * 72D;
+        }
+
+        /// <summary>
+        /// Places the running line the way Excel does: the header text starts at the header
+        /// margin below the top edge and the footer text ends at the footer margin above the
+        /// bottom edge. The PDF line offset is measured from the body edge to the baseline.
+        /// A picture that needs more room than that keeps its larger offset.
+        /// </summary>
+        private static double ResolveHeaderFooterLineOffset(bool header, double bodyMargin, double headerFooterMargin, double? fontSize, double? imageOffset) {
+            double size = fontSize is double value && value > 0D ? value : DefaultHeaderFooterFontSize;
+            // Typical ascent and descent of office text faces, as a share of the font size.
+            double baselineFromEdge = headerFooterMargin + size * (header ? 0.8D : 0.2D);
+            double offset = bodyMargin - baselineFromEdge;
+            if (imageOffset.HasValue) offset = Math.Max(offset, imageOffset.Value);
+            double textAllowance = header ? size * 0.8D : size * 0.2D;
+            double maximum = Math.Max(0D, bodyMargin - textAllowance);
+            if (offset > maximum) offset = maximum;
+            return Math.Max(0D, offset);
+        }
+
+        /// <summary>Room left above a header baseline for the text's ascent, in points.</summary>
+        private const double HeaderTextAllowance = 10D;
+
+        /// <summary>
+        /// The header line starts at the header margin and is as tall as its tallest picture or
+        /// its text ascent; the pictures stand on its baseline beside the text.
+        /// </summary>
+        private static double ResolveHeaderLineOffset(double bodyMargin, double headerMargin, double? fontSize, double tallestImage) {
+            double size = fontSize is double value && value > 0D ? value : DefaultHeaderFooterFontSize;
+            double baselineFromEdge = headerMargin + Math.Max(size * 0.8D, tallestImage);
+            double offset = bodyMargin - baselineFromEdge;
+            double maximum = Math.Max(0D, bodyMargin - size * 0.8D);
+            return Math.Max(0D, Math.Min(maximum, offset));
+        }
+
+        /// <summary>Font size of a header or footer line without explicit formatting, in points.</summary>
+        private const double DefaultHeaderFooterFontSize = 9D;
 
         /// <summary>Default distance of the running header and footer lines from the body, in points.</summary>
         private const double DefaultHeaderFooterOffset = 18D;

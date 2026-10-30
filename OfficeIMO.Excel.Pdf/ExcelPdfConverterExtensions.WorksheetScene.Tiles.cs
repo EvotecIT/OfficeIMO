@@ -69,6 +69,12 @@ namespace OfficeIMO.Excel.Pdf {
                 ? GetUnmappedSceneBreakPositions(plan, chunk, columnWidths, rowHeights, columns: false)
                 : Array.Empty<double>();
             var horizontal = CreateSceneAxisWindows(bounds.Left, right, tileWidth, columnBreaks, scale);
+            // A single column wider than the page prints once, cut at the page edge, as in a
+            // spreadsheet application. Continuing it on another page would only show the cut
+            // ends of words.
+            if (horizontal.Count > 1 && chunk.ColumnCount == 1 && rects.Count == 1 && columnBreaks.Count == 0) {
+                horizontal = new[] { horizontal[0] };
+            }
             var vertical = CreateSceneAxisWindows(bounds.Top, bottom, tileHeight, rowBreaks, scale);
             var tiles = new List<WorksheetSceneTile>();
             void Add((double Start, double Length) x, (double Start, double Length) y) {

@@ -13,6 +13,7 @@ namespace OfficeIMO.Excel.Pdf {
         internal CancellationToken CancellationToken { get; set; }
 
         private int _headerRowCount = 1;
+        private bool _headerRowCountSpecified;
         private int? _maxRowsPerSheet;
         private long _maxMaterializedWorksheetCells = 1_000_000;
         private PdfCore.PdfCreateOptions? _pdfOptions;
@@ -35,6 +36,12 @@ namespace OfficeIMO.Excel.Pdf {
         /// The report is cleared at the start of each export.
         /// </summary>
         internal PdfCore.PdfConversionReport Report { get; private set; } = new PdfCore.PdfConversionReport();
+
+        /// <summary>Workbook body font used for unformatted header and footer text during one export.</summary>
+        internal string? RunningLineFontFamily { get; set; }
+
+        /// <summary>Workbook body font size used for unformatted header and footer text during one export.</summary>
+        internal double? RunningLineFontSize { get; set; }
 
         /// <summary>
         /// PDF creation options passed to the first-party PDF engine. The options are cloned before export.
@@ -217,8 +224,12 @@ namespace OfficeIMO.Excel.Pdf {
                 }
 
                 _headerRowCount = value;
+                _headerRowCountSpecified = true;
             }
         }
+
+        /// <summary>True when the caller set <see cref="HeaderRowCount"/> instead of keeping the default.</summary>
+        internal bool HeaderRowCountSpecified => _headerRowCountSpecified;
 
         /// <summary>
         /// Optional maximum number of used-range rows exported from each sheet.

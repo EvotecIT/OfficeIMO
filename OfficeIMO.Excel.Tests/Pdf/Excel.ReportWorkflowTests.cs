@@ -55,8 +55,9 @@ public partial class Excel {
                 Assert.True(report.Can(ExcelPreflightCapability.BindTemplate));
                 Assert.True(report.Can(ExcelPreflightCapability.CalculateFormulas));
                 Assert.True(report.Can(ExcelPreflightCapability.UseCachedFormulaValues));
-                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
-                Assert.Contains("PDF-unrendered pivot tables", string.Join(Environment.NewLine,
+                // SaveAsPdf calculates the pivot from its cache, so the preflight lets the export through.
+                Assert.True(report.Can(ExcelPreflightCapability.ExportPdfReport));
+                Assert.DoesNotContain("PDF-unrendered pivot tables", string.Join(Environment.NewLine,
                     report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport)));
 
                 document.Save();
