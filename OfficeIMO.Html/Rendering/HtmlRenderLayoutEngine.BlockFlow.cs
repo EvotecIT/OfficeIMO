@@ -44,7 +44,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         includeGeneratedBefore &= IncludeColumnGeneratedContent(container, HtmlPseudoElementKind.Before);
         includeGeneratedAfter &= IncludeColumnGeneratedContent(container, HtmlPseudoElementKind.After);
         bool ownsFloatContext = floatContext == null;
-        floatContext ??= new InlineFloatContext(width, inheritedFloats);
+        floatContext ??= new InlineFloatContext(width,
+            count => ChargeLayoutOperations(count, "inline float placement scans"), inheritedFloats);
         if (container.TagName.Equals("details", StringComparison.OrdinalIgnoreCase) && !container.HasAttribute("open")) {
             IElement? summary = container.Children.FirstOrDefault(child =>
                 child.TagName.Equals("summary", StringComparison.OrdinalIgnoreCase));

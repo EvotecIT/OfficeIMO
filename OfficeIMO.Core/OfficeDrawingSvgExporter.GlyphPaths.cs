@@ -87,16 +87,16 @@ public static partial class OfficeDrawingSvgExporter {
         List<List<OfficePoint>> contours;
         if (prepared != null) {
             contours = prepared.GetContours(0D, -baseline, size, MaximumOutlinePoints, token,
-                new OfficeCffOperationBudget());
+                metrics.CreateCffExecutionBudget());
         } else if (shaped == null) {
             contours = font is IOfficeCffBoundedFontProgram cff
                 ? cff.GetTextContoursBounded(text.RasterText, 0D, -baseline, size, MaximumOutlinePoints, token,
-                    new OfficeCffOperationBudget())
+                    metrics.CreateCffExecutionBudget())
                 : font.GetTextContoursBounded(text.RasterText, 0D, -baseline, size, MaximumOutlinePoints, token);
         } else {
             contours = font is IOfficeCffBoundedFontProgram cff
                 ? cff.GetShapedTextContoursBounded(text.RasterText, shaped, 0D, -baseline, size, MaximumOutlinePoints, token,
-                    new OfficeCffOperationBudget())
+                    metrics.CreateCffExecutionBudget())
                 : font.GetShapedTextContoursBounded(text.RasterText, shaped, 0D, -baseline, size, MaximumOutlinePoints, token);
         }
         output.Append("<g").AppendAttribute("role", "img").AppendAttribute("aria-label", text.Text);

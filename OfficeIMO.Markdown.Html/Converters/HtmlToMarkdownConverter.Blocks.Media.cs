@@ -454,7 +454,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         return string.IsNullOrWhiteSpace(HtmlUrlPolicyEvaluator.ResolveUrl(
             source,
             context.Options.BaseUri,
-            context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy));
+            context.EffectiveResourcePolicy));
     }
 
     private static bool IsBlockedBase64ImageSource(string? source, ConversionContext context) {

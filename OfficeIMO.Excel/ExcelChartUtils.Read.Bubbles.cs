@@ -22,6 +22,7 @@ namespace OfficeIMO.Excel {
             }
 
             var series = new List<ExcelChartSeries>(source.Count);
+            OfficeChartAxisGroup axisGroup = GetChartAxisGroup(plot, bubble);
             IReadOnlyList<string>? categories = null;
             foreach (BubbleChartSeries item in source.OrderBy(item => item.GetFirstChild<Order>()!.Val!.Value)) {
                 if (!TryReadBubbleNumbers(item.GetFirstChild<XValues>(), sheet, budget, out var x) ||
@@ -32,7 +33,7 @@ namespace OfficeIMO.Excel {
                 categories ??= x.Select(value => value.ToString(CultureInfo.InvariantCulture)).ToArray();
                 string name = TryReadSeriesName(item, sheet, out string? resolved) && !string.IsNullOrWhiteSpace(resolved)
                     ? resolved! : "Series " + (series.Count + 1).ToString(CultureInfo.InvariantCulture);
-                series.Add(new ExcelChartSeries(name, y, x, ExcelChartType.Bubble, GetChartAxisGroup(plot, bubble))
+                series.Add(new ExcelChartSeries(name, y, x, ExcelChartType.Bubble, axisGroup)
                     .WithImageExportStyle(null, null, null, null, true, false, null, null, null, null)
                     .WithBubbleSizes(sizes));
             }

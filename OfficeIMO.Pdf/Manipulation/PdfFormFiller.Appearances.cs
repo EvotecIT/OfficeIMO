@@ -117,7 +117,7 @@ internal static partial class PdfFormFiller {
         return normalAppearances;
     }
 
-    private static void SetTextWidgetAppearances(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string value, string? fieldName, int inheritedFlags, int? inheritedQuadding, int? inheritedMaxLength, PdfDictionary? inheritedDefaultResources, string? inheritedDefaultAppearance, bool forceMultilineAppearance, PdfFormFillerOptions? options, HashSet<int> visited, ref int nextObjectNumber, ChoiceAppearanceData? choiceAppearance = null, CancellationToken cancellationToken = default) {
+    private static void SetTextWidgetAppearances(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string value, string? fieldName, int inheritedFlags, int? inheritedQuadding, int? inheritedMaxLength, PdfDictionary? inheritedDefaultResources, string? inheritedDefaultAppearance, bool forceMultilineAppearance, PdfFormFillerOptions? options, HashSet<int> visited, ref int nextObjectNumber, int maximumMeasurementCharacters, ChoiceAppearanceData? choiceAppearance = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         int fieldFlags = ReadFieldFlags(objects, field, inheritedFlags);
         int? fieldQuadding = ReadFieldQuadding(objects, field, inheritedQuadding);
@@ -133,7 +133,7 @@ internal static partial class PdfFormFiller {
             }
 
             int appearanceObjectNumber = nextObjectNumber++;
-            objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, value, width, height, widgetStyle, defaultAppearance, ReadWidgetAppearanceFontSize(defaultAppearance, height), options, fieldName, ref nextObjectNumber, choiceAppearance: choiceAppearance, cancellationToken: cancellationToken));
+            objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, value, width, height, widgetStyle, defaultAppearance, ReadWidgetAppearanceFontSize(defaultAppearance, height), options, fieldName, ref nextObjectNumber, choiceAppearance: choiceAppearance, maximumMeasurementCharacters: maximumMeasurementCharacters, cancellationToken: cancellationToken));
             cancellationToken.ThrowIfCancellationRequested();
 
             var appearance = new PdfDictionary();
@@ -154,19 +154,20 @@ internal static partial class PdfFormFiller {
             }
 
             if (ResolveObject(objects, kidObject) is PdfDictionary kid) {
-                SetTextWidgetAppearances(objects, kid, value, fieldName, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, forceMultilineAppearance, options, visited, ref nextObjectNumber, choiceAppearance, cancellationToken);
+                SetTextWidgetAppearances(objects, kid, value, fieldName, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, forceMultilineAppearance, options, visited, ref nextObjectNumber, maximumMeasurementCharacters, choiceAppearance, cancellationToken);
             }
         }
     }
 
-    private static PdfStream CreateTextAppearanceStream(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? inheritedDefaultResources, PdfDictionary? widgetAppearanceResources, PdfDictionary? widgetPageResources, string value, double width, double height, PdfFormFieldStyle? style, string? defaultAppearance, double fontSize, PdfFormFillerOptions? options, string? fieldName, ref int nextObjectNumber, IReadOnlyList<PdfFreeTextRichTextRun>? richAppearanceRuns = null, TextAppearanceFontPlan? preparedFontPlan = null, ChoiceAppearanceData? choiceAppearance = null, int maximumDecodedBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes, CancellationToken cancellationToken = default) {
+    private static PdfStream CreateTextAppearanceStream(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? inheritedDefaultResources, PdfDictionary? widgetAppearanceResources, PdfDictionary? widgetPageResources, string value, double width, double height, PdfFormFieldStyle? style, string? defaultAppearance, double fontSize, PdfFormFillerOptions? options, string? fieldName, ref int nextObjectNumber, IReadOnlyList<PdfFreeTextRichTextRun>? richAppearanceRuns = null, TextAppearanceFontPlan? preparedFontPlan = null, ChoiceAppearanceData? choiceAppearance = null, int maximumDecodedBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes, int maximumMeasurementCharacters = PdfReadLimits.DefaultMaxDecodedTextCharacters, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfFormFieldStyle effectiveStyle = style ?? new PdfFormFieldStyle();
         if (richAppearanceRuns != null && !effectiveStyle.IsPassword && !effectiveStyle.IsComb) {
             return CreateRichTextAppearanceStream(richAppearanceRuns, width, height, effectiveStyle, fontSize);
         }
 
-        string displayValue = choiceAppearance?.VisibleText(height, fontSize) ?? PdfAcroFormDictionaryBuilder.GetTextFieldAppearanceDisplayValue(value, effectiveStyle);
+        string displayValue = choiceAppearance?.VisibleText(height, fontSize, cancellationToken) ??
+            PdfAcroFormDictionaryBuilder.GetTextFieldAppearanceDisplayValue(value, effectiveStyle);
         string diagnosticSource = CreateTextAppearanceDiagnosticSource(fieldName);
         TextAppearanceFontPlan? fontPlan = preparedFontPlan;
         bool hasEmbeddedAppearanceFont = preparedFontPlan is not null ||
@@ -201,7 +202,8 @@ internal static partial class PdfFormFiller {
                     width, height, choiceAppearance.Labels[index], fontSize, rowStyle,
                     fontResourceName: fontPlan?.FontResourceName ?? defaultAppearanceFontResourceName,
                     encodeTextSegmentHex: fontPlan?.EncodeTextSegmentHex, measureTextSegmentWidth: fontPlan?.MeasureTextSegmentWidth,
-                    encodeTextSegments: fontPlan?.EncodeTextSegments, singleLineBaseline: baseline)));
+                    encodeTextSegments: fontPlan?.EncodeTextSegments, singleLineBaseline: baseline,
+                    maximumMeasurementCharacters: maximumMeasurementCharacters, cancellationToken: cancellationToken)));
         } else {
             content = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(
                 width,
@@ -213,7 +215,8 @@ internal static partial class PdfFormFiller {
                 fontResourceName: fontPlan?.FontResourceName ?? defaultAppearanceFontResourceName,
                 encodeTextSegmentHex: fontPlan?.EncodeTextSegmentHex,
                 measureTextSegmentWidth: fontPlan?.MeasureTextSegmentWidth,
-                encodeTextSegments: fontPlan?.EncodeTextSegments);
+                encodeTextSegments: fontPlan?.EncodeTextSegments,
+                maximumMeasurementCharacters: maximumMeasurementCharacters, cancellationToken: cancellationToken);
         }
         fontPlan?.Materialize(objects);
 

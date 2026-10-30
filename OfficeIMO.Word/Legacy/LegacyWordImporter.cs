@@ -74,6 +74,7 @@ public static partial class LegacyWordImporter {
         }
 
         string text = BuildPlainText(model, effective.Limits, cancellationToken);
+        ValidateProjectedRunningStories(model, effective.Limits, text.Length, cancellationToken);
         int blockCount = Sections(model).Sum(section => section.Blocks.Sum(block => block is LegacyWordTable table ?
             1 + table.Rows.Sum(row => row.Cells.Sum(cell => cell.Paragraphs.Count)) : 1));
         var report = new OfficeLegacyImportReport(detection.ProfileId, model.Quality, model.Findings, model.InertContent, blockCount + model.Styles.Count + model.Notes.Count + model.Resources.Count);

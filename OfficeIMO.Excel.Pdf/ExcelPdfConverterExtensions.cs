@@ -78,7 +78,8 @@ namespace OfficeIMO.Excel.Pdf {
                             }
 
                             if (plan.HasTable) {
-                                IReadOnlyList<TableChunk> chunks = CreateTableChunks(plan, options, columns);
+                                IReadOnlyList<TableChunk> chunks = CreateTableChunks(plan, options, columns,
+                                    maximumProjectedCells: options.MaxMaterializedWorksheetCells);
                                 for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
                                     cancellationToken.ThrowIfCancellationRequested();
                                     TableChunk chunk = chunks[chunkIndex];

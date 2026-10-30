@@ -112,7 +112,7 @@ internal static partial class PdfWriter {
                 if (!continuation && group.Style.AnchoredCanvas is { } anchoredCanvas)
                     RenderParagraphCanvas(anchoredCanvas, cursor);
                 group.Decoration = new ContainerRenderScope(group.Style, columnX + group.XOffset, group.OuterWidth,
-                    currentPage!.Options, currentOpts, currentOpts, group.Container) { IsContinuation = continuation };
+                    currentPage!.Options, currentOpts, currentOpts, currentOpts.MarginLeft, width, group.Container) { IsContinuation = continuation };
                 double next = BeginContainerFragment(group.Decoration, cursor);
                 ConsumeColumnSpace(cursor - next, ref cursor, ref remaining, ref consumed);
                 // Reserve bottom padding so an inner item cannot occupy the decoration's closing space.

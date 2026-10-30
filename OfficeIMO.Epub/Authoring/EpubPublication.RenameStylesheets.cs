@@ -4,7 +4,8 @@ using System.Threading;
 namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
-    private static bool RewriteMovedXmlStylesheets(XDocument document, string owner, string destination, string oldPath, string newPath, CancellationToken token, ContentReferenceMap? map = null) {
+    private static bool RewriteMovedXmlStylesheets(XDocument document, string owner, string destination, string oldPath, string newPath,
+        CancellationToken token, ContentReferenceMap? map, Action<string, string> retain) {
         bool changed = false;
         foreach (XProcessingInstruction instruction in document.DescendantNodes().OfType<XProcessingInstruction>()) {
             token.ThrowIfCancellationRequested();
@@ -24,7 +25,9 @@ public sealed partial class EpubPublication {
                 .Cast<Match>().Single(item => item.Groups["name"].Value == "href");
             Group value = match.Groups["single"].Success ? match.Groups["single"] : match.Groups["double"];
             string escaped = replacement.Replace("&", "&amp;").Replace("<", "&lt;").Replace("\"", "&quot;").Replace("'", "&apos;");
-            instruction.Data = instruction.Data.Substring(0, value.Index) + escaped + instruction.Data.Substring(value.Index + value.Length);
+            string rewritten = instruction.Data.Substring(0, value.Index) + escaped + instruction.Data.Substring(value.Index + value.Length);
+            retain(instruction.Data, rewritten);
+            instruction.Data = rewritten;
             changed = true;
         }
         return changed;

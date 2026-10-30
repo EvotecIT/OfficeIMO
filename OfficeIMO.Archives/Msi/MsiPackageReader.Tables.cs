@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Archives;
 
 internal sealed partial class MsiPackageReader {
+    private readonly HashSet<string> _validatedLongIdentifiers = new(ReferenceStringComparer.Instance);
     private void LoadSchemas() {
         var bootstrap = new[] { new MsiColumn("Table", 's', 1), new MsiColumn("Number", 'i', 2), new MsiColumn("Name", 's', 3), new MsiColumn("Type", 'i', 4) };
         object?[][] definitions = ReadRows("_Columns", bootstrap);
@@ -78,22 +80,38 @@ internal sealed partial class MsiPackageReader {
     }
     private static string RequiredString(object? value, string field) => value is string text && text.Length != 0 ? text : throw new InvalidDataException("MSI requires a nonempty string in " + field + ".");
     /// <summary>Validates Identifier-typed standard fields independently of target filesystem paths.</summary>
-    private static string RequiredIdentifier(object? value, string field) {
+    private string RequiredIdentifier(object? value, string field) {
         string text = RequiredString(value, field);
+        // Table rows retain the string-pool instance. A widened identifier can
+        // be referenced many times, so validate its characters only once.
+        if (text.Length > 72 && _validatedLongIdentifiers.Contains(text)) return text;
         bool Letter(char character) => character >= 'A' && character <= 'Z' || character >= 'a' && character <= 'z';
-        if (!(Letter(text[0]) || text[0] == '_') || text.Any(character =>
-            !Letter(character) && !(character >= '0' && character <= '9') && character != '_' && character != '.'))
+        if (!(Letter(text[0]) || text[0] == '_'))
             throw new InvalidDataException("MSI contains an invalid identifier in " + field + ".");
+        for (int index = 1; index < text.Length; index++) {
+            if ((index & 4095) == 0) _token.ThrowIfCancellationRequested();
+            char character = text[index];
+            if (!Letter(character) && !(character >= '0' && character <= '9') && character != '_' && character != '.')
+                throw new InvalidDataException("MSI contains an invalid identifier in " + field + ".");
+        }
+        if (text.Length > 72) _validatedLongIdentifiers.Add(text);
         return text;
     }
     private static int RequiredInteger(object? value, string field) => value is int number ? number : throw new InvalidDataException("MSI requires an integer in " + field + ".");
-    private static Dictionary<string, object?[]> Index(object?[][] rows, string table, StringComparer? comparer = null) {
+    private Dictionary<string, object?[]> Index(object?[][] rows, string table, StringComparer? comparer = null) {
         var result = new Dictionary<string, object?[]>(comparer ?? StringComparer.Ordinal);
         foreach (object?[] row in rows) {
+            _token.ThrowIfCancellationRequested();
             string key = RequiredIdentifier(row[0], table);
             if (result.ContainsKey(key)) throw new InvalidDataException("MSI table has duplicate identifiers: " + table);
             result.Add(key, row);
         }
         return result;
+    }
+
+    private sealed class ReferenceStringComparer : IEqualityComparer<string> {
+        internal static readonly ReferenceStringComparer Instance = new();
+        public bool Equals(string? left, string? right) => ReferenceEquals(left, right);
+        public int GetHashCode(string value) => RuntimeHelpers.GetHashCode(value);
     }
 }

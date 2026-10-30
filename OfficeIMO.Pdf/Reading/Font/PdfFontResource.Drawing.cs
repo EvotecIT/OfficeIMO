@@ -9,6 +9,7 @@ internal sealed partial class PdfFontResource {
     internal bool HasDeferredDrawing => _deferredDrawing != null && _deferredDrawing.Resolved == null;
     internal bool HasBuiltinEncoding => _builtinEncoding != null;
     internal string?[]? BuiltinEncoding => _builtinEncoding?.Value;
+    internal Lazy<string?[]?>? BuiltinEncodingSource => _builtinEncoding;
     internal PdfFontResource? RetainedDrawingResource => _deferredDrawing?.Resolved;
 
     internal PdfFontResource WithDeferredDrawing(Func<CancellationToken, PdfFontResource> factory) {

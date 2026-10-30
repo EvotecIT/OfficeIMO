@@ -158,7 +158,7 @@ internal static partial class PdfWriter {
                 WriteRichParagraph(sb, new RichParagraphBlock(headingRuns, hb.Align, headingColor), sliceLines, sliceHeights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, currentOpts.MarginLeft, width, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, baselineFont: headingFont,
                     paragraphSpacingAfter: lineIndex + take == lines.Count ? spacingAfter : 0D,
                     paragraphSpacingBefore: firstLogicalLine ? appliedSpacingBefore : 0D,
-                    lineTopGaps: lineGaps.GetRange(lineIndex, take));
+                    lineTopGaps: lineGaps.GetRange(lineIndex, take), suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
                 MarkRichFonts(headingRuns);
                 if (GetHeadingBold(headingStyle)) {
                     currentPage!.UsedBold = true;

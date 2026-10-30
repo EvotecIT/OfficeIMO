@@ -32,6 +32,8 @@ public static class XpsPdfExtensions {
         if (!output.CanWrite) throw new ArgumentException("PDF output must be writable.", nameof(output));
         cancellationToken.ThrowIfCancellationRequested();
         var snapshot = (options ?? new XpsToPdfOptions()).Clone();
+        if (snapshot.MaximumSvgCharacters < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumSvgCharacters must be positive.");
+        if (snapshot.MaximumPathCommands < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumPathCommands must be positive.");
         return CreatePdf(document, snapshot, cancellationToken).Save(output, cancellationToken);
     }
 
@@ -41,11 +43,18 @@ public static class XpsPdfExtensions {
         var structure = options.PreserveLogicalStructure ? new XpsPdfLogicalStructure(document, cancellationToken) : null;
         var pdf = PdfDocument.Create(options.PdfOptions);
         if (structure?.HasNativeStructure == true) pdf.TaggedStructure(PdfTaggedStructureMode.CatalogMarkers);
+        long projectedSvgCharacters = 0, projectedPathCommands = 0;
         pdf.Compose(builder => {
             for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
                 var page = document.Pages[pageIndex];
                 cancellationToken.ThrowIfCancellationRequested();
                 var projection = new XpsSvgConverter(page, cancellationToken, explicitPageLinks: true, nativeDrawing: true).Convert(false);
+                if (projection.Svg.Length > options.MaximumSvgCharacters - projectedSvgCharacters)
+                    throw new InvalidDataException("XPS PDF projection exceeds MaximumSvgCharacters.");
+                if (projection.PathCommands > options.MaximumPathCommands - projectedPathCommands)
+                    throw new InvalidDataException("XPS PDF projection exceeds MaximumPathCommands.");
+                projectedSvgCharacters += projection.Svg.Length;
+                projectedPathCommands += projection.PathCommands;
                 var drawing = XpsPage.ImportDrawing(navigation.MapLinks(projection.Svg, pageIndex, cancellationToken), cancellationToken, structure?.HasNativeStructure == true);
                 double width = page.Width * 72D / 96D, height = page.Height * 72D / 96D;
                 builder.Page(p => p.Size(width, height).Margin(new PageMargins(0, 0, 0, 0))

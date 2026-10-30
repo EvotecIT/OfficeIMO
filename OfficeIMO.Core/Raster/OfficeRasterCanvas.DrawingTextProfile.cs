@@ -18,6 +18,7 @@ public sealed partial class OfficeRasterCanvas {
         child.ShareTransformedTextBudget(_transformedTextBudget);
         child.ImageCache = ImageCache;
         child.MaximumClipRasterPixels = MaximumClipRasterPixels;
+        child._clipWorkBudget = _clipWorkBudget;
         child._clipRegion = _clipRegion;
         child.PreservePaintedGlyphOrder = PreservePaintedGlyphOrder;
         child.StrokeAdjustment = StrokeAdjustment;

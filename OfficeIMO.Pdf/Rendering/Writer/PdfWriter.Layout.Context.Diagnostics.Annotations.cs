@@ -15,7 +15,7 @@ internal static partial class PdfWriter {
                 // Wrapping omitted lines must not enlarge the serialized font subset.
                 var measurementOptions = DiagnosticTextOptions;
                 var wrapped = WrapRichRunsCore(runs, innerWidth, annotation.FontSize, PdfStandardFont.Helvetica,
-                    leading, null, DefaultParagraphTabStopWidth, measurementOptions);
+                    leading, null, DefaultParagraphTabStopWidth, measurementOptions, cancellationToken: cancellationToken);
                 int limit = innerHeight > 0D ? Math.Max(1, (int)Math.Floor(innerHeight / leading)) : 0;
                 string source = "PdfFreeTextAnnotation[" + annotationIndex + "]";
                 double baseline = height - annotation.Padding - annotation.FontSize;

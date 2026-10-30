@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel.Pdf {
                 for (int areaIndex = 0; areaIndex < plans.Count; areaIndex++) {
                     WorksheetPdfExportPlan plan = plans[areaIndex];
                     int columns = plan.ExportData.Values.GetLength(1);
-                    double worksheetScale = ResolveWorksheetPlanScale(plan, columns, availableWidth, availableHeight);
+                    double worksheetScale = ResolveWorksheetPlanScale(plan, options, columns, availableWidth, availableHeight);
                     IReadOnlyList<TableChunk> chunks = plan.HasTable
                         ? CreateWorksheetSceneChunks(plan, options, columns, availableWidth, availableHeight, worksheetScale)
                         : new[] { new TableChunk(Array.Empty<int>(), 0, 0, 0) };
@@ -284,25 +284,45 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static double GetWorksheetRowHeightPoints(WorksheetGeometryData geometry, int sourceRow) {
+            return geometry.RowsByIndex.TryGetValue(sourceRow, out ExcelRowSnapshot? definition)
+                ? GetWorksheetDefinedRowHeightPoints(geometry, definition)
+                : geometry.DefaultRowHeight;
+        }
+
+        private static double[] GetExportedRowHeightPrefix(WorksheetPdfExportPlan plan) {
+            if (plan.RowHeightPrefix != null) return plan.RowHeightPrefix;
+            int sourceRows = plan.ExportData.Values.GetLength(0);
+            var prefix = new double[sourceRows + 1];
+            for (int row = 0; row < sourceRows; row++)
+                prefix[row + 1] = prefix[row] + GetExportedRowHeightPoints(plan, row);
+            return plan.RowHeightPrefix = prefix;
+        }
+
+        private static double[] GetExportedColumnWidthPrefix(WorksheetPdfExportPlan plan) {
+            if (plan.ColumnWidthPrefix != null) return plan.ColumnWidthPrefix;
+            int count = plan.ExportData.Values.GetLength(1);
+            var prefix = new double[count + 1];
+            for (int column = 0; column < count; column++)
+                prefix[column + 1] = prefix[column] + GetExportedColumnWidthPoints(plan, column);
+            return plan.ColumnWidthPrefix = prefix;
+        }
+
+        private static double GetWorksheetDefinedRowHeightPoints(WorksheetGeometryData geometry, ExcelRowSnapshot definition) =>
+            geometry.RespectHiddenRowsAndColumns && definition.Hidden ? 0D
+                : geometry.UseWorksheetRowHeights && definition.CustomHeight &&
+                  definition.Height is double customHeight && customHeight > 0D
+                    ? customHeight : geometry.DefaultRowHeight;
+
+        private static double GetWorksheetRowHeightRangePoints(WorksheetGeometryData geometry, int firstRow, int endRow) {
+            if (endRow <= firstRow) return 0D;
+            double total = (endRow - firstRow) * geometry.DefaultRowHeight;
+            var seen = new HashSet<int>();
             for (int index = geometry.Rows.Count - 1; index >= 0; index--) {
                 ExcelRowSnapshot definition = geometry.Rows[index];
-                if (definition.Index != sourceRow) {
-                    continue;
-                }
-
-                if (geometry.RespectHiddenRowsAndColumns && definition.Hidden) {
-                    return 0D;
-                }
-
-                return geometry.UseWorksheetRowHeights &&
-                       definition.CustomHeight &&
-                       definition.Height is double customHeight &&
-                       customHeight > 0D
-                    ? customHeight
-                    : geometry.DefaultRowHeight;
+                if (definition.Index < firstRow || definition.Index >= endRow || !seen.Add(definition.Index)) continue;
+                total += GetWorksheetDefinedRowHeightPoints(geometry, definition) - geometry.DefaultRowHeight;
             }
-
-            return geometry.DefaultRowHeight;
+            return total;
         }
 
         private static double ResolveWorksheetSceneScale(
@@ -462,9 +482,7 @@ namespace OfficeIMO.Excel.Pdf {
                     return false;
                 }
 
-                for (int row = plan.Geometry.FirstRow; row < sourceRow; row++) {
-                    y += GetWorksheetRowHeightPoints(plan.Geometry, row);
-                }
+                y += GetWorksheetRowHeightRangePoints(plan.Geometry, plan.Geometry.FirstRow, sourceRow);
                 for (int column = plan.Geometry.FirstColumn; column < sourceColumn; column++) {
                     x += GetWorksheetColumnWidthPoints(plan.Geometry, column);
                 }
@@ -494,12 +512,11 @@ namespace OfficeIMO.Excel.Pdf {
                 int lastSourceRow = GetLastOriginalRowNumber(references, lastExportedRow);
                 if (sourceRow < plan.Geometry.FirstRow && IsInitialWorksheetRowChunk(plan, chunk)) {
                     // Virtual leading space belongs to canvas geometry, not a dense cell range.
-                    for (int row = sourceRow; row < plan.Geometry.FirstRow; row++)
-                        y -= GetWorksheetRowHeightPoints(plan.Geometry, row);
+                    y -= GetWorksheetRowHeightRangePoints(plan.Geometry, sourceRow, plan.Geometry.FirstRow);
                 } else {
                     if (lastSourceRow <= 0 || sourceRow <= lastSourceRow || !chunk.RowIndexes.Contains(lastExportedRow)) return false;
                     for (int index = 0; index < rowHeights.Count; index++) y += rowHeights[index];
-                    for (int row = lastSourceRow + 1; row < sourceRow; row++) y += GetWorksheetRowHeightPoints(plan.Geometry, row);
+                    y += GetWorksheetRowHeightRangePoints(plan.Geometry, lastSourceRow + 1, sourceRow);
                 }
             } else {
                 for (int index = 0; index < localRow; index++) {

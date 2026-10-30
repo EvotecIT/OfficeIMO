@@ -6,6 +6,53 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Fact]
+    public void NativeListDefinitions_SharedLevelTabsUseOneResolvedSnapshot() {
+        using WordDocument source = CreateNativeListDefinitionControl();
+        Numbering numbering = source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
+        Level level = numbering.Elements<AbstractNum>().Single().Elements<Level>().First();
+        level.PreviousParagraphProperties ??= new PreviousParagraphProperties();
+        level.PreviousParagraphProperties.Tabs = new Tabs(Enumerable.Range(1, 16)
+            .Select(index => new TabStop { Val = TabStopValues.Left, Position = index * 240 }));
+        NumberingInstance first = numbering.Elements<NumberingInstance>().Single();
+        for (int index = 1; index <= 128; index++) {
+            numbering.Append(new NumberingInstance(new AbstractNumId { Val = first.AbstractNumId!.Val!.Value }) {
+                NumberID = first.NumberID!.Value + index
+            });
+        }
+
+        var definitions = WordDocumentTraversal.BuildListNumberingDefinitions(source._wordprocessingDocument.MainDocumentPart);
+        Tabs snapshot = Assert.IsType<Tabs>(definitions[first.NumberID!.Value].Levels[0].LevelTabStops);
+        Assert.Equal(16, snapshot.Elements<TabStop>().Count());
+        Assert.NotSame(level.PreviousParagraphProperties.Tabs, snapshot);
+        for (int index = 1; index <= 128; index++) {
+            Assert.Same(snapshot, definitions[first.NumberID.Value + index].Levels[0].LevelTabStops);
+        }
+    }
+
+    [Fact]
+    public void NativeListDefinitions_UnusedDefinitionsDoNotMultiplyInstanceSelectionWork() {
+        using WordDocument source = CreateNativeListDefinitionControl();
+        Numbering numbering = source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
+        AbstractNum template = numbering.Elements<AbstractNum>().Single();
+        NumberingInstance first = numbering.Elements<NumberingInstance>().Single();
+        int abstractId = template.AbstractNumberId!.Value;
+        for (int index = 1; index <= 256; index++) {
+            var unused = (AbstractNum)template.CloneNode(true);
+            unused.AbstractNumberId = abstractId + index;
+            unused.Nsid?.Remove();
+            numbering.InsertBefore(unused, first);
+            numbering.Append(new NumberingInstance(new AbstractNumId { Val = abstractId }) {
+                NumberID = first.NumberID!.Value + index
+            });
+        }
+
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        var markers = WordDocumentTraversal.BuildListMarkers(restored);
+        Assert.Equal(new[] { "12.", "13." }, restored.Paragraphs.Where(p => p.Text is "First" or "Second")
+            .Select(p => markers[p].Marker));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

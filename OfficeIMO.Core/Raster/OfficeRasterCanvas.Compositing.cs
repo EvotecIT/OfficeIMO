@@ -32,6 +32,7 @@ public sealed partial class OfficeRasterCanvas {
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
         int right = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
         int bottom = Clamp((int)Math.Ceiling(maxY), 0, Height - 1);
+        _transformedTextBudget.ChargePaintPixels((long)(right - left + 1) * (bottom - top + 1));
         for (int y = top; y <= bottom; y++) {
             _cancellationToken.ThrowIfCancellationRequested();
             for (int x = left; x <= right; x++) {

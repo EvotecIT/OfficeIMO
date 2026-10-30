@@ -70,10 +70,22 @@ public readonly struct IcsTemporalValue : IEquatable<IcsTemporalValue> {
     /// <summary>Attempts to parse a temporal property while preserving DATE, floating, UTC, and TZID forms.</summary>
     public static bool TryParse(ContentLineProperty? property, out IcsTemporalValue value) {
         value = default;
-        if (property == null) return false;
-        string text = property.Value;
-        if (!TryGetOptionalSingletonParameter(property, "VALUE", out string? valueType) ||
-            !TryGetOptionalSingletonParameter(property, "TZID", out string? timeZoneId)) return false;
+        if (!TryGetTemporalParameters(property, out string? valueType, out string? timeZoneId)) return false;
+        return TryParseValue(property!.Value, valueType, timeZoneId, out value);
+    }
+
+    internal static bool TryGetTemporalParameters(ContentLineProperty? property,
+        out string? valueType, out string? timeZoneId) {
+        valueType = null;
+        timeZoneId = null;
+        return property != null &&
+            TryGetOptionalSingletonParameter(property, "VALUE", out valueType) &&
+            TryGetOptionalSingletonParameter(property, "TZID", out timeZoneId);
+    }
+
+    internal static bool TryParseValue(string text, string? valueType, string? timeZoneId,
+        out IcsTemporalValue value) {
+        value = default;
         if (valueType != null && !string.Equals(valueType, "DATE", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(valueType, "DATE-TIME", StringComparison.OrdinalIgnoreCase)) return false;
         if (string.Equals(valueType, "DATE", StringComparison.OrdinalIgnoreCase)) {

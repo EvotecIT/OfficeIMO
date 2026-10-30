@@ -84,6 +84,8 @@ public sealed partial class XpsDocument {
         if (replacements != null) foreach (var replacement in replacements) output[replacement.Key] = replacement.Value;
         IEnumerable<XpsPage> pages = _pageCache.Values;
         if (pending != null) pages = pages.Concat(new[] { pending });
+        var dictionaryReferences = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+        int resourceReferences = 0;
         foreach (XpsPage page in pages) {
             cancellationToken.ThrowIfCancellationRequested();
             XElement? markup = null;
@@ -93,9 +95,14 @@ public sealed partial class XpsDocument {
             XElement rels = output.TryGetValue(relName, out var relBytes) ? XpsPackage.Xml(relBytes, _limits, cancellationToken) : new XElement(XpsPackage.Relationships + "Relationships");
             foreach (string resource in page.ResourceReferences(markup, name => {
                 string resourceType = replacementTypes != null && replacementTypes.TryGetValue(name, out var replacementType) ? replacementType : (_types.TryGetValue(name, out var storedType) ? storedType : "");
-                return resourceType == XpsPackage.Type("resourcedictionary") && output.TryGetValue(name, out var dictionaryBytes)
-                    ? XpsPackage.Xml(dictionaryBytes, _limits, cancellationToken) : null;
+                if (resourceType != XpsPackage.Type("resourcedictionary") || !output.TryGetValue(name, out var dictionaryBytes)) return null;
+                if (dictionaryReferences.TryGetValue(name, out IReadOnlyList<string>? cached)) return cached;
+                IReadOnlyList<string> references = XpsResourceSyntax.References(XpsPackage.Xml(dictionaryBytes, _limits, cancellationToken))
+                    .Select(uri => XpsPackage.Resolve(name, uri)).ToArray();
+                dictionaryReferences.Add(name, references);
+                return references;
             })) {
+                if (++resourceReferences > 1_000_000) throw new InvalidDataException("XPS output resource reference budget exceeded.");
                 if (validateResources && !output.ContainsKey(resource)) throw new InvalidDataException("Missing XPS part: " + resource);
                 string type = XpsPackage.Namespace(Format) + "/required-resource";
                 if (!rels.Elements().Any(r => (string?)r.Attribute("Type") == type && XpsPackage.Resolve(page.PartName, (string?)r.Attribute("Target") ?? "") == resource))

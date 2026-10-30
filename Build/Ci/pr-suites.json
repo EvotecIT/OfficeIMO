@@ -59,7 +59,7 @@
       "OfficeIMO.Studio.Core.Tests",
       "OfficeIMO.Studio.Tests"
     ],
-    "studio-locked-restore": [
+    "studio-release-restore": [
       "OfficeIMO.Studio",
       "OfficeIMO.Studio.Core",
       "OfficeIMO.Studio.Native"

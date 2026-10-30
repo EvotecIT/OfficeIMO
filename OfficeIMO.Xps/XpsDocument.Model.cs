@@ -82,10 +82,11 @@ internal sealed partial class XpsDocumentModelProjection {
                 _budget.Charge(); int current = elementIndex++;
                 var description = XpsGraphicDescription.Read(element);
                 if (description == null) continue;
-                _budget.Text(description.CharacterCount);
+                string objectName = (string?)element.Attribute("Name") ?? current.ToString(CultureInfo.InvariantCulture);
+                _budget.Text(checked(description.CharacterCount + page.PartName.Length + 1 + objectName.Length));
                 var asset = new OfficeDocumentModelAsset { Id = "xps-graphic-" + pageIndex + "-" + current, Kind = "graphic-description",
                     Title = description.Name, AltText = description.AlternativeText,
-                    SourceObjectId = page.PartName + "#" + ((string?)element.Attribute("Name") ?? current.ToString(CultureInfo.InvariantCulture)),
+                    SourceObjectId = page.PartName + "#" + objectName,
                     Location = Location(pageIndex, null, element.Name.LocalName.ToLowerInvariant() + "-description") };
                 assets.Add(asset); pageAssets.Add(asset);
             }
@@ -155,10 +156,15 @@ internal sealed partial class XpsDocumentModelProjection {
         using var sha = SHA256.Create();
         return BitConverter.ToString(sha.ComputeHash(payload)).Replace("-", string.Empty).ToLowerInvariant();
     }
-    private void Diagnostic(string code, string message, int? page = null) => _diagnostics.Add(new OfficeDocumentModelDiagnostic {
-        Code = code, Message = message, Source = "OfficeIMO.Xps", Category = OfficeDocumentModelDiagnosticCategory.Content,
-        IsRecoverable = true, Location = page.HasValue ? Location(page.Value, null, "fixed-page") : null
-    });
+    private void Diagnostic(string code, string message, int? page = null) {
+        // Diagnostics can contain authored URLs and repeat for each page occurrence.
+        // Charge their retained text against the same projection-wide budget as content.
+        _budget.Text(message.Length);
+        _diagnostics.Add(new OfficeDocumentModelDiagnostic {
+            Code = code, Message = message, Source = "OfficeIMO.Xps", Category = OfficeDocumentModelDiagnosticCategory.Content,
+            IsRecoverable = true, Location = page.HasValue ? Location(page.Value, null, "fixed-page") : null
+        });
+    }
     private static string Kind(XpsStructureKind kind) => kind switch {
         XpsStructureKind.Section => "section", XpsStructureKind.Paragraph => "paragraph", XpsStructureKind.Table => "table",
         XpsStructureKind.TableRowGroup => "table-row-group", XpsStructureKind.TableRow => "table-row", XpsStructureKind.TableCell => "table-cell",

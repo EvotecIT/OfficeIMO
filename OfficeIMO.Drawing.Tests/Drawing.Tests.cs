@@ -3789,15 +3789,18 @@ public partial class DrawingTests {
         return data;
     }
 
-    private static byte[] CreateMinimalTrueTypeFont(byte[] cmap, byte[]? glyfData = null) {
+    private static byte[] CreateMinimalTrueTypeFont(byte[] cmap, byte[]? glyfData = null,
+        byte[]? locaData = null, ushort glyphCount = 2) {
+        var maxp = new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, 0x00 };
+        WriteUInt16(maxp, 4, glyphCount);
         var tables = new List<(string Tag, byte[] Data)> {
             ("cmap", cmap),
             ("glyf", glyfData ?? new byte[4]),
             ("head", CreateHeadTable()),
             ("hhea", CreateHheaTable()),
             ("hmtx", new byte[] { 0x01, 0xF4, 0x00, 0x00, 0x00, 0x00 }),
-            ("loca", new byte[4]),
-            ("maxp", new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, 0x02 })
+            ("loca", locaData ?? new byte[4]),
+            ("maxp", maxp)
         };
 
         int tableDirectoryLength = 12 + tables.Count * 16;

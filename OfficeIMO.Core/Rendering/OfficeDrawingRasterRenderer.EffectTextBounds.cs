@@ -78,6 +78,7 @@ public static partial class OfficeDrawingRasterRenderer {
         canvas = canvas.WithDrawingTextProfile(drawing);
         foreach (OfficeDrawingElement element in drawing.Elements) {
             canvas.CancellationToken.ThrowIfCancellationRequested();
+            canvas.TransformedTextBudget.ChargeEffectTextPlanningVisit();
             if (element is OfficeDrawingRichText { WrapText: false } text && text.Paragraphs.Count > 0) {
                 double width = (text.Width - text.Padding.Horizontal) * scale;
                 double height = (text.Height - text.Padding.Vertical) * scale;

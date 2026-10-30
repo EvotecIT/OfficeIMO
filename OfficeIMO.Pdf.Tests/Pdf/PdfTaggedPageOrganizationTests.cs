@@ -5,6 +5,38 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed partial class PdfTaggedPageOrganizationTests {
     [Fact]
+    public void DuplicateChoosesUnusedStructureIdPrefixAfterManyUnrelatedCollisions() {
+        byte[] original = CreateTaggedSource();
+        int firstObject = PdfReadDocument.Open(original).Objects.Keys.Min();
+        string preferred = "copy" + (1 - firstObject).ToString(System.Globalization.CultureInfo.InvariantCulture) + ":";
+        byte[] source = PdfDocumentObjectGraphRewriter.Rewrite(original, null, null, (objects, security) => {
+            var catalog = (PdfDictionary)objects[security.RootObjectNumber!.Value].Value;
+            var occupiedReferences = new PdfArray();
+            int number = objects.Keys.Max() + 1;
+            for (int count = 0; count < 256; count++) {
+                var unrelated = new PdfDictionary();
+                unrelated.Items["ID"] = new PdfStringObj(System.Text.Encoding.ASCII.GetBytes(
+                    new string('_', count) + preferred + "occupied"));
+                objects.Add(number, new PdfIndirectObject(number, 0, unrelated));
+                occupiedReferences.Items.Add(new PdfReference(number, 0));
+                number++;
+            }
+            catalog.Items["OccupiedStructureIds"] = occupiedReferences;
+            return security.InfoObjectNumber;
+        });
+
+        byte[] duplicated = PdfDocument.Load(source).Pages.Duplicate(1).ToBytes();
+        PdfReadDocument read = PdfReadDocument.Open(duplicated);
+        string selectedPrefix = new string('_', 256) + preferred;
+        Assert.Contains(read.Objects.Values.Select(value => value.Value).OfType<PdfDictionary>()
+            .Where(dictionary => dictionary.Items.TryGetValue("ID", out _))
+            .Select(dictionary => PdfObjectLookup.Resolve(read.Objects, dictionary.Items["ID"]))
+            .OfType<PdfStringObj>()
+            .Select(id => System.Text.Encoding.ASCII.GetString(id.RawBytes)),
+            id => id.StartsWith(selectedPrefix, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void CopiesAndImportsRetainOpaqueStructureIdsAndRemapStructuredDestinations() {
         byte[] source = CreateTaggedSource();
         source = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {

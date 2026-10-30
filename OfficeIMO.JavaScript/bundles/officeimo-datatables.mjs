@@ -1882,7 +1882,16 @@ class OpcPackage {
         throw new OfficeIMOError("INVALID_STATE", "OPC package is finalized."); }
     reserve(uri, type) {
         this.open();
+        // OPC part names become ZIP entry names. Reject oversized and deeply nested
+        // names before collecting every ancestor prefix.
+        if (typeof uri === "string" && uri.length > 65536)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "OPC part name exceeds the ZIP entry-name limit.");
         uri = partUri(uri);
+        let depth = 0;
+        for (let index = 0; index < uri.length; index++) {
+            if (uri[index] === "/" && ++depth > 64)
+                throw new OfficeIMOError("RESOURCE_LIMIT", "OPC part name exceeds the directory-depth limit.");
+        }
         if (/\/_rels(?:\/|$)/i.test(uri) || uri.toLowerCase() === "/[content_types].xml")
             throw new TypeError("Package metadata part names are reserved.");
         const key = uri.toLowerCase();
@@ -2561,14 +2570,23 @@ function columnName(index) {
     return name;
 }
 function clipName(text, length) { return text.slice(0, length).replace(/[\ud800-\udbff]$/, ""); }
+function trimSheetNameEdges(text) {
+    let start = 0, end = text.length;
+    const removable = (character) => character === "'" || /\s/u.test(character);
+    while (start < end && removable(text[start]))
+        start++;
+    while (end > start && removable(text[end - 1]))
+        end--;
+    return text.slice(start, end);
+}
 function sheetName(requested, names, policy, register = true) {
     if (typeof requested !== "string")
         throw new TypeError("Sheet name must be a string.");
     // Validate and deduplicate the decoded literal value, before ST_Xstring attribute encoding.
     // A requested _xHHHH_ token is literal text; the serializer protects its leading underscore.
-    let base = cleanXml(requested, policy).replace(/[\[\]:*?/\\]/g, "_").replace(/^[\s']+|[\s']+$/g, "");
+    let base = trimSheetNameEdges(cleanXml(requested, policy).replace(/[\[\]:*?/\\]/g, "_"));
     // Clipping can expose an internal apostrophe or the reserved History name.
-    base = clipName(base, 31).replace(/[\s']+$/g, "");
+    base = trimSheetNameEdges(clipName(base, 31));
     if (!base)
         base = "Sheet";
     if (base.toLowerCase() === "history")

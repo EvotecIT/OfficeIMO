@@ -23,9 +23,15 @@ internal static class HtmlCssIdentifierParser {
                         out string decoded,
                         out int consumedCharacters)
                     || decoded.Length == 0) {
-                    cursor = start;
-                    value = string.Empty;
-                    return false;
+                    // An invalid escape ends an existing identifier. Returning
+                    // failure here makes callers rescan the entire prefix at
+                    // every following character.
+                    if (first) {
+                        cursor = start;
+                        value = string.Empty;
+                        return false;
+                    }
+                    break;
                 }
                 result.Append(decoded);
                 cursor += consumedCharacters;

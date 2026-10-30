@@ -276,6 +276,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocTextCharacter[] storyCharacters = characters
                 .Where(character => character.CharacterPosition >= startCharacter && character.CharacterPosition < endCharacter)
                 .ToArray();
+            bool[] laterContent = GetLaterNoteParagraphContent(storyCharacters);
             bool preserveEmptyParagraph = false;
 
             for (int index = 0; index < storyCharacters.Length; index++) {
@@ -479,7 +480,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         paragraphFormat = paragraphFormat.WithParagraphMarkFormat(paragraphMarkFormat);
                     }
 
-                    preserveEmptyParagraph = HasLaterNoteParagraphContent(storyCharacters, index + 1);
+                    preserveEmptyParagraph = laterContent[index + 1];
                     AddCurrentParagraph(paragraphFormat, character.CharacterPosition, isFinalParagraph: false);
                     isFirstParagraph = false;
                     atParagraphStart = true;
@@ -713,35 +714,22 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return LegacyDocParagraphFormat.Default;
         }
 
-        private static bool HasLaterNoteParagraphContent(IReadOnlyList<LegacyDocTextCharacter> characters, int startIndex) {
-            bool skipOptionalReferenceSpace = false;
-            for (int index = startIndex; index < characters.Count; index++) {
+        private static bool[] GetLaterNoteParagraphContent(IReadOnlyList<LegacyDocTextCharacter> characters) {
+            var hasContent = new bool[characters.Count + 1];
+            var afterReference = new bool[characters.Count + 1];
+            for (int index = characters.Count - 1; index >= 0; index--) {
                 char normalized = characters[index].Character == '\a' ? '\r' : characters[index].Character;
                 if (normalized == FootnoteReferenceCharacter) {
-                    skipOptionalReferenceSpace = true;
+                    hasContent[index] = afterReference[index + 1];
+                    afterReference[index] = afterReference[index + 1];
                     continue;
                 }
-
-                if (skipOptionalReferenceSpace) {
-                    skipOptionalReferenceSpace = false;
-                    if (normalized == ' ') {
-                        continue;
-                    }
-                }
-
-                if (normalized == '\r') {
-                    continue;
-                }
-
-                if (char.IsControl(normalized)
-                    && !LegacyDocSpecialCharacters.IsSupportedInlineControl(normalized)) {
-                    continue;
-                }
-
-                return true;
+                bool visible = normalized != '\r' &&
+                    (!char.IsControl(normalized) || LegacyDocSpecialCharacters.IsSupportedInlineControl(normalized));
+                hasContent[index] = visible || hasContent[index + 1];
+                afterReference[index] = normalized == ' ' ? hasContent[index + 1] : hasContent[index];
             }
-
-            return false;
+            return hasContent;
         }
     }
 }
