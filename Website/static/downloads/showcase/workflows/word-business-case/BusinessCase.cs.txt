@@ -5,7 +5,6 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     internal static class BusinessCase {
         internal static void Create(string folder) {
             using var document = WordDocument.Create(Path.Combine(folder, "example.docx"));
-            document.Settings.FontFamily = "Carlito";
             document.Settings.FontSize = 11;
             document.BuiltinDocumentProperties.Title = "Business case: service intake";
             document.AddParagraph("Business case: service intake").Style = WordParagraphStyles.Heading1;
@@ -33,7 +32,6 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                     paragraph.Text = rows[row][column];
                     paragraph.Bold = row == 0;
                     paragraph.ColorHex = row == 0 ? "FFFFFF" : "243247";
-                    paragraph.FontFamily = "Carlito";
                     paragraph.FontSize = 10;
                     paragraph.LineSpacingAfterPoints = 2;
                 }
@@ -46,7 +44,6 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             actions.AddItem("Operations: measure triage time before and during the pilot.");
             actions.AddItem("Sponsor: review results before committing to a wider rollout.");
             foreach (var paragraph in document.Paragraphs) {
-                paragraph.FontFamily = "Carlito";
                 bool title = paragraph.Style == WordParagraphStyles.Heading1;
                 bool heading = paragraph.Style == WordParagraphStyles.Heading2;
                 paragraph.FontSize = title ? 26 : heading ? 15 : 11;
@@ -58,6 +55,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                     paragraph.KeepWithNext = true;
                 }
             }
+            WorkflowFooter.Add(document, "Business case: service intake");
             document.Save();
         }
     }

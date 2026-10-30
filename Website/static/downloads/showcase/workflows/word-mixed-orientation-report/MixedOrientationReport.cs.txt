@@ -7,7 +7,6 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class MixedOrientationReport {
     internal static void Create(string folder) {
         using WordDocument document = WordDocument.Create(Path.Combine(folder, "example.docx"));
-        document.Settings.FontFamily = "Carlito";
         document.Settings.FontSize = 11;
         document.AddParagraph("Supplier evaluation").Style = WordParagraphStyles.Heading1;
         document.AddParagraph("NORTHWIND / PROCUREMENT / ILLUSTRATIVE OPTIONS");
@@ -41,10 +40,10 @@ internal static class MixedOrientationReport {
             if (row == 0) cell.ShadingFillColorHex = "E8EEF8";
         }
         foreach (var paragraph in document.Paragraphs) {
-            paragraph.FontFamily = "Carlito";
             paragraph.FontSize = paragraph.Style == WordParagraphStyles.Heading1 ? 26 : paragraph.Style == WordParagraphStyles.Heading2 ? 15 : 11;
             paragraph.LineSpacingAfterPoints = 9;
         }
+        WorkflowFooter.Add(document, "Supplier evaluation");
         document.Save();
     }
 }
