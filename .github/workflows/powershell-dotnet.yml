@@ -18,7 +18,7 @@ on:
 env:
   DOTNET_VERSION: |
     8.0.426
-    10.0.114
+    10.0.403
   BUILD_CONFIGURATION: 'Debug'
 
 jobs:

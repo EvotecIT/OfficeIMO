@@ -37,7 +37,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.0.114
+          dotnet-version: 10.0.403
       - name: Test workbook snapshots and command contracts
         run: dotnet test OfficeIMO.Odbc.Tests/OfficeIMO.Odbc.Tests.csproj -c Release -m:1
       - name: Publish native driver

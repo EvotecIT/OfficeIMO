@@ -48,7 +48,7 @@ jobs:
         with:
           dotnet-version: |
             8.0.426
-            10.0.114
+            10.0.403
       - uses: ./.github/actions/nuget-cache
       - name: Build the comparison tool
         run: dotnet build Build/ConversionConsistency/OfficeIMO.ConversionConsistency.Tool.csproj -c Release -f net8.0

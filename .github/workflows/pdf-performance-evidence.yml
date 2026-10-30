@@ -21,7 +21,7 @@ jobs:
         with:
           dotnet-version: |
             8.0.426
-            10.0.114
+            10.0.403
       - name: Verify PDF performance budgets
         shell: pwsh
         run: |
