@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
             string[] headers = { "Region", "Owner", "Status", "Score" };
             for (int column = 1; column <= headers.Length; column++) {
                 sheet.CellValue(1, column, headers[column - 1]);
-                sheet.CellAt(1, column).SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold().SetFontSize(12D);
+                sheet.CellAt(1, column).SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
                 sheet.CellAlign(1, column, ExcelHorizontalAlignment.Center);
                 sheet.CellVerticalAlign(1, column, ExcelVerticalAlignment.Center);
             }
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
 
             for (int row = 1; row <= 8; row++) {
                 for (int column = 1; column <= 4; column++) {
-                    sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "94A3B8").SetFontSize(12D);
+                    sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "94A3B8").SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
                     sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
                 }
             }
@@ -142,8 +142,8 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(row, 4, score);
             sheet.Range("A" + row.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":D" + row.ToString(System.Globalization.CultureInfo.InvariantCulture))
                 .SetFillColor(row == 2 ? "F8FAFC" : "FFFFFF");
-            sheet.CellAt(row, 3).SetFillColor(statusFill).SetFontColor(statusText).SetBold().SetFontSize(12D);
-            sheet.CellAt(row, 4).Percent(0).SetBold().SetFontSize(12D);
+            sheet.CellAt(row, 3).SetFillColor(statusFill).SetFontColor(statusText).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
+            sheet.CellAt(row, 4).Percent(0).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
             sheet.CellAlign(row, 4, ExcelHorizontalAlignment.Right);
         }
 

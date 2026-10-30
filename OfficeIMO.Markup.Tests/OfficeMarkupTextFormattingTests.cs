@@ -228,7 +228,7 @@ public class OfficeMarkupTextFormattingTests {
 
         Assert.Equal("mIXED CASE", sheet.CellAt(1, 1).GetValue().Value?.ToString());
         Assert.Equal("Aptos", style.FontName);
-        Assert.Equal(17D, style.FontSize);
+        Assert.Equal(17D, style.FontSize?.ToPoints());
         Assert.True(style.Bold);
         Assert.True(style.Italic);
         Assert.Equal(ExcelUnderlineStyle.DoubleAccounting, style.UnderlineStyle);

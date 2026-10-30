@@ -921,10 +921,10 @@ namespace OfficeIMO.Excel {
             return string.IsNullOrWhiteSpace(fontName) ? null : fontName;
         }
 
-        private static double? ReadDifferentialFontSize(Stylesheet? stylesheet, uint? differentialFormatId) {
+        private static OfficeLength? ReadDifferentialFontSize(Stylesheet? stylesheet, uint? differentialFormatId) {
             DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
             double? fontSize = format?.Font?.FontSize?.Val?.Value;
-            return fontSize is > 0D ? fontSize : null;
+            return fontSize is > 0D ? OfficeLength.Points(fontSize.Value) : null;
         }
 
         private static ExcelCellBorderInfo? ReadDifferentialBorder(Stylesheet? stylesheet, WorkbookPart? workbookPart, uint? differentialFormatId) {

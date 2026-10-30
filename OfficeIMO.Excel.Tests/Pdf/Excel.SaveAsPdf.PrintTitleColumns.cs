@@ -76,7 +76,7 @@ public partial class Excel {
         ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 80; row++) {
             sheet.Cell(row, 1, "Row" + row.ToString("D3") + (multiline ? "\nDetail" + row.ToString("D3") : ""));
-            sheet.CellFontSize(row, 1, fontSize);
+            sheet.CellFontSize(row, 1, global::OfficeIMO.OfficeLength.Points(fontSize));
             sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20D)));
         }
         sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 2);

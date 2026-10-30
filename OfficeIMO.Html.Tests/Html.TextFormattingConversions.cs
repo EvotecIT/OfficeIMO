@@ -231,14 +231,14 @@ public class HtmlTextFormattingConversionTests {
         ExcelSheet sheet = source.AddSheet("Text");
         sheet.CellAt(1, 1).SetValue("Cell").SetBold().SetItalic()
             .SetUnderline(ExcelUnderlineStyle.DoubleAccounting).SetStrikethrough()
-            .SetSuperscript().SetFontName("Aptos").SetFontSize(14).SetFontColor("336699");
+            .SetSuperscript().SetFontName("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetFontColor("336699");
         sheet.CellAt(2, 1).SetRichText(
             new ExcelRichTextRun("Rich") {
                 Bold = true,
                 Underline = true,
                 UnderlineStyle = ExcelUnderlineStyle.SingleAccounting,
                 FontName = "Aptos",
-                FontSize = 13,
+                FontSize = global::OfficeIMO.OfficeLength.Points(13),
                 FontColor = "663399"
             },
             new ExcelRichTextRun("Sub") {
@@ -265,14 +265,14 @@ public class HtmlTextFormattingConversionTests {
         Assert.True(cellStyle.Strikethrough);
         Assert.Equal(ExcelVerticalTextAlignment.Superscript, cellStyle.VerticalTextAlignment);
         Assert.Equal("Aptos", cellStyle.FontName);
-        Assert.Equal(14D, cellStyle.FontSize);
+        Assert.Equal(14D, cellStyle.FontSize?.ToPoints());
         Assert.Equal("336699", cellStyle.FontColorHex);
 
         ExcelRichTextRun[] runs = actualSheet.GetRichText(2, 1).ToArray();
         Assert.Equal(2, runs.Length);
         Assert.Equal(ExcelUnderlineStyle.SingleAccounting, runs[0].UnderlineStyle);
         Assert.Equal("Aptos", runs[0].FontName);
-        Assert.Equal(13D, runs[0].FontSize);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(13D), runs[0].FontSize);
         Assert.Equal(ExcelVerticalTextAlignment.Subscript, runs[1].VerticalTextAlignment);
         Assert.True(runs[1].Strikethrough);
     }
@@ -284,7 +284,7 @@ public class HtmlTextFormattingConversionTests {
         sheet.CellAt(1, 1).SetValue("Anchor");
         sheet.CellAt(1, 2).SetBold().SetItalic()
             .SetUnderline(ExcelUnderlineStyle.DoubleAccounting).SetStrikethrough()
-            .SetSubscript().SetFontName("Aptos").SetFontSize(14).SetFontColor("336699");
+            .SetSubscript().SetFontName("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetFontColor("336699");
 
         string html = source.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
         Assert.Contains("data-officeimo-empty=\"true\"", html, StringComparison.Ordinal);
@@ -303,7 +303,7 @@ public class HtmlTextFormattingConversionTests {
         Assert.True(style.Strikethrough);
         Assert.Equal(ExcelVerticalTextAlignment.Subscript, style.VerticalTextAlignment);
         Assert.Equal("Aptos", style.FontName);
-        Assert.Equal(14D, style.FontSize);
+        Assert.Equal(14D, style.FontSize?.ToPoints());
         Assert.Equal("336699", style.FontColorHex);
     }
 
@@ -385,7 +385,7 @@ public class HtmlTextFormattingConversionTests {
             .SetStrikethrough()
             .SetSuperscript()
             .SetFontName("Aptos")
-            .SetFontSize(15)
+            .SetFontSize(global::OfficeIMO.OfficeLength.Points(15))
             .SetFontColor("336699");
 
         string html = source.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
@@ -402,7 +402,7 @@ public class HtmlTextFormattingConversionTests {
             Assert.True(run.Strikethrough);
             Assert.Equal(ExcelVerticalTextAlignment.Superscript, run.VerticalTextAlignment);
             Assert.Equal("Aptos", run.FontName);
-            Assert.Equal(15D, run.FontSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(15D), run.FontSize);
         });
         Assert.Equal("FF336699", runs[0].FontColor);
         Assert.Equal("FFCC0000", runs[1].FontColor);

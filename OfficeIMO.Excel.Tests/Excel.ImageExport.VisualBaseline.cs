@@ -859,8 +859,8 @@ namespace OfficeIMO.Tests
             sheet.CellVerticalAlign(5, 4, ExcelVerticalAlignment.Bottom);
             sheet.CellAlign(5, 4, ExcelHorizontalAlignment.Right);
             sheet.CellAt(6, 4).SetRichText(
-                new ExcelRichTextRun("Rich") { Bold = true, FontColor = "0F766E", FontSize = 13D },
-                new ExcelRichTextRun(" text") { Italic = true, Underline = true, FontColor = "7C3AED", FontSize = 12D });
+                new ExcelRichTextRun("Rich") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(13D) },
+                new ExcelRichTextRun(" text") { Italic = true, Underline = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
             sheet.CellAt(6, 4).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
             sheet.CellAt(6, 4).SetFillColor("F8FAFC");
             sheet.CellValue(7, 4, "Review note");
@@ -978,39 +978,39 @@ namespace OfficeIMO.Tests
             }
 
             sheet.CellAt(2, 2).SetRichText(
-                new ExcelRichTextRun("Single") { Bold = true, FontColor = "0F766E", FontSize = 13D },
-                new ExcelRichTextRun(" styled") { Italic = true, FontColor = "7C3AED", FontSize = 12D },
-                new ExcelRichTextRun(" line") { Underline = true, FontColor = "2563EB", FontSize = 12D });
+                new ExcelRichTextRun("Single") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(13D) },
+                new ExcelRichTextRun(" styled") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun(" line") { Underline = true, FontColor = "2563EB", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
 
             sheet.CellAt(3, 2).SetRichText(
-                new ExcelRichTextRun("Hard") { Bold = true, FontColor = "DC2626", FontSize = 12D },
-                new ExcelRichTextRun("\nbreak") { Italic = true, FontColor = "2563EB", FontSize = 12D });
+                new ExcelRichTextRun("Hard") { Bold = true, FontColor = "DC2626", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun("\nbreak") { Italic = true, FontColor = "2563EB", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
 
             sheet.CellAt(4, 2).SetRichText(
-                new ExcelRichTextRun("Wrapped ") { Bold = true, FontColor = "0F766E", FontSize = 12D },
-                new ExcelRichTextRun("rich text keeps") { Italic = true, FontColor = "7C3AED", FontSize = 12D },
-                new ExcelRichTextRun(" runs") { Underline = true, FontColor = "2563EB", FontSize = 12D });
+                new ExcelRichTextRun("Wrapped ") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun("rich text keeps") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun(" runs") { Underline = true, FontColor = "2563EB", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
             sheet.WrapCells(4,4,2);
 
             sheet.CellAt(5, 2)
                 .SetShrinkToFit()
                 .SetRichText(
-                    new ExcelRichTextRun("Shrink") { Bold = true, FontColor = "0F766E", FontSize = 16D },
-                    new ExcelRichTextRun(" to fit") { Italic = true, FontColor = "7C3AED", FontSize = 18D });
+                    new ExcelRichTextRun("Shrink") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(16D) },
+                    new ExcelRichTextRun(" to fit") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(18D) });
 
             sheet.CellAt(6, 2).SetRichText(
-                new ExcelRichTextRun("Rich text stays bounded     hidden overflow") { Bold = true, FontColor = "DC2626", FontSize = 12D });
+                new ExcelRichTextRun("Rich text stays bounded     hidden overflow") { Bold = true, FontColor = "DC2626", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
 
             sheet.CellAt(7, 2)
                 .SetTextRotation(45)
                 .SetRichText(
-                    new ExcelRichTextRun("Tilt") { Bold = true, FontColor = "0F766E", FontSize = 14D },
-                    new ExcelRichTextRun(" rich") { Italic = true, FontColor = "7C3AED", FontSize = 13D },
-                    new ExcelRichTextRun(" text") { Underline = true, FontColor = "2563EB", FontSize = 13D });
+                    new ExcelRichTextRun("Tilt") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(14D) },
+                    new ExcelRichTextRun(" rich") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(13D) },
+                    new ExcelRichTextRun(" text") { Underline = true, FontColor = "2563EB", FontSize = global::OfficeIMO.OfficeLength.Points(13D) });
 
             sheet.CellAt(8, 2).SetRichText(
-                new ExcelRichTextRun("Large line") { Bold = true, FontColor = "0F766E", FontSize = 18D },
-                new ExcelRichTextRun("\ntiny line stays visible") { Italic = true, FontColor = "7C3AED", FontSize = 8D });
+                new ExcelRichTextRun("Large line") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(18D) },
+                new ExcelRichTextRun("\ntiny line stays visible") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(8D) });
 
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(18));
@@ -1056,21 +1056,21 @@ namespace OfficeIMO.Tests
             sheet.Range("A3:A5").SetFillColor("F8FAFC").SetFontColor("334155");
 
             sheet.CellValue(3, 2, "STACK");
-            sheet.CellAt(3, 2).SetTextRotation(255).SetFontColor("0F766E").SetBold().SetFontSize(12);
+            sheet.CellAt(3, 2).SetTextRotation(255).SetFontColor("0F766E").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12));
             sheet.CellAlign(3, 2, ExcelHorizontalAlignment.Center);
             sheet.CellVerticalAlign(3, 2, ExcelVerticalAlignment.Center);
 
             sheet.CellValue(3, 3, "EXPORT");
-            sheet.CellAt(3, 3).SetTextRotation(255).SetFontColor("7C3AED").SetBold().SetShrinkToFit().SetFontSize(14);
+            sheet.CellAt(3, 3).SetTextRotation(255).SetFontColor("7C3AED").SetBold().SetShrinkToFit().SetFontSize(global::OfficeIMO.OfficeLength.Points(14));
             sheet.CellAlign(3, 3, ExcelHorizontalAlignment.Center);
             sheet.CellVerticalAlign(3, 3, ExcelVerticalAlignment.Center);
 
             sheet.CellAt(3, 4).SetTextRotation(255).SetRichText(
-                new ExcelRichTextRun("R") { Bold = true, FontColor = "DC2626", FontSize = 12D },
-                new ExcelRichTextRun("E") { Italic = true, FontColor = "EA580C", FontSize = 12D },
-                new ExcelRichTextRun("A") { Underline = true, FontColor = "2563EB", FontSize = 12D },
-                new ExcelRichTextRun("D") { Bold = true, FontColor = "16A34A", FontSize = 12D },
-                new ExcelRichTextRun("Y") { FontColor = "7C3AED", FontSize = 12D });
+                new ExcelRichTextRun("R") { Bold = true, FontColor = "DC2626", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun("E") { Italic = true, FontColor = "EA580C", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun("A") { Underline = true, FontColor = "2563EB", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun("D") { Bold = true, FontColor = "16A34A", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun("Y") { FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
             sheet.CellAlign(3, 4, ExcelHorizontalAlignment.Center);
             sheet.CellVerticalAlign(3, 4, ExcelVerticalAlignment.Center);
 

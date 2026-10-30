@@ -371,8 +371,8 @@ public partial class Excel {
         Assert.Equal(1, style.HeaderRowCount);
         Assert.Null(style.FixedRowHeights);
         Assert.NotNull(style.RowMinHeights);
-        Assert.Equal(10, style.RowMinHeights?.ConvertAll(static length => length?.ToPoints())!.Count);
-        Assert.InRange(style.RowMinHeights?.ConvertAll(static length => length?.ToPoints()).Sum(height => height ?? 0D), 107D, 108.1D);
+        Assert.Equal(10, style.RowMinHeights!.Count);
+        Assert.InRange(style.RowMinHeights!.Sum(height => height?.ToPoints() ?? 0D), 107D, 108.1D);
         Assert.True(style.CellPaddingY.ToPoints() < 3D, "Fit-to-height scaling should shrink default vertical padding along with row heights.");
         Assert.NotNull(style.FontSize?.ToPoints());
         Assert.NotNull(style.HeaderFontSize?.ToPoints());

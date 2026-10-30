@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddSheet("Links");
                 for (int row = 1; row <= 3; row++) {
                     sheet.CellValue(row, 1, "Two\nlines");
-                    sheet.CellAt(row, 1).SetBold(true).SetItalic(true).SetFontName("Arial").SetFontSize(14).SetNumberFormat("0.0000 \"units\"");
+                    sheet.CellAt(row, 1).SetBold(true).SetItalic(true).SetFontName("Arial").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetNumberFormat("0.0000 \"units\"");
                     sheet.CellAlign(row, 1, ExcelHorizontalAlignment.Center);
                     sheet.CellVerticalAlign(row, 1, ExcelVerticalAlignment.Top);
                 }

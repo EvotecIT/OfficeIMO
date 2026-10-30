@@ -1886,7 +1886,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     projectedRun.Underline = font.Underline;
                     projectedRun.UnderlineStyle = ToUnderlineStyle(font.UnderlineStyle).ToOfficeEnum();
                     projectedRun.FontName = font.Name;
-                    projectedRun.FontSize = font.Size;
+                    projectedRun.FontSize = font.Size.HasValue ? OfficeLength.Points(font.Size.Value) : (OfficeLength?)null;
                     projectedRun.VerticalTextAlignment = ToVerticalTextAlignment(font.Escapement).ToOfficeEnum();
                     projectedRun.Outline = font.Outline;
                     projectedRun.Shadow = font.Shadow;

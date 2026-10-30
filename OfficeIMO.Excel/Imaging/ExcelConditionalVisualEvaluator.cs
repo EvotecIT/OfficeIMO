@@ -1161,7 +1161,7 @@ namespace OfficeIMO.Excel {
 
         internal string? FontName { get; set; }
 
-        internal double? FontSize { get; set; }
+        internal OfficeLength? FontSize { get; set; }
 
         internal ExcelCellBorderInfo? Border { get; set; }
     }

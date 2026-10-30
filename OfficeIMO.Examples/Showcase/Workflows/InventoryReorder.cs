@@ -13,7 +13,7 @@ internal static class InventoryReorder {
         sheet.SetColumnWidth(7, ExcelColumnWidth.Characters(19));
         sheet.MergeRange("A1:G1");
         sheet.Cell(1, 1, "Inventory replenishment plan");
-        sheet.CellFontSize(1, 1, 20); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
+        sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(20)); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
         sheet.MergeRange("A2:G2"); sheet.Cell(2, 1, "Illustrative stock snapshot / quantities and unit costs are editable");
         string[] headers = { "Item", "On hand", "Target", "Stock gap", "Order qty", "Unit cost", "Order cost" };
         for (int column = 1; column <= 7; column++) sheet.Cell(4, column, headers[column - 1]);

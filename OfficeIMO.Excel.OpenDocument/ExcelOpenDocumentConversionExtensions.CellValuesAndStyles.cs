@@ -90,7 +90,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             ExcelVerticalTextAlignment.Baseline => OdfTextPosition.Normal,
             _ => null
         };
-        if (style.FontSize.HasValue) target.FontSize = OdfLength.Points(style.FontSize.Value);
+        if (style.FontSize.HasValue) target.FontSize = OdfLength.Points(style.FontSize.Value.ToPoints());
         if (!string.IsNullOrWhiteSpace(style.FontName)) target.FontFamily = style.FontName;
         if (!string.IsNullOrWhiteSpace(style.FontColorHex)) target.Color = OdfColor.Parse(style.FontColorHex!);
         if (!string.IsNullOrWhiteSpace(style.FillColorHex)) target.BackgroundColor = OdfColor.Parse(style.FillColorHex!);
@@ -245,7 +245,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         }
         if (style.SmallCaps == true) unsupportedCapitalization++;
         if (style.FontSize.HasValue) {
-            if (style.FontSize.Value.TryToPoints(out double points)) target.SetFontSize(points);
+            if (style.FontSize.Value.TryToPoints(out double points)) target.SetFontSize(global::OfficeIMO.OfficeLength.Points(points));
             else unsupported++;
         }
         string? fontFamily = SelectOdfFontFamily(style.FontFamily,

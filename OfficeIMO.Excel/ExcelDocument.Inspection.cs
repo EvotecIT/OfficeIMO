@@ -411,7 +411,7 @@ namespace OfficeIMO.Excel {
                 VerticalTextAlignment = font?.VerticalTextAlignment?.Val?.Value.ToOfficeEnum(),
                 FontName = font?.FontName?.Val?.Value,
                 IsFontFamilyExplicit = (cellFormat.FontId?.Value ?? 0U) != 0U,
-                FontSize = font?.FontSize?.Val?.Value,
+                FontSize = font?.FontSize?.Val?.Value is double fontSize ? OfficeLength.Points(fontSize) : null,
                 FontColorArgb = context.GetColorArgb(font?.Color),
                 FillColorArgb = context.GetFillColorArgb(fill),
                 FillPatternType = context.GetFillPatternType(fill),

@@ -21,13 +21,13 @@ namespace OfficeIMO.Tests {
                             Bold = true,
                             FontColor = "#123456",
                             FontName = "Consolas",
-                            FontSize = 13D
+                            FontSize = global::OfficeIMO.OfficeLength.Points(13D)
                         },
                         new ExcelRichTextRun("cell") {
                             Italic = true,
                             Underline = true,
                             FontName = "Arial",
-                            FontSize = 11D
+                            FontSize = global::OfficeIMO.OfficeLength.Points(11D)
                         });
 
                     document.Save(xlsOutputPath);
@@ -320,7 +320,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(underline, run.Underline);
             Assert.Equal(fontColor, run.FontColor);
             Assert.Equal(fontName, run.FontName);
-            Assert.Equal(fontSize, run.FontSize);
+            Assert.Equal(fontSize.HasValue ? OfficeLength.Points(fontSize.Value) : (OfficeLength?)null, run.FontSize);
         }
     }
 }

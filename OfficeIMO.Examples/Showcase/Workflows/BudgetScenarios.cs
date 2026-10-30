@@ -11,7 +11,7 @@ internal static class BudgetScenarios {
         ExcelSheet sheet = document.AddSheet("Scenarios");
         sheet.MergeRange("A1:F1");
         sheet.Cell(1, 1, "Budget scenarios / next quarter");
-        sheet.CellFontSize(1, 1, 20);
+        sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(20));
         sheet.CellBold(1, 1, true);
         sheet.CellFontColor(1, 1, "17365D");
         sheet.MergeRange("A2:F2");

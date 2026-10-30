@@ -1686,7 +1686,7 @@ namespace OfficeIMO.Tests {
             Assert.True(rule.DifferentialFontItalic);
             Assert.True(rule.DifferentialFontUnderline);
             Assert.Equal("Aptos Display", rule.DifferentialFontName);
-            Assert.Equal(18D, rule.DifferentialFontSize);
+            Assert.Equal(18D, rule.DifferentialFontSize?.ToPoints());
             Assert.Null(snapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 1).Style.FontColorArgb);
             ExcelVisualCell firstMatched = snapshot.Cells.Single(cell => cell.Row == 2 && cell.Column == 1);
             Assert.Equal("FFFF0000", firstMatched.Style.FontColorArgb);
@@ -1694,7 +1694,7 @@ namespace OfficeIMO.Tests {
             Assert.True(firstMatched.Style.Italic);
             Assert.True(firstMatched.Style.Underline);
             Assert.Equal("Aptos Display", firstMatched.Style.FontName);
-            Assert.Equal(18D, firstMatched.Style.FontSize);
+            Assert.Equal(18D, firstMatched.Style.FontSize?.ToPoints());
             Assert.Equal("FFFF0000", snapshot.Cells.Single(cell => cell.Row == 3 && cell.Column == 1).Style.FontColorArgb);
             Assert.Contains("fill=\"#FF0000\"", svg, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("font-weight=\"700\"", svg, StringComparison.Ordinal);
@@ -4505,8 +4505,8 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("FontSize");
             sheet.CellValue(1, 1, "Small");
             sheet.CellValue(2, 1, "Large");
-            sheet.CellAt(1, 1).SetFontSize(8);
-            sheet.CellAt(2, 1).SetFontSize(18);
+            sheet.CellAt(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(8));
+            sheet.CellAt(2, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(18));
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32)));
             sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
@@ -4516,8 +4516,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
             string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
 
-            Assert.Equal(8D, snapshot.Cells[0].Style.FontSize);
-            Assert.Equal(18D, snapshot.Cells[1].Style.FontSize);
+            Assert.Equal(8D, snapshot.Cells[0].Style.FontSize?.ToPoints());
+            Assert.Equal(18D, snapshot.Cells[1].Style.FontSize?.ToPoints());
             Assert.Contains("font-size=\"8\"", svg, StringComparison.Ordinal);
             Assert.Contains("font-size=\"18\"", svg, StringComparison.Ordinal);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
@@ -4536,7 +4536,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Shrink");
             sheet.CellValue(1, 1, "Shrink To Fit");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(7));
-            sheet.CellAt(1, 1).SetFontSize(14).SetShrinkToFit();
+            sheet.CellAt(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetShrinkToFit();
 
             ExcelRange range = sheet.Range("A1:A1");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -4544,7 +4544,7 @@ namespace OfficeIMO.Tests {
             string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
 
             Assert.True(snapshot.Cells[0].Style.ShrinkToFit);
-            Assert.Equal(14D, snapshot.Cells[0].Style.FontSize);
+            Assert.Equal(14D, snapshot.Cells[0].Style.FontSize?.ToPoints());
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped);
             Assert.Contains("Shrink To Fit", svg, StringComparison.Ordinal);
             double renderedFontSize = ExtractFirstSvgFontSize(svg);

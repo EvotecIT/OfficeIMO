@@ -72,8 +72,8 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 4, "Stop");
             sheet.CellValue(2, 5, "occupied cell blocks");
             sheet.CellAt(3, 1).SetRichText(
-                new ExcelRichTextRun("Rich") { Bold = true, FontColor = "0F766E", FontSize = 12D },
-                new ExcelRichTextRun(" spill keeps runs") { Italic = true, FontColor = "7C3AED", FontSize = 12D });
+                new ExcelRichTextRun("Rich") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun(" spill keeps runs") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
             sheet.CellValue(3, 4, "Stop");
             sheet.CellValue(3, 5, "rich text path");
             sheet.CellValue(4, 1, "Wrapped\ncell text");

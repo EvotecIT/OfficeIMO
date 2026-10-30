@@ -230,7 +230,7 @@ namespace OfficeIMO.Tests {
                         Assert.True(run.Bold);
                         Assert.Equal("FFFF0000", run.FontColor);
                         Assert.Equal("Calibri", run.FontName);
-                        Assert.Equal(11d, run.FontSize);
+                        Assert.Equal(global::OfficeIMO.OfficeLength.Points(11d), run.FontSize);
                     },
                     run => {
                         Assert.Equal("pha", run.Text);
@@ -238,7 +238,7 @@ namespace OfficeIMO.Tests {
                         Assert.True(run.Underline);
                         Assert.Equal("FF0000FF", run.FontColor);
                         Assert.Equal("Calibri", run.FontName);
-                        Assert.Equal(11d, run.FontSize);
+                        Assert.Equal(global::OfficeIMO.OfficeLength.Points(11d), run.FontSize);
                     });
             }
 

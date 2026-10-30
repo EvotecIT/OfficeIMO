@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(29));
             for (int column = 2; column <= 6; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(22));
             sheet.MergeRange("A1:F1"); sheet.Cell(1, 1, "Asset depreciation register");
-            sheet.CellFontSize(1, 1, 22); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
+            sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(22)); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
             sheet.MergeRange("A2:F2"); sheet.Cell(2, 1, "Straight-line planning schedule / illustrative EUR values");
             string[] headers = { "Asset", "Cost", "Residual", "Life (years)", "Annual charge", "Book after year 1" };
             for (int column = 1; column <= 6; column++) sheet.Cell(4, column, headers[column - 1]);
@@ -34,7 +34,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(row == 1 ? 34 : row == 3 ? 12 : 25)));
                 for (int column = 1; column <= 6; column++) {
                     sheet.CellFontName(row, column, "Carlito");
-                    if (row > 1) sheet.CellFontSize(row, column, 11);
+                    if (row > 1) sheet.CellFontSize(row, column, global::OfficeIMO.OfficeLength.Points(11));
                 }
             }
             sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));

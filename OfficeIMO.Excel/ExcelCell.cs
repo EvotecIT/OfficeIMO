@@ -179,9 +179,9 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Sets the font size in points.
+        /// Sets a positive physical font size.
         /// </summary>
-        public ExcelCell SetFontSize(double fontSize) {
+        public ExcelCell SetFontSize(OfficeLength fontSize) {
             Sheet.CellFontSize(Row, Column, fontSize);
             return this;
         }
@@ -475,9 +475,10 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Applies a font size in points to every cell in the range.
+        /// Applies a positive physical font size to every cell in the range.
         /// </summary>
-        public ExcelRange SetFontSize(double fontSize) {
+        public ExcelRange SetFontSize(OfficeLength fontSize) {
+            if (fontSize <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(fontSize), "Font size must be positive.");
             ForEachCell((row, column) => Sheet.CellFontSize(row, column, fontSize));
             return this;
         }
@@ -730,6 +731,7 @@ namespace OfficeIMO.Excel {
         private bool _underline;
         private bool _strikethrough;
         private ExcelUnderlineStyle? _underlineStyle;
+        private OfficeLength? _fontSize;
 
         /// <summary>
         /// Creates a rich text run with the supplied text.
@@ -792,8 +794,15 @@ namespace OfficeIMO.Excel {
         public string? FontColor { get; set; }
         /// <summary>Gets or sets the run font name.</summary>
         public string? FontName { get; set; }
-        /// <summary>Gets or sets the run font size.</summary>
-        public double? FontSize { get; set; }
+        /// <summary>Gets or sets the positive physical run font size; null inherits the cell font size.</summary>
+        public OfficeLength? FontSize {
+            get => _fontSize;
+            set {
+                if (value.HasValue && value.Value <= OfficeLength.Zero)
+                    throw new ArgumentOutOfRangeException(nameof(FontSize), "Font size must be positive.");
+                _fontSize = value;
+            }
+        }
         /// <summary>Gets or sets the run vertical text alignment.</summary>
         public ExcelVerticalTextAlignment? VerticalTextAlignment { get; set; }
         /// <summary>Gets or sets whether the run font uses outline text.</summary>
@@ -832,7 +841,7 @@ namespace OfficeIMO.Excel {
             var result = new ExcelRichTextRun(text) {
                 FontColor = resolvedFontColor ?? properties?.GetFirstChild<Color>()?.Rgb?.Value,
                 FontName = properties?.GetFirstChild<RunFont>()?.Val?.Value,
-                FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value,
+                FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value is double points ? OfficeLength.Points(points) : (OfficeLength?)null,
                 VerticalTextAlignment = GetVerticalTextAlignment(properties),
                 Outline = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Outline>()),
                 Shadow = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Shadow>()),

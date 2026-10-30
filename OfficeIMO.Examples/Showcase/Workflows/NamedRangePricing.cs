@@ -14,7 +14,7 @@ internal static class NamedRangePricing {
         sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(42));
         sheet.MergeRange("A1:C1");
         sheet.Cell(1, 1, "A quote with readable formulas");
-        sheet.CellFontSize(1, 1, 20);
+        sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(20));
         sheet.CellBold(1, 1, true);
         sheet.CellFontColor(1, 1, "17365D");
 

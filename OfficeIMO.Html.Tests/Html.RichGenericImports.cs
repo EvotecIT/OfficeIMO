@@ -37,7 +37,7 @@ public class HtmlRichGenericImports {
         ExcelRichTextRun linked = Assert.Single(runs, run => run.Text.Contains("linked", StringComparison.Ordinal));
         Assert.True(bold.Bold);
         Assert.Equal("Arial", bold.FontName);
-        Assert.Equal(15D, bold.FontSize);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(15D), bold.FontSize);
         Assert.True(linked.Italic);
         Assert.Contains(sheet.GetHyperlinks().Values,
             hyperlink => hyperlink.Target == "https://example.com/report");

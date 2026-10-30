@@ -121,7 +121,7 @@ namespace OfficeIMO.Examples.Excel
         private static void WriteTitleBand(ExcelSheet sheet) {
             sheet.MergeRange("A1:F1");
             sheet.Cell(1, 1, "{{ReportTitle}}");
-            sheet.CellFontSize(1, 1, 20);
+            sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(20));
             sheet.CellBold(1, 1, true);
             sheet.CellFontColor(1, 1, "FFFFFF");
             for (int column = 1; column <= 6; column++) sheet.CellBackground(1, column, "17365D");

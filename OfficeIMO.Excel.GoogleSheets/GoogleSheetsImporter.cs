@@ -361,7 +361,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 if (text.Underline == true) sheet.CellUnderline(row, column);
                 if (text.Strikethrough == true) sheet.CellStrikethrough(row, column);
                 if (!string.IsNullOrWhiteSpace(text.FontFamily)) sheet.CellFontName(row, column, text.FontFamily!);
-                if (text.FontSize is int fontSize && fontSize > 0) sheet.CellFontSize(row, column, fontSize);
+                if (text.FontSize is int fontSize && fontSize > 0) sheet.CellFontSize(row, column, global::OfficeIMO.OfficeLength.Points(fontSize));
                 if (text.ForegroundColor != null) sheet.CellFontColor(row, column, ToHex(text.ForegroundColor));
             }
 
@@ -441,7 +441,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 Underline = runFormat?.Underline ?? baseFormat?.Underline ?? false,
                 Strikethrough = runFormat?.Strikethrough ?? baseFormat?.Strikethrough ?? false,
                 FontName = runFormat?.FontFamily ?? baseFormat?.FontFamily,
-                FontSize = runFormat?.FontSize ?? baseFormat?.FontSize,
+                FontSize = (runFormat?.FontSize ?? baseFormat?.FontSize) is int points ? global::OfficeIMO.OfficeLength.Points(points) : (global::OfficeIMO.OfficeLength?)null,
                 FontColor = color == null ? null : ToHex(color),
             };
         }

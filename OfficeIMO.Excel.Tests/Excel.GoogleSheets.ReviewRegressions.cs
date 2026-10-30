@@ -183,7 +183,7 @@ namespace OfficeIMO.Tests
 
             Assert.NotEqual(baseline, CellHash(sheet => sheet.CellBold(1, 1)));
             Assert.NotEqual(baseline, CellHash(sheet => sheet.CellItalic(1, 1)));
-            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellFontSize(1, 1, 18)));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(18))));
             Assert.NotEqual(baseline, CellHash(sheet => sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center)));
             Assert.NotEqual(baseline, CellHash(sheet => sheet.CellBorder(1, 1, ExcelBorderStyle.Medium, "#FF0000")));
             Assert.NotEqual(baseline, CellHash(sheet => sheet.WrapCells(1,1,1)));

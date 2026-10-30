@@ -414,7 +414,7 @@ namespace OfficeIMO.Excel {
                 if (richRun.StrikethroughSpecified) properties.Append(new Strike { Val = richRun.Strikethrough });
                 if (!string.IsNullOrWhiteSpace(richRun.FontColor)) properties.Append(new Color { Rgb = NormalizeHexColor(richRun.FontColor!) });
                 if (!string.IsNullOrWhiteSpace(richRun.FontName)) properties.Append(new RunFont { Val = richRun.FontName });
-                if (richRun.FontSize.HasValue) properties.Append(new FontSize { Val = richRun.FontSize.Value });
+                if (richRun.FontSize.HasValue) properties.Append(new FontSize { Val = richRun.FontSize.Value.ToPoints() });
                 ExcelRichTextRun.AppendFontMetadata(properties, richRun);
                 if (properties.HasChildren) {
                     run.Append(properties);

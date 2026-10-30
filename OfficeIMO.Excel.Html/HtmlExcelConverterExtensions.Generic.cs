@@ -602,7 +602,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (color.Length > 0) run.FontColor = color;
         string fontName = HtmlRenderCssValues.FirstFontFamily(source.Style?.GetValue("font-family")) ?? string.Empty;
         if (fontName.Length > 0) run.FontName = fontName;
-        if (TryParseCssPixels(source.Style?.GetValue("font-size"), out double pixels)) run.FontSize = pixels * 0.75D;
+        if (TryParseCssPixels(source.Style?.GetValue("font-size"), out double pixels)) run.FontSize = global::OfficeIMO.OfficeLength.Pixels(pixels);
         return run;
     }
 

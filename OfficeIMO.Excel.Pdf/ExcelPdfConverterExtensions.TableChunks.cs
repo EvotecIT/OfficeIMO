@@ -313,8 +313,8 @@ namespace OfficeIMO.Excel.Pdf {
             string? linkContents = linkUri == null && linkDestinationName == null ? null : text;
             IReadOnlyList<PdfCore.PdfTableCellImage>? pdfImages = ToPdfTableCellImages(cellImages);
             PdfCore.PdfStandardFont? font = MapFont(style?.FontName, defaultFontFamily);
-            double? fontSize = style?.FontSize is double authoredFontSize && authoredFontSize > 0D
-                ? authoredFontSize * fontScale
+            double? fontSize = style?.FontSize is global::OfficeIMO.OfficeLength authoredFontSize && authoredFontSize > global::OfficeIMO.OfficeLength.Zero
+                ? authoredFontSize.ToPoints() * fontScale
                 : null;
             string? fontFamily = string.IsNullOrWhiteSpace(style?.FontName) ? null : style!.FontName;
             IReadOnlyList<PdfCore.PdfTextRun> runs = (style != null && (style.Bold || style.Italic || style.Underline || style.Strikethrough || style.VerticalTextAlignment.HasValue || fontSize.HasValue || font.HasValue || fontFamily != null)) || bold || textColor.HasValue

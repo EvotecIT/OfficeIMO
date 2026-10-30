@@ -3545,13 +3545,13 @@ namespace OfficeIMO.Tests {
                                 Bold = true,
                                 FontColor = "#123456",
                                 FontName = "Consolas",
-                                FontSize = 13D
+                                FontSize = global::OfficeIMO.OfficeLength.Points(13D)
                             },
                             new ExcelRichTextRun("note") {
                                 Italic = true,
                                 Underline = true,
                                 FontName = "Arial",
-                                FontSize = 11D
+                                FontSize = global::OfficeIMO.OfficeLength.Points(11D)
                             }
                         },
                         author: "Alice",
@@ -3581,7 +3581,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(firstRun.Italic);
                 Assert.Equal("FF123456", firstRun.FontColor);
                 Assert.Equal("Consolas", firstRun.FontName);
-                Assert.Equal(13D, firstRun.FontSize);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(13D), firstRun.FontSize);
 
                 ExcelRichTextRun secondRun = projectedComment.RichTextRuns[1];
                 Assert.Equal("note", secondRun.Text);
@@ -3589,7 +3589,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(secondRun.Italic);
                 Assert.True(secondRun.Underline);
                 Assert.Equal("Arial", secondRun.FontName);
-                Assert.Equal(11D, secondRun.FontSize);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(11D), secondRun.FontSize);
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);

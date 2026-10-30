@@ -25,7 +25,7 @@ public partial class Excel {
         sheet.CellShrinkToFit(2, 3);
         for (int row = 1; row <= 2; row++) {
             for (int column = 1; column <= 3; column++) {
-                sheet.CellFontSize(row, column, 11);
+                sheet.CellFontSize(row, column, global::OfficeIMO.OfficeLength.Points(11));
                 sheet.CellFontName(row, column, "Arial");
             }
         }

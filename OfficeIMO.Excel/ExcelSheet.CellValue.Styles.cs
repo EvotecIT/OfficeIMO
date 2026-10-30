@@ -103,15 +103,15 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="row">The 1-based row index of the cell to modify.</param>
         /// <param name="column">The 1-based column index of the cell to modify.</param>
-        /// <param name="fontSize">The font size in points.</param>
-        public void CellFontSize(int row, int column, double fontSize) {
-            if (fontSize <= 0D || double.IsNaN(fontSize) || double.IsInfinity(fontSize)) {
-                throw new ArgumentOutOfRangeException(nameof(fontSize), "Font size must be a positive finite value.");
+        /// <param name="fontSize">The positive physical font size.</param>
+        public void CellFontSize(int row, int column, OfficeLength fontSize) {
+            if (fontSize <= OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(fontSize), "Font size must be positive.");
             }
 
             WriteLockConditional(() => {
                 var cell = GetCell(row, column);
-                ApplyFontSize(cell, fontSize);
+                ApplyFontSize(cell, fontSize.ToPoints());
             });
         }
 

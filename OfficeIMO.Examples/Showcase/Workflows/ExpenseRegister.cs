@@ -12,7 +12,7 @@ internal static class ExpenseRegister {
         ExcelSheet sheet = document.AddSheet("Expenses");
         sheet.MergeRange("A1:E1");
         sheet.Cell(1, 1, "September expense register");
-        sheet.CellFontSize(1, 1, 20);
+        sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(20));
         sheet.CellBold(1, 1, true);
         sheet.CellFontColor(1, 1, "17365D");
         string[] headers = { "Date", "Description", "Category", "Amount (EUR)", "Status" };

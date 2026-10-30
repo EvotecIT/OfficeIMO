@@ -480,7 +480,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         Assert.Equal("FFC00000", rule.DifferentialFontColorArgb);
         Assert.True(rule.DifferentialFontBold);
         Assert.NotNull(rule.DifferentialFontSize);
-        Assert.InRange(rule.DifferentialFontSize.Value, expectedPoints - 0.001D, expectedPoints + 0.001D);
+        Assert.InRange(rule.DifferentialFontSize.Value.ToPoints(), expectedPoints - 0.001D, expectedPoints + 0.001D);
         var schemaErrors = reopenedExcel.ValidateOpenXml();
         Assert.True(schemaErrors.Count == 0, string.Join("\n", schemaErrors));
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"

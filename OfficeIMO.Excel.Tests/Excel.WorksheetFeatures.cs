@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests
                 var sheet = document.AddSheet("Comments");
                 sheet.SetCommentRichText("A1", new[] {
                     new ExcelRichTextRun("Important ") { Bold = true, FontColor = "#FF0000" },
-                    new ExcelRichTextRun("note") { Italic = true, Underline = true, Strikethrough = true, FontName = "Arial", FontSize = 14D }
+                    new ExcelRichTextRun("note") { Italic = true, Underline = true, Strikethrough = true, FontName = "Arial", FontSize = global::OfficeIMO.OfficeLength.Points(14D) }
                 }, author: "Alice", initials: "AA");
 
                 var comment = Assert.Single(sheet.GetComments());

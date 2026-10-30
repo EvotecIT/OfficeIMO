@@ -279,7 +279,7 @@ public static partial class HtmlExcelConverterExtensions {
             if (verticalAlign.Equals("baseline", StringComparison.OrdinalIgnoreCase)) target.SetBaseline();
         }
         if (TryGetCss(css, "font-family", out string fontFamily)) target.SetFontName(HtmlRenderCssValues.FirstFontFamily(fontFamily) ?? string.Empty);
-        if (TryGetCssPoints(css, "font-size", out double fontSize)) target.SetFontSize(fontSize);
+        if (TryGetCssPoints(css, "font-size", out double fontSize)) target.SetFontSize(global::OfficeIMO.OfficeLength.Points(fontSize));
         if (TryGetCss(css, "color", out string color) && TryNormalizeCssHex(color, out string fontColor)) target.SetFontColor(fontColor);
     }
 
@@ -306,7 +306,7 @@ public static partial class HtmlExcelConverterExtensions {
         TryGetCss(css, "font-family", out string fontFamily);
         if (!string.IsNullOrEmpty(fontFamily)) run.FontName = HtmlRenderCssValues.FirstFontFamily(fontFamily) ?? string.Empty;
         TryGetCssPoints(css, "font-size", out double fontSize);
-        if (fontSize > 0D) run.FontSize = fontSize;
+        if (fontSize > 0D) run.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
         TryGetCss(css, "color", out string color);
         if (!string.IsNullOrEmpty(color) && TryNormalizeCssHex(color, out string fontColor)) run.FontColor = fontColor;
         return run;

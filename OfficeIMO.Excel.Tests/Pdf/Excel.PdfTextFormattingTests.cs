@@ -19,7 +19,7 @@ public sealed class ExcelPdfTextFormattingTests {
             .SetStrikethrough()
             .SetSuperscript()
             .SetFontName("Aptos")
-            .SetFontSize(14)
+            .SetFontSize(global::OfficeIMO.OfficeLength.Points(14))
             .SetFontColor("336699");
 
         PdfCore.PdfDocument pdf = document.ToPdf(new ExcelPdfExportOptions {

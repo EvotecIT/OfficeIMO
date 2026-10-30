@@ -54,7 +54,7 @@ public static partial class ProjectReportWorkflow {
     }
 
     private static void FinishSheet(ExcelSheet sheet, CancellationToken token, int rows, int columns = 4, int repeatedColumns = 0) {
-        sheet.Range(sheet.UsedRangeA1).SetFontName("Arial").SetFontSize(12).SetFontColor("183047");
+        sheet.Range(sheet.UsedRangeA1).SetFontName("Arial").SetFontSize(global::OfficeIMO.OfficeLength.Points(12)).SetFontColor("183047");
         sheet.Range("A1:" + sheet.CellAt(1, columns).Address).SetBold().SetFillColor("183047").SetFontColor("FFFFFF");
         sheet.Freeze(1); sheet.AutoFitColumns(ct: token);
         for (int c = 1; c <= columns; c++) {

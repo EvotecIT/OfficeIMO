@@ -39,7 +39,8 @@ namespace OfficeIMO.Excel {
                 if (!string.IsNullOrWhiteSpace(definition.DifferentialFontColorArgb)) NormalizeHexColor(definition.DifferentialFontColorArgb!);
                 if (!string.IsNullOrWhiteSpace(definition.DifferentialFontName)) XmlConvert.VerifyXmlChars(definition.DifferentialFontName!);
                 ValidateConditionalFormattingBorder(definition.DifferentialBorder);
-                if (definition.DifferentialFontSize is < 1D or > 409D || double.IsNaN(definition.DifferentialFontSize ?? 1D) || double.IsInfinity(definition.DifferentialFontSize ?? 1D)) {
+                if (definition.DifferentialFontSize is OfficeLength fontSize &&
+                    (fontSize < OfficeLength.Points(1) || fontSize > OfficeLength.Points(409))) {
                     throw new ArgumentOutOfRangeException(nameof(definition), "Conditional-formatting font size must be finite and between 1 and 409 points.");
                 }
             }
@@ -309,7 +310,7 @@ namespace OfficeIMO.Excel {
                 info.DifferentialFontStrike?.ToString() ?? string.Empty,
                 info.DifferentialFontUnderline?.ToString() ?? string.Empty,
                 info.DifferentialFontName ?? string.Empty,
-                info.DifferentialFontSize?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+                info.DifferentialFontSize?.ToPoints().ToString(CultureInfo.InvariantCulture) ?? string.Empty,
                 CreateConditionalFormattingBorderSignature(info.DifferentialBorder)
             });
 

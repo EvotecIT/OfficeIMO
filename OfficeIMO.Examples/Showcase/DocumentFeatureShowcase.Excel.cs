@@ -17,7 +17,7 @@ internal static partial class DocumentFeatureShowcase {
         sheet.MergeRange("A1:F1");
         sheet.Cell(1, 1, title);
         sheet.CellBold(1, 1, true);
-        sheet.CellFontSize(1, 1, 20);
+        sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(20));
         sheet.CellFontColor(1, 1, "17365D");
         sheet.MergeRange("A2:F2");
         sheet.Cell(2, 1, subtitle);

@@ -171,7 +171,7 @@ OfficeIMO.Excel.ExcelCell.SetDiagonalBorder(OfficeIMO.Excel.ExcelBorderStyle sty
 OfficeIMO.Excel.ExcelCell.SetFillColor(string! hexColor) -> OfficeIMO.Excel.ExcelCell!
 OfficeIMO.Excel.ExcelCell.SetFontColor(string! hexColor) -> OfficeIMO.Excel.ExcelCell!
 OfficeIMO.Excel.ExcelCell.SetFontName(string! fontName) -> OfficeIMO.Excel.ExcelCell!
-OfficeIMO.Excel.ExcelCell.SetFontSize(double fontSize) -> OfficeIMO.Excel.ExcelCell!
+OfficeIMO.Excel.ExcelCell.SetFontSize(OfficeIMO.OfficeLength fontSize) -> OfficeIMO.Excel.ExcelCell!
 OfficeIMO.Excel.ExcelCell.SetFormula(string! formula) -> OfficeIMO.Excel.ExcelCell!
 OfficeIMO.Excel.ExcelCell.SetGradientFill(string! fromHexColor, string! toHexColor, double degree = 0) -> OfficeIMO.Excel.ExcelCell!
 OfficeIMO.Excel.ExcelCell.SetItalic(bool italic = true) -> OfficeIMO.Excel.ExcelCell!
@@ -271,7 +271,7 @@ OfficeIMO.Excel.ExcelCellStyleInfo.FillPatternType.get -> string?
 OfficeIMO.Excel.ExcelCellStyleInfo.FontColorArgb.get -> string?
 OfficeIMO.Excel.ExcelCellStyleInfo.FontColorHex.get -> string?
 OfficeIMO.Excel.ExcelCellStyleInfo.FontName.get -> string?
-OfficeIMO.Excel.ExcelCellStyleInfo.FontSize.get -> double?
+OfficeIMO.Excel.ExcelCellStyleInfo.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Excel.ExcelCellStyleInfo.HasPdfVisualStyle.get -> bool
 OfficeIMO.Excel.ExcelCellStyleInfo.HorizontalAlignment.get -> string?
 OfficeIMO.Excel.ExcelCellStyleInfo.IsDateLike.get -> bool
@@ -814,7 +814,7 @@ OfficeIMO.Excel.ExcelConditionalFormattingInfo.DifferentialFontItalic.get -> boo
 OfficeIMO.Excel.ExcelConditionalFormattingInfo.DifferentialFontItalic.set -> void
 OfficeIMO.Excel.ExcelConditionalFormattingInfo.DifferentialFontName.get -> string?
 OfficeIMO.Excel.ExcelConditionalFormattingInfo.DifferentialFontName.set -> void
-OfficeIMO.Excel.ExcelConditionalFormattingInfo.DifferentialFontSize.get -> double?
+OfficeIMO.Excel.ExcelConditionalFormattingInfo.DifferentialFontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Excel.ExcelConditionalFormattingInfo.DifferentialFontSize.set -> void
 OfficeIMO.Excel.ExcelConditionalFormattingInfo.DifferentialFontStrike.get -> bool?
 OfficeIMO.Excel.ExcelConditionalFormattingInfo.DifferentialFontStrike.set -> void
@@ -2586,7 +2586,7 @@ OfficeIMO.Excel.ExcelRange.SetBold(bool bold = true) -> OfficeIMO.Excel.ExcelRan
 OfficeIMO.Excel.ExcelRange.SetFillColor(string! hexColor) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.SetFontColor(string! hexColor) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.SetFontName(string! fontName) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRange.SetFontSize(double fontSize) -> OfficeIMO.Excel.ExcelRange!
+OfficeIMO.Excel.ExcelRange.SetFontSize(OfficeIMO.OfficeLength fontSize) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.SetGradientFill(string! fromHexColor, string! toHexColor, double degree = 0) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.SetItalic(bool italic = true) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.SetNumberFormat(string! numberFormat) -> OfficeIMO.Excel.ExcelRange!
@@ -2918,7 +2918,7 @@ OfficeIMO.Excel.ExcelRichTextRun.FontFamily.get -> byte?
 OfficeIMO.Excel.ExcelRichTextRun.FontFamily.set -> void
 OfficeIMO.Excel.ExcelRichTextRun.FontName.get -> string?
 OfficeIMO.Excel.ExcelRichTextRun.FontName.set -> void
-OfficeIMO.Excel.ExcelRichTextRun.FontSize.get -> double?
+OfficeIMO.Excel.ExcelRichTextRun.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Excel.ExcelRichTextRun.FontSize.set -> void
 OfficeIMO.Excel.ExcelRichTextRun.Italic.get -> bool
 OfficeIMO.Excel.ExcelRichTextRun.Italic.set -> void
@@ -3167,7 +3167,7 @@ OfficeIMO.Excel.ExcelSheet.CellDiagonalBorder(int row, int column, OfficeIMO.Exc
 OfficeIMO.Excel.ExcelSheet.CellError(int row, int column, string! errorText) -> void
 OfficeIMO.Excel.ExcelSheet.CellFontColor(int row, int column, string! hexColor) -> void
 OfficeIMO.Excel.ExcelSheet.CellFontName(int row, int column, string! fontName) -> void
-OfficeIMO.Excel.ExcelSheet.CellFontSize(int row, int column, double fontSize) -> void
+OfficeIMO.Excel.ExcelSheet.CellFontSize(int row, int column, OfficeIMO.OfficeLength fontSize) -> void
 OfficeIMO.Excel.ExcelSheet.CellFormula(int row, int column, string! formula) -> void
 OfficeIMO.Excel.ExcelSheet.CellGradientBackground(int row, int column, string! fromHexColor, string! toHexColor, double degree = 0) -> void
 OfficeIMO.Excel.ExcelSheet.CellItalic(int row, int column, bool italic = true) -> void
@@ -3744,7 +3744,7 @@ OfficeIMO.Excel.ExcelStyleDefinition.FontColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Excel.ExcelStyleDefinition.FontColor.set -> void
 OfficeIMO.Excel.ExcelStyleDefinition.FontName.get -> string?
 OfficeIMO.Excel.ExcelStyleDefinition.FontName.set -> void
-OfficeIMO.Excel.ExcelStyleDefinition.FontSize.get -> double?
+OfficeIMO.Excel.ExcelStyleDefinition.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Excel.ExcelStyleDefinition.FontSize.set -> void
 OfficeIMO.Excel.ExcelStyleDefinition.HorizontalAlignment.get -> OfficeIMO.Excel.ExcelHorizontalAlignment?
 OfficeIMO.Excel.ExcelStyleDefinition.HorizontalAlignment.set -> void
@@ -4255,7 +4255,7 @@ OfficeIMO.Excel.ExcelVisualDrawingObject.Text.get -> string!
 OfficeIMO.Excel.ExcelVisualDrawingObject.TextAlignment.get -> OfficeIMO.Drawing.OfficeTextAlignment
 OfficeIMO.Excel.ExcelVisualDrawingObject.TextColorArgb.get -> string?
 OfficeIMO.Excel.ExcelVisualDrawingObject.TextFontFamily.get -> string?
-OfficeIMO.Excel.ExcelVisualDrawingObject.TextFontSize.get -> double?
+OfficeIMO.Excel.ExcelVisualDrawingObject.TextFontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Excel.ExcelVisualDrawingObject.TextFontStyle.get -> OfficeIMO.Drawing.OfficeFontStyle
 OfficeIMO.Excel.ExcelVisualDrawingObject.TextInsetBottom.get -> double
 OfficeIMO.Excel.ExcelVisualDrawingObject.TextInsetLeft.get -> double
@@ -4329,7 +4329,7 @@ OfficeIMO.Excel.ExcelVisualTextRun
 OfficeIMO.Excel.ExcelVisualTextRun.Bold.get -> bool
 OfficeIMO.Excel.ExcelVisualTextRun.FontColorArgb.get -> string?
 OfficeIMO.Excel.ExcelVisualTextRun.FontName.get -> string?
-OfficeIMO.Excel.ExcelVisualTextRun.FontSize.get -> double?
+OfficeIMO.Excel.ExcelVisualTextRun.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Excel.ExcelVisualTextRun.Italic.get -> bool
 OfficeIMO.Excel.ExcelVisualTextRun.Strikethrough.get -> bool
 OfficeIMO.Excel.ExcelVisualTextRun.Text.get -> string!

@@ -999,9 +999,9 @@ namespace OfficeIMO.Excel {
         public bool IsFontFamilyExplicit { get; internal set; }
 
         /// <summary>
-        /// Font size in points, when specified by the resolved style.
+        /// Physical font size, when specified by the resolved style.
         /// </summary>
-        public double? FontSize { get; internal set; }
+        public OfficeLength? FontSize { get; internal set; }
 
         /// <summary>
         /// Excel text rotation value from the resolved cell alignment, when specified.

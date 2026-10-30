@@ -70,7 +70,7 @@ public partial class Excel {
         sheet.Cell(2, 1, "WrapOne\nWrapTwo\nWrapThree\nWrapFour");
         sheet.CellAlign(2, 1, ExcelHorizontalAlignment.Center);
         sheet.CellVerticalAlign(2, 1, ExcelVerticalAlignment.Center);
-        sheet.CellFontName(2, 1, "Arial"); sheet.CellFontSize(2, 1, 11); sheet.CellWrapText(2, 1);
+        sheet.CellFontName(2, 1, "Arial"); sheet.CellFontSize(2, 1, global::OfficeIMO.OfficeLength.Points(11)); sheet.CellWrapText(2, 1);
         document.SetPrintArea(sheet, "A1:D4"); sheet.AddManualRowPageBreak(2);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,

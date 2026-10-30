@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(29));
             for (int column = 2; column <= 7; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(22));
             sheet.MergeRange("A1:G1"); sheet.Cell(1, 1, "Weekly support rota");
-            sheet.CellFontSize(1, 1, 22); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
+            sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(22)); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
             sheet.MergeRange("A2:G2"); sheet.Cell(2, 1, "One assigned shift per day / D = desk / R = remote / - = off");
             string[] headers = { "Team member", "Mon", "Tue", "Wed", "Thu", "Fri", "Desk days" };
             for (int column = 1; column <= 7; column++) sheet.Cell(4, column, headers[column - 1]);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(row == 1 ? 34 : row == 3 ? 12 : 25)));
                 for (int column = 1; column <= 7; column++) {
                     sheet.CellFontName(row, column, "Carlito");
-                    if (row > 1) sheet.CellFontSize(row, column, 11);
+                    if (row > 1) sheet.CellFontSize(row, column, global::OfficeIMO.OfficeLength.Points(11));
                 }
             }
             sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));

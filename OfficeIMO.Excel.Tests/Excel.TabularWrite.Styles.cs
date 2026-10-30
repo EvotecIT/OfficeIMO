@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             RequireStreaming = true, UseSharedStrings = sharedStrings, IncludeCellReferences = references,
             DateSystem = ExcelDateSystem.NineteenFour,
             Styles = new Dictionary<string, ExcelStyleDefinition> {
-                ["Emphasis"] = new() { Bold = true, FontName = "Arial", FontSize = 14,
+                ["Emphasis"] = new() { Bold = true, FontName = "Arial", FontSize = global::OfficeIMO.OfficeLength.Points(14),
                     FontColor = OfficeColor.Red, BackgroundColor = OfficeColor.Yellow, WrapText = true,
                     HorizontalAlignment = ExcelHorizontalAlignment.Center, VerticalAlignment = ExcelVerticalAlignment.Top },
                 ["Amount"] = new() { Italic = true, NumberFormat = "0.00" },
@@ -284,7 +284,7 @@ namespace OfficeIMO.Tests {
                 case 0: options.DefaultRowStyle = "Missing"; break;
                 case 1: options.ColumnStyles = new Dictionary<int, string> { [5] = "Amount" }; break;
                 case 2: options.Styles = new Dictionary<string, ExcelStyleDefinition> { ["Normal"] = new() }; break;
-                case 3: options.Styles = new Dictionary<string, ExcelStyleDefinition> { ["Emphasis"] = new() { FontSize = double.NaN } }; break;
+                case 3: options.Styles = new Dictionary<string, ExcelStyleDefinition> { ["Emphasis"] = new() { FontSize = global::OfficeIMO.OfficeLength.Zero } }; break;
                 case 4: options.Styles = new Dictionary<string, ExcelStyleDefinition> { ["Emphasis"] = new() { NumberFormat = "bad\0format" } }; break;
             }
             using var output = new MemoryStream(); output.Write(new byte[] { 1, 2, 3 }, 0, 3);

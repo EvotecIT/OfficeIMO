@@ -991,6 +991,7 @@ namespace OfficeIMO.Tests {
 
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
                 Assert.Equal("AlignedText!B2", drawingObject.Source);
+                Assert.Null(drawingObject.TextFontSize);
                 Assert.Equal(OfficeTextAlignment.Right, drawingObject.TextAlignment);
                 Assert.Equal(OfficeTextVerticalAlignment.Bottom, drawingObject.TextVerticalAlignment);
                 Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
@@ -1072,7 +1073,7 @@ namespace OfficeIMO.Tests {
 
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
                 Assert.Equal("Aptos", drawingObject.TextFontFamily);
-                Assert.Equal(18D, drawingObject.TextFontSize);
+                Assert.Equal(18D, drawingObject.TextFontSize?.ToPoints());
                 Assert.True((drawingObject.TextFontStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold);
                 Assert.True((drawingObject.TextFontStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic);
                 Assert.True((drawingObject.TextFontStyle & OfficeFontStyle.Underline) == OfficeFontStyle.Underline);
