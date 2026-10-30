@@ -792,7 +792,10 @@
         "source": "Build/ApiMap/SurfaceAnalysis",
         "membersHiddenWithType": 3
       },
-      "note": "Reviewed documentation roots, retained public signatures and actual cross-assembly callers; implementation access uses existing friends."
+      "note": "Reviewed documentation roots, retained public signatures and actual cross-assembly callers; implementation access uses existing friends. Public xUnit data signatures use a Boolean case selector for the same Column/WinLoss values because the enum is internal; existing saved-SVG assertions and both cases are retained.",
+      "consumerFiles": [
+        "OfficeIMO.Drawing.Tests/Drawing.Sparklines.cs"
+      ]
     },
     {
       "old": "OfficeIMO.Drawing.OfficeSparklinePointStyle",
