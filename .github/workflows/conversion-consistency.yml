@@ -46,9 +46,9 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: |
             8.0.426
-            10.0.403
       - uses: ./.github/actions/nuget-cache
       - name: Build the comparison tool
         run: dotnet build Build/ConversionConsistency/OfficeIMO.ConversionConsistency.Tool.csproj -c Release -f net8.0

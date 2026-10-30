@@ -18,7 +18,6 @@ on:
 env:
   DOTNET_VERSION: |
     8.0.426
-    10.0.403
   BUILD_CONFIGURATION: 'Debug'
 
 jobs:
@@ -48,6 +47,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -93,6 +93,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -137,6 +138,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 

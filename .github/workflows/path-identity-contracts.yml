@@ -90,10 +90,10 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           architecture: ${{ matrix.architecture }}
           dotnet-version: |
             8.0.x
-            10.0.403
 
       - name: Restore focused contracts
         run: dotnet restore OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj

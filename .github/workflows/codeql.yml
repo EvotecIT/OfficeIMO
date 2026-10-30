@@ -47,9 +47,9 @@ jobs:
         if: matrix.build-mode == 'manual'
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: |
             8.0.426
-            10.0.403
 
       - name: Restore NuGet packages
         if: matrix.build-mode == 'manual'

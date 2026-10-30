@@ -61,9 +61,9 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: |
             8.0.x
-            10.0.403
 
       - name: Install PowerForge benchmark tooling
         if: github.event_name == 'workflow_dispatch'

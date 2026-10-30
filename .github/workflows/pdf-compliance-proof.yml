@@ -125,7 +125,6 @@ permissions:
 env:
   DOTNET_VERSION: |
     8.0.426
-    10.0.403
   BUILD_CONFIGURATION: Release
   PROOF_PATH: artifacts/pdf-compliance-proof
   VERAPDF_VERSION: 1.30.2
@@ -147,6 +146,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Install .NET WebAssembly workload

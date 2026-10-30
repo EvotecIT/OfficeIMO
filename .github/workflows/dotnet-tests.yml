@@ -19,7 +19,6 @@ concurrency:
 env:
   DOTNET_VERSION: |
     8.0.426
-    10.0.403
   MSBUILDDISABLENODEREUSE: '1'
   DOTNET_CLI_USE_MSBUILD_SERVER: '0'
   BUILD_CONFIGURATION: 'Release'
@@ -89,6 +88,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
       - name: Test bounded Cabinet and passive MSI extraction
@@ -140,6 +140,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
       - name: Test compiled archives, conversions, and rich Reader projection
@@ -168,6 +169,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
       - name: Test bounded legacy import and conversion contracts
@@ -193,6 +195,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
       - name: Cache HtmlTinkerX browser installations
@@ -278,6 +281,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
       - name: Test shared workflows and registered Apple routes
@@ -311,6 +315,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
       - name: Test document AI
@@ -342,6 +347,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
       - name: Check Studio translations
@@ -386,8 +392,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           # Match the servicing SDK used to refresh both host-specific release locks.
-          dotnet-version: 10.0.403
       - uses: ./.github/actions/nuget-cache
       - name: Validate the Studio release restore graph
         shell: pwsh
@@ -409,6 +415,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
       - uses: actions/setup-java@v6
@@ -439,6 +446,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -514,6 +522,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -538,6 +547,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -564,6 +574,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -727,6 +738,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -747,6 +759,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -884,6 +897,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -929,6 +943,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -971,6 +986,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -1008,6 +1024,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -1080,6 +1097,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -1223,6 +1241,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -1747,6 +1766,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -1787,6 +1807,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -1818,6 +1839,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -1920,6 +1942,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -2043,6 +2066,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -2100,6 +2124,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -2215,6 +2240,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
 
@@ -2265,6 +2291,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - uses: ./.github/actions/nuget-cache
       - name: Read independent DBF fixtures and reopen CSV/XLSX output

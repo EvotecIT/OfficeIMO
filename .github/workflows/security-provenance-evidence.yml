@@ -23,7 +23,6 @@ permissions:
   contents: read
 
 env:
-  DOTNET_VERSION: 10.0.403
   BUILD_CONFIGURATION: Release
 
 jobs:
@@ -43,7 +42,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          global-json-file: global.json
 
       - name: Restore evidence projects
         shell: pwsh

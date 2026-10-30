@@ -27,9 +27,9 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-dotnet@v6
         with:
+          global-json-file: global.json
           dotnet-version: |
             8.0.x
-            10.0.403
             10.0.303
       - name: Build iWork workloads
         run: dotnet build OfficeIMO.IWork.Benchmarks/OfficeIMO.IWork.Benchmarks.csproj -c Release -f net8.0
