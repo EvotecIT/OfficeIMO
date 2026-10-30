@@ -437,6 +437,7 @@ jobs:
     if: fromJSON(needs.changes.outputs.suites)['build-matrix']
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: ${{ fromJSON(needs.changes.outputs.full == 'true' && (github.event_name != 'pull_request' && '["ubuntu-latest","macos-latest","windows-latest"]' || '["ubuntu-latest","windows-latest"]') || '["ubuntu-latest"]') }}
     timeout-minutes: 45
