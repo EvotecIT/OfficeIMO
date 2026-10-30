@@ -21,8 +21,8 @@ internal static partial class PublisherQuillCharacterStyleWriter {
         if (size && (after.FontSize > 1000 || nativeSize <= 0 || nativeSize != Math.Round(nativeSize)
                 || sizes.Length > 1 || sizes.Any(field => field.Type != 0x22) || fields.Any(field => field.Id == 0x39))
             || bold && (bolds.Length > 1 || bolds.Any(field => field.Type is not (0x02 or 0x0A)) || fields.Any(field => field.Id == 0x37))) return null;
-        if (bold) extended.Add(2, PublisherQuillOplWriter.Boolean(2, after.Bold));
-        if (size) extended.Add(0x0C, PublisherQuillOplWriter.UInt32(0x0C, checked((uint)nativeSize)));
-        return PublisherQuillOplWriter.Rewrite(source, span, fields, extended, context);
+        if (bold) extended.Add(2, PublisherOplWriter.Boolean(2, after.Bold));
+        if (size) extended.Add(0x0C, PublisherOplWriter.UInt32(0x0C, checked((uint)nativeSize)));
+        return PublisherOplWriter.Rewrite(source, span.Offset, span.Length, fields, extended, context);
     }
 }

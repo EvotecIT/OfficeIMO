@@ -104,10 +104,10 @@ internal sealed partial class PublisherNativeWriter {
         if (a.Id != b.Id || a.StoryId != b.StoryId || a.PageId != b.PageId || a.HasAnchor != b.HasAnchor
             || a.TransformAvailable != b.TransformAvailable || a.Hidden != b.Hidden || a.Drawable != b.Drawable
             || a.CanEditBounds != b.CanEditBounds || a.SupportsContinuation != b.SupportsContinuation || a.IsAuthored != b.IsAuthored
-            || a.ColumnCount != b.ColumnCount || a.ColumnSpacing != b.ColumnSpacing || !a.Padding.Equals(b.Padding)
-            || a.VerticalAlignment != b.VerticalAlignment || a.EditRange != b.EditRange || !a.WrapObjectIds.SequenceEqual(b.WrapObjectIds)) {
-            Reject("Contents/object/" + a.Id, "A frame input other than its bounds changed."); return;
+            || a.LayoutEditLimitation != b.LayoutEditLimitation || a.EditRange != b.EditRange || !a.WrapObjectIds.SequenceEqual(b.WrapObjectIds)) {
+            Reject("Contents/object/" + a.Id, "A frame input other than its bounds or layout changed."); return;
         }
+        FrameLayout(a, b);
         if (SameBounds(a.X, a.Y, a.Width, a.Height, b.X, b.Y, b.Width, b.Height) && a.PageTransform == b.PageTransform) return;
         if (!a.CanEditBounds || b.PageTransform != OfficeTransform.Translate(b.X, b.Y)) {
             Reject("Contents/object/" + a.Id, "The frame has no qualified untransformed native bounds edit."); return;

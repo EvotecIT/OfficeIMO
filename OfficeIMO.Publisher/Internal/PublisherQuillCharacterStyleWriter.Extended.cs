@@ -1,5 +1,5 @@
 using OfficeIMO.Drawing;
-using static OfficeIMO.Publisher.Internal.PublisherQuillOplWriter;
+using static OfficeIMO.Publisher.Internal.PublisherOplWriter;
 
 namespace OfficeIMO.Publisher.Internal;
 

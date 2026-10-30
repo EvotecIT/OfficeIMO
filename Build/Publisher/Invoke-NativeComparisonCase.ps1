@@ -28,7 +28,7 @@ param(
     [string] $NativeEditText,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -128,6 +128,7 @@ $layout = $null
 . (Join-Path $PSScriptRoot 'Add-NativeComparisonPictures.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeCharacterAttributeControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeParagraphFormatControl.ps1')
+. (Join-Path $PSScriptRoot 'Add-NativeFrameLayoutControl.ps1')
 . (Join-Path $PSScriptRoot 'Write-NativePublisherPhaseReceipt.ps1')
 
 function Set-NativePhase {
@@ -204,6 +205,7 @@ function Get-NativeShapeInventory {
         $font = $null
         $nextLink = $false
         $previousLink = $false
+        $frameLayout = $null
         if ($shape.HasTextFrame -eq -1) {
             $frame = $shape.TextFrame
             $range = $frame.TextRange
@@ -213,6 +215,12 @@ function Get-NativeShapeInventory {
             $font = [string]$range.Font.Name
             $nextLink = $frame.HasNextLink -eq -1
             $previousLink = $frame.HasPreviousLink -eq -1
+            $frameLayout = [pscustomobject]@{
+                columns = [int]$frame.Columns; columnSpacing = [double]$frame.ColumnSpacing
+                left = [double]$frame.MarginLeft; top = [double]$frame.MarginTop
+                right = [double]$frame.MarginRight; bottom = [double]$frame.MarginBottom
+                verticalAlignment = [int]$frame.VerticalTextAlignment
+            }
         }
         $nativeShapes.Add([pscustomobject]@{
             name = [string]$shape.Name
@@ -225,6 +233,7 @@ function Get-NativeShapeInventory {
             font = $font
             nextLink = $nextLink
             previousLink = $previousLink
+            frameLayout = $frameLayout
         })
     }
     return $nativeShapes.ToArray()
@@ -565,6 +574,9 @@ try {
         }
         'TextParagraphAttributes' {
             $pageCount = Add-NativeParagraphFormatControl -Publication $document -FirstPage $page
+        }
+        'TextFrameLayout' {
+            $pageCount = Add-NativeFrameLayoutControl -Publication $document -FirstPage $page
         }
         'TextAlignedTabs' {
             $pageCount = Add-NativeParagraphFormatControl -Publication $document -FirstPage $page -AlignedTabs

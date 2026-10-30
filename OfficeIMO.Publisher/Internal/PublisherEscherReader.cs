@@ -200,7 +200,7 @@ internal sealed class PublisherEscherReader {
         Buffer.BlockCopy(data.Bytes, position, bytes, 0, size);
         return bytes;
     }
-    private IReadOnlyList<PublisherEscherRecord> Records(int start, int end) {
+    internal IReadOnlyList<PublisherEscherRecord> Records(int start, int end) {
         _data.Range(start, end - start);
         var result = new List<PublisherEscherRecord>();
         for (int position = start; position < end;) {

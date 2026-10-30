@@ -12,6 +12,7 @@ internal sealed class PublisherNativeSource {
     internal byte[] CopyBytes() => (byte[])_bytes.Clone();
     internal byte[] EscherBytes => _compound.Streams["Escher/EscherStm"];
     internal byte[] QuillBytes => _compound.Streams["Quill/QuillSub/CONTENTS"];
+    internal byte[] ContentsBytes => _compound.Streams["Contents"];
 
     internal bool CanRewrite(OfficeLegacyImportLimits limits, CancellationToken token) {
         var bounds = new OfficeCompoundReadOptions(maxDirectoryEntries: limits.MaxRecords,

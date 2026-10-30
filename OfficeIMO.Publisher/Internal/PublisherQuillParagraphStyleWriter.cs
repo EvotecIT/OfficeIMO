@@ -1,5 +1,5 @@
 using OfficeIMO.Drawing;
-using static OfficeIMO.Publisher.Internal.PublisherQuillOplWriter;
+using static OfficeIMO.Publisher.Internal.PublisherOplWriter;
 
 namespace OfficeIMO.Publisher.Internal;
 
@@ -51,7 +51,7 @@ internal static class PublisherQuillParagraphStyleWriter {
         if (!TabContentEqual(before.TabStops, tabs)) {
             if (!KnownTabs() || !WriteTabs(out byte[]? replacement) || !Set(0x32, 0x82, replacement!)) return null;
         }
-        return PublisherQuillOplWriter.Rewrite(source, span, fields, changes, context);
+        return PublisherOplWriter.Rewrite(source, span.Offset, span.Length, fields, changes, context);
 
         bool Set(byte id, byte type, byte[] replacement) {
             PublisherBlock[] old = fields.Where(field => field.Id == id).ToArray();

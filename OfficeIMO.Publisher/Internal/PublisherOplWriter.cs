@@ -1,11 +1,12 @@
 namespace OfficeIMO.Publisher.Internal;
 
 /// <summary>Replaces admitted typed fields while retaining every unrelated source token and its order.</summary>
-internal static class PublisherQuillOplWriter {
-    internal static byte[] Rewrite(PublisherBinaryData source, PublisherQuillSourceSpan span,
+internal static class PublisherOplWriter {
+    internal static byte[] Rewrite(PublisherBinaryData source, int offset, int length,
         IReadOnlyList<PublisherBlock> fields, IReadOnlyDictionary<byte, byte[]> changes, PublisherParseContext context) {
         var missing = changes.Keys.Where(id => fields.All(field => field.Id != id)).OrderBy(id => id).ToList();
-        using var stream = new MemoryStream(span.Length + changes.Values.Sum(value => value.Length));
+        source.Range(offset, length);
+        using var stream = new MemoryStream(length + changes.Values.Sum(value => value.Length));
         using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true)) {
             writer.Write(0U);
             foreach (PublisherBlock field in fields) {

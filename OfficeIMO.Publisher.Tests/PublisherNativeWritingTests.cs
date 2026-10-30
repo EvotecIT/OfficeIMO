@@ -167,7 +167,6 @@ public sealed class PublisherNativeWritingTests {
     [InlineData("assignment")]
     [InlineData("continuation")]
     [InlineData("text-frame")]
-    [InlineData("frame-layout")]
     [InlineData("shape")]
     [InlineData("picture")]
     [InlineData("image-replacement")]
@@ -196,7 +195,6 @@ public sealed class PublisherNativeWritingTests {
             case "assignment": document.SetPageMaster(page.Id, null); break;
             case "continuation": document.AddLinkedTextFrame(page.TextFrames[0].Id, page.Id, 40, 300, 200, 60); break;
             case "text-frame": document.AddTextFrame(page.Id, 40, 300, 200, 60, Paragraphs("New story")); break;
-            case "frame-layout": document.SetTextFrameLayout(page.TextFrames[0].Id, 2, 12, new OfficeTextPadding(2, 2, 2, 2), OfficeTextVerticalAlignment.Center); break;
             case "shape": document.AddShape(page.Id, OfficeShape.Rectangle(40, 30), 40, 300); break;
             case "picture": document.AddPicture(page.Id, PictureBytes(), 40, 300, 40, 30); break;
             case "image-replacement": document.ReplacePictureImage(page.Pictures[0].Id, PictureBytes()); break;
@@ -209,8 +207,6 @@ public sealed class PublisherNativeWritingTests {
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
         Assert.False(prepared.IsPrepared); Assert.Equal(0, prepared.ByteLength); Assert.True(prepared.HasLoss);
         Assert.Contains(prepared.FidelityDiagnostics, item => item.LossKind == OfficeConversionLossKind.Failure);
-        if (mutation == "frame-layout")
-            Assert.Contains(prepared.FidelityDiagnostics, item => item.Message.Contains("frame input other than its bounds"));
         Assert.Throws<NotSupportedException>(() => prepared.CopyBytes());
         Assert.Same(pages, document.Pages); Assert.Same(stories, document.TextStories); Assert.Same(images, document.Images);
     }

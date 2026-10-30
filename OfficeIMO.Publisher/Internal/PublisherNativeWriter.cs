@@ -33,7 +33,7 @@ internal sealed partial class PublisherNativeWriter {
         writer.Compare();
         if (writer._diagnostics.Count != 0) return new PublisherNativePreparation(null, writer._diagnostics, writer._styleDependencies);
         PublisherNativeSource source = imported.NativeSource;
-        if (writer._patches.Count == 0 && writer._quillBytes == null) {
+        if (writer._patches.Count == 0 && writer._quillBytes == null && writer._frameProperties.Count == 0 && writer._frameAlignments.Count == 0) {
             if (source.ByteLength > maximumBytes) throw new InvalidDataException("Publisher native output byte limit exceeded.");
             token.ThrowIfCancellationRequested();
             return new PublisherNativePreparation(source.CopyBytes(), new[] { Finding("PUB_NATIVE_EXACT_COPY",
@@ -44,7 +44,7 @@ internal sealed partial class PublisherNativeWriter {
             return new PublisherNativePreparation(null, writer._diagnostics, writer._styleDependencies);
         }
         var streams = new Dictionary<string, byte[]>();
-        byte[] bytes = writer._patches.Count == 0 ? Array.Empty<byte>() : (byte[])source.EscherBytes.Clone();
+        byte[] bytes = writer._patches.Count == 0 && writer._frameProperties.Count == 0 ? Array.Empty<byte>() : (byte[])source.EscherBytes.Clone();
         var data = new PublisherBinaryData(bytes, "Escher/EscherStm");
         foreach (var patch in writer._patches) {
             token.ThrowIfCancellationRequested();
@@ -56,6 +56,8 @@ internal sealed partial class PublisherNativeWriter {
             for (int index = 0; index < 4; index++) bytes[patch.Key + index] = (byte)(value >> (index * 8));
         }
         if (writer._patches.Count != 0) streams.Add("Escher/EscherStm", bytes);
+        if (!writer.PrepareFrameLayoutStreams(streams, bytes))
+            return new PublisherNativePreparation(null, writer._diagnostics, writer._styleDependencies);
         if (writer._quillBytes != null) streams.Add("Quill/QuillSub/CONTENTS", writer._quillBytes);
         bool previewInvalidated;
         try {
@@ -67,6 +69,10 @@ internal sealed partial class PublisherNativeWriter {
         byte[] output = source.Rewrite(streams, maximumBytes, token);
         token.ThrowIfCancellationRequested();
         var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+        if (writer._frameProperties.Count != 0 || writer._frameAlignments.Count != 0)
+            diagnostics.Add(Finding("PUB_NATIVE_FRAME_LAYOUT_UNQUALIFIED",
+                "Source frame columns, full intercolumn gap, insets or vertical alignment changed. Native shape tables and chunk-directory offsets are rewritten while unrelated records are retained. Repair-free opening, native layout and opaque semantic preservation remain unassessed.",
+                OfficeConversionLossKind.Unassessed, "Contents/Escher"));
         if (previewInvalidated) diagnostics.Add(Finding("PUB_NATIVE_PREVIEW_INVALIDATED",
             "Removed the stale optional SummaryInformation thumbnail after content edits. Other raw metadata values are retained; a replacement preview is not generated.",
             OfficeConversionLossKind.None, "\u0005SummaryInformation"));
