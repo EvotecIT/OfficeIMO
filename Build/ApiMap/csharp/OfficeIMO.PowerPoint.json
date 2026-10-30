@@ -228,15 +228,89 @@
       "file": [
         "OfficeIMO.PowerPoint/Imaging/PowerPointSlideVisualSnapshot.cs"
       ],
-      "why": "Public surface exposes OfficeIMO.Pdf.PdfTextSpan, so the PDF engine is part of PowerPoint's public contract."
+      "why": "PowerPointSlideVisualSnapshot is now PowerPointSlideVisualInfo. Its TextSpans are PowerPointTextSpanInfo from the shared drawing scene, not PdfTextSpan; the original dependency claim is stale.",
+      "reviewDisposition": "renamed-public-contract",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.PowerPoint.PowerPointSlideVisualInfo",
+          "assembly": "OfficeIMO.PowerPoint",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.PowerPoint.PowerPointTextSpanInfo",
+          "assembly": "OfficeIMO.PowerPoint",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.PowerPoint/Imaging/PowerPointSlideVisualSnapshot.cs",
+        "OfficeIMO.PowerPoint/Imaging/PowerPointSlide.Imaging.cs"
+      ],
+      "reviewStatus": "reviewed-current-source",
+      "note": "Retained documented input, result, model or extension contracts; implementation-only helpers remain internal."
     },
     {
       "type": "OfficeIMO.PowerPoint.LegacyPpt.Capabilities.* (LegacyPptCapabilityCatalog ...)",
-      "why": "Capability catalog for documentation generation."
+      "why": "Retain all six exact LegacyPpt.Capabilities public types. The catalog and serialization are documented by the package README and capability guide; related models describe the advertised catalog contract.",
+      "reviewDisposition": "retained-public-contract",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.PowerPoint.LegacyPpt.Capabilities.LegacyPptFeature",
+          "assembly": "OfficeIMO.PowerPoint",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.PowerPoint.LegacyPpt.Capabilities.LegacyPptRepresentability",
+          "assembly": "OfficeIMO.PowerPoint",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.PowerPoint.LegacyPpt.Capabilities.LegacyPptCapabilityState",
+          "assembly": "OfficeIMO.PowerPoint",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.PowerPoint.LegacyPpt.Capabilities.LegacyPptCapabilityLane",
+          "assembly": "OfficeIMO.PowerPoint",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.PowerPoint.LegacyPpt.Capabilities.LegacyPptCapability",
+          "assembly": "OfficeIMO.PowerPoint",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.PowerPoint.LegacyPpt.Capabilities.LegacyPptCapabilityCatalog",
+          "assembly": "OfficeIMO.PowerPoint",
+          "visibility": "Public, Abstract, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.PowerPoint/README.md",
+        "Website/content/docs/powerpoint/capabilities/index.md"
+      ],
+      "reviewStatus": "reviewed-current-source",
+      "note": "Retained documented input, result, model or extension contracts; implementation-only helpers remain internal."
     },
     {
       "type": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext",
-      "why": "Designer composition context; confirm it is a documented extension point before keeping it public."
+      "why": "PowerPointSlideCompositionContext is the callback model of public ComposeSlide/AddCustom, exercised by DesignerPowerPoint. Keep this extension point; designer redesign is outside this visibility closure.",
+      "reviewDisposition": "retained-public-extension-contract",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext",
+          "assembly": "OfficeIMO.PowerPoint",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.PowerPoint/PowerPointSlideCompositionContext.cs",
+        "OfficeIMO.PowerPoint/PowerPointDeckComposer.cs",
+        "OfficeIMO.PowerPoint/PowerPointDeckPlan.cs",
+        "OfficeIMO.Examples/PowerPoint/DesignerPowerPointDeck.cs"
+      ],
+      "reviewStatus": "reviewed-current-source",
+      "note": "Retained documented input, result, model or extension contracts; implementation-only helpers remain internal."
     },
     {
       "type": "OfficeIMO.PowerPoint.PowerPointCompatibilityCatalog",

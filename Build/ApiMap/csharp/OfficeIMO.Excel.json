@@ -346,39 +346,230 @@
       "file": [
         "OfficeIMO.Excel/ExcelWorkbookWriteReservation.cs"
       ],
-      "why": "Write-reservation plumbing; used only inside OfficeIMO.Excel and its tests."
+      "why": "ExcelWorkbookWriteReservationInfo and ExcelWorkbookWriteReservationOptions are the result and input of public ExcelDocument.GetWriteReservation/SetWriteReservation. Retain the models and their public configuration.",
+      "reviewDisposition": "retained-public-contract",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Excel.ExcelWorkbookWriteReservationOptions",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelWorkbookWriteReservationInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Excel/ExcelWorkbookWriteReservation.cs"
+      ],
+      "reviewStatus": "reviewed-current-source",
+      "note": "Retained documented input, result, model or extension contracts; implementation-only helpers remain internal."
     },
     {
       "type": "OfficeIMO.Excel.ExcelStreamingContractReport",
       "file": [
         "OfficeIMO.Excel/ExcelWorkbookIntelligence.cs"
       ],
-      "why": "\"Contract\" report used by workbook intelligence internals and tests."
+      "why": "ExcelStreamingContractReport is returned by public ExcelDocument.GetStreamingContract. Retain observable report data; do not hide an exposed result merely because its name contains Contract.",
+      "reviewDisposition": "retained-public-contract",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Excel.ExcelStreamingContractReport",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Excel/ExcelWorkbookIntelligence.cs"
+      ],
+      "reviewStatus": "reviewed-current-source",
+      "note": "Retained documented input, result, model or extension contracts; implementation-only helpers remain internal."
     },
     {
       "type": "OfficeIMO.Excel.ExcelRuntimePreflight / ExcelRuntimePreflightReport",
       "file": [
         "OfficeIMO.Excel/ExcelRuntimePreflight.cs"
       ],
-      "why": "Runtime preflight; used by PSWriteOffice, so check whether it is a documented feature before internalizing."
+      "why": "ExcelRuntimePreflight is already internal. ExcelRuntimePreflightReport remains public; its material model boundary is not proven redundant by this audit, so no accessibility edit is proposed.",
+      "reviewDisposition": "mixed-already-internal-and-uncertain-public-model",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Excel.ExcelRuntimePreflightReport",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelRuntimePreflight",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Excel/ExcelRuntimePreflight.cs"
+      ],
+      "reviewStatus": "reviewed-current-source",
+      "note": "Retained documented input, result, model or extension contracts; implementation-only helpers remain internal."
     },
     {
       "type": "OfficeIMO.Excel.ExcelWorkbookSnapshot (+ 19 Excel*Snapshot types)",
       "file": [
         "OfficeIMO.Excel/ExcelInspectionSnapshot.cs"
       ],
-      "why": "Inspection snapshot consumed by Reader.Excel, Excel.GoogleSheets, Excel.OpenDocument and PSWriteOffice; InternalsVisibleTo or rename to *Info."
+      "why": "ExcelWorkbookSnapshot is now ExcelWorkbookInfo; retain the public ExcelDocument.Inspect result and its exact public inspection model types. No internalization of model properties or construction is proposed.",
+      "reviewDisposition": "renamed-public-contract",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Excel.ExcelWorkbookInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelWorksheetInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelWorksheetProtectionInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelDataValidationInspectionInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelCellInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelCommentInspectionInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelThreadedCommentInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelMergedRangeInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelColumnInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelRowInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelAutoFilterInspectionInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelFilterColumnInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelCustomFiltersInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelCustomFilterConditionInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelTableInspectionInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelTableColumnInspectionInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelNamedRangeInspectionInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelGradientFillStopInspectionInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelCellBorderInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelBorderSideInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Excel.ExcelHyperlinkInfo",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Excel/ExcelInspectionSnapshot.cs",
+        "OfficeIMO.Excel/ExcelDocument.Inspection.cs"
+      ],
+      "reviewStatus": "reviewed-current-source",
+      "note": "Retained documented input, result, model or extension contracts; implementation-only helpers remain internal."
     },
     {
       "type": "OfficeIMO.Excel.LegacyXls.LegacyXlsWriteReservation",
       "file": [
         "OfficeIMO.Excel/LegacyXls/Model/LegacyXlsWriteReservation.cs"
       ],
-      "why": "\"Reservation\" plumbing."
+      "why": "LegacyXlsWriteReservation is a public model carried by public LegacyXlsWorkbook.WriteReservation and its constructor. Preserve the legacy read/write lifecycle model.",
+      "reviewDisposition": "retained-public-contract",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Excel.LegacyXls.Model.LegacyXlsWriteReservation",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Excel/LegacyXls/Model/LegacyXlsWriteReservation.cs",
+        "OfficeIMO.Excel/LegacyXls/Model/LegacyXlsWorkbook.cs"
+      ],
+      "reviewStatus": "reviewed-current-source",
+      "note": "Retained documented input, result, model or extension contracts; implementation-only helpers remain internal."
     },
     {
       "type": "OfficeIMO.Excel.Fluent.SheetComposer+ColumnComposer",
-      "why": "Nested public builder; keep as ExcelReportBuilder.ColumnComposer only if Columns(...) stays in the report API."
+      "why": "SheetComposer+ColumnComposer is now ExcelReportBuilder+ColumnComposer, a public nested callback builder exercised by ColumnsAdaptive examples. Keep the builder contract; the old owner is gone.",
+      "reviewDisposition": "renamed-public-contract",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Excel.ExcelReportBuilder+ColumnComposer",
+          "assembly": "OfficeIMO.Excel",
+          "visibility": "NestedPublic, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Excel/Report/ExcelReportBuilder.ColumnsLayout.cs",
+        "OfficeIMO.Examples/Excel/SheetComposer.MultiTables.LeftToRight.cs"
+      ],
+      "reviewStatus": "reviewed-current-source",
+      "note": "Retained documented input, result, model or extension contracts; implementation-only helpers remain internal."
     },
     {
       "type": "OfficeIMO.Excel.ExcelCompatibilityCatalog",

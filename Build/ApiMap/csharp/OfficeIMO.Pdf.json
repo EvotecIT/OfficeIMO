@@ -288,23 +288,169 @@
       "file": [
         "OfficeIMO.Pdf/Core/PdfArtifactSnapshot.cs"
       ],
-      "why": "Snapshot used inside Core/Rendering only."
+      "why": "PdfArtifactSnapshot is now PdfArtifactInfo. Public PdfPipelineStep.Input/Output exposes immutable identity/size evidence; Capture/FromDigest helpers are already internal. Retain the result model.",
+      "reviewDisposition": "renamed-public-contract",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Pdf.PdfArtifactInfo",
+          "assembly": "OfficeIMO.Pdf",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Pdf/Core/PdfArtifactSnapshot.cs",
+        "OfficeIMO.Pdf/Core/PdfPipelineStep.cs"
+      ],
+      "reviewStatus": "reviewed-current-source",
+      "note": "Retained documented input, result, model or extension contracts; implementation-only helpers remain internal."
     },
     {
       "type": "OfficeIMO.Pdf.PdfRewritePreservationMatrix / PdfRewritePreservation / PdfRepairArtifact",
-      "why": "Static evidence/matrix helpers; check documentation use."
+      "why": "PdfRewritePreservation and PdfRewritePreservationMatrix are already internal. PdfRepairArtifact remains a documented public repair workflow with public options/result. Preserve the exposed preservation models.",
+      "reviewDisposition": "mixed-already-internal-and-retained-public-contract",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Pdf.PdfRepairArtifactOptions",
+          "assembly": "OfficeIMO.Pdf",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Pdf.PdfRepairArtifactResult",
+          "assembly": "OfficeIMO.Pdf",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Pdf.PdfRepairArtifact",
+          "assembly": "OfficeIMO.Pdf",
+          "visibility": "Public, Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Pdf.PdfRewritePreservation",
+          "assembly": "OfficeIMO.Pdf",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Pdf.PdfRewritePreservationMatrix",
+          "assembly": "OfficeIMO.Pdf",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Pdf/Manipulation/PdfRewritePreservation.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfRewritePreservationMatrix.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfRepairArtifact.cs",
+        "OfficeIMO.Pdf/README.md"
+      ],
+      "reviewStatus": "reviewed-current-source",
+      "note": "Retained documented input, result, model or extension contracts; implementation-only helpers remain internal."
     },
     {
       "type": "OfficeIMO.Pdf.PdfAdvancedUnderstandingStages, PdfLogical*Analysis/Continuations/Parser static classes",
-      "why": "Pipeline stages exposed as public statics."
+      "why": "The exact pipeline helper types listed here are already internal, except documented PdfLogicalTableAnalysis and source-to PdfLogicalMarkdownExtensions. Retain logical content models/options/results and the documented helpers; do not reapply the earlier static-helper batch.",
+      "reviewDisposition": "mixed-already-internal-and-retained-public-contract",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Pdf.PdfLogicalContentProjection",
+          "assembly": "OfficeIMO.Pdf",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Pdf.PdfLogicalMarkdownExtensions",
+          "assembly": "OfficeIMO.Pdf",
+          "visibility": "Public, Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Pdf.PdfLogicalParagraphContinuations",
+          "assembly": "OfficeIMO.Pdf",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Pdf.PdfLogicalReadingOrderAnalysis",
+          "assembly": "OfficeIMO.Pdf",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Pdf.PdfLogicalTableAnalysis",
+          "assembly": "OfficeIMO.Pdf",
+          "visibility": "Public, Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Pdf.PdfLogicalTableContinuations",
+          "assembly": "OfficeIMO.Pdf",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Pdf.PdfLogicalTableTextExportExtensions",
+          "assembly": "OfficeIMO.Pdf",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Pdf.PdfLogicalTableValueAnalysis",
+          "assembly": "OfficeIMO.Pdf",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Pdf.PdfLogicalTableValueParser",
+          "assembly": "OfficeIMO.Pdf",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Pdf.PdfAdvancedUnderstandingStages",
+          "assembly": "OfficeIMO.Pdf",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Pdf/Reading/Understanding/PdfAdvancedUnderstandingStages.cs",
+        "OfficeIMO.Pdf/README.md"
+      ],
+      "reviewStatus": "reviewed-current-source",
+      "note": "Retained documented input, result, model or extension contracts; implementation-only helpers remain internal."
     },
     {
       "type": "OfficeIMO.Pdf.PdfDocument.TryValidateImageBytes / TryPrepareImageBytes (static)",
-      "why": "Image preparation helpers on the document type."
+      "why": "TryPrepareImageBytes is documented by the PDF README for SVG/raster embedding; TryValidateImageBytes is referenced by public visible-signature appearance options and is its validation counterpart. Keep both public methods; the cancellation-aware preparation overload is already internal.",
+      "reviewDisposition": "retained-public-contract",
+      "currentTypes": [
+        {
+          "member": "OfficeIMO.Pdf.PdfDocument.TryValidateImageBytes(byte[], out OfficeImageInfo?, out string?)",
+          "visibility": "public"
+        },
+        {
+          "member": "OfficeIMO.Pdf.PdfDocument.TryPrepareImageBytes(byte[], out byte[], out OfficeImageInfo?, out bool, out string?)",
+          "visibility": "public"
+        },
+        {
+          "member": "OfficeIMO.Pdf.PdfDocument.TryPrepareImageBytes(byte[], CancellationToken, out byte[], out OfficeImageInfo?, out bool, out string?)",
+          "visibility": "internal"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Pdf/Core/PdfDocument.Blocks.ImageValidation.cs",
+        "OfficeIMO.Pdf/Signatures/PdfVisibleSignatureAppearanceOptions.cs",
+        "OfficeIMO.Pdf/README.md"
+      ],
+      "reviewStatus": "reviewed-current-source",
+      "note": "Retained documented input, result, model or extension contracts; implementation-only helpers remain internal."
     },
     {
       "type": "OfficeIMO.Pdf.PdfProjectionOptions",
-      "why": "Options for OfficeDocumentModel projection; only the Reader.All facade exposes it."
+      "why": "PdfProjectionOptions remains public and is explicitly documented in the PDF README and Reader.Pdf README. Retain projection options despite the internal owner extension; current usage is not limited to the former Reader.All claim.",
+      "reviewDisposition": "retained-public-contract",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Pdf.PdfProjectionOptions",
+          "assembly": "OfficeIMO.Pdf",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Pdf/PdfProjectionOptions.cs",
+        "OfficeIMO.Pdf/README.md",
+        "OfficeIMO.Reader.Pdf/README.md"
+      ],
+      "reviewStatus": "reviewed-current-source",
+      "note": "Retained documented input, result, model or extension contracts; implementation-only helpers remain internal."
     },
     {
       "type": "OfficeIMO.Pdf.OfficeDocumentModelPdfExtensions",
