@@ -32,9 +32,11 @@ jobs:
   website-build:
     needs: changes
     if: needs.changes.outputs.selected == 'true'
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@396e00acba04dcaae4c3c95433338f4df65fbc01
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@2e5374485f28c4927f571525ef80652e5fd3af82
     with:
       website_root: Website
+      # Cold builds render social cards across the API reference.
+      timeout_minutes: 120
       authenticate_public_github_data: true
       pipeline_config: Website/pipeline.json
       engine_mode: source
