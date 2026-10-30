@@ -53,6 +53,8 @@ namespace OfficeIMO.PowerPoint {
         public bool NoSlideNumber { get; set; }
         /// <inheritdoc />
         public override PowerPointDeckPlanSlideKind Kind => PowerPointDeckPlanSlideKind.Content;
+        /// <summary>Transaction-owned first physical slide, already backing native child output.</summary>
+        internal PowerPointSlide? MaterializedSlide { get; set; }
         internal override int ContentItemCount => Blocks.Count;
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) => deck.AddContentSlide(this);
 

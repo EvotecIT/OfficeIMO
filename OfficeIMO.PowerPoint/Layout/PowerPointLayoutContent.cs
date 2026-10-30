@@ -15,12 +15,14 @@ namespace OfficeIMO.PowerPoint {
     public sealed class PowerPointLayoutListItem {
         /// <summary>Creates content for the shared layout engine.</summary>
         public PowerPointLayoutListItem(string text, int level = 1) {
-            Text = text ?? string.Empty;
+            _text = text ?? string.Empty;
             Level = Math.Max(1, Math.Min(2, level));
         }
 
         /// <summary>Text to render.</summary>
-        public string Text { get; }
+        public string Text => NativeParagraph?.Text ?? _text;
+        private readonly string _text;
+        internal PowerPointParagraph? NativeParagraph { get; set; }
         /// <summary>One-based nesting level, clamped to one or two.</summary>
         public int Level { get; }
     }
@@ -29,7 +31,7 @@ namespace OfficeIMO.PowerPoint {
     public sealed class PowerPointLayoutList : PowerPointLayoutBlock {
         /// <summary>Creates content for the shared layout engine.</summary>
         public PowerPointLayoutList(IEnumerable<PowerPointLayoutListItem> items, bool numbered = false) {
-            Items = (items ?? throw new ArgumentNullException(nameof(items))).ToList().AsReadOnly();
+            _items = (items ?? throw new ArgumentNullException(nameof(items))).ToList().AsReadOnly();
             Numbered = numbered;
         }
 
@@ -39,7 +41,12 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Items in display order.</summary>
-        public IReadOnlyList<PowerPointLayoutListItem> Items { get; }
+        public IReadOnlyList<PowerPointLayoutListItem> Items => NativeBody == null ? _items : NativeBody.Paragraphs
+            .Select(p => new PowerPointLayoutListItem(p.Text, (p.Level ?? 0) + 1) { NativeParagraph = p }).ToList();
+        private readonly IReadOnlyList<PowerPointLayoutListItem> _items;
+        internal PowerPointLayoutNativeText? NativeBody { get; set; }
+        /// <summary>Keeps independent native column lists numbered across their physical segments.</summary>
+        internal int? NativeStart { get; set; }
         /// <summary>Whether to use numbers instead of bullets.</summary>
         public bool Numbered { get; }
     }
@@ -48,7 +55,7 @@ namespace OfficeIMO.PowerPoint {
     public sealed class PowerPointLayoutText : PowerPointLayoutBlock {
         /// <summary>Creates content for the shared layout engine.</summary>
         public PowerPointLayoutText(IEnumerable<string> paragraphs) {
-            Paragraphs = (paragraphs ?? throw new ArgumentNullException(nameof(paragraphs))).Where(p => !string.IsNullOrWhiteSpace(p)).ToList().AsReadOnly();
+            _paragraphs = (paragraphs ?? throw new ArgumentNullException(nameof(paragraphs))).Where(p => !string.IsNullOrWhiteSpace(p)).ToList().AsReadOnly();
         }
 
         /// <summary>Creates content for the shared layout engine.</summary>
@@ -56,7 +63,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Body paragraphs in display order.</summary>
-        public IReadOnlyList<string> Paragraphs { get; }
+        public IReadOnlyList<string> Paragraphs => NativeBody?.Paragraphs.Select(p => p.Text).ToList() ?? _paragraphs;
+        private readonly IReadOnlyList<string> _paragraphs;
+        internal PowerPointLayoutNativeText? NativeBody { get; set; }
         internal int Length => Paragraphs.Sum(p => p.Length);
     }
 

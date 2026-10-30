@@ -171,7 +171,7 @@ namespace OfficeIMO.PowerPoint {
         private P14.SectionList EnsureSectionList(IReadOnlyList<SlideId> slideIds) {
             P14.SectionList sectionList = GetSectionList(create: true)
                 ?? throw new InvalidOperationException("Unable to create a section list.");
-            if (!sectionList.Elements<P14.Section>().Any()) {
+            if (slideIds.Count > 0 && !sectionList.Elements<P14.Section>().Any()) {
                 List<uint> ids = slideIds
                     .Select(id => id.Id?.Value)
                     .Where(id => id != null)
@@ -191,6 +191,9 @@ namespace OfficeIMO.PowerPoint {
 
             foreach (P14.Section section in sectionList.Elements<P14.Section>().ToList()) {
                 P14.SectionSlideIdList list = EnsureSectionSlideIdList(section);
+                // An explicitly empty section is a boundary awaiting its first slide. A section
+                // whose former members were removed is different and can be pruned below.
+                bool wasEmpty = !list.Elements<P14.SectionSlideIdListEntry>().Any();
                 List<uint> sectionSlideIds = list.Elements<P14.SectionSlideIdListEntry>()
                     .Select(entry => entry.Id?.Value)
                     .Where(id => id != null && slideIndexMap.ContainsKey(id.Value))
@@ -207,7 +210,7 @@ namespace OfficeIMO.PowerPoint {
                     list.Append(new P14.SectionSlideIdListEntry { Id = slideId });
                 }
 
-                if (list.Elements<P14.SectionSlideIdListEntry>().Any()) {
+                if (wasEmpty || list.Elements<P14.SectionSlideIdListEntry>().Any()) {
                     orderedSections.Add(section);
                 } else {
                     section.Remove();
@@ -229,18 +232,29 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            P14.SectionSlideIdList target = EnsureSectionSlideIdList(orderedSections.Last());
-            foreach (uint slideId in slideIds
-                         .Select(id => id.Id?.Value)
-                         .Where(id => id != null)
-                         .Select(id => id!.Value)
-                         .Where(id => !assigned.Contains(id))) {
-                target.Append(new P14.SectionSlideIdListEntry { Id = slideId });
+            List<uint> unassigned = slideIds.Select(id => id.Id?.Value)
+                .Where(id => id != null).Select(id => id!.Value)
+                .Where(id => !assigned.Contains(id)).ToList();
+            if (unassigned.Count > 0) {
+                P14.Section? targetSection = orderedSections.LastOrDefault(section =>
+                    EnsureSectionSlideIdList(section).Elements<P14.SectionSlideIdListEntry>().Any());
+                if (targetSection == null) orderedSections.Insert(0, CreateSection(DefaultSectionName, unassigned));
+                else {
+                    P14.SectionSlideIdList target = EnsureSectionSlideIdList(targetSection);
+                    foreach (uint slideId in unassigned) target.Append(new P14.SectionSlideIdListEntry { Id = slideId });
+                }
             }
 
-            orderedSections = orderedSections
-                .OrderBy(section => GetSectionStartIndex(section, slideIndexMap))
-                .ToList();
+            // An unused section stays before the following section, rather than becoming the
+            // trailing active boundary again when that following section gains its first slide.
+            var sectionOrder = new Dictionary<P14.Section, int>();
+            int followingStart = int.MaxValue;
+            for (int index = orderedSections.Count - 1; index >= 0; index--) {
+                int start = GetSectionStartIndex(orderedSections[index], slideIndexMap);
+                if (start != int.MaxValue) followingStart = start;
+                sectionOrder.Add(orderedSections[index], followingStart);
+            }
+            orderedSections = orderedSections.OrderBy(section => sectionOrder[section]).ToList();
 
             sectionList.RemoveAllChildren();
             foreach (P14.Section section in orderedSections) {
@@ -333,7 +347,13 @@ namespace OfficeIMO.PowerPoint {
             }
 
             P14.Section? targetSection = null;
-            if (slideIndex > 0) {
+            // A boundary declared between slides takes precedence over the preceding slide's section.
+            P14.Section? lastSection = sectionList.Elements<P14.Section>().LastOrDefault();
+            if (slideIndex == slideIds.Count - 1 && lastSection != null &&
+                !EnsureSectionSlideIdList(lastSection).Elements<P14.SectionSlideIdListEntry>().Any()) {
+                targetSection = lastSection;
+            }
+            if (targetSection == null && slideIndex > 0) {
                 uint? previousSlideId = slideIds[slideIndex - 1].Id?.Value;
                 if (previousSlideId != null) {
                     targetSection = FindSectionBySlideId(sectionList, previousSlideId.Value);
@@ -368,6 +388,8 @@ namespace OfficeIMO.PowerPoint {
                 .Elements<SlideId>()
                 .ToList() ?? new List<SlideId>();
             if (slideIds.Count == 0) {
+                EnsureSectionCoverage(sectionList, slideIds);
+                if (sectionList.Elements<P14.Section>().Any()) return;
                 PresentationExtension? sectionExtension = sectionList.Parent as PresentationExtension;
                 PresentationExtensionList? extensionList = sectionExtension?.Parent as PresentationExtensionList;
                 sectionExtension?.Remove();

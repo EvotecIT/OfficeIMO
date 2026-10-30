@@ -76,48 +76,74 @@ namespace OfficeIMO.PowerPoint {
             RenderStack(writer, stack, items);
         }
 
+        /// <summary>Shares Closing stack geometry between native fitting and final rendering.</summary>
+        private static List<StackItem> ClosingStack(PowerPointLayoutContext context, PowerPointLayoutSlide slide, double width) {
+            var theme = context.Theme;
+            string onAccentMuted = PowerPointLayoutTheme.Muted(theme.OnAccent, theme.Accent1, 0.72D);
+            var items = new List<StackItem>();
+            if (!string.IsNullOrWhiteSpace(slide.Eyebrow)) {
+                items.Add(Stacked(context, "Eyebrow", slide.Eyebrow!, PowerPointTextRole.Eyebrow, width, 18D, onAccentMuted, balance: false));
+            }
+
+            double closingSize = PowerPointLayoutTheme.RoundSize(theme.Theme.TypeScale.Title.ToPoints() * 1.5D);
+            items.Add(Stacked(context, "Title", slide.Title ?? string.Empty, PowerPointTextRole.Display, width, 20D, theme.OnAccent,
+                closingSize, "<p:ph type=\"title\"/>", maxLines: 3, minimum: 32D));
+            List<PowerPointLayoutBlock> blocks = slide.Blocks.Where(b => b.IsContentBlock).ToList();
+            var contactBlock = blocks.OfType<PowerPointLayoutText>().FirstOrDefault();
+            string? contact = contactBlock?.Paragraphs.FirstOrDefault();
+            string? subtitle = slide.Subtitle ?? contact;
+            if (!string.IsNullOrWhiteSpace(subtitle) || slide.Subtitle == null && contactBlock?.NativeBody != null) {
+                // Each line (statement, contact) is its own frame so it wraps and measures independently.
+                string[] parts = slide.Subtitle == null && contactBlock?.NativeBody != null
+                    ? new[] { subtitle! } : subtitle!.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                for (int i = 0; i < parts.Length; i++) {
+                    items.Add(Stacked(context, i == 0 ? "Subtitle" : "Contact", parts[i].Trim(), PowerPointTextRole.Subtitle, width,
+                        i == parts.Length - 1 ? 0D : 8D, onAccentMuted, maxLines: 3));
+                    if (slide.Subtitle == null) {
+                        var item = items[items.Count - 1];
+                        PowerPointLayoutNativeText.Attach(item.Paragraph, contactBlock?.NativeBody);
+                        if (item.Paragraph.NativeParagraph is PowerPointParagraph native)
+                            items[items.Count - 1] = new StackItem(item.Name, item.Paragraph,
+                                PowerPointLayoutNativeTextMeasure.Height(context, native, item.Paragraph.Runs[0].Size, width, spaceAfter: 0D, role: PowerPointTextRole.Subtitle) + 4D,
+                                item.GapAfter, item.Placeholder);
+                    }
+                }
+            }
+
+            return items;
+        }
+
         private static void RenderClosing(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointLayoutSlide slide) {
             PowerPointLayoutGrid grid = context.Grid;
             PowerPointLayoutTheme theme = context.Theme;
             writer.Background(theme.Accent1);
             string onAccentMuted = PowerPointLayoutTheme.Muted(theme.OnAccent, theme.Accent1, 0.72D);
             PowerPointLayoutRect stack = grid.Box(1, 6, 3, 8);
-            var items = new List<StackItem>();
-            if (!string.IsNullOrWhiteSpace(slide.Eyebrow)) {
-                items.Add(Stacked(context, "Eyebrow", slide.Eyebrow!, PowerPointTextRole.Eyebrow, stack.Width, 18D, onAccentMuted, balance: false));
-            }
-
-            double closingSize = PowerPointLayoutTheme.RoundSize(theme.Theme.TypeScale.Title.ToPoints() * 1.5D);
-            items.Add(Stacked(context, "Title", slide.Title ?? string.Empty, PowerPointTextRole.Display, stack.Width, 20D, theme.OnAccent,
-                closingSize, "<p:ph type=\"title\"/>", maxLines: 3, minimum: 32D));
+            var items = ClosingStack(context, slide, stack.Width);
             List<PowerPointLayoutBlock> blocks = slide.Blocks.Where(b => b.IsContentBlock).ToList();
-            string? contact = blocks.OfType<PowerPointLayoutText>().FirstOrDefault()?.Paragraphs.FirstOrDefault();
-            string? subtitle = slide.Subtitle ?? contact;
-            if (!string.IsNullOrWhiteSpace(subtitle)) {
-                // Each line (statement, contact) is its own frame so it wraps and measures independently.
-                string[] parts = subtitle!.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                for (int i = 0; i < parts.Length; i++) {
-                    items.Add(Stacked(context, i == 0 ? "Subtitle" : "Contact", parts[i].Trim(), PowerPointTextRole.Subtitle, stack.Width,
-                        i == parts.Length - 1 ? 0D : 8D, onAccentMuted, maxLines: 3));
-                }
-            }
-
             RenderStack(writer, stack, items);
             PowerPointLayoutList? list = blocks.OfType<PowerPointLayoutList>().FirstOrDefault();
-            if (list == null || list.Items.Count == 0) return;
+            if (list == null) return;
             PowerPointLayoutRect box = grid.Box(8, 5, 3, 8);
+            if (list.Items.Count == 0) {
+                // An empty collected list still returns the live, arranged native frame.
+                RenderList(context, writer, list, box, color: theme.OnAccent);
+                return;
+            }
             PowerPointTextStyleSpec body = context.Style(PowerPointTextRole.Body);
             PowerPointTextStyleSpec eyebrow = context.Style(PowerPointTextRole.Eyebrow);
             List<PowerPointLayoutListItem> steps = list.Items.Where(i => i.Level == 1).Take(4).ToList();
-            var heights = steps.Select(s => 12D + eyebrow.Size * eyebrow.LineHeight + 6D + context.Height(s.Text, body, box.Width)).ToList();
+            double TextHeight(PowerPointLayoutListItem item) => item.NativeParagraph == null ? context.Height(item.Text, body, box.Width)
+                : PowerPointLayoutNativeTextMeasure.Height(context, item.NativeParagraph, body.Size, box.Width, spaceAfter: 0D);
+            var heights = steps.Select(s => 12D + eyebrow.Size * eyebrow.LineHeight + 6D + TextHeight(s)).ToList();
             double y = box.Bottom - heights.Sum() - 18D * (steps.Count - 1);
             for (int i = 0; i < steps.Count; i++) {
                 writer.Rect("Step Rule", new PowerPointLayoutRect(box.X, y, box.Width, 1D), theme.OnAccent, 0.28D);
                 writer.Text("Step Number", new PowerPointLayoutRect(box.X, y + 12D, box.Width, eyebrow.Size * eyebrow.LineHeight + 2D),
-                    context.Paragraph((i + 1).ToString("00", CultureInfo.InvariantCulture), PowerPointTextRole.Eyebrow, onAccentMuted));
+                    context.Paragraph((i + slide.ListStart).ToString("00", CultureInfo.InvariantCulture), PowerPointTextRole.Eyebrow, onAccentMuted));
                 double textY = y + 12D + eyebrow.Size * eyebrow.LineHeight + 6D;
-                writer.Text("Next Step", new PowerPointLayoutRect(box.X, textY, box.Width, context.Height(steps[i].Text, body, box.Width) + 4D),
-                    context.Paragraph(steps[i].Text, PowerPointTextRole.Body, theme.OnAccent));
+                writer.Text("Next Step", new PowerPointLayoutRect(box.X, textY, box.Width, TextHeight(steps[i]) + 4D),
+                    PowerPointLayoutNativeText.Attach(context.Paragraph(steps[i].Text, PowerPointTextRole.Body, theme.OnAccent), list.NativeBody, i));
                 y += heights[i] + 18D;
             }
         }
@@ -296,7 +322,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTextStyleSpec style = context.Style(PowerPointTextRole.Quote);
             double size = style.Size;
             while (size - 2D >= style.Minimum && context.Lines(text, style, box.Width, size) > 5) size -= 2D;
-            writer.Text("Quote", box, context.Paragraph(PowerPointTextMeasure.Balance(text, size, box.Width, theme.HeadingFont), PowerPointTextRole.Quote, size: size),
+            writer.Text("Quote", box, PowerPointLayoutNativeText.Attach(context.Paragraph(PowerPointTextMeasure.Balance(text, size, box.Width, theme.HeadingFont), PowerPointTextRole.Quote, size: size),
+                ContentBlocks(slide).OfType<PowerPointLayoutText>().FirstOrDefault()?.NativeBody),
                 placeholder: "<p:ph type=\"title\"/>");
             if (string.IsNullOrWhiteSpace(attribution)) return;
             PowerPointLayoutRect attributionBox = grid.Box(2, 7, 10, 2);

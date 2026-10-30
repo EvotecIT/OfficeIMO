@@ -10,8 +10,10 @@ namespace OfficeIMO.PowerPoint {
     ///     Represents a textbox shape.
     /// </summary>
     public partial class PowerPointTextBox : PowerPointShape {
-        private readonly SlidePart? _slidePart;
-        private readonly OpenXmlPartContainer? _ownerPart;
+        private readonly SlidePart? _initialSlidePart;
+        private SlidePart? _slidePart => Element.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
+        private readonly OpenXmlPartContainer? _initialOwnerPart;
+        private OpenXmlPartContainer? _ownerPart => _initialOwnerPart is SlidePart ? _slidePart : _initialOwnerPart;
 
         internal PowerPointTextBox(Shape shape, SlidePart? slidePart = null) : this(shape, slidePart, slidePart) {
         }
@@ -20,8 +22,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private PowerPointTextBox(Shape shape, SlidePart? slidePart, OpenXmlPartContainer? ownerPart) : base(shape) {
-            _slidePart = slidePart;
-            _ownerPart = ownerPart ?? slidePart;
+            _initialSlidePart = slidePart;
+            _initialOwnerPart = ownerPart ?? slidePart;
         }
 
         private Shape Shape => (Shape)Element;

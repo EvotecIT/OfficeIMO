@@ -62,6 +62,17 @@ namespace OfficeIMO.PowerPoint {
         internal static IEnumerable<PowerPointLayoutSlide> Expand(PowerPointLayoutContext context, PowerPointLayoutSlide slide, PowerPointLayout layout) {
             slide.Layout = layout;
             (PowerPointLayoutText? lede, List<PowerPointLayoutBlock> blocks) = SplitLede(slide.Blocks);
+            if ((layout == PowerPointLayout.TwoContent && blocks.Count is 1 or 2 && !blocks.Any(b => b is PowerPointLayoutTable)
+                    || layout == PowerPointLayout.Comparison && blocks.Count == 2
+                    || layout == PowerPointLayout.TitleAndContent && blocks.Count == 1 && blocks[0] is PowerPointLayoutColumn)
+                && blocks.Any(HasNativeText)) {
+                foreach (var part in SplitNativeColumns(context, slide, blocks, lede)) yield return part;
+                yield break;
+            }
+            if (layout == PowerPointLayout.Closing || layout == PowerPointLayout.Quote) {
+                foreach (var part in SplitNativeSpecial(context, slide)) yield return part;
+                yield break;
+            }
             switch (layout) {
                 case PowerPointLayout.TwoContent when blocks.Count > 2: {
                         context.Deck.Report(PowerPointLayoutDiagnosticCodes.SlideContentSplit, OfficeDiagnosticSeverity.Information,
@@ -152,11 +163,13 @@ namespace OfficeIMO.PowerPoint {
             foreach (PowerPointLayoutListItem item in items) {
                 double itemSize = item.Level == 1 ? size : Math.Round(size * 0.86D);
                 double indent = item.Level == 1 ? context.Theme.ListIndent : context.Theme.ListIndent + 22D;
-                height += PowerPointTextMeasure.LineCount(item.Text, itemSize, width - indent, context.Theme.BodyFont) * itemSize * body.LineHeight + gap;
+                height += item.NativeParagraph == null
+                    ? PowerPointTextMeasure.LineCount(item.Text, itemSize, width - indent, context.Theme.BodyFont) * itemSize * body.LineHeight + gap
+                    : PowerPointLayoutNativeTextMeasure.Height(context, item.NativeParagraph, itemSize, width, Math.Max(28D, indent), gap);
                 count++;
             }
 
-            return count == 0 ? 0D : height - gap;
+            return count == 0 ? 0D : height - (items.Last().NativeParagraph == null ? gap : 0D);
         }
 
         private static PowerPointLayoutRect ContentZone(PowerPointLayoutContext context, HeaderGeometry header, int span = 12) =>
@@ -175,6 +188,10 @@ namespace OfficeIMO.PowerPoint {
 
         private static IEnumerable<PowerPointLayoutSlide> SplitList(PowerPointLayoutContext context, PowerPointLayoutSlide slide,
             PowerPointLayoutList list, PowerPointLayoutText? lede) {
+            if (list.NativeBody != null) {
+                foreach (var part in SplitNativeContent(context, slide, list.NativeBody, list, lede)) yield return part;
+                yield break;
+            }
             PowerPointTextStyleSpec body = context.Style(PowerPointTextRole.Body);
             double width = context.Grid.W(8);
             double zone = ContentZone(context, MeasureHeader(context, slide)).Height - (lede != null ? LedeAllowance : 0D);
@@ -220,13 +237,17 @@ namespace OfficeIMO.PowerPoint {
                 part.Layout = PowerPointLayout.TitleAndContent;
                 part.ListSize = body.Size;
                 part.ListStart = start;
-                part.Blocks.Add(new PowerPointLayoutList(items, list.Numbered));
+                part.Blocks.Add(new PowerPointLayoutList(items, list.Numbered) { NativeBody = list.NativeBody?.Slice(items.Select(i => i.NativeParagraph!).ToList()) });
                 start += chunks[page].Count;
                 yield return part;
             }
         }
 
         private static IEnumerable<PowerPointLayoutSlide> SplitText(PowerPointLayoutContext context, PowerPointLayoutSlide slide, PowerPointLayoutText text) {
+            if (text.NativeBody != null) {
+                foreach (var part in SplitNativeContent(context, slide, text.NativeBody)) yield return part;
+                yield break;
+            }
             PowerPointTextStyleSpec body = context.Style(PowerPointTextRole.Body);
             double width = context.Grid.W(8);
             double zone = ContentZone(context, MeasureHeader(context, slide)).Height;
@@ -242,15 +263,21 @@ namespace OfficeIMO.PowerPoint {
 
             // Split long paragraphs between sentences first, then balance paragraphs over slides.
             var units = new List<string>();
+            var nativeUnits = new List<PowerPointParagraph>();
+            int paragraphIndex = 0;
             foreach (string paragraph in text.Paragraphs) {
+                var native = text.NativeBody?.Paragraphs[paragraphIndex++];
                 if (Height(new[] { paragraph }, body.Size) <= zone) {
                     units.Add(paragraph);
+                    if (native != null) nativeUnits.Add(native);
                     continue;
                 }
 
                 context.Deck.Report(PowerPointLayoutDiagnosticCodes.TextSplitParagraph, OfficeDiagnosticSeverity.Information,
                     "A paragraph longer than the slide was split between sentences.", slide.Title);
-                units.AddRange(Regex.Split(paragraph, @"(?<=[.!?])\s+").Where(s => s.Length > 0));
+                var pieces = Regex.Split(paragraph, @"(?<=[.!?])\s+").Where(s => s.Length > 0).ToList();
+                units.AddRange(pieces);
+                if (native != null) nativeUnits.AddRange(PowerPointLayoutNativeText.SplitParagraph(native, pieces));
             }
 
             List<List<string>> chunks = new();
@@ -259,6 +286,7 @@ namespace OfficeIMO.PowerPoint {
                 if (chunks.All(c => Height(c, body.Size) <= zone + context.Theme.ParagraphAfter)) break;
             }
 
+            int unitStart = 0;
             for (int page = 0; page < chunks.Count; page++) {
                 PowerPointLayoutSlide part = page == 0 ? slide.CloneHeader() : Continuation(context, slide, page + 1, chunks.Count);
                 if (page == 0) {
@@ -268,7 +296,8 @@ namespace OfficeIMO.PowerPoint {
 
                 part.Layout = PowerPointLayout.TitleAndContent;
                 part.ListSize = body.Size;
-                part.Blocks.Add(new PowerPointLayoutText(chunks[page]));
+                part.Blocks.Add(new PowerPointLayoutText(chunks[page]) { NativeBody = text.NativeBody?.Slice(nativeUnits.Skip(unitStart).Take(chunks[page].Count).ToList()) });
+                unitStart += chunks[page].Count;
                 yield return part;
             }
         }
@@ -470,6 +499,8 @@ namespace OfficeIMO.PowerPoint {
             double total = heights.Sum();
             PowerPointTable result = writer.Slide.AddTable(Math.Max(1, table.Rows.Count + (table.IncludeHeaders ? 1 : 0)), Math.Max(1, table.Headers.Count),
                 PowerPointUnits.FromPoints(box.X), PowerPointUnits.FromPoints(box.Y), PowerPointUnits.FromPoints(width), PowerPointUnits.FromPoints(total));
+            result.Description = !string.IsNullOrWhiteSpace(table.Caption) ? table.Caption :
+                "Table with " + table.Rows.Count.ToString(CultureInfo.InvariantCulture) + " data rows. Columns: " + string.Join(", ", table.Headers) + ".";
             A.Table element = result.TableElement;
             A.GraphicData data = (A.GraphicData)element.Parent!;
             element.Remove();
@@ -498,7 +529,7 @@ namespace OfficeIMO.PowerPoint {
             double s = size ?? body.Size;
             double gap = context.Theme.ParagraphAfter * s / body.Size;
             var paragraphs = new List<PowerPointLayoutParagraph>();
-            int number = start;
+            int number = list.NativeStart ?? start;
             foreach (PowerPointLayoutListItem item in list.Items) {
                 bool first = item.Level == 1;
                 double itemSize = first ? s : Math.Round(s * 0.86D);
@@ -518,22 +549,24 @@ namespace OfficeIMO.PowerPoint {
                     paragraph.Indent = -28D;
                 }
 
+                paragraph.NativeParagraph = item.NativeParagraph;
+                paragraph.NativeBody = list.NativeBody;
                 paragraphs.Add(paragraph);
             }
 
-            return writer.Text("List", box, paragraphs, placeholder: placeholder);
+            return writer.Text("List", box, paragraphs, placeholder: placeholder, nativeBody: list.NativeBody);
         }
 
         internal static PowerPointTextBox RenderText(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointLayoutText text,
             PowerPointLayoutRect box, double? size = null, string? placeholder = null) {
             PowerPointTextStyleSpec body = context.Style(PowerPointTextRole.Body);
             double s = size ?? body.Size;
-            List<PowerPointLayoutParagraph> paragraphs = text.Paragraphs.Select(p => {
+            List<PowerPointLayoutParagraph> paragraphs = text.Paragraphs.Select((p, index) => {
                 PowerPointLayoutParagraph paragraph = context.Paragraph(p, PowerPointTextRole.Body, size: s);
                 paragraph.SpaceAfter = context.Theme.ParagraphAfter * s / body.Size;
-                return paragraph;
+                return PowerPointLayoutNativeText.Attach(paragraph, text.NativeBody, index);
             }).ToList();
-            return writer.Text("Text", box, paragraphs, placeholder: placeholder);
+            return writer.Text("Text", box, paragraphs, placeholder: placeholder, nativeBody: text.NativeBody);
         }
 
         internal static void RenderChart(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointLayoutChart chart, PowerPointLayoutRect box) {

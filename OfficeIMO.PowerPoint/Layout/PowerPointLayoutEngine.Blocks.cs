@@ -35,8 +35,9 @@ namespace OfficeIMO.PowerPoint {
                     }
                     if (lede != null) {
                         PowerPointTextStyleSpec ledeStyle = context.Style(PowerPointTextRole.BodySmall);
-                        double h = context.Height(lede.Paragraphs[0], ledeStyle, rest.Width) + 10D;
-                        writer.Text("Column Lede", rest.WithHeight(h), context.Paragraph(lede.Paragraphs[0], PowerPointTextRole.BodySmall));
+                        double h = NativeLedeHeight(context, lede, rest.Width, PowerPointTextRole.BodySmall,
+                            context.Height(lede.Paragraphs[0], ledeStyle, rest.Width)) + 10D;
+                        writer.Text("Column Lede", rest.WithHeight(h), PowerPointLayoutNativeText.Attach(context.Paragraph(lede.Paragraphs[0], PowerPointTextRole.BodySmall), lede.NativeBody));
                         rest = rest.Inset(0, h, 0, 0);
                     }
 
@@ -48,6 +49,12 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        /// <summary>Retains the designed allowance unless preserved native styling needs a taller lede frame.</summary>
+        private static double NativeLedeHeight(PowerPointLayoutContext context, PowerPointLayoutText lede, double width,
+            PowerPointTextRole role, double fallback) => lede.NativeBody?.Paragraphs.FirstOrDefault() is PowerPointParagraph paragraph
+                ? Math.Max(fallback, PowerPointLayoutNativeTextMeasure.Height(context, paragraph, context.Style(role).Size, width, spaceAfter: 0D, role: role) + 4D)
+                : fallback;
+
         private static double FitListSize(PowerPointLayoutContext context, PowerPointLayoutList list, PowerPointLayoutRect box) {
             PowerPointTextStyleSpec body = context.Style(PowerPointTextRole.Body);
             double size = body.Size;
@@ -58,7 +65,9 @@ namespace OfficeIMO.PowerPoint {
         private static double FitTextSize(PowerPointLayoutContext context, PowerPointLayoutText text, PowerPointLayoutRect box) {
             PowerPointTextStyleSpec body = context.Style(PowerPointTextRole.Body);
             double size = body.Size;
-            double Height(double s) => text.Paragraphs.Sum(p => context.Height(p, body, box.Width, s) + context.Theme.ParagraphAfter);
+            double Height(double s) => text.NativeBody == null
+                ? text.Paragraphs.Sum(p => context.Height(p, body, box.Width, s) + context.Theme.ParagraphAfter)
+                : text.NativeBody.Paragraphs.Sum(p => PowerPointLayoutNativeTextMeasure.Height(context, p, s, box.Width));
             while (size - 2D >= 14D && Height(size) > box.Height) size -= 2D;
             return size;
         }
@@ -76,8 +85,9 @@ namespace OfficeIMO.PowerPoint {
             (PowerPointLayoutText? lede, List<PowerPointLayoutBlock> blocks) = SplitLede(slide.Blocks);
             PowerPointLayoutRect zone = RenderSourceNote(context, writer, slide, ContentZone(context, header));
             if (lede != null) {
-                writer.Text("Lede", new PowerPointLayoutRect(zone.X, zone.Y, context.Grid.W(8), 64D), context.Paragraph(lede.Paragraphs[0], PowerPointTextRole.Lede));
-                zone = zone.Inset(0, LedeAllowance, 0, 0);
+                double height = NativeLedeHeight(context, lede, context.Grid.W(8), PowerPointTextRole.Lede, 64D);
+                writer.Text("Lede", new PowerPointLayoutRect(zone.X, zone.Y, context.Grid.W(8), height), PowerPointLayoutNativeText.Attach(context.Paragraph(lede.Paragraphs[0], PowerPointTextRole.Lede), lede.NativeBody));
+                zone = zone.Inset(0, height + 12D, 0, 0);
             }
 
             if (blocks.Count == 0) return;
@@ -97,20 +107,9 @@ namespace OfficeIMO.PowerPoint {
             return block is PowerPointLayoutList or PowerPointLayoutText;
         }
 
-        private static void RenderTwoContent(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointLayoutSlide slide) {
-            HeaderGeometry header = RenderHeader(context, writer, slide);
-            (PowerPointLayoutText? lede, List<PowerPointLayoutBlock> blocks) = SplitLede(slide.Blocks);
-            if (blocks.Count == 0) return;
-            PowerPointLayoutRect zone = RenderSourceNote(context, writer, slide, ContentZone(context, header));
-            if (lede != null) {
-                writer.Text("Lede", zone.WithHeight(64D), context.Paragraph(lede.Paragraphs[0], PowerPointTextRole.Lede));
-                zone = zone.Inset(0, LedeAllowance, 0, 0);
-            }
-            if (blocks.Count == 1) {
-                RenderBlock(context, writer, blocks[0], zone, slide);
-                return;
-            }
-
+        /// <summary>Shared geometry for native continuation measurement and final column rendering.</summary>
+        private static PowerPointLayoutRect[] TwoContentBoxes(PowerPointLayoutContext context, IReadOnlyList<PowerPointLayoutBlock> blocks,
+            PowerPointLayoutRect zone) {
             (int Column, int Span)[] columns;
             bool leftText = IsTexty(blocks[0]), rightText = IsTexty(blocks[1]);
             if (leftText != rightText) {
@@ -121,9 +120,32 @@ namespace OfficeIMO.PowerPoint {
                 columns = new[] { (1, 6), (7, 6) };
             }
 
+            return columns.Select(c => new PowerPointLayoutRect(context.Grid.X(c.Column), zone.Y, context.Grid.W(c.Span), zone.Height)).ToArray();
+        }
+
+        private static PowerPointLayoutRect ComparisonBodyBox(PowerPointLayoutContext context, HeaderGeometry header, int index) =>
+            context.Grid.Box(index == 0 ? 1 : 7, 6, header.ContentRow + 1, header.ContentRows - 1).Inset(0, 12, 0, 0);
+
+        private static void RenderTwoContent(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointLayoutSlide slide) {
+            HeaderGeometry header = RenderHeader(context, writer, slide);
+            (PowerPointLayoutText? lede, List<PowerPointLayoutBlock> blocks) = SplitLede(slide.Blocks);
+            if (blocks.Count == 0) return;
+            PowerPointLayoutRect zone = RenderSourceNote(context, writer, slide, ContentZone(context, header));
+            if (lede != null) {
+                double height = NativeLedeHeight(context, lede, zone.Width, PowerPointTextRole.Lede, 64D);
+                writer.Text("Lede", zone.WithHeight(height), PowerPointLayoutNativeText.Attach(context.Paragraph(lede.Paragraphs[0], PowerPointTextRole.Lede), lede.NativeBody));
+                zone = zone.Inset(0, height + 12D, 0, 0);
+            }
+            if (blocks.Count == 1) {
+                RenderBlock(context, writer, blocks[0], zone, slide);
+                return;
+            }
+
+            var boxes = TwoContentBoxes(context, blocks, zone);
+
             bool native = writer.Slide.SlideLayoutName == "Two Content";
             for (int i = 0; i < 2; i++) {
-                PowerPointLayoutRect box = new PowerPointLayoutRect(context.Grid.X(columns[i].Column), zone.Y, context.Grid.W(columns[i].Span), zone.Height);
+                PowerPointLayoutRect box = boxes[i];
                 RenderBlock(context, writer, blocks[i], box, slide, native && IsTexty(blocks[i]) ? "<p:ph idx=\"" + (i + 1) + "\"/>" : null);
             }
         }
@@ -141,7 +163,7 @@ namespace OfficeIMO.PowerPoint {
                 writer.Text("Column Heading", new PowerPointLayoutRect(head.X, head.Y - 8D, head.Width, head.Height), context.Paragraph(columns[i].Title ?? string.Empty,
                     PowerPointTextRole.Heading, size: size), anchor: "b", placeholder: native ? "<p:ph type=\"body\" sz=\"quarter\" idx=\"" + (i == 0 ? 1 : 3) + "\"/>" : null);
                 writer.Rect("Column Rule", new PowerPointLayoutRect(head.X, head.Bottom + 6D - 8D, head.Width, 3D), i == 0 ? context.Theme.Accent1 : context.Theme.Accent2);
-                PowerPointLayoutRect body = context.Grid.Box(column, 6, header.ContentRow + 1, header.ContentRows - 1).Inset(0, 12, 0, 0);
+                PowerPointLayoutRect body = ComparisonBodyBox(context, header, i);
                 RenderBlock(context, writer, columns[i], body, slide, native ? "<p:ph sz=\"quarter\" idx=\"" + (i == 0 ? 2 : 4) + "\"/>" : null, includeColumnTitle: false);
             }
         }

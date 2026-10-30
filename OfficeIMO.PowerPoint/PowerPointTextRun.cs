@@ -11,21 +11,23 @@ namespace OfficeIMO.PowerPoint {
     /// Represents a formatted text run within a paragraph.
     /// </summary>
     public partial class PowerPointTextRun {
-        private readonly SlidePart? _slidePart;
-        private readonly OpenXmlPartContainer? _ownerPart;
+        private readonly SlidePart? _initialSlidePart;
+        private SlidePart? _slidePart => (_field as DocumentFormat.OpenXml.OpenXmlElement ?? Run).Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
+        private readonly OpenXmlPartContainer? _initialOwnerPart;
+        private OpenXmlPartContainer? _ownerPart => _initialOwnerPart is SlidePart ? _slidePart : _initialOwnerPart;
         private readonly A.Field? _field;
 
         internal PowerPointTextRun(A.Run run, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
             Run = run;
-            _slidePart = slidePart;
-            _ownerPart = ownerPart ?? slidePart;
+            _initialSlidePart = slidePart ?? ownerPart as SlidePart;
+            _initialOwnerPart = ownerPart ?? slidePart;
         }
 
         internal PowerPointTextRun(A.Field field, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
             _field = field;
             Run = new A.Run();
-            _slidePart = slidePart;
-            _ownerPart = ownerPart ?? slidePart;
+            _initialSlidePart = slidePart ?? ownerPart as SlidePart;
+            _initialOwnerPart = ownerPart ?? slidePart;
         }
 
         internal A.Run Run { get; }
@@ -430,6 +432,18 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointEmbeddedSound.RemoveIfUnused(ownerPart,
                     soundRelationshipId);
             }
+        }
+
+        /// <summary>Discards only a failed child command's subtree and relationships no surviving content uses.</summary>
+        internal static void DiscardContent(DocumentFormat.OpenXml.OpenXmlElement content, OpenXmlPart? ownerPart) {
+            string[] soundIds = PowerPointEmbeddedSound.GetRelationshipIds(content);
+            string[] linkIds = content.Descendants<A.HyperlinkType>()
+                .Select(link => link.Id?.Value).Where(id => !string.IsNullOrEmpty(id))
+                .Cast<string>().Distinct(StringComparer.Ordinal).ToArray();
+            if (content.Parent != null) content.Remove();
+            if (ownerPart == null) return;
+            foreach (string id in linkIds) RemoveHyperlinkRelationshipIfUnused(ownerPart, id, ownerPart as SlidePart);
+            PowerPointEmbeddedSound.RemoveIfUnused(ownerPart, soundIds);
         }
 
         private static void RemoveHyperlinkRelationshipIfUnused(

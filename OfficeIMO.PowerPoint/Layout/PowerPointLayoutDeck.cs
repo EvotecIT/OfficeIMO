@@ -56,7 +56,9 @@ namespace OfficeIMO.PowerPoint {
             string? title = DeckTitle, section = CurrentSection;
             int sections = SectionCount, diagnosticCount = Diagnostics.Count;
             var onceCodes = new HashSet<string>(_onceCodes, StringComparer.Ordinal);
+            Action rollbackSections = Document.CaptureSectionRollback();
             return () => {
+                rollbackSections();
                 DeckTitle = title;
                 CurrentSection = section;
                 SectionCount = sections;

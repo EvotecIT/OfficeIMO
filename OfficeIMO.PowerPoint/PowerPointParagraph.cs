@@ -11,13 +11,15 @@ namespace OfficeIMO.PowerPoint {
     /// Represents a paragraph within a textbox.
     /// </summary>
     public partial class PowerPointParagraph {
-        private readonly SlidePart? _slidePart;
-        private readonly OpenXmlPartContainer? _ownerPart;
+        private readonly SlidePart? _initialSlidePart;
+        private SlidePart? _slidePart => Paragraph.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
+        private readonly OpenXmlPartContainer? _initialOwnerPart;
+        private OpenXmlPartContainer? _ownerPart => _initialOwnerPart is SlidePart ? _slidePart : _initialOwnerPart;
 
         internal PowerPointParagraph(A.Paragraph paragraph, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
             Paragraph = paragraph;
-            _slidePart = slidePart;
-            _ownerPart = ownerPart ?? slidePart;
+            _initialSlidePart = slidePart ?? ownerPart as SlidePart;
+            _initialOwnerPart = ownerPart ?? slidePart;
         }
 
         internal A.Paragraph Paragraph { get; }

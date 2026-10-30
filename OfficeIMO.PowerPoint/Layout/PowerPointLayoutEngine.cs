@@ -10,7 +10,7 @@ namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointLayoutEngine {
         /// <summary>Adds one logical slide; overflow can produce several physical slides.</summary>
         internal static IReadOnlyList<PowerPointSlide> AddSlides(PowerPointPresentation document, PowerPointLayoutSlide content,
-            PowerPointLayoutTheme? theme = null) {
+            PowerPointLayoutTheme? theme = null, PowerPointSlide? materialized = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (content == null) throw new ArgumentNullException(nameof(content));
             var context = new PowerPointLayoutContext(document, theme ?? document.LayoutTheme);
@@ -21,7 +21,7 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointLayout layout = Resolve(context, content, isFirst, content.IsLast ?? false);
                 var slides = new List<PowerPointSlide>();
                 foreach (PowerPointLayoutSlide part in Expand(context, content, layout)) {
-                    slides.Add(Render(context, part));
+                    slides.Add(Render(context, part, slides.Count == 0 ? materialized : null));
                 }
                 return slides;
             } catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) {
@@ -146,10 +146,15 @@ namespace OfficeIMO.PowerPoint {
 
         // ------------------------------------------------------------------ rendering dispatch
 
-        private static PowerPointSlide Render(PowerPointLayoutContext context, PowerPointLayoutSlide slide) {
-            PowerPointSlide target = slide.TemplateLayout != null
+        private static PowerPointSlide Render(PowerPointLayoutContext context, PowerPointLayoutSlide slide, PowerPointSlide? materialized = null) {
+            PowerPointSlide target = materialized ?? (slide.TemplateLayout != null
                 ? context.Document.AddSlide(slide.TemplateLayout)
-                : AddNativeSlide(context, slide.Layout);
+                : AddNativeSlide(context, slide.Layout));
+            if (materialized != null) {
+                if (slide.TemplateLayout != null) target.SetLayout(slide.TemplateLayout.MasterIndex, slide.TemplateLayout.LayoutIndex);
+                else if (SelectNativeLayout(context, slide.Layout) is PowerPointSlideLayoutInfo selected)
+                    target.SetLayout(selected.MasterIndex, selected.LayoutIndex);
+            }
             var writer = new PowerPointLayoutWriter(target, context.Theme);
             switch (slide.Layout) {
                 case PowerPointLayout.Title: RenderTitle(context, writer, slide); break;

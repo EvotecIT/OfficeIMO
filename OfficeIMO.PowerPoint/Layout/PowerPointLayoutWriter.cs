@@ -39,6 +39,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal List<PowerPointLayoutRun> Runs { get; }
+        internal PowerPointParagraph? NativeParagraph { get; set; }
+        internal PowerPointLayoutNativeText? NativeBody { get; set; }
         internal string Align { get; set; } = "l";
         internal double LineHeight { get; set; } = 1.2D;
         internal double SpaceAfter { get; set; }
@@ -172,7 +174,9 @@ namespace OfficeIMO.PowerPoint {
             var b = new StringBuilder("<a:p><a:pPr");
             if (p.Level > 1) b.Append(" lvl=\"").Append(p.Level - 1).Append('"');
             b.Append(" marL=\"").Append(E(p.MarginLeft)).Append("\" indent=\"").Append(E(p.Indent)).Append("\" algn=\"").Append(p.Align).Append("\">");
-            b.Append("<a:lnSpc><a:spcPts val=\"").Append(PowerPointLayoutMasterWriter.LineSpacingPoints(p.Runs.Count == 0 ? 12D : p.Runs.Max(run => run.Size), p.LineHeight)).Append("\"/></a:lnSpc>");
+            double lineSize = p.Runs.Count == 0 ? 12D : p.Runs.Max(run => run.Size);
+            if (p.NativeParagraph != null) lineSize = PowerPointLayoutNativeTextMeasure.MaximumSize(p.NativeParagraph, lineSize);
+            b.Append("<a:lnSpc><a:spcPts val=\"").Append(PowerPointLayoutMasterWriter.LineSpacingPoints(lineSize, p.LineHeight)).Append("\"/></a:lnSpc>");
             b.Append("<a:spcBef><a:spcPts val=\"").Append(I(p.SpaceBefore * 100D)).Append("\"/></a:spcBef>");
             b.Append("<a:spcAft><a:spcPts val=\"").Append(I(p.SpaceAfter * 100D)).Append("\"/></a:spcAft>");
             if (p.NumberStart.HasValue) {
@@ -198,7 +202,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal PowerPointTextBox Text(string name, PowerPointLayoutRect rect, IEnumerable<PowerPointLayoutParagraph> paragraphs,
             string anchor = "t", string? placeholder = null, string? description = null, bool decorative = false,
-            string? fill = null, double inset = 0D, bool wrap = true) {
+            string? fill = null, double inset = 0D, bool wrap = true, PowerPointLayoutNativeText? nativeBody = null) {
             var b = new StringBuilder(Header(name, description, placeholder, decorative, textBox: true));
             b.Append("<p:spPr>").Append(Xfrm(rect)).Append("<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom>");
             b.Append(Fill(fill)).Append("<a:ln><a:noFill/></a:ln></p:spPr>");
@@ -209,7 +213,8 @@ namespace OfficeIMO.PowerPoint {
             if (list.Count == 0) b.Append("<a:p><a:endParaRPr lang=\"en-US\"/></a:p>");
             foreach (PowerPointLayoutParagraph paragraph in list) b.Append(ParagraphXml(paragraph));
             b.Append("</p:txBody></p:sp>");
-            return (PowerPointTextBox)_slide.AppendLayoutShape(new Shape(b.ToString()), textBox: true);
+            var generated = (PowerPointTextBox)_slide.AppendLayoutShape(new Shape(b.ToString()), textBox: true);
+            return PowerPointLayoutNativeText.Bind(_slide, generated, list, nativeBody);
         }
 
         internal PowerPointTextBox Text(string name, PowerPointLayoutRect rect, PowerPointLayoutParagraph paragraph,

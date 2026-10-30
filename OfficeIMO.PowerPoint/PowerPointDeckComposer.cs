@@ -223,7 +223,8 @@ namespace OfficeIMO.PowerPoint {
             for (int index = 0; index < plan.Slides.Count; index++) {
                 PowerPointDeckPlanSlide slide = plan.Slides[index];
                 _isLastPlannedSlide = index == plan.Slides.Count - 1;
-                int first = _presentation.Slides.Count;
+                int first = slide is PowerPointContentPlanSlide { MaterializedSlide: not null } content
+                    ? content.MaterializedSlide.Index : _presentation.Slides.Count;
                 slide.AddTo(this);
                 // One logical request can produce several physical continuation slides.
                 slides.AddRange(_presentation.Slides.Skip(first));
@@ -257,13 +258,15 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal PowerPointSlide AddContentSlide(PowerPointContentPlanSlide content) {
+            if (content.MaterializedSlide != null) _slideIndex--;
             ResolveSeed(content.Seed ?? content.Title);
             PowerPointLayoutSlide slide = content.ToLayout();
             slide.IsLast = _isLastPlannedSlide;
+            if (content.MaterializedSlide != null) slide.IsFirst = content.MaterializedSlide.Index == 0;
             slide.SelectionDeckSize = _slideIndex;
             slide.TemplateLayout ??= _templateLayoutMap?.Resolve(PowerPointDeckPlanSlideKind.Content);
             return PowerPointLayoutEngine.AddSlides(_presentation, slide,
-                PowerPointDesignExtensions.LayoutThemeFor(_presentation, _design.Theme))[0];
+                PowerPointDesignExtensions.LayoutThemeFor(_presentation, _design.Theme), content.MaterializedSlide)[0];
         }
 
         private T Configure<T>(T options, string seed, Action<T>? configure)
