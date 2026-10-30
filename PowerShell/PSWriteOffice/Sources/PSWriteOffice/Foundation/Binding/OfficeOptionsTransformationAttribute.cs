@@ -39,8 +39,9 @@ public sealed class OfficeOptionsTransformationAttribute : ArgumentTransformatio
             try {
                 var input = OfficeArgumentValue.Unwrap(entry.Value);
                 object? converted = input;
-                // Reuse the same binding contracts for nested common values.
-                if (property.PropertyType == typeof(OfficeIMO.OfficeLength)) converted = new OfficeLengthTransformationAttribute().Transform(engineIntrinsics, input!);
+                // Preserve native null/reset semantics; PowerShell converts null strings to empty strings.
+                if (input == null && (!property.PropertyType.IsValueType || Nullable.GetUnderlyingType(property.PropertyType) != null)) converted = null;
+                else if (property.PropertyType == typeof(OfficeIMO.OfficeLength)) converted = new OfficeLengthTransformationAttribute().Transform(engineIntrinsics, input!);
                 else if (property.PropertyType == typeof(OfficeIMO.OfficeColor)) converted = new OfficeColorTransformationAttribute().Transform(engineIntrinsics, input!);
                 else if ((Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType) is var geometry &&
                     (geometry == typeof(OfficeIMO.Pdf.PdfPageSize) || geometry == typeof(OfficeIMO.Drawing.OfficePageSize)))

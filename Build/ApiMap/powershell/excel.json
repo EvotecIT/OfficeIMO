@@ -406,7 +406,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Saves a live workbook to its own path or a new path.",
-      "outputType": "ExcelDocument",
+      "outputType": "System.IO.FileInfo",
       "shouldProcess": true,
       "parameterSets": [
         {
@@ -468,8 +468,8 @@
         },
         {
           "title": "Save a validated copy under a new name",
-          "description": "Writes this week's change log to a new file with Open XML validation, then closes the workbook it returns.",
-          "code": "$book = New-OfficeExcel\nAdd-OfficeExcelSheet -Document $book -Name 'Changes' {\n    ExcelTable (Import-OfficeCsv -Path .\\Data\\Changes-Week43.csv)\n}\n$book |\n    Save-OfficeExcel -Path .\\Reports\\Changes-Week43.xlsx -SaveOptions @{ ValidateOpenXml = $true } -PassThru |\n    Close-OfficeExcel"
+          "description": "Writes this week's change log to a new file with Open XML validation, returns the saved file, and closes the live workbook explicitly.",
+          "code": "$book = New-OfficeExcel\nAdd-OfficeExcelSheet -Document $book -Name 'Changes' {\n    ExcelTable (Import-OfficeCsv -Path .\\Data\\Changes-Week43.csv)\n}\n$book |\n    Save-OfficeExcel -Path .\\Reports\\Changes-Week43.xlsx -SaveOptions @{ ValidateOpenXml = $true } -PassThru\nClose-OfficeExcel -Document $book"
         },
         {
           "title": "Save with a password",
@@ -500,7 +500,7 @@
           ]
         }
       ],
-      "notes": "Closing never saves; pipe through Save-OfficeExcel -PassThru first. No -WhatIf because nothing is written.",
+      "notes": "Closing never saves; call Save-OfficeExcel explicitly before closing to retain changes. Save-OfficeExcel -PassThru returns the saved FileInfo. No -WhatIf because closing writes nothing.",
       "examples": [
         {
           "title": "Close a workbook without saving",

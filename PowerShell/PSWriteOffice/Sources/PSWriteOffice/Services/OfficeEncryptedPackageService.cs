@@ -34,7 +34,7 @@ internal static class OfficeEncryptedPackageService
     {
         if (autoSave)
         {
-            throw new NotSupportedException("Encrypted Excel workbooks require explicit Save-OfficeExcel -Password or Close-OfficeExcel -Save -Password. OfficeIMO does not support SaveOnDispose for encrypted sources.");
+            throw new NotSupportedException("Encrypted Excel workbooks require explicit Save-OfficeExcel before Close-OfficeExcel. SaveOnDispose is unavailable for this operation.");
         }
 
         return ExcelDocument.Load(path, new ExcelLoadOptions
@@ -44,17 +44,6 @@ internal static class OfficeEncryptedPackageService
             PersistenceMode = DocumentPersistenceMode.Explicit,
             PackageSecurity = OfficePackageSecurityOptions.SecureDefaults
         });
-    }
-
-    public static void SaveExcel(ExcelDocument document, string path, string password, bool openExcel, ExcelSaveOptions? saveOptions)
-    {
-        ExcelSaveOptions options = saveOptions?.Clone() ?? new ExcelSaveOptions();
-        options.Password = password;
-        document.Save(path, options);
-        if (openExcel)
-        {
-            FileOpenService.Open(path);
-        }
     }
 
     public static WordDocument LoadWord(string path, string password, bool readOnly, bool autoSave)

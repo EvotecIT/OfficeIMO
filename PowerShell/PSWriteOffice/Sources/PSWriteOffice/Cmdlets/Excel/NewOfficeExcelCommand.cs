@@ -167,7 +167,7 @@ public sealed class NewOfficeExcelCommand : PSCmdlet {
         var closed = false;
         try {
             if (NoSave.IsPresent) {
-                ExcelDocumentService.UpdateSaveAssociation(document, resolvedPath, encrypted: false);
+                ExcelDocumentService.UpdateSaveAssociation(document, resolvedPath);
             }
 
             ExcelDateSystemService.ApplyIfSpecified(document, DateSystem, nameof(DateSystem));

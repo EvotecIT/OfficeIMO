@@ -35,7 +35,8 @@ try {
     $workbook |
         Add-OfficeExcelTableRow -Sheet Readiness -TableName ServiceReadiness -InputObject $moreRows
 } finally {
-    Close-OfficeExcel -Document $workbook -Save
+    $workbook | Save-OfficeExcel
+    Close-OfficeExcel -Document $workbook
 }
 
 Write-Host "Updated Excel workbook saved to $path"

@@ -184,6 +184,105 @@ public sealed class DocumentLifecycleCmdletTests {
         }
     }
 
+    [Fact]
+    public void ExcelSaveKeepsLoadedEncryptionAndReturnsAFileWithoutClosingTheWorkbook() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-excel-encrypted-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string path = Path.Combine(directory, "Encrypted[review].xlsx");
+            string copy = Path.Combine(directory, "copy.xlsx");
+            string plain = Path.Combine(directory, "plain.xlsx");
+            using (var source = ExcelDocument.Create()) {
+                source.AddWorksheet("Data").CellValue(1, 1, "Original");
+                source.Save(path, new ExcelSaveOptions { Password = "test-secret" });
+            }
+            byte[] original = File.ReadAllBytes(path);
+            var state = InitialSessionState.CreateDefault();
+            state.Commands.Add(new SessionStateCmdletEntry("Get-OfficeExcel", typeof(GetOfficeExcelCommand), null));
+            state.Commands.Add(new SessionStateCmdletEntry("New-OfficeExcelSaveOptions", typeof(NewOfficeExcelSaveOptionsCommand), null));
+            state.Commands.Add(new SessionStateCmdletEntry("Save-OfficeExcel", typeof(SaveOfficeExcelCommand), null));
+            state.Commands.Add(new SessionStateCmdletEntry("Close-OfficeExcel", typeof(CloseOfficeExcelCommand), null));
+            using var runspace = RunspaceFactory.CreateRunspace(state);
+            runspace.Open();
+            using var shell = PowerShell.Create();
+            shell.Runspace = runspace;
+            using var document = Assert.IsType<ExcelDocument>(Assert.Single(shell.AddCommand("Get-OfficeExcel")
+                .AddParameter("Path", path).AddParameter("Password", "test-secret").Invoke()).BaseObject);
+            Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
+            document.Sheets[0].CellValue(1, 1, "Reviewed");
+            shell.Commands.Clear();
+            var saved = Assert.Single(shell.AddCommand("Save-OfficeExcel").AddParameter("Document", document)
+                .AddParameter("Path", copy).AddParameter("PassThru").Invoke());
+            Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
+            Assert.Equal(new byte[] { 0xD0, 0xCF, 0x11, 0xE0 }, File.ReadAllBytes(copy).Take(4));
+            Assert.Equal(copy, Assert.IsType<FileInfo>(saved.BaseObject).FullName);
+            using (var loaded = ExcelDocument.Load(copy, new ExcelLoadOptions { Password = "test-secret" })) {
+                Assert.True(loaded.Sheets[0].TryGetCellText(1, 1, out string text));
+                Assert.Equal("Reviewed", text);
+            }
+            Assert.Equal(original, File.ReadAllBytes(path));
+            shell.Commands.Clear();
+            var options = Assert.IsType<ExcelSaveOptions>(Assert.Single(shell.AddCommand("New-OfficeExcelSaveOptions")
+                .AddParameter("Preflight").AddParameter("ValidateOpenXml").AddParameter("EvaluateFormulas").Invoke()).BaseObject);
+            Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
+            document.Sheets[0].CellFormula(2, 2, "20+22");
+            shell.Commands.Clear();
+            shell.AddCommand("Save-OfficeExcel").AddParameter("Document", document).AddParameter("Path", plain)
+                .AddParameter("Password", null).AddParameter("SaveOptions", options).Invoke();
+            Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
+            Assert.Null(options.Password);
+            Assert.True(options.SafePreflight);
+            using (var loaded = ExcelDocument.Load(plain)) {
+                Assert.True(loaded.Sheets[0].TryGetCellText(1, 1, out string text));
+                Assert.Equal("Reviewed", text);
+            }
+            using (var package = SpreadsheetDocument.Open(plain, false)) {
+                var formulaCell = package.WorkbookPart!.WorksheetParts.Single().Worksheet
+                    .Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single(cell => cell.CellReference == "B2");
+                Assert.Equal("42", formulaCell.CellValue!.Text);
+            }
+            string reusedPolicy = Path.Combine(directory, "reused-policy.xlsx");
+            using (var reopened = ExcelDocument.Load(copy, new ExcelLoadOptions { Password = "test-secret" }))
+                reopened.Save(reusedPolicy, options);
+            Assert.Equal(new byte[] { 0xD0, 0xCF, 0x11, 0xE0 }, File.ReadAllBytes(reusedPolicy).Take(4));
+            string hashtableReset = Path.Combine(directory, "hashtable-reset.xlsx");
+            using (var reopened = ExcelDocument.Load(copy, new ExcelLoadOptions { Password = "test-secret" })) {
+                shell.Commands.Clear();
+                shell.AddCommand("Save-OfficeExcel").AddParameter("Document", reopened).AddParameter("Path", hashtableReset)
+                    .AddParameter("SaveOptions", new System.Collections.Hashtable { ["Password"] = null }).Invoke();
+                Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
+            }
+            Assert.Equal(new byte[] { 0x50, 0x4B, 0x03, 0x04 }, File.ReadAllBytes(hashtableReset).Take(4));
+            using (var reopened = ExcelDocument.Load(hashtableReset)) {
+                Assert.True(reopened.Sheets[0].TryGetCellText(1, 1, out string text));
+                Assert.Equal("Reviewed", text);
+            }
+            byte[] savedPlain = File.ReadAllBytes(plain);
+            document.Sheets[0].CellValue(1, 1, "Do not save this on close");
+            shell.Commands.Clear();
+            shell.AddCommand("Close-OfficeExcel").AddParameter("Document", document).Invoke();
+            Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
+            Assert.Equal(savedPlain, File.ReadAllBytes(plain));
+            Assert.Equal(original, File.ReadAllBytes(path));
+
+            string implicitPath = Path.Combine(directory, "implicit-save.xlsx");
+            using var implicitDocument = ExcelDocument.Create(implicitPath, new ExcelCreateOptions {
+                PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
+            });
+            implicitDocument.AddWorksheet("Data").CellValue(1, 1, "Original");
+            implicitDocument.Save();
+            byte[] beforeClose = File.ReadAllBytes(implicitPath);
+            implicitDocument.Sheets[0].CellValue(1, 1, "Do not publish implicitly");
+            shell.Commands.Clear();
+            shell.AddCommand("Close-OfficeExcel").AddParameter("Document", implicitDocument);
+            Exception? failure = Record.Exception(() => shell.Invoke());
+            Assert.Equal(beforeClose, File.ReadAllBytes(implicitPath));
+            Assert.True(failure != null || shell.HadErrors);
+        } finally {
+            Directory.Delete(directory, true);
+        }
+    }
+
     private static Runspace OpenWordRunspace() {
         var state = InitialSessionState.CreateDefault();
         state.Commands.Add(new SessionStateCmdletEntry("Open-OfficeWord", typeof(OpenOfficeWordCommand), null));

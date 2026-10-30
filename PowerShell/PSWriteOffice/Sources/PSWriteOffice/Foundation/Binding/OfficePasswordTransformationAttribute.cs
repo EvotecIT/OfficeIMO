@@ -4,13 +4,18 @@ using System.Security;
 
 namespace PSWriteOffice.Foundation;
 
-/// <summary>Binds a SecureString or a credential password; warns before accepting plain text.</summary>
+/// <summary>Binds an optional SecureString or credential password; warns before accepting plain text.</summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public sealed class OfficePasswordTransformationAttribute : ArgumentTransformationAttribute {
     /// <inheritdoc />
-    public override object Transform(EngineIntrinsics engineIntrinsics, object inputData) => ConvertPassword(inputData,
-        message => engineIntrinsics.InvokeCommand.InvokeScript("param($message) Microsoft.PowerShell.Utility\\Write-Warning -Message $message", false,
-            System.Management.Automation.Runspaces.PipelineResultTypes.None, null, message));
+    public override object Transform(EngineIntrinsics engineIntrinsics, object inputData) {
+        // The command decides whether null means an omitted source password or an explicit output reset.
+        object? value = OfficeArgumentValue.Unwrap(inputData);
+        if (value == null) return null!;
+        return ConvertPassword(value,
+            message => engineIntrinsics.InvokeCommand.InvokeScript("param($message) Microsoft.PowerShell.Utility\\Write-Warning -Message $message", false,
+                System.Management.Automation.Runspaces.PipelineResultTypes.None, null, message));
+    }
 
     internal static SecureString ConvertPassword(object inputData, Action<string> warning) {
         var value = OfficeArgumentValue.Unwrap(inputData);

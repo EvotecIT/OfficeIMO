@@ -98,19 +98,6 @@ namespace PSWriteOfficeTestSupport {
         $type
     }
 
-    function Test-OfficeLoadedMethod {
-        param(
-            [Parameter(Mandatory)]
-            [string] $TypeName,
-
-            [Parameter(Mandatory)]
-            [string] $MethodName
-        )
-
-        $type = Get-TestLoadedType -Name $TypeName
-        @($type.GetMethods() | Where-Object Name -eq $MethodName).Count -gt 0
-    }
-
     function Get-TestWorkbookDate1904 {
         param(
             [Parameter(Mandatory)]
@@ -355,20 +342,20 @@ Describe 'Excel DSL surface' {
         $summary.DateSystem | Should -Be '1900'
     }
 
-    It 'does not mutate the in-memory date system when Save-OfficeExcel is invoked with WhatIf' {
-        $path = Join-Path $TestDrive 'SaveOfficeExcelDateSystemWhatIf.xlsx'
-        New-OfficeExcel -Path $path {
-            Add-OfficeExcelSheet -Name 'Data'
-        }
-
+    It 'preserves the saved file and pending cell edits when Save-OfficeExcel uses WhatIf' {
+        $path = Join-Path $TestDrive 'SaveOfficeExcelWhatIf.xlsx'
+        New-OfficeExcel -Path $path { Add-OfficeExcelSheet -Name 'Data' }
+        $before = (Get-FileHash -LiteralPath $path).Hash
         $document = Get-OfficeExcel -Path $path
         try {
-            $before = $document.DateSystem
-            $document | Save-OfficeExcel -DateSystem 1904 -WhatIf
-            $document.DateSystem | Should -Be $before
-        } finally {
-            $document | Close-OfficeExcel
-        }
+            $document.Sheets[0].CellValue(1, 1, 'Unsaved edit')
+            $document | Save-OfficeExcel -SaveOptions @{ EvaluateFormulas = $true } -WhatIf -ErrorAction Stop
+            (Get-FileHash -LiteralPath $path).Hash | Should -Be $before
+            $value = $null
+            $document.Sheets[0].TryGetCellText(1, 1, [ref] $value) | Should -BeTrue
+            $value | Should -Be 'Unsaved edit'
+        } finally { $document | Close-OfficeExcel }
+        (Get-FileHash -LiteralPath $path).Hash | Should -Be $before
     }
 
     It 'sets workbook theme metadata through the thin command surface' {
@@ -816,134 +803,6 @@ Describe 'Excel DSL surface' {
         $reportTableXml | Should -Match 'showColumnStripes="(?:1|true)"'
     }
 
-    It 'round-trips encrypted workbooks through lifecycle cmdlets' {
-        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.Excel.ExcelDocument' -MethodName 'LoadEncrypted')) {
-            (Get-Command New-OfficeExcel).Parameters.Keys | Should -Contain 'Password'
-            (Get-Command Save-OfficeExcel).Parameters.Keys | Should -Contain 'Password'
-            (Get-Command Get-OfficeExcel).Parameters.Keys | Should -Contain 'Password'
-            return
-        }
-
-        $path = Join-Path $TestDrive 'EncryptedExcel.xlsx'
-
-        New-OfficeExcel -Path $path -Password 'secret' -SafePreflight {
-            Set-OfficeExcelExecutionPolicy -Mode Sequential -ParallelThreshold 5 -WorksheetValidation Always -Diagnostics
-            Add-OfficeExcelSheet -Name 'Secure' -Content {
-                Set-OfficeExcelCell -Address 'A1' -Value 'Encrypted value'
-            }
-        }
-
-        { Get-ZipEntriesLocal -Path $path } | Should -Throw
-        $doc = Get-OfficeExcel -Path $path -Password 'secret' -ReadOnly
-        try {
-            $doc.Sheets[0].Name | Should -Be 'Secure'
-            $value = $null
-            $doc.Sheets[0].TryGetCellText(1, 1, [ref] $value) | Should -BeTrue
-            $value | Should -Be 'Encrypted value'
-            $summary = Get-OfficeExcelSummary -Document $doc -IncludeSheets -IncludeSchema
-            $summary.SheetCount | Should -Be 1
-            $summary.Sheets[0].Name | Should -Be 'Secure'
-            $summary.Schema.Worksheets[0].Name | Should -Be 'Secure'
-        } finally {
-            Close-OfficeExcel -Document $doc
-        }
-
-        $doc = Get-OfficeExcel -Path $path -Password 'secret'
-        try {
-            { $doc | Save-OfficeExcel -Path $path -ErrorAction Stop } |
-                Should -Throw '*Provide -Password*'
-            $doc.Sheets[0].Cell(1, 1, 'Must not be saved without a password', $null, $null)
-            { $doc | Close-OfficeExcel -Save -ErrorAction Stop } |
-                Should -Throw '*Provide -Password*'
-        } finally {
-            Close-OfficeExcel -Document $doc
-        }
-
-        $plainCopyPath = Join-Path $TestDrive 'EncryptedExcelPlainCopy.xlsx'
-        $doc = Get-OfficeExcel -Path $path -Password 'secret'
-        try {
-            $doc | Save-OfficeExcel -Path $plainCopyPath
-            $doc.Sheets[0].Cell(1, 1, 'Updated plain copy', $null, $null)
-            $doc | Save-OfficeExcel
-        } finally {
-            Close-OfficeExcel -Document $doc
-        }
-
-        { Get-ZipEntriesLocal -Path $plainCopyPath } | Should -Not -Throw
-        $plainCopy = Get-OfficeExcel -Path $plainCopyPath -ReadOnly
-        try {
-            $plainValue = $null
-            $plainCopy.Sheets[0].TryGetCellText(1, 1, [ref] $plainValue) | Should -BeTrue
-            $plainValue | Should -Be 'Updated plain copy'
-        } finally {
-            Close-OfficeExcel -Document $plainCopy
-        }
-
-        $encryptedCopyPath = Join-Path $TestDrive 'EncryptedExcelCopy.xlsx'
-        $doc = Get-OfficeExcel -Path $path -Password 'secret'
-        try {
-            $doc | Save-OfficeExcel -Path $encryptedCopyPath -Password 'copy-secret'
-            $doc.Sheets[0].Cell(1, 1, 'Updated encrypted copy', $null, $null)
-            { $doc | Save-OfficeExcel -ErrorAction Stop } | Should -Throw '*Provide -Password*'
-            $doc | Save-OfficeExcel -Password 'copy-secret'
-        } finally {
-            Close-OfficeExcel -Document $doc
-        }
-
-        $encryptedCopy = Get-OfficeExcel -Path $encryptedCopyPath -Password 'copy-secret' -ReadOnly
-        try {
-            $copyValue = $null
-            $encryptedCopy.Sheets[0].TryGetCellText(1, 1, [ref] $copyValue) | Should -BeTrue
-            $copyValue | Should -Be 'Updated encrypted copy'
-        } finally {
-            Close-OfficeExcel -Document $encryptedCopy
-        }
-
-        $doc = Get-OfficeExcel -Path $path -Password 'secret'
-        try {
-            $doc.Sheets[0].Cell(1, 1, 'Updated encrypted value', $null, $null)
-            $doc | Save-OfficeExcel -Password 'secret'
-        } finally {
-            Close-OfficeExcel -Document $doc
-        }
-
-        $doc = Get-OfficeExcel -Path $path -Password 'secret' -ReadOnly
-        try {
-            $value = $null
-            $doc.Sheets[0].TryGetCellText(1, 1, [ref] $value) | Should -BeTrue
-            $value | Should -Be 'Updated encrypted value'
-        } finally {
-            Close-OfficeExcel -Document $doc
-        }
-
-        (Get-Command Get-OfficeExcel).Parameters.Keys | Should -Not -Contain 'AutoSave'
-    }
-
-    It 'converts encrypted workbooks to HTML without changing or retaining the source' {
-        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.Excel.ExcelDocument' -MethodName 'LoadEncrypted')) {
-            (Get-Command ConvertTo-OfficeExcelHtml).Parameters.Keys | Should -Contain 'Password'
-            return
-        }
-
-        $path = Join-Path $TestDrive 'EncryptedExcelHtml.xlsx'
-        $htmlPath = Join-Path $TestDrive 'EncryptedExcelHtml.html'
-        New-OfficeExcel -Path $path -Password 'secret' {
-            Add-OfficeExcelSheet -Name 'Secure' -Content {
-                Set-OfficeExcelCell -Address 'A1' -Value 'Encrypted HTML value'
-            }
-        }
-
-        $original = [Convert]::ToBase64String([IO.File]::ReadAllBytes($path))
-
-        ConvertTo-OfficeExcelHtml -Path $path -Password 'secret' -OutputPath $htmlPath
-
-        Test-Path -LiteralPath $htmlPath | Should -BeTrue
-        Get-Content -LiteralPath $htmlPath -Raw | Should -Match 'Encrypted HTML value'
-        [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) | Should -Be $original
-        $exclusive = [IO.File]::Open($path, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
-        $exclusive.Dispose()
-    }
-
     It 'configures Excel execution policy from PowerShell' {
         $path = Join-Path $TestDrive 'ExcelExecutionPolicy.xlsx'
 
@@ -1062,7 +921,9 @@ Describe 'Excel DSL surface' {
             $table = $doc | Add-OfficeExcelTableRow -Sheet Data -TableName Sales -InputObject ([pscustomobject]@{ Region = 'APAC'; Revenue = 300 }) -PassThru
             $table.Range | Should -Be 'A1:B4'
 
-            Close-OfficeExcel -Document $doc -Save
+            $doc | Save-OfficeExcel
+
+            Close-OfficeExcel -Document $doc
             $doc = $null
         } finally {
             if ($null -ne $doc) {
@@ -1146,8 +1007,11 @@ Describe 'Excel DSL surface' {
             @($table1, $table2) |
                 Add-OfficeExcelTableRow -InputObject ([pscustomobject]@{ Region = 'APAC'; Revenue = 300 })
 
-            Close-OfficeExcel -Document $doc1 -Save
-            Close-OfficeExcel -Document $doc2 -Save
+            $doc1 | Save-OfficeExcel
+
+            Close-OfficeExcel -Document $doc1
+            $doc2 | Save-OfficeExcel
+            Close-OfficeExcel -Document $doc2
             $doc1 = $null
             $doc2 = $null
         } finally {
@@ -2320,7 +2184,8 @@ Describe 'Excel DSL surface' {
         try {
             $doc | Set-OfficeExcelSheetTabColor -Sheet Data -Clear
         } finally {
-            Close-OfficeExcel -Document $doc -Save
+            $doc | Save-OfficeExcel
+            Close-OfficeExcel -Document $doc
         }
 
         $summaryAfterClear = Get-OfficeExcelSummary -Path $path -IncludeSchema
@@ -2360,7 +2225,8 @@ Describe 'Excel DSL surface' {
         try {
             $doc | Set-OfficeExcelWorksheetView -Sheet Data -ShowGridlines -LeftToRight -ZoomScale 90 -View Normal
         } finally {
-            Close-OfficeExcel -Document $doc -Save
+            $doc | Save-OfficeExcel
+            Close-OfficeExcel -Document $doc
         }
 
         $viewAfterUpdate = Get-OfficeExcelWorksheetView -Path $path -Sheet Data
