@@ -27,8 +27,19 @@ $ErrorActionPreference = 'Stop'
 
 if ($MetadataPath) {
     $metadata = Get-Content -LiteralPath $MetadataPath -Raw | ConvertFrom-Json
-    $currentCommands = @($metadata.Cmdlets.Name)
-    $currentAliases = @($metadata.Aliases.Alias)
+    if ($metadata.schemaVersion -eq 1 -and $metadata.commands) {
+        # The generated website catalog records aliases on their owning commands.
+        $currentCommands = @($metadata.commands | Where-Object kind -In 'Cmdlet', 'Function' | ForEach-Object name)
+        $currentAliases = @($metadata.commands | ForEach-Object { $_.aliases } | Where-Object { $_ })
+    } elseif ($metadata.Cmdlets) {
+        $currentCommands = @($metadata.Cmdlets.Name)
+        $currentAliases = @($metadata.Aliases.Alias | Where-Object { $_ })
+    } else {
+        throw 'Metadata must contain the generated command catalog or a Cmdlets/Aliases export.'
+    }
+    if ($currentCommands.Count -eq 0 -or @($currentCommands | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count) {
+        throw 'Metadata contains no commands or an unnamed command.'
+    }
 } elseif ($ModulePath) {
     $module = Import-Module $ModulePath -Force -PassThru
     $currentCommands = @(Get-Command -Module $module.Name -CommandType Cmdlet, Function | ForEach-Object Name)

@@ -111,22 +111,20 @@ $plan = PptDeckPlan {
     PptPlanCardGrid -Title 'Demand and the proposed decision' -Subtitle 'Separate the observation, proposed review and decision.' -Cards $decisions -Seed 'service-decision'
 }
 New-OfficePowerPoint -Path $path {
-    PptSlideSize -Preset Screen16x9
+    Set-OfficePowerPointSlideSize -Preset Screen16x9
     PptDesignerDeck -Plan $plan -AccentColor '#008C95' -Seed 'workplace-support' -Purpose 'workplace support planning brief' -Name 'Workplace support plan' -Eyebrow 'Workplace support' -FooterLeft $dateText -FooterRight $dataLabel -CreativeDirectionPack Boardroom -LayoutStrategy ContentFirst
-    $chartSlide = PptSlide -PassThru
-    PptTitle -Slide $chartSlide -Title 'Quarterly ticket demand'
-    PptChart -Slide $chartSlide -Type ClusteredColumn -Data $chartData -CategoryProperty Site -SeriesProperty 'Previous quarter', 'Current quarter' -Title "Tickets: $previous previous / $current current ($changeText)" -X 58 -Y 118 -Width 610 -Height 235
-    PptNotes -Slide $chartSlide -Text 'Both series are ticket counts. A change in demand alone does not establish improved service quality or its cause.'
-    $tableSlide = PptSlide -PassThru
-    PptTitle -Slide $tableSlide -Title 'Owners and review dates'
-    PptTable -Slide $tableSlide -Data $actions -X 54 -Y 120 -Width 612 -Height 200
-    PptNotes -Slide $tableSlide -Text 'Example actions for a proposed pilot. Agree actual owners and dates before using this brief.'
-    PptSection -Name 'Service planning' -StartSlideIndex 0
-    PptSection -Name 'Demand and actions' -StartSlideIndex 6
-    PptTransition -Slide $chartSlide -Transition PushLeft
-    Get-OfficePowerPointSlide -Index 0 | PptTransition -Transition Fade
-} -Open:$Open
+    $chartSlide = PowerPointSlide -Title 'Quarterly ticket demand' -PassThru
+    PowerPointChart -Slide $chartSlide -Type ClusteredColumn -Data $chartData -Category Site -Value 'Previous quarter', 'Current quarter' -Title "Tickets: $previous previous / $current current ($changeText)" -X 58 -Y 118 -Width 610 -Height 235
+    PowerPointNotes -Slide $chartSlide -Text 'Both series are ticket counts. A change in demand alone does not establish improved service quality or its cause.'
+    $tableSlide = PowerPointSlide -Title 'Owners and review dates' -PassThru
+    PowerPointTable -Slide $tableSlide -InputObject $actions -X 54 -Y 120 -Width 612 -Height 200
+    PowerPointNotes -Slide $tableSlide -Text 'Example actions for a proposed pilot. Agree actual owners and dates before using this brief.'
+    PowerPointSection -Name 'Service planning' -Slide 1
+    PowerPointSection -Name 'Demand and actions' -Slide 7
+    Set-OfficePowerPointSlide -Slide $chartSlide -Transition PushLeft
+    Get-OfficePowerPointSlide -Slide 1 | Set-OfficePowerPointSlide -Transition Fade
+} -Show:$Open
 
-$presentation = Get-OfficePowerPoint -Path $path
-try { Get-OfficePowerPointSlideSummary -Presentation $presentation | Select-Object SlideIndex, Title, ShapeCount, TextBoxCount, ChartCount, TableCount, HasNotes }
+$presentation = Open-OfficePowerPoint -Path $path
+try { Get-OfficePowerPointSlide -Document $presentation -Summary | Select-Object SlideIndex, Title, ShapeCount, TextBoxCount, ChartCount, TableCount, HasNotes }
 finally { $presentation | Close-OfficePowerPoint }

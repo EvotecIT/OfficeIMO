@@ -16,7 +16,7 @@ WordNew -Path $path {
         WordHeader { WordParagraph -Text 'Northwind migration | Weekly status' -Style Heading2 }
         WordFooter {
             WordText 'Internal | Page '
-            WordPageNumber -IncludeTotalPages
+            WordPageNumber -IncludeTotal
         }
 
         WordParagraph -Text 'Northwind Migration' -Style Heading1
@@ -43,7 +43,7 @@ WordNew -Path $path {
         WordParagraph -Text 'Delivery trend' -Style Heading1 {
             WordParagraphStyle -SpacingBeforePoints 12 -SpacingAfterPoints 6 -KeepWithNext $true
         }
-        WordChart -Type Line -Data $trend -CategoryProperty Week -SeriesProperty Complete -Title 'Completion by week (%)' -FitToPageWidth -HeightPixels 190
+        WordChart -Type Line -Data $trend -Category Week -Value Complete -Title 'Completion by week (%)' -FitToPageWidth -HeightPixels 190
 
         WordParagraph -Text 'Decision' -Style Heading1 {
             WordParagraphStyle -SpacingBeforePoints 12 -SpacingAfterPoints 6 -KeepWithNext $true

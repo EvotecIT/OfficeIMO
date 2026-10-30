@@ -72,7 +72,7 @@ $xlsx = Join-Path $OutputDirectory 'EventRegister.xlsx'
 
 New-OfficeWord -Path $docx {
     WordHeader -Type Default { WordParagraph -Text 'OPERATIONS / EVENT REVIEW' }
-    WordFooter -Type Default { WordPageNumber -IncludeTotalPages }
+    WordFooter -Type Default { WordPageNumber -IncludeTotal }
     WordParagraph {
         WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true
         WordText 'Event incident brief' -Bold -FontSize 26 -Color '17365D'
@@ -117,7 +117,7 @@ New-OfficeExcel -Path $xlsx {
         ExcelRow -Row 1 -Height 30 -Bold $true -FontName 'Carlito'
         ExcelCell -Address A2 -Value $scope
         if ($records.Count) {
-            ExcelTable -InputObject $records -StartRow 4 -TableName EventRegister -TableStyle TableStyleMedium2
+            ExcelTable -InputObject $records -StartRow 4 -Name EventRegister -TableStyle TableStyleMedium2
             for ($row = 5; $row -lt 5 + $records.Count; $row++) {
                 ExcelCell -Row $row -Column 1 -Value $records[$row - 5].TimeCreated -NumberFormat 'yyyy-mm-dd hh:mm:ss.000'
                 ExcelRow -Row $row -Height 30 -WrapText $true

@@ -6,56 +6,51 @@ schema: 2.0.0
 ---
 # Add-OfficeExcelChart
 ## SYNOPSIS
-Adds a chart to the current worksheet using a range or table.
+Adds a native Excel chart from a range, named table or input rows.
 
 ## SYNTAX
-### ContextRange (Default)
+### Range (Default)
 ```powershell
-Add-OfficeExcelChart [-Range] <string> -Row <int> -Column <int> [-WidthPixels <int>] [-HeightPixels <int>] [-Type <ExcelChartType>] [-Title <string>] [-HasHeaders <bool>] [-IncludeCachedData <bool>] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelChart [-Range] <string> -Address <string> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Type <OfficeChartKind>] [-Title <string>] [-Preset <ExcelDashboardChartPreset>] [-Style <Int32>] [-ColorStyle <Int32>] [-NoHeader] [-NoCachedData] [-PassThru] [<CommonParameters>]
 ```
 
-### DocumentRange
+### Table
 ```powershell
-Add-OfficeExcelChart [-Range] <string> -Document <ExcelDocument> -Row <int> -Column <int> [-Sheet <string>] [-SheetIndex <Int32>] [-WidthPixels <int>] [-HeightPixels <int>] [-Type <ExcelChartType>] [-Title <string>] [-HasHeaders <bool>] [-IncludeCachedData <bool>] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelChart -Table <string> -Address <string> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Category <string>] [-Value <string[]>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Type <OfficeChartKind>] [-Title <string>] [-Preset <ExcelDashboardChartPreset>] [-Style <Int32>] [-ColorStyle <Int32>] [-NoCachedData] [-PassThru] [<CommonParameters>]
 ```
 
-### DocumentTable
+### Data
 ```powershell
-Add-OfficeExcelChart [-TableName] <string> -Document <ExcelDocument> -Row <int> -Column <int> [-Sheet <string>] [-SheetIndex <Int32>] [-WidthPixels <int>] [-HeightPixels <int>] [-Type <ExcelChartType>] [-Title <string>] [-IncludeCachedData <bool>] [-PassThru] [<CommonParameters>]
-```
-
-### ContextTable
-```powershell
-Add-OfficeExcelChart [-TableName] <string> -Row <int> -Column <int> [-WidthPixels <int>] [-HeightPixels <int>] [-Type <ExcelChartType>] [-Title <string>] [-IncludeCachedData <bool>] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelChart -InputObject <Object> -Category <string> -Value <string[]> -Address <string> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Type <OfficeChartKind>] [-Title <string>] [-Preset <ExcelDashboardChartPreset>] [-Style <Int32>] [-ColorStyle <Int32>] [-NoCachedData] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Adds a chart to the current worksheet using a range or table.
+Table columns are selected by header. With no value selection, every numeric column except the category is plotted. Input rows are written as a table below existing worksheet data. Output is quiet unless PassThru is specified.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> ExcelSheet 'Data' { Add-OfficeExcelChart -Range 'A1:D10' -Row 2 -Column 6 -Type Line -Title 'Trend' }
+PS> ExcelSheet 'Sales' { ExcelChart -Table Sales -Category Region -Value Revenue,Profit -Address F2 -Type ColumnClustered }
 ```
 
-Creates a line chart from A1:D10 and places it at F2.
+Places a chart at F2 using only the named table's data rows.
 
 ### EXAMPLE 2
 ```powershell
-PS> ExcelSheet 'Data' { Add-OfficeExcelChart -TableName 'Sales' -Row 2 -Column 6 -Type ColumnClustered }
+PS> $rows | Add-OfficeExcelChart -Document $book -Sheet Sales -Category Region -Value Revenue -Address F2 -Width 18cm -Height 9cm
 ```
 
-Creates a chart from the Sales table.
+Writes a table on Sales and adds a native chart with length-based dimensions.
 
 ## PARAMETERS
 
-### -Column
-Top-left column (1-based) where the chart should be placed.
+### -Address
+Single A1 cell anchoring the top-left corner of the chart.
 
 ```yaml
-Type: Int32
-Parameter Sets: ContextRange, DocumentRange, DocumentTable, ContextTable
+Type: String
+Parameter Sets: Range, Table, Data
 Aliases: None
 Possible values:
 
@@ -66,12 +61,76 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Category
+Category column; defaults to the first table column.
+
+```yaml
+Type: String
+Parameter Sets: Table, Data
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ColorStyle
+Built-in chart color-style identifier.
+
+```yaml
+Type: Int32
+Parameter Sets: Range, Table, Data
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Document
-Workbook to operate on outside the DSL context.
+Workbook to modify outside an Excel composition block.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: DocumentRange, DocumentTable
+Parameter Sets: Range, Table, Data
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -Height
+Chart height; defaults to 360 pixels. Bare numbers mean points.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Range, Table, Data
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -InputObject
+Objects or tabular input to write as a table and chart.
+
+```yaml
+Type: Object
+Parameter Sets: Data
 Aliases: None
 Possible values:
 
@@ -82,12 +141,12 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -HasHeaders
-Whether the range includes headers.
+### -NoCachedData
+Omit cached chart values. Requires a contiguous category/value source block.
 
 ```yaml
-Type: Boolean
-Parameter Sets: ContextRange, DocumentRange
+Type: SwitchParameter
+Parameter Sets: Range, Table, Data
 Aliases: None
 Possible values:
 
@@ -98,28 +157,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -HeightPixels
-Chart height in pixels.
+### -NoHeader
+Treat the first row of Range as data rather than column headers.
 
 ```yaml
-Type: Int32
-Parameter Sets: ContextRange, DocumentRange, DocumentTable, ContextTable
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludeCachedData
-Include cached data in the chart for portability.
-
-```yaml
-Type: Boolean
-Parameter Sets: ContextRange, DocumentRange, DocumentTable, ContextTable
+Type: SwitchParameter
+Parameter Sets: Range
 Aliases: None
 Possible values:
 
@@ -131,13 +174,29 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the created chart.
+Return the native ExcelChart.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: ContextRange, DocumentRange, DocumentTable, ContextTable
+Parameter Sets: Range, Table, Data
 Aliases: None
 Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Preset
+Dashboard appearance preset from the native Excel chart owner.
+
+```yaml
+Type: ExcelDashboardChartPreset
+Parameter Sets: Range, Table, Data
+Aliases: None
+Possible values: Comparison, Trend, Contribution, CompactComparison
 
 Required: False
 Position: named
@@ -147,43 +206,27 @@ Accept wildcard characters: False
 ```
 
 ### -Range
-A1 range containing chart data.
+Bounded A1 range containing categories followed by value columns.
 
 ```yaml
 Type: String
-Parameter Sets: ContextRange, DocumentRange
+Parameter Sets: Range
 Aliases: None
 Possible values:
 
 Required: True
 Position: 0
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Row
-Top-left row (1-based) where the chart should be placed.
-
-```yaml
-Type: Int32
-Parameter Sets: ContextRange, DocumentRange, DocumentTable, ContextTable
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Sheet
-Worksheet name when using Document.
+Sheet name, one-based position or an existing sheet belonging to Document.
 
 ```yaml
-Type: String
-Parameter Sets: DocumentRange, DocumentTable
+Type: OfficeSheetSelector
+Parameter Sets: Range, Table, Data
 Aliases: None
 Possible values:
 
@@ -194,12 +237,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SheetIndex
-Worksheet index (0-based) when using Document.
+### -Style
+Built-in chart style identifier.
 
 ```yaml
 Type: Int32
-Parameter Sets: DocumentRange, DocumentTable
+Parameter Sets: Range, Table, Data
 Aliases: None
 Possible values:
 
@@ -210,17 +253,17 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -TableName
-Table name containing chart data.
+### -Table
+Name or display name of a table on the selected worksheet.
 
 ```yaml
 Type: String
-Parameter Sets: DocumentTable, ContextTable
+Parameter Sets: Table
 Aliases: None
 Possible values:
 
 Required: True
-Position: 0
+Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -231,7 +274,7 @@ Chart title.
 
 ```yaml
 Type: String
-Parameter Sets: ContextRange, DocumentRange, DocumentTable, ContextTable
+Parameter Sets: Range, Table, Data
 Aliases: None
 Possible values:
 
@@ -243,13 +286,13 @@ Accept wildcard characters: False
 ```
 
 ### -Type
-Chart type.
+Shared chart family. Bubble requires the separate native bubble-data contract.
 
 ```yaml
-Type: ExcelChartType
-Parameter Sets: ContextRange, DocumentRange, DocumentTable, ContextTable
+Type: OfficeChartKind
+Parameter Sets: Range, Table, Data
 Aliases: None
-Possible values: ColumnClustered, ColumnStacked, ColumnStacked100, Column3DClustered, Column3DStacked, Column3DStacked100, BarClustered, BarStacked, BarStacked100, Bar3DClustered, Bar3DStacked, Bar3DStacked100, Line, LineStacked, LineStacked100, Line3D, Area, AreaStacked, AreaStacked100, Area3D, Area3DStacked, Area3DStacked100, Pie, Pie3D, PieOfPie, BarOfPie, Doughnut, Scatter, Bubble, Radar, Stock, Surface, SurfaceWireframe, SurfaceContour, SurfaceContourWireframe
+Possible values: ColumnClustered, ColumnStacked, ColumnStacked100, BarClustered, BarStacked, BarStacked100, Line, LineStacked, LineStacked100, Area, AreaStacked, AreaStacked100, Scatter, Radar, Pie, Doughnut, Bubble
 
 Required: False
 Position: named
@@ -258,12 +301,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -WidthPixels
-Chart width in pixels.
+### -Value
+Value columns in series order; defaults to all numeric table columns except Category.
 
 ```yaml
-Type: Int32
-Parameter Sets: ContextRange, DocumentRange, DocumentTable, ContextTable
+Type: String[]
+Parameter Sets: Table, Data
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Width
+Chart width; defaults to 640 pixels. Bare numbers mean points.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Range, Table, Data
 Aliases: None
 Possible values:
 
@@ -280,10 +339,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 - `OfficeIMO.Excel.ExcelDocument`
+- `System.Object`
 
 ## OUTPUTS
 
-- `None`
+- `OfficeIMO.Excel.ExcelChart`
 
 ## RELATED LINKS
 

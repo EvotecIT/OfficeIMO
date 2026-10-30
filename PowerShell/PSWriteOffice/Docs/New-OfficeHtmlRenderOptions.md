@@ -11,7 +11,7 @@ Creates discoverable layout, resource-limit, and rendering settings for HTML ima
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficeHtmlRenderOptions [-Mode <HtmlRenderMode>] [-FidelityPolicy <HtmlRenderFidelityPolicy>] [-ViewportWidth <Double>] [-ViewportHeight <Double>] [-PageSize <OfficePageSize>] [-HonorCssPageRules] [-DefaultFontFamily <string>] [-DefaultFontSize <Double>] [-DefaultLineHeight <Double>] [-BaseUri <string>] [-MaxPageCount <Int32>] [-MaxInputCharacters <Int32>] [-MaxHtmlNodes <Int32>] [-MaxTotalResourceBytes <Int64>] [-ResourceTimeoutSeconds <Double>] [-Scale <Double>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-BackgroundColor <string>] [-TargetDpi <Double>] [-MaximumRasterPixels <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixels <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
+New-OfficeHtmlRenderOptions [-Mode <HtmlRenderMode>] [-FidelityPolicy <HtmlRenderFidelityPolicy>] [-ViewportWidth <Double>] [-ViewportHeight <Double>] [-PageSize <OfficePageSize>] [-HonorCssPageRules] [-DefaultFontFamily <string>] [-DefaultFontSize <Double>] [-DefaultLineHeight <Double>] [-BaseUri <string>] [-MaxPageCount <Int32>] [-MaxInputCharacters <Int32>] [-MaxHtmlNodes <Int32>] [-MaxTotalResourceBytes <Int64>] [-ResourceTimeoutSeconds <Double>] [-Scale <Double>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-BackgroundColor <string>] [-TargetDpi <Double>] [-MaximumRasterPixelCount <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixelCount <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -220,7 +220,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaximumRasterPixels
+### -MaximumRasterPixelCount
 Maximum pixels allocated for one raster image.
 
 ```yaml
@@ -252,7 +252,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaximumTotalRasterPixels
+### -MaximumTotalRasterPixelCount
 Maximum aggregate raster pixels accepted from one batch.
 
 ```yaml

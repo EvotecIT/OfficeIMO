@@ -6,53 +6,57 @@ schema: 2.0.0
 ---
 # Add-OfficePowerPointSlide
 ## SYNOPSIS
-Adds a new slide to a PowerPoint presentation.
+Adds a designed slide, choosing its layout from typed content unless Layout is supplied.
 
 ## SYNTAX
-### Index (Default)
+### Content (Default)
 ```powershell
-Add-OfficePowerPointSlide [[-Content] <scriptblock>] [-Presentation <PowerPointPresentation>] [-Master <int>] [-Layout <int>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointSlide [[-Content] <scriptblock>] [-Title <string>] [-Subtitle <string>] [-Eyebrow <string>] [-MapLabel <string>] [-Layout <PowerPointLayout>] [-Seed <string>] [-NoFooter] [-NoSlideNumber] [-Background <OfficeColor>] [-BackgroundImage <string>] [-Transition <PowerPointSlideTransition>] [-PassThru] [-Document <PowerPointPresentation>] [<CommonParameters>]
 ```
 
-### Name
+### Template
 ```powershell
-Add-OfficePowerPointSlide [[-Content] <scriptblock>] -LayoutName <string> [-Presentation <PowerPointPresentation>] [-Master <int>] [-CaseSensitive] [-PassThru] [<CommonParameters>]
-```
-
-### Type
-```powershell
-Add-OfficePowerPointSlide [[-Content] <scriptblock>] -LayoutType <PowerPointSlideLayoutType> [-Presentation <PowerPointPresentation>] [-Master <int>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointSlide [[-Content] <scriptblock>] -TemplateLayout <PowerPointLayoutSelector> [-Title <string>] [-Subtitle <string>] [-Eyebrow <string>] [-MapLabel <string>] [-Layout <PowerPointLayout>] [-Master <int>] [-Seed <string>] [-NoFooter] [-NoSlideNumber] [-Background <OfficeColor>] [-BackgroundImage <string>] [-Transition <PowerPointSlideTransition>] [-PassThru] [-Document <PowerPointPresentation>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates a slide using OfficeIMO master/layout indexes and can execute nested DSL content.
+Adds a designed slide, choosing its layout from typed content unless Layout is supplied.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $ppt = New-OfficePowerPoint -Path .\deck.pptx -NoSave
-Add-OfficePowerPointSlide -Presentation $ppt
-$ppt | Close-OfficePowerPoint -Save
+New-OfficePowerPoint -Path .\Review.pptx {
+    PowerPointSlide -Title 'Service review' -Subtitle 'October 2026'
+    PowerPointSlide -Title 'Signals' { PowerPointCard 'Availability' -Text 'All regions healthy' }
+}
 ```
 
-Creates a deck and appends a new slide at the end.
-
-### EXAMPLE 2
-```powershell
-PS> New-OfficePowerPoint -Path .\deck.pptx { PptSlide { PptTitle -Title 'Status Update' } }
-```
-
-Creates a slide and sets the title using DSL aliases.
 
 ## PARAMETERS
 
-### -CaseSensitive
-Use case-sensitive matching for layout names.
+### -Background
+Gets or sets the background color for this slide and its continuations, including theme roles.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: Name
+Type: OfficeColor
+Parameter Sets: Content, Template
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -BackgroundImage
+Gets or sets a literal local background image path for this slide and its continuations.
+
+```yaml
+Type: String
+Parameter Sets: Content, Template
 Aliases: None
 Possible values:
 
@@ -64,11 +68,11 @@ Accept wildcard characters: False
 ```
 
 ### -Content
-Nested DSL content executed within the slide scope.
+Gets or sets the slide's typed content block.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: Index, Name, Type
+Parameter Sets: Content, Template
 Aliases: None
 Possible values:
 
@@ -79,12 +83,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Layout
-Layout index to use (matches the template’s built-in layouts).
+### -Document
+Gets or sets an explicit live document; omission uses the enclosing content block.
 
 ```yaml
-Type: Int32
-Parameter Sets: Index
+Type: PowerPointPresentation
+Parameter Sets: Content, Template
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -Eyebrow
+Gets or sets the small label above the title.
+
+```yaml
+Type: String
+Parameter Sets: Content, Template
 Aliases: None
 Possible values:
 
@@ -95,32 +115,32 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -LayoutName
-Layout name to use (case-insensitive by default).
+### -Layout
+Gets or sets a designed layout; omission selects it from content.
 
 ```yaml
-Type: String
-Parameter Sets: Name
+Type: PowerPointLayout
+Parameter Sets: Content, Template
 Aliases: None
-Possible values:
+Possible values: Auto, Title, Section, TitleAndContent, TwoContent, Comparison, Kpi, Cards, Process, Quote, ImageFull, Closing, CaseStudy, Logos, Coverage
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -LayoutType
-Layout type to use.
+### -MapLabel
+Gets or sets the caption of the coverage panel.
 
 ```yaml
-Type: PowerPointSlideLayoutType
-Parameter Sets: Type
+Type: String
+Parameter Sets: Content, Template
 Aliases: None
-Possible values: Title, Text, TwoColumnText, Table, TextAndChart, ChartAndText, Diagram, Chart, TextAndClipArt, ClipArtAndText, TitleOnly, Blank, TextAndObject, ObjectAndText, ObjectOnly, Object, TextAndMedia, MediaAndText, ObjectOverText, TextOverObject, TextAndTwoObjects, TwoObjectsAndText, TwoObjectsOverText, FourObjects, VerticalText, ClipArtAndVerticalText, VerticalTitleAndText, VerticalTitleAndTextOverChart, TwoObjects, ObjectAndTwoObjects, TwoObjectsAndObject, Custom, SectionHeader, TwoTextAndTwoObjects, ObjectText, PictureText
+Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -128,11 +148,43 @@ Accept wildcard characters: False
 ```
 
 ### -Master
-Slide master index to use.
+Gets or sets a one-based master position for a template layout; defaults to the first.
 
 ```yaml
 Type: Int32
-Parameter Sets: Index, Name, Type
+Parameter Sets: Template
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoFooter
+Gets or sets whether this slide omits its footer.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Content, Template
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoSlideNumber
+Gets or sets whether this slide omits its slide number.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Content, Template
 Aliases: None
 Possible values:
 
@@ -144,11 +196,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the object created or changed by the command.
+Gets or sets whether the created physical slides are returned.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Index, Name, Type
+Parameter Sets: Content, Template
 Aliases: None
 Possible values:
 
@@ -159,19 +211,83 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Presentation
-Presentation to update (optional inside New-OfficePowerPoint).
+### -Seed
+Gets or sets a deterministic design seed for this slide.
 
 ```yaml
-Type: PowerPointPresentation
-Parameter Sets: Index, Name, Type
+Type: String
+Parameter Sets: Content, Template
 Aliases: None
 Possible values:
 
 Required: False
 Position: named
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Subtitle
+Gets or sets the subtitle.
+
+```yaml
+Type: String
+Parameter Sets: Content, Template
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -TemplateLayout
+Gets or sets a specific template layout by name, one-based position, native type or returned metadata.
+
+```yaml
+Type: PowerPointLayoutSelector
+Parameter Sets: Template
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Title
+Gets or sets the slide title.
+
+```yaml
+Type: String
+Parameter Sets: Content, Template
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Transition
+Gets or sets the transition for this slide and its continuations.
+
+```yaml
+Type: PowerPointSlideTransition
+Parameter Sets: Content, Template
+Aliases: None
+Possible values: None, Fade, Wipe, BlindsVertical, BlindsHorizontal, CombHorizontal, CombVertical, PushUp, PushDown, PushLeft, PushRight, Cut, Flash, WarpIn, WarpOut, Prism, FerrisLeft, FerrisRight, Morph, Random, CheckerHorizontal, CheckerVertical, CoverLeft, CoverUp, CoverRight, CoverDown, CoverLeftUp, CoverRightUp, CoverLeftDown, CoverRightDown, Dissolve, FadeThroughBlack, UncoverLeft, UncoverUp, UncoverRight, UncoverDown, UncoverLeftUp, UncoverRightUp, UncoverLeftDown, UncoverRightDown, RandomBarsHorizontal, RandomBarsVertical, StripsLeftUp, StripsRightUp, StripsLeftDown, StripsRightDown, WipeUp, WipeRight, WipeDown, BoxOut, BoxIn, SplitHorizontalOut, SplitHorizontalIn, SplitVerticalOut, SplitVerticalIn, Diamond, Plus, Wedge, Newsflash, WheelOneSpoke, WheelTwoSpokes, WheelThreeSpokes, WheelFourSpokes, WheelEightSpokes, Circle, CutThroughBlack
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -184,7 +300,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `None`
+- `OfficeIMO.PowerPoint.PowerPointSlide`
 
 ## RELATED LINKS
 

@@ -57,7 +57,7 @@ internal sealed class PowerPointDslContext : IDisposable
         var slide = CurrentSlide;
         if (slide == null)
         {
-            throw new InvalidOperationException("No slide context available. Use Add-OfficePowerPointSlide / PptSlide first.");
+            throw new InvalidOperationException("No slide context available. Use Add-OfficePowerPointSlide / PowerPointSlide first.");
         }
 
         return slide;

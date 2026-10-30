@@ -54,7 +54,7 @@ public sealed class ConvertToOfficeDocumentCommand : AsyncPSCmdlet {
     [Alias("To")]
     public string TargetExtension { get; set; } = string.Empty;
 
-    /// <summary>Optional exact canonical route identifier from Get-OfficeConversionRoute.</summary>
+    /// <summary>Optional exact canonical route identifier from Get-OfficeDocumentCapability -Conversion.</summary>
     [Parameter]
     public string? ConversionRouteId { get; set; }
 

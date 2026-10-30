@@ -7,7 +7,7 @@ Locale: en-US
 ---
 # PSWriteOffice Module
 ## Description
-PowerShell document automation for Office, PDF, Project, Access, EPUB, electronic invoices, iWork, OneNote, OpenDocument, email, and text formats. Create, edit, inspect, and convert through OfficeIMO without Microsoft Office installed.
+PowerShell document automation for Office, PDF, Project, Access, EPUB, iWork, OneNote, OpenDocument, email, and text formats. Create, edit, inspect, and convert through OfficeIMO without Microsoft Office installed.
 
 ## PSWriteOffice Cmdlets
 ### [Add-OfficeAccessColumn](Add-OfficeAccessColumn.md)
@@ -29,7 +29,7 @@ Adds an image, font, stylesheet or media payload without executing it.
 Adds an AutoFilter to the current worksheet.
 
 ### [Add-OfficeExcelChart](Add-OfficeExcelChart.md)
-Adds a chart to the current worksheet using a range or table.
+Adds a native Excel chart from a range, named table or input rows.
 
 ### [Add-OfficeExcelComment](Add-OfficeExcelComment.md)
 Adds or replaces a comment (note) on a worksheet cell.
@@ -147,9 +147,6 @@ Adds a whole-number data validation rule to a worksheet range.
 
 ### [Add-OfficeExcelVisual](Add-OfficeExcelVisual.md)
 Adds a ChartForgeX artifact, portable SVG, or converted Office visual to an Excel worksheet.
-
-### [Add-OfficeInvoiceLine](Add-OfficeInvoiceLine.md)
-Adds an invoice line with explicit quantity, price and VAT.
 
 ### [Add-OfficeMarkdownCallout](Add-OfficeMarkdownCallout.md)
 Adds a Markdown callout block.
@@ -274,14 +271,35 @@ Adds a generated-document text watermark.
 ### [Add-OfficePowerPointBullets](Add-OfficePowerPointBullets.md)
 Adds a bulleted list to a PowerPoint slide.
 
+### [Add-OfficePowerPointCard](Add-OfficePowerPointCard.md)
+Adds a narrative card or logo tile to the current designed slide.
+
 ### [Add-OfficePowerPointChart](Add-OfficePowerPointChart.md)
 Adds a chart to a PowerPoint slide.
+
+### [Add-OfficePowerPointColumn](Add-OfficePowerPointColumn.md)
+Groups typed content into one column of a designed slide.
 
 ### [Add-OfficePowerPointDesignerDeck](Add-OfficePowerPointDesignerDeck.md)
 Renders a semantic deck plan through OfficeIMO PowerPoint designer helpers.
 
 ### [Add-OfficePowerPointImage](Add-OfficePowerPointImage.md)
 Adds an image to a PowerPoint slide.
+
+### [Add-OfficePowerPointKpi](Add-OfficePowerPointKpi.md)
+Adds a metric to the current designed slide.
+
+### [Add-OfficePowerPointList](Add-OfficePowerPointList.md)
+Adds a native list through the shared layout and continuation rules.
+
+### [Add-OfficePowerPointListItem](Add-OfficePowerPointListItem.md)
+Adds a native paragraph to the enclosing list, optionally using styled runs.
+
+### [Add-OfficePowerPointLocation](Add-OfficePowerPointLocation.md)
+Adds a named location to a coverage slide.
+
+### [Add-OfficePowerPointParagraph](Add-OfficePowerPointParagraph.md)
+Adds a plain or rich paragraph backed by native content before layout.
 
 ### [Add-OfficePowerPointPlanCapability](Add-OfficePowerPointPlanCapability.md)
 Adds a semantic capability/content slide to a PowerPoint deck plan.
@@ -304,20 +322,29 @@ Adds a semantic process/timeline slide to a PowerPoint deck plan.
 ### [Add-OfficePowerPointPlanSection](Add-OfficePowerPointPlanSection.md)
 Adds a semantic section/title slide to a PowerPoint deck plan.
 
+### [Add-OfficePowerPointQuote](Add-OfficePowerPointQuote.md)
+Adds a quotation and attribution to the current designed slide.
+
 ### [Add-OfficePowerPointSection](Add-OfficePowerPointSection.md)
-Adds a section to a PowerPoint presentation.
+Starts a named section at an existing, current or next appended slide.
 
 ### [Add-OfficePowerPointShape](Add-OfficePowerPointShape.md)
 Adds a basic shape to a slide.
 
 ### [Add-OfficePowerPointSlide](Add-OfficePowerPointSlide.md)
-Adds a new slide to a PowerPoint presentation.
+Adds a designed slide, choosing its layout from typed content unless Layout is supplied.
+
+### [Add-OfficePowerPointStep](Add-OfficePowerPointStep.md)
+Adds a process step to the current designed slide.
 
 ### [Add-OfficePowerPointTable](Add-OfficePowerPointTable.md)
 Adds a table to a PowerPoint slide.
 
 ### [Add-OfficePowerPointTableRow](Add-OfficePowerPointTableRow.md)
 Appends or inserts a row in an existing PowerPoint table.
+
+### [Add-OfficePowerPointText](Add-OfficePowerPointText.md)
+Adds a live styled run to the enclosing paragraph or list item, or starts a slide paragraph.
 
 ### [Add-OfficePowerPointTextBox](Add-OfficePowerPointTextBox.md)
 Adds a text box to a slide.
@@ -500,7 +527,7 @@ Closes a native database without implicitly saving it.
 Closes an Excel workbook and optionally saves it.
 
 ### [Close-OfficePowerPoint](Close-OfficePowerPoint.md)
-Closes a PowerPoint presentation and optionally saves it.
+Closes a live presentation without saving it.
 
 ### [Close-OfficeProject](Close-OfficeProject.md)
 Closes a project without implicitly saving it.
@@ -519,6 +546,9 @@ Compares rendered PDF pages and returns pixel-level review artifacts.
 
 ### [Compare-OfficeWordDocument](Compare-OfficeWordDocument.md)
 Compares two Word documents and optionally writes a tracked-change redline.
+
+### [Convert-OfficeDocument](Convert-OfficeDocument.md)
+Converts files through OfficeIMO's native routes and portable batch engine.
 
 ### [ConvertFrom-OfficeAsciiDocMarkdown](ConvertFrom-OfficeAsciiDocMarkdown.md)
 Converts Markdown to native AsciiDoc with fidelity diagnostics.
@@ -659,7 +689,7 @@ Copies a workbook package while preserving package parts.
 Copies selected PDF pages into a new PDF.
 
 ### [Copy-OfficePowerPointSlide](Copy-OfficePowerPointSlide.md)
-Copies an existing slide within a PowerPoint presentation.
+Copies a native slide within its document, preserving its content and relationships.
 
 ### [Edit-OfficeExcelRow](Edit-OfficeExcelRow.md)
 Runs a script block against editable worksheet rows.
@@ -694,9 +724,6 @@ Exports one worksheet range as an image file.
 ### [Export-OfficeHtmlImage](Export-OfficeHtmlImage.md)
 Exports an HTML render surface as PNG or SVG with structured diagnostics.
 
-### [Export-OfficeInvoicePdf](Export-OfficeInvoicePdf.md)
-Creates a visible PDF and embedded invoice XML from the same captured model.
-
 ### [Export-OfficePdfImage](Export-OfficePdfImage.md)
 Exports PDF pages through the shared PNG, JPEG, TIFF, SVG, or WebP image contract.
 
@@ -705,6 +732,9 @@ Exports PDF word, line, region, and reading-order diagnostics as PNG or SVG.
 
 ### [Export-OfficePdfXfdf](Export-OfficePdfXfdf.md)
 Exports readable PDF form field values as XFDF.
+
+### [Export-OfficePowerPoint](Export-OfficePowerPoint.md)
+Exports objects as a designed presentation with editable tables and optional charts.
 
 ### [Export-OfficePowerPointImage](Export-OfficePowerPointImage.md)
 Exports presentation slides as PNG or SVG images with one result per slide.
@@ -723,6 +753,9 @@ Exports preview artwork from a Visio stencil package into a browsable HTML galle
 
 ### [Export-OfficeVisioVisual](Export-OfficeVisioVisual.md)
 Exports CFX semantic visual-artifact input as a native editable VSDX diagram.
+
+### [Export-OfficeWord](Export-OfficeWord.md)
+Exports PowerShell objects to a Word document containing an editable table.
 
 ### [Export-OfficeWordGoogleDocument](Export-OfficeWordGoogleDocument.md)
 Plans, compiles, or exports a Word document to Google Docs.
@@ -769,14 +802,11 @@ Reads one page or streams a filtered Confluence Cloud page listing.
 ### [Get-OfficeConversionJobReport](Get-OfficeConversionJobReport.md)
 Reads a bounded saved conversion run report without executing its job or changing outputs.
 
-### [Get-OfficeConversionRoute](Get-OfficeConversionRoute.md)
-Lists conversion contracts from the installed OfficeIMO catalog and their availability for PSWriteOffice batch PDF export.
-
 ### [Get-OfficeCsv](Get-OfficeCsv.md)
 Loads a CSV document from disk or parses CSV text.
 
 ### [Get-OfficeDocumentCapability](Get-OfficeDocumentCapability.md)
-Lists OfficeIMO.Reader capabilities registered in the current PSWriteOffice process.
+Lists installed reading, conversion and protection capabilities from their canonical catalogs.
 
 ### [Get-OfficeDocumentInfo](Get-OfficeDocumentInfo.md)
 Inspects format, native counts and encryption without changing a source or reopening a live document.
@@ -874,15 +904,6 @@ Recognizes an image as editable text, reading order and detected tables, with re
 ### [Get-OfficeImageText](Get-OfficeImageText.md)
 Recognizes text in an image with automatic local OCR runtime discovery.
 
-### [Get-OfficeInvoice](Get-OfficeInvoice.md)
-Reads CII or UBL while retaining unmapped-source evidence for later saves.
-
-### [Get-OfficeInvoiceLine](Get-OfficeInvoiceLine.md)
-Returns editable invoice lines, optionally selected by their stable identifier.
-
-### [Get-OfficeInvoiceTarget](Get-OfficeInvoiceTarget.md)
-Lists exact supported invoice authoring contracts from the engine.
-
 ### [Get-OfficeIWork](Get-OfficeIWork.md)
 Reads a modern Apple Pages, Numbers, or Keynote package without launching iWork.
 
@@ -964,14 +985,8 @@ Extracts text or Markdown from a PDF.
 ### [Get-OfficePdfTextDiagnostic](Get-OfficePdfTextDiagnostic.md)
 Gets PDF text encoding and advanced-layout diagnostics for generated text before rendering.
 
-### [Get-OfficePowerPoint](Get-OfficePowerPoint.md)
-Loads an existing PowerPoint presentation.
-
-### [Get-OfficePowerPointInspection](Get-OfficePowerPointInspection.md)
-Runs package, preflight, accessibility, feature, review, animation, signature, and visual inspections.
-
 ### [Get-OfficePowerPointLayout](Get-OfficePowerPointLayout.md)
-Lists slide layouts available in a presentation.
+Lists template layouts from all masters, or one selected master.
 
 ### [Get-OfficePowerPointLayoutBox](Get-OfficePowerPointLayoutBox.md)
 Computes reusable layout boxes for a presentation.
@@ -980,25 +995,22 @@ Computes reusable layout boxes for a presentation.
 Gets layout placeholder metadata for a slide.
 
 ### [Get-OfficePowerPointNotes](Get-OfficePowerPointNotes.md)
-Reads speaker notes from a slide or presentation.
+Reads speaker notes without creating empty notes parts.
 
 ### [Get-OfficePowerPointPlaceholder](Get-OfficePowerPointPlaceholder.md)
 Gets placeholder text boxes from a slide.
 
 ### [Get-OfficePowerPointSection](Get-OfficePowerPointSection.md)
-Gets PowerPoint sections from a presentation.
+Reads sections from a live presentation, optionally matching a PowerShell wildcard pattern.
 
 ### [Get-OfficePowerPointShape](Get-OfficePowerPointShape.md)
 Reads shape summaries from a slide or presentation.
 
 ### [Get-OfficePowerPointSlide](Get-OfficePowerPointSlide.md)
-Enumerates slides or retrieves a specific slide.
-
-### [Get-OfficePowerPointSlideSummary](Get-OfficePowerPointSlideSummary.md)
-Reads high-level slide summaries from a presentation.
+Gets editable slides from a live document, or detached slide summaries from files.
 
 ### [Get-OfficePowerPointTheme](Get-OfficePowerPointTheme.md)
-Gets theme information for a PowerPoint presentation master.
+Reads the selected slide master's theme, colors and fonts.
 
 ### [Get-OfficePrinter](Get-OfficePrinter.md)
 Lists system printer queues, or the paper sources of a named queue. Requires PowerShell 7.4 or newer.
@@ -1020,9 +1032,6 @@ Returns project tasks as pipeline objects.
 
 ### [Get-OfficeProjectView](Get-OfficeProjectView.md)
 Captures a portable report from a current calculated schedule.
-
-### [Get-OfficeProtectionCapability](Get-OfficeProtectionCapability.md)
-Returns OfficeIMO's machine-readable protected-content support contract.
 
 ### [Get-OfficeProvenance](Get-OfficeProvenance.md)
 Collects structural, text-integrity, and optional provider verification evidence for a file.
@@ -1249,12 +1258,6 @@ Creates typed HTML rendering options for Export-OfficeDocumentPdf.
 ### [New-OfficeHtmlRenderOptions](New-OfficeHtmlRenderOptions.md)
 Creates discoverable layout, resource-limit, and rendering settings for HTML image export.
 
-### [New-OfficeInvoice](New-OfficeInvoice.md)
-Creates an editable invoice without serializing or declaring standards compliance.
-
-### [New-OfficeInvoiceParty](New-OfficeInvoiceParty.md)
-Creates a seller or buyer from ordinary party and address parameters.
-
 ### [New-OfficeMarkdown](New-OfficeMarkdown.md)
 Creates a Markdown document using a DSL scriptblock.
 
@@ -1301,7 +1304,7 @@ Creates discoverable PDF-to-Word reconstruction settings.
 Creates discoverable rendering and tolerance settings for Compare-OfficePdfVisual.
 
 ### [New-OfficePowerPoint](New-OfficePowerPoint.md)
-Creates a PowerPoint presentation using the DSL.
+Creates a themed presentation, returning a live document or saving a completed content block.
 
 ### [New-OfficePowerPointDeckPlan](New-OfficePowerPointDeckPlan.md)
 Creates a semantic PowerPoint deck plan for designer rendering.
@@ -1309,11 +1312,14 @@ Creates a semantic PowerPoint deck plan for designer rendering.
 ### [New-OfficePowerPointImageOptions](New-OfficePowerPointImageOptions.md)
 Creates discoverable slide selection and rendering settings for Export-OfficePowerPointImage.
 
+### [New-OfficePowerPointInspectionOptions](New-OfficePowerPointInspectionOptions.md)
+Chooses native presentation inspection reports without changing a document.
+
 ### [New-OfficePowerPointOpenDocumentOptions](New-OfficePowerPointOpenDocumentOptions.md)
 Creates PowerPoint/OpenDocument conversion settings.
 
 ### [New-OfficePowerPointPdfOptions](New-OfficePowerPointPdfOptions.md)
-Creates discoverable PowerPoint-to-PDF conversion options for Export-OfficeDocumentPdf.
+Creates native PowerPoint-to-PDF options for Convert-OfficeDocument.
 
 ### [New-OfficeProject](New-OfficeProject.md)
 Creates a live project with an optional standard working calendar.
@@ -1360,6 +1366,9 @@ Creates a discoverable Word revision filter for Resolve-OfficeWordRevision.
 ### [New-OfficeWordTableCell](New-OfficeWordTableCell.md)
 Creates a reusable Word table cell definition for explicit table rows.
 
+### [Open-OfficePowerPoint](Open-OfficePowerPoint.md)
+Opens a presentation for explicit editing, or atomically saves a completed content block.
+
 ### [Protect-OfficeDocument](Protect-OfficeDocument.md)
 Adds native password encryption or editing restrictions to a document.
 
@@ -1397,7 +1406,7 @@ Removes PDF annotations matching friendly filters.
 Removes selected pages from a PDF and writes a new PDF.
 
 ### [Remove-OfficePowerPointSlide](Remove-OfficePowerPointSlide.md)
-Removes a slide by index.
+Removes selected native slides or one-based slide positions.
 
 ### [Remove-OfficeWordTableOfContents](Remove-OfficeWordTableOfContents.md)
 Removes the table of contents from a Word document.
@@ -1406,7 +1415,7 @@ Removes the table of contents from a Word document.
 Renames a workbook or sheet-scoped Excel named range.
 
 ### [Rename-OfficePowerPointSection](Rename-OfficePowerPointSection.md)
-Renames a PowerPoint section.
+Renames the first section matching the supplied name.
 
 ### [Repair-OfficeExcelWorkbook](Repair-OfficeExcelWorkbook.md)
 Runs OfficeIMO safe workbook repairs for common package, table, view, print, drawing, and calculation artifacts.
@@ -1432,9 +1441,6 @@ Writes a validated EPUB package with explicit conflict and loss policies.
 ### [Save-OfficeExcel](Save-OfficeExcel.md)
 Saves an Excel workbook without disposing it.
 
-### [Save-OfficeInvoice](Save-OfficeInvoice.md)
-Saves CII or UBL with strict source and target loss handling.
-
 ### [Save-OfficeLatex](Save-OfficeLatex.md)
 Saves an OfficeIMO LaTeX document.
 
@@ -1448,7 +1454,7 @@ Saves a native OpenDocument model with entry-level preservation diagnostics.
 Saves an OfficeIMO.Pdf document.
 
 ### [Save-OfficePowerPoint](Save-OfficePowerPoint.md)
-Saves a presentation without disposing it.
+Saves a live presentation without closing it.
 
 ### [Save-OfficeProject](Save-OfficeProject.md)
 Saves a project through the qualified native codec with loss protection.
@@ -1606,12 +1612,6 @@ Sets worksheet view options such as gridlines, direction, zoom, and view mode.
 ### [Set-OfficeExcelWriteReservation](Set-OfficeExcelWriteReservation.md)
 Sets workbook write-reservation metadata.
 
-### [Set-OfficeInvoice](Set-OfficeInvoice.md)
-Updates common invoice header and party fields.
-
-### [Set-OfficeInvoiceLine](Set-OfficeInvoiceLine.md)
-Edits selected line fields while retaining other invoice content.
-
 ### [Set-OfficeOpenDocumentCell](Set-OfficeOpenDocumentCell.md)
 Sets a typed zero-based cell value in an OpenDocument spreadsheet.
 
@@ -1626,9 +1626,6 @@ Sets or clears a generated PDF page background image.
 
 ### [Set-OfficePdfCompliance](Set-OfficePdfCompliance.md)
 Sets generated PDF compliance profile and readiness groundwork.
-
-### [Set-OfficePdfElectronicInvoice](Set-OfficePdfElectronicInvoice.md)
-Configures Factur-X/ZUGFeRD e-invoice groundwork on a generated PDF document.
 
 ### [Set-OfficePdfFooter](Set-OfficePdfFooter.md)
 Sets a simple or fully composed running PDF footer.
@@ -1657,9 +1654,6 @@ Injects externally produced CMS, CAdES, or timestamp signature bytes into a prep
 ### [Set-OfficePdfTheme](Set-OfficePdfTheme.md)
 Applies an OfficeIMO.Pdf theme preset to a generated PDF document.
 
-### [Set-OfficePowerPointBackground](Set-OfficePowerPointBackground.md)
-Sets the slide background color or image.
-
 ### [Set-OfficePowerPointLayoutPlaceholderBounds](Set-OfficePowerPointLayoutPlaceholderBounds.md)
 Sets layout placeholder bounds for a slide layout.
 
@@ -1670,7 +1664,7 @@ Sets layout placeholder text margins for a slide layout (points).
 Sets layout placeholder text style and bullet/numbering settings.
 
 ### [Set-OfficePowerPointNotes](Set-OfficePowerPointNotes.md)
-Sets speaker notes for a PowerPoint slide.
+Sets speaker notes on a native slide or in the current slide content block.
 
 ### [Set-OfficePowerPointPlaceholderText](Set-OfficePowerPointPlaceholderText.md)
 Sets text in a slide placeholder.
@@ -1681,17 +1675,11 @@ Aligns, distributes, or arranges PowerPoint shapes using OfficeIMO layout helper
 ### [Set-OfficePowerPointShapeText](Set-OfficePowerPointShapeText.md)
 Sets text on an existing PowerPoint text box.
 
-### [Set-OfficePowerPointSlideLayout](Set-OfficePowerPointSlideLayout.md)
-Changes the layout used by a slide.
+### [Set-OfficePowerPointSlide](Set-OfficePowerPointSlide.md)
+Changes a selected slide's title, template layout, background or transition.
 
 ### [Set-OfficePowerPointSlideSize](Set-OfficePowerPointSlideSize.md)
-Sets the slide size for a PowerPoint presentation.
-
-### [Set-OfficePowerPointSlideTitle](Set-OfficePowerPointSlideTitle.md)
-Sets the text of the title placeholder on a slide.
-
-### [Set-OfficePowerPointSlideTransition](Set-OfficePowerPointSlideTransition.md)
-Sets the transition used when advancing to a slide.
+Sets a presentation's slide size using a preset or physical lengths.
 
 ### [Set-OfficePowerPointTableCell](Set-OfficePowerPointTableCell.md)
 Sets text in an existing PowerPoint table cell.
@@ -1750,11 +1738,11 @@ Validates Excel template markers against supplied bindings before applying a tem
 ### [Test-OfficeExcelWorkbook](Test-OfficeExcelWorkbook.md)
 Runs OfficeIMO workbook diagnostics and optional safe repairs.
 
-### [Test-OfficeInvoice](Test-OfficeInvoice.md)
-Validates an invoice model or exact XML bytes against caller-supplied authority rules.
-
 ### [Test-OfficePdfRewrite](Test-OfficePdfRewrite.md)
 Creates a proof report for user-visible signals preserved by a PDF rewrite.
+
+### [Test-OfficePowerPoint](Test-OfficePowerPoint.md)
+Inspects a live or saved presentation without changing or reopening a supplied document.
 
 ### [Unprotect-OfficeExcelSheet](Unprotect-OfficeExcelSheet.md)
 Removes worksheet protection.
@@ -1782,3 +1770,7 @@ Updates the table of contents in a Word document.
 
 ### [Update-OfficeWordText](Update-OfficeWordText.md)
 Replaces text in a Word document.
+
+## About Topics
+
+### [about_PSWriteOffice](About/about_PSWriteOffice.md)

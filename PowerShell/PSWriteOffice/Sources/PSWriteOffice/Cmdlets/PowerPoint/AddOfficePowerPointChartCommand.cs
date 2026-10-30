@@ -6,6 +6,7 @@ using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.PowerPoint;
 
 namespace PSWriteOffice.Cmdlets.PowerPoint;
@@ -34,8 +35,8 @@ public enum PowerPointChartType {
 ///     [pscustomobject]@{ Month = 'Feb'; Sales = 55; Profit = 13 }
 /// )
 /// New-OfficePowerPoint -Path .\Examples\Documents\PowerPointChart.pptx {
-///     $slide = Add-OfficePowerPointSlide -Layout 1 -PassThru
-///     Add-OfficePowerPointChart -Slide $slide -InputObject $rows -CategoryProperty Month -SeriesProperty Sales,Profit -Title 'Monthly performance'
+///     $slide = Add-OfficePowerPointSlide -PassThru
+///     Add-OfficePowerPointChart -Slide $slide -InputObject $rows -Category Month -Value Sales,Profit -Title 'Monthly performance'
 /// }</code>
 ///   <para>Creates a clustered column chart using Month for categories and Sales/Profit as series.</para>
 /// </example>
@@ -47,13 +48,13 @@ public enum PowerPointChartType {
 ///     [pscustomobject]@{ Quarter = 2; Revenue = 34 }
 /// )
 /// New-OfficePowerPoint -Path .\Examples\Documents\PowerPointScatter.pptx {
-///     $slide = Add-OfficePowerPointSlide -Layout 1 -PassThru
+///     $slide = Add-OfficePowerPointSlide -PassThru
 ///     Add-OfficePowerPointChart -Slide $slide -Type Scatter -InputObject $rows -XProperty Quarter -YProperty Revenue -Title 'Revenue trend'
 /// }</code>
 ///   <para>Creates a scatter chart using Quarter on the X axis and Revenue on the Y axis.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointChart", DefaultParameterSetName = ParameterSetDefault)]
-[Alias("PptChart")]
+[Alias("PowerPointChart")]
 [OutputType(typeof(PowerPointChart))]
 public sealed class AddOfficePowerPointChartCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     private const string ParameterSetDefault = "Default";
@@ -76,11 +77,11 @@ public sealed class AddOfficePowerPointChartCommand : PSWriteOffice.Cmdlets.Offi
 
     /// <summary>Property name used for category labels on standard charts.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetCategorical)]
-    public string CategoryProperty { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
 
     /// <summary>Property names used as numeric series on standard charts.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetCategorical)]
-    public string[] SeriesProperty { get; set; } = Array.Empty<string>();
+    public string[] Value { get; set; } = Array.Empty<string>();
 
     /// <summary>Property name used for the X axis on scatter charts.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetScatter)]
@@ -121,7 +122,8 @@ public sealed class AddOfficePowerPointChartCommand : PSWriteOffice.Cmdlets.Offi
                 throw new ArgumentOutOfRangeException(nameof(Height), "Height must be greater than 0.");
             }
 
-            var slide = Slide ?? PowerPointDslContext.Require(this).RequireSlide();
+            var scope = Slide == null ? PowerPointContentScope.Current : null;
+            var slide = Slide ?? scope?.NativeSlide ?? PowerPointDslContext.Require(this).RequireSlide();
             var chart = ParameterSetName switch {
                 ParameterSetCategorical => AddCategoricalChart(slide),
                 ParameterSetScatter => AddScatterChart(slide),
@@ -132,8 +134,14 @@ public sealed class AddOfficePowerPointChartCommand : PSWriteOffice.Cmdlets.Offi
                 chart.SetTitle(Title!);
             }
 
+            if (scope != null) {
+                if (!chart.TryGetOfficeSnapshot(out var snapshot)) throw new InvalidOperationException("The created chart has no supported data snapshot.");
+                scope.AddFigure(new PowerPointLayoutChart(snapshot.ChartKind, snapshot.Data) { NativeChart = chart }, chart);
+            }
+
             WritePassThru(chart);
         } catch (Exception ex) {
+            if (PowerPointContentScope.Current != null) ThrowTerminatingError(OfficeError.Create(ex, "invalid-argument", InputObject, ErrorCategory.InvalidArgument));
             WriteError(new ErrorRecord(ex, "PowerPointAddChartFailed", ErrorCategory.InvalidOperation, Slide));
         }
     }
@@ -156,12 +164,12 @@ public sealed class AddOfficePowerPointChartCommand : PSWriteOffice.Cmdlets.Offi
             throw new PSArgumentException("Use -XProperty and -YProperty when -Type Scatter is selected.", nameof(Type));
         }
 
-        if (SeriesProperty == null || SeriesProperty.Length == 0) {
-            throw new PSArgumentException("Provide at least one -SeriesProperty.", nameof(SeriesProperty));
+        if (Value == null || Value.Length == 0) {
+            throw new PSArgumentException("Provide at least one -Value.", nameof(Value));
         }
 
-        if ((Type == PowerPointChartType.Pie || Type == PowerPointChartType.Doughnut) && SeriesProperty.Length > 1) {
-            throw new PSArgumentException("Pie and Doughnut charts support only one series property.", nameof(SeriesProperty));
+        if ((Type == PowerPointChartType.Pie || Type == PowerPointChartType.Doughnut) && Value.Length > 1) {
+            throw new PSArgumentException("Pie and Doughnut charts support only one series property.", nameof(Value));
         }
 
         return slide.AddChartPoints(GetOfficeChartKind(Type), BuildChartData(), X, Y, Width, Height);
@@ -169,7 +177,7 @@ public sealed class AddOfficePowerPointChartCommand : PSWriteOffice.Cmdlets.Offi
 
     private PowerPointChart AddScatterChart(PowerPointSlide slide) {
         if (Type != PowerPointChartType.Scatter) {
-            throw new PSArgumentException("Use -CategoryProperty/-SeriesProperty for non-scatter charts.", nameof(Type));
+            throw new PSArgumentException("Use -Category/-Value for non-scatter charts.", nameof(Type));
         }
 
         if (YProperty == null || YProperty.Length == 0) {
@@ -181,8 +189,8 @@ public sealed class AddOfficePowerPointChartCommand : PSWriteOffice.Cmdlets.Offi
 
     private OfficeChartData BuildChartData() {
         var items = EnsureData();
-        var categories = items.Select(item => ConvertToString(GetPropertyValue(item, CategoryProperty), CategoryProperty)).ToArray();
-        var series = SeriesProperty.Select(property =>
+        var categories = items.Select(item => ConvertToString(GetPropertyValue(item, Category), Category)).ToArray();
+        var series = Value.Select(property =>
             new OfficeChartSeries(property, items.Select(item => ConvertToDouble(GetPropertyValue(item, property), property)).ToArray()))
             .ToArray();
 

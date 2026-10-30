@@ -81,7 +81,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Column headings.</summary>
-        public IReadOnlyList<string> Headers { get; }
+        public IReadOnlyList<string> Headers { get; private set; }
         /// <summary>Whether to render the column headings on each physical slide.</summary>
         public bool IncludeHeaders {
             get => _includeHeaders;
@@ -91,7 +91,13 @@ namespace OfficeIMO.PowerPoint {
         }
         private bool _includeHeaders = true;
         /// <summary>Table data rows.</summary>
-        public IReadOnlyList<IReadOnlyList<string>> Rows { get; }
+        public IReadOnlyList<IReadOnlyList<string>> Rows { get; private set; }
+        internal PowerPointLayoutNativeTable? NativeBody { get; set; }
+        internal void FreezeNativeRows() {
+            if (NativeBody == null) return;
+            Headers = NativeBody.Headers;
+            Rows = NativeBody.Rows;
+        }
         private int? _maximumRows;
         /// <summary>Optional maximum data rows per physical slide.</summary>
         public int? MaximumRows {
@@ -109,11 +115,13 @@ namespace OfficeIMO.PowerPoint {
         internal bool Dense { get; set; }
 
         internal PowerPointLayoutTable WithRows(IReadOnlyList<IReadOnlyList<string>> rows) =>
-            new(Headers, rows) { IncludeHeaders = IncludeHeaders, MaximumRows = MaximumRows, NoSplit = NoSplit, Caption = Caption, Dense = Dense };
+            new(Headers, rows) { IncludeHeaders = IncludeHeaders, MaximumRows = MaximumRows, NoSplit = NoSplit, Caption = Caption, Dense = Dense,
+                NativeBody = NativeBody?.Slice(Rows, rows) };
     }
 
     /// <summary>An editable chart backed by shared chart data.</summary>
     public sealed class PowerPointLayoutChart : PowerPointLayoutBlock {
+        internal PowerPointChart? NativeChart { get; set; }
         /// <summary>Creates content for the shared layout engine.</summary>
         public PowerPointLayoutChart(OfficeChartKind kind, OfficeChartData data) {
             Kind = kind;
@@ -132,6 +140,7 @@ namespace OfficeIMO.PowerPoint {
 
     /// <summary>An image fitted to its content zone.</summary>
     public sealed class PowerPointLayoutImage : PowerPointLayoutBlock {
+        internal PowerPointPicture? NativePicture { get; set; }
         /// <summary>Creates content for the shared layout engine.</summary>
         public PowerPointLayoutImage(string path, string? alternativeText = null) {
             Path = path ?? throw new ArgumentNullException(nameof(path));

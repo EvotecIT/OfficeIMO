@@ -37,8 +37,8 @@ public enum WordChartType
 /// )
 /// New-OfficeWord -Path .\RegionalReport.docx {
 ///     Add-OfficeWordParagraph -Text 'Regional revenue'
-///     Add-OfficeWordChart -Type Pie -InputObject $rows -CategoryProperty Region -SeriesProperty Revenue -Title 'Revenue mix' -FitToPageWidth -WidthFraction 0.75
-///     Add-OfficeWordChart -Type Bar -InputObject $rows -CategoryProperty Region -SeriesProperty Revenue, Profit -Legend -XAxisTitle 'Region' -YAxisTitle 'Amount'
+///     Add-OfficeWordChart -Type Pie -InputObject $rows -Category Region -Value Revenue -Title 'Revenue mix' -FitToPageWidth -WidthFraction 0.75
+///     Add-OfficeWordChart -Type Bar -InputObject $rows -Category Region -Value Revenue, Profit -Legend -XAxisTitle 'Region' -YAxisTitle 'Amount'
 /// }</code>
 ///   <para>Creates a report with a pie chart and a multi-series bar chart from PowerShell objects.</para>
 /// </example>
@@ -51,7 +51,7 @@ public enum WordChartType
 ///     [pscustomobject]@{ Month = 'Mar'; Sales = 15; Profit = 7 }
 /// )
 /// $doc = New-OfficeWord -Path .\Trend.docx -NoSave
-/// Add-OfficeWordChart -Document $doc -Type Line -InputObject $trend -CategoryProperty Month -SeriesProperty Sales, Profit -Legend -Title 'Quarter trend'
+/// Add-OfficeWordChart -Document $doc -Type Line -InputObject $trend -Category Month -Value Sales, Profit -Legend -Title 'Quarter trend'
 /// Save-OfficeWord -Document $doc</code>
 ///   <para>Creates a multi-series line chart on the document and shows a legend.</para>
 /// </example>
@@ -93,11 +93,11 @@ public sealed class AddOfficeWordChartCommand : PSCmdlet
 
     /// <summary>Property name used for category labels.</summary>
     [Parameter(Mandatory = true)]
-    public string CategoryProperty { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
 
     /// <summary>Property names used as numeric series.</summary>
     [Parameter(Mandatory = true)]
-    public string[] SeriesProperty { get; set; } = Array.Empty<string>();
+    public string[] Value { get; set; } = Array.Empty<string>();
 
     /// <summary>Chart width in pixels.</summary>
     [Parameter]
@@ -153,14 +153,14 @@ public sealed class AddOfficeWordChartCommand : PSCmdlet
             throw new PSArgumentException("Provide at least one data item.", nameof(InputObject));
         }
 
-        if (SeriesProperty == null || SeriesProperty.Length == 0)
+        if (Value == null || Value.Length == 0)
         {
-            throw new PSArgumentException("Provide at least one -SeriesProperty.", nameof(SeriesProperty));
+            throw new PSArgumentException("Provide at least one -Value.", nameof(Value));
         }
 
-        if (Type == WordChartType.Pie && SeriesProperty.Length > 1)
+        if (Type == WordChartType.Pie && Value.Length > 1)
         {
-            throw new PSArgumentException("Pie charts support only one series property.", nameof(SeriesProperty));
+            throw new PSArgumentException("Pie charts support only one series property.", nameof(Value));
         }
 
         if (WidthPixels <= 0)
@@ -222,10 +222,10 @@ public sealed class AddOfficeWordChartCommand : PSCmdlet
     {
         if (Type == WordChartType.Pie)
         {
-            var seriesName = SeriesProperty[0];
+            var seriesName = Value[0];
             foreach (var item in items)
             {
-                var category = ConvertToString(GetPropertyValue(item, CategoryProperty), CategoryProperty);
+                var category = ConvertToString(GetPropertyValue(item, Category), Category);
                 var value = ConvertToDouble(GetPropertyValue(item, seriesName), seriesName);
                 chart.AddPie(category, value);
             }
@@ -233,12 +233,12 @@ public sealed class AddOfficeWordChartCommand : PSCmdlet
             return;
         }
 
-        var categories = items.Select(item => ConvertToString(GetPropertyValue(item, CategoryProperty), CategoryProperty)).ToList();
+        var categories = items.Select(item => ConvertToString(GetPropertyValue(item, Category), Category)).ToList();
         chart.AddChartAxisX(categories);
 
-        for (var index = 0; index < SeriesProperty.Length; index++)
+        for (var index = 0; index < Value.Length; index++)
         {
-            var seriesName = SeriesProperty[index];
+            var seriesName = Value[index];
             var values = items.Select(item => ConvertToDouble(GetPropertyValue(item, seriesName), seriesName)).ToList();
             var color = ResolveSeriesColor(index);
 
@@ -277,7 +277,7 @@ public sealed class AddOfficeWordChartCommand : PSCmdlet
             }
         }
 
-        if (Legend.IsPresent || SeriesProperty.Length > 1)
+        if (Legend.IsPresent || Value.Length > 1)
         {
             chart.AddLegend(LegendPosition);
         }

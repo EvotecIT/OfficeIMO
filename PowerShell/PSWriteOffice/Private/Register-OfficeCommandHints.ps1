@@ -14,7 +14,7 @@ $officeLookup = [System.EventHandler[System.Management.Automation.CommandLookupE
     param($name, $eventArgs)
     if ($null -ne $officePreviousLookup) { $officePreviousLookup.Invoke($name, $eventArgs) }
     if ($officeRegistration.Active -and $null -eq $eventArgs.Command -and $officeHints.ContainsKey($name)) {
-        Microsoft.PowerShell.Utility\Write-Warning "$name was replaced by $($officeHints[$name])"
+        Microsoft.PowerShell.Utility\Write-Warning "$name is no longer available. $($officeHints[$name])"
     }
 }.GetNewClosure()
 $officeInvokeCommand.CommandNotFoundAction = $officeLookup

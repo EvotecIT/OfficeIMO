@@ -1,0 +1,86 @@
+using System;
+using System.Management.Automation;
+using OfficeIMO;
+using OfficeIMO.Drawing;
+using OfficeIMO.PowerPoint;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services.PowerPoint;
+
+namespace PSWriteOffice.Cmdlets.PowerPoint;
+
+/// <summary>Adds a plain or rich paragraph backed by native content before layout.</summary>
+/// <example><summary>Capture and edit a designed paragraph.</summary>
+/// <code>PowerPointSlide -Title 'Status' {
+///     $paragraph = PowerPointParagraph { PowerPointText 'Healthy' -Bold } -PassThru
+///     $paragraph.AddText(' in all regions')
+/// }</code></example>
+[Cmdlet(VerbsCommon.Add, "OfficePowerPointParagraph", DefaultParameterSetName = "Text")]
+[Alias("PowerPointParagraph")]
+[OutputType(typeof(PowerPointParagraph))]
+public sealed class AddOfficePowerPointParagraphCommand : OfficeCmdlet {
+    /// <summary>Gets or sets the paragraph text.</summary>
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Text"), AllowEmptyString]
+    public string Text { get; set; } = string.Empty;
+    /// <summary>Gets or sets the block of native styled runs.</summary>
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Content")]
+    public ScriptBlock? Content { get; set; }
+    /// <summary>Gets or sets paragraph alignment.</summary>
+    [Parameter]
+    public OfficeAlignment? Alignment { get; set; }
+    /// <summary>Gets or sets space before the paragraph; numbers mean points.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? SpacingBefore { get; set; }
+    /// <summary>Gets or sets space after the paragraph; numbers mean points.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? SpacingAfter { get; set; }
+    /// <summary>Gets or sets whether plain text is bold.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    public SwitchParameter Bold { get; set; }
+    /// <summary>Gets or sets whether plain text is italic.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    public SwitchParameter Italic { get; set; }
+    /// <summary>Gets or sets whether plain text has a strike through it.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    public SwitchParameter Strikethrough { get; set; }
+    /// <summary>Gets or sets the native underline style.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    public PowerPointUnderlineStyle? Underline { get; set; }
+    /// <summary>Gets or sets the text color or theme role.</summary>
+    [Parameter(ParameterSetName = "Text"), OfficeColorTransformation]
+    public OfficeColor? Color { get; set; }
+    /// <summary>Gets or sets the highlight color.</summary>
+    [Parameter(ParameterSetName = "Text"), OfficeColorTransformation]
+    public OfficeColor? Highlight { get; set; }
+    /// <summary>Gets or sets the font family.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    public string? Font { get; set; }
+    /// <summary>Gets or sets the font size; numbers mean points.</summary>
+    [Parameter(ParameterSetName = "Text"), OfficeLengthTransformation]
+    public OfficeLength? Size { get; set; }
+    /// <summary>Gets or sets whether to emit the live native paragraph.</summary>
+    [Parameter]
+    public SwitchParameter PassThru { get; set; }
+
+    /// <inheritdoc />
+    protected override void ProcessRecord() {
+        var scope = PowerPointContentScope.Current;
+        if (scope == null) { InvalidArgument(new ArgumentException("Invoke PowerPointParagraph inside PowerPointSlide or PowerPointColumn."), Text); return; }
+        var body = scope.CreateTextBody();
+        try {
+            var paragraph = body.Box.AddParagraph(Content == null ? Text : string.Empty);
+            if (Alignment.HasValue) paragraph.Alignment = PowerPointTextFormatting.Alignment(Alignment.Value);
+            if (SpacingBefore.HasValue) paragraph.SpaceBeforePoints = SpacingBefore.Value.ToPoints();
+            if (SpacingAfter.HasValue) paragraph.SpaceAfterPoints = SpacingAfter.Value.ToPoints();
+            if (Content != null) {
+                paragraph.ClearInlineContent();
+                using (OfficeDocumentContext.Push(new PowerPointTextScope(scope, paragraph))) Content.Invoke();
+            } else foreach (var run in paragraph.Runs)
+                PowerPointTextFormatting.Apply(run, scope, Bold, Italic, Strikethrough, Underline, Color, Highlight, Font, Size);
+            scope.Blocks.Add(new PowerPointLayoutText(Text) { NativeBody = body });
+            if (PassThru) WriteObject(paragraph);
+        } catch {
+            scope.DiscardTextBody(body);
+            throw;
+        }
+    }
+}

@@ -1098,6 +1098,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointTableCell cell = presentation.Slides.Single().Tables.Single().GetCell(0, 0);
                     cell.Text = "Fresh";
+                    Assert.Empty(presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single().HyperlinkRelationships);
                     presentation.Save();
                 }
 
@@ -1139,6 +1140,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointTableCell cell = presentation.Slides.Single().Tables.Single().GetCell(0, 0);
                     cell.Text = "Fresh";
+                    Assert.Empty(presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single().HyperlinkRelationships);
                     presentation.Save();
                 }
 

@@ -10,4 +10,4 @@ WordNew -Path $source {
     WordTable -InputObject $rows -Style TableGrid
 }
 
-Export-OfficeDocumentAsset -Type Table -Path $source -OutputDirectory $output
+Get-OfficeDocumentTable -Path $source -AsExport -OutputDirectory $output

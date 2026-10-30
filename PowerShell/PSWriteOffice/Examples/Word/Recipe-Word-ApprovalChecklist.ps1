@@ -8,7 +8,7 @@ $checks = @(
 WordNew -Path $path {
     WordSection {
         WordHeader { WordParagraph -Text 'Production change control' -Style Heading2 }
-        WordFooter { WordPageNumber -IncludeTotalPages }
+        WordFooter { WordPageNumber -IncludeTotal }
 
         WordParagraph -Text 'Change Approval Checklist' -Style Heading1
         WordParagraph -Text 'Complete this document before the production window opens.'

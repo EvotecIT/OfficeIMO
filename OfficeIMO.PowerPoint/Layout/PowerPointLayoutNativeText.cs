@@ -24,6 +24,18 @@ namespace OfficeIMO.PowerPoint {
         internal void Freeze() => _paragraphs ??= Box.Paragraphs;
         internal PowerPointLayoutNativeText Slice(IReadOnlyList<PowerPointParagraph> paragraphs) => new(_root, paragraphs);
 
+        /// <summary>Repeating context gets independent native nodes; the original frame stays on its first page.</summary>
+        internal PowerPointLayoutNativeText CopyForRepeat() {
+            var shape = (Shape)Box.Element.CloneNode(true);
+            shape.TextBody!.RemoveAllChildren<A.Paragraph>();
+            foreach (var paragraph in Paragraphs) shape.TextBody.Append(paragraph.Paragraph.CloneNode(true));
+            var box = new PowerPointTextBox(shape, Box.SlidePart);
+            if (Box.OwnerSlide != null) box.AttachTo(Box.OwnerSlide, Box.RelationshipOwnerPart);
+            var copy = new PowerPointLayoutNativeText(box);
+            copy.Freeze();
+            return copy;
+        }
+
         internal static PowerPointLayoutParagraph Attach(PowerPointLayoutParagraph paragraph, PowerPointLayoutNativeText? body, int index = 0) {
             if (body != null && index < body.Paragraphs.Count) {
                 paragraph.NativeBody = body;
@@ -48,7 +60,7 @@ namespace OfficeIMO.PowerPoint {
                 if (actual == null) { nodes.Add((A.Paragraph)fallback.CloneNode(true)); continue; }
                 A.Paragraph paragraph = actual.Paragraph;
                 var oldPart = actual.OwnerPart as OpenXmlPart;
-                if (!ReferenceEquals(oldPart, slide.SlidePart)) RehomeLinks(paragraph, oldPart, slide.SlidePart);
+                if (!ReferenceEquals(oldPart, slide.SlidePart)) RehomeRelationships(paragraph, oldPart, slide.SlidePart);
                 paragraph.ParagraphProperties ??= new A.ParagraphProperties();
                 MergeMissing(paragraph.ParagraphProperties, fallback.ParagraphProperties);
                 var runDefaults = fallback.Elements<A.Run>().FirstOrDefault()?.RunProperties;
@@ -65,14 +77,23 @@ namespace OfficeIMO.PowerPoint {
             foreach (var node in nodes) if (node.Parent != null) node.Remove();
             var shape = (Shape)result.Element;
             var template = (Shape)generated.Element;
+            if (root._used) {
+                // The continuation has its own ID and geometry, but inherits the authored frame appearance.
+                var source = (Shape)root.Box.Element;
+                var geometry = shape.ShapeProperties!.Transform2D!.CloneNode(true);
+                shape.ShapeProperties = (ShapeProperties)source.ShapeProperties!.CloneNode(true);
+                shape.ShapeProperties.Transform2D = (A.Transform2D)geometry;
+                result.TextBody!.BodyProperties = (A.BodyProperties)root.Box.TextBody!.BodyProperties!.CloneNode(true);
+                result.TextBody.ListStyle = (A.ListStyle)root.Box.TextBody.ListStyle!.CloneNode(true);
+            }
             if (!ReferenceEquals(result, generated)) {
-                shape.ShapeProperties = (ShapeProperties)template.ShapeProperties!.CloneNode(true);
-                shape.NonVisualShapeProperties!.NonVisualShapeDrawingProperties =
-                    (NonVisualShapeDrawingProperties)template.NonVisualShapeProperties!.NonVisualShapeDrawingProperties!.CloneNode(true);
-                shape.NonVisualShapeProperties.ApplicationNonVisualDrawingProperties =
-                    (ApplicationNonVisualDrawingProperties)template.NonVisualShapeProperties.ApplicationNonVisualDrawingProperties!.CloneNode(true);
-                result.TextBody!.BodyProperties = (A.BodyProperties)generated.TextBody!.BodyProperties!.CloneNode(true);
-                result.TextBody.ListStyle = (A.ListStyle)generated.TextBody.ListStyle!.CloneNode(true);
+                shape.ShapeProperties ??= new ShapeProperties();
+                shape.ShapeProperties.Transform2D = (A.Transform2D)template.ShapeProperties!.Transform2D!.CloneNode(true);
+                MergeMissing(shape.ShapeProperties, template.ShapeProperties);
+                MergeMissing(shape.NonVisualShapeProperties!.NonVisualShapeDrawingProperties!, template.NonVisualShapeProperties!.NonVisualShapeDrawingProperties);
+                MergeMissing(shape.NonVisualShapeProperties.ApplicationNonVisualDrawingProperties!, template.NonVisualShapeProperties.ApplicationNonVisualDrawingProperties);
+                MergeMissing(result.TextBody!.BodyProperties ??= new A.BodyProperties(), generated.TextBody!.BodyProperties);
+                MergeMissing(result.TextBody.ListStyle ??= new A.ListStyle(), generated.TextBody.ListStyle);
                 slide.RemoveShape(generated);
                 slide.AdoptLayoutTextBox(result);
             }
@@ -82,7 +103,7 @@ namespace OfficeIMO.PowerPoint {
             return result;
         }
 
-        private static void MergeMissing(OpenXmlCompositeElement target, OpenXmlCompositeElement? defaults) {
+        internal static void MergeMissing(OpenXmlCompositeElement target, OpenXmlCompositeElement? defaults) {
             if (defaults == null) return;
             foreach (var attribute in defaults.GetAttributes()) {
                 if (!target.GetAttributes().Any(a => a.LocalName == attribute.LocalName && a.NamespaceUri == attribute.NamespaceUri))
@@ -102,39 +123,35 @@ namespace OfficeIMO.PowerPoint {
             A.BulletFont or A.BulletFontText => 3,
             A.BulletSizePoints or A.BulletSizePercentage or A.BulletSizeText => 4,
             A.NoFill or A.SolidFill or A.GradientFill or A.BlipFill or A.PatternFill or A.GroupFill => 5,
+            A.NoAutoFit or A.NormalAutoFit or A.ShapeAutoFit => 6,
+            A.PresetGeometry or A.CustomGeometry => 7,
+            A.EffectList or A.EffectDag => 8,
             _ => 0
         };
 
-        private static void RehomeLinks(A.Paragraph paragraph, OpenXmlPart? source, SlidePart target) {
-            if (source == null) return;
+        internal static void RehomeRelationships(OpenXmlElement element, OpenXmlPart? source, SlidePart target) {
+            if (source == null || ReferenceEquals(source, target)) return;
             var ids = new Dictionary<string, string>(StringComparer.Ordinal);
-            // Sounds have their own audio references, even when the enclosing hyperlink has no target ID.
-            foreach (var sound in paragraph.Descendants<A.HyperlinkSound>()) {
-                string? id = sound.Embed?.Value;
-                if (string.IsNullOrEmpty(id)) continue;
-                if (!ids.TryGetValue(id!, out string? replacement)) {
-                    var media = PowerPointEmbeddedSound.Find(source, id);
-                    if (media == null) continue;
-                    replacement = target.AddAudioReferenceRelationship(media).Id;
-                    ids.Add(id!, replacement);
-                }
-                sound.Embed = replacement;
-            }
-            foreach (var link in paragraph.Descendants<A.HyperlinkType>()) {
-                string? id = link.Id?.Value;
-                if (string.IsNullOrEmpty(id)) continue;
-                if (!ids.TryGetValue(id!, out string? replacement)) {
-                    var external = source.HyperlinkRelationships.FirstOrDefault(r => r.Id == id);
-                    if (external != null) replacement = target.AddHyperlinkRelationship(external.Uri, external.IsExternal).Id;
-                    else {
+            foreach (var node in new[] { element }.Concat(element.Descendants())) {
+                foreach (var attribute in node.GetAttributes().ToArray()) {
+                    if (attribute.NamespaceUri != PowerPointUtils.RelationshipIdNamespace || string.IsNullOrEmpty(attribute.Value)) continue;
+                    string id = attribute.Value!;
+                    if (!ids.TryGetValue(id, out string? replacement)) {
+                        var audio = PowerPointEmbeddedSound.Find(source, id);
+                        var hyperlink = source.HyperlinkRelationships.FirstOrDefault(r => r.Id == id);
                         var part = source.Parts.FirstOrDefault(p => p.RelationshipId == id).OpenXmlPart;
-                        if (part == null) continue;
-                        target.AddPart(part);
-                        replacement = target.GetIdOfPart(part);
+                        var external = source.ExternalRelationships.FirstOrDefault(r => r.Id == id);
+                        if (audio != null) replacement = target.AddAudioReferenceRelationship(audio).Id;
+                        else if (hyperlink != null) replacement = target.AddHyperlinkRelationship(hyperlink.Uri, hyperlink.IsExternal).Id;
+                        else if (part != null) {
+                            target.AddPart(part);
+                            replacement = target.GetIdOfPart(part);
+                        } else if (external != null) replacement = target.AddExternalRelationship(external.RelationshipType, external.Uri).Id;
+                        else continue;
+                        ids.Add(id, replacement);
                     }
-                    ids.Add(id!, replacement);
+                    node.SetAttribute(new OpenXmlAttribute(attribute.Prefix, attribute.LocalName, attribute.NamespaceUri, replacement));
                 }
-                link.Id = replacement;
             }
         }
 

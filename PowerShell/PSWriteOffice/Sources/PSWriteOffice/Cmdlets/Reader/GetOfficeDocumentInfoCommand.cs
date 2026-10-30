@@ -53,18 +53,7 @@ public sealed class GetOfficeDocumentInfoCommand : OfficeInputCmdlet {
 
     /// <inheritdoc />
     protected override Task BeginProcessingAsync() {
-        object[] values = Options?.Select(value => OfficeArgumentValue.Unwrap(value)!).ToArray() ?? Array.Empty<object>();
-        var inspection = values.OfType<OfficeInspectOptions>().ToArray();
-        if (inspection.Length > 1) throw new PSArgumentException("Supply only one OfficeInspectOptions policy.");
-        _options = OfficeReadConfiguration.Copy(inspection.SingleOrDefault());
-        object[] readOptions = values.Where(value => value is not (OfficeInspectOptions or PowerPointInspectionOptions or ExcelReaderOptions)).ToArray();
-        var configuration = OfficeReadConfiguration.Bind(readOptions, Reader?.DefaultOptions ?? _options.Reader);
-        _options.Reader = configuration.Common;
-        if (configuration.HasFormatOptions) _options.Formats = configuration.Formats;
-        if ((Reader != null || _options.DocumentReader != null) && configuration.HasFormatOptions) throw new PSArgumentException("Configure format options when creating a caller-provided immutable Reader.");
-        _options.DocumentReader = Reader ?? _options.DocumentReader;
-        _options.PowerPointInspection = values.OfType<PowerPointInspectionOptions>().LastOrDefault() ?? _options.PowerPointInspection;
-        _options.ExcelInspection = values.OfType<ExcelReaderOptions>().LastOrDefault() ?? _options.ExcelInspection;
+        _options = OfficeInspectionConfiguration.Bind(Options, Reader);
         _options.IncludeSummary = true;
         _options.IncludeContent = false;
         _options.Detailed = MyInvocation.BoundParameters.ContainsKey(nameof(Detailed)) ? Detailed.IsPresent : _options.Detailed;

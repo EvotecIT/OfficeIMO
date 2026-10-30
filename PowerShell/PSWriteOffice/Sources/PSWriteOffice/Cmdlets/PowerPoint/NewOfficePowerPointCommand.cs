@@ -1,121 +1,67 @@
-using System;
 using System.IO;
 using System.Management.Automation;
+using System.Security;
+using OfficeIMO;
 using OfficeIMO.PowerPoint;
-using PSWriteOffice.Services;
-using PSWriteOffice.Services.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.PowerPoint;
 
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
-/// <summary>Creates a PowerPoint presentation using the DSL.</summary>
-/// <para>Initializes a presentation, runs the DSL script block, and optionally saves the deck.</para>
+/// <summary>Creates a themed presentation, returning a live document or saving a completed content block.</summary>
+/// <para>Without a content block no file is written, including on disposal. With a block, publication is atomic and an existing file requires Force. A block failure leaves the destination unchanged.</para>
 /// <example>
-///   <summary>Create and capture the presentation object.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$ppt = New-OfficePowerPoint -Path .\deck.pptx -NoSave</code>
-///   <para>Creates a live presentation associated with <c>deck.pptx</c> for incremental composition.</para>
+///   <summary>Create a deck and return its saved file.</summary>
+///   <code>New-OfficePowerPoint -Path ./Status.pptx -Theme Modern -PassThru {
+///     PowerPointSlide -Title 'Status update'
+/// }</code>
 /// </example>
 /// <example>
-///   <summary>Create a deck with a title slide.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>New-OfficePowerPoint -Path .\deck.pptx { PptSlide { PptTitle -Title 'Status Update' } } -Open</code>
-///   <para>Creates, saves, and opens a deck with one titled slide.</para>
+///   <summary>Create a live document for explicit editing and saving.</summary>
+///   <code>$deck = New-OfficePowerPoint -Theme Boardroom
+/// PowerPointSlide -Document $deck -Title 'Service review'
+/// Save-OfficePowerPoint -Document $deck -Path ./Review.pptx
+/// Close-OfficePowerPoint -Document $deck</code>
 /// </example>
 [Cmdlet(VerbsCommon.New, "OfficePowerPoint", SupportsShouldProcess = true)]
-[Alias("OfficePowerPoint", "PowerPointNew", "PptNew")]
-public class NewOfficePowerPointCommand : PSCmdlet {
-    /// <summary>Destination path for the new .pptx.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
-    [Alias("FilePath")]
-    public string Path { get; set; } = string.Empty;
+[OutputType(typeof(PowerPointPresentation), typeof(FileInfo))]
+public sealed class NewOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPointPresentation> {
+    /// <summary>Optional associated destination; required with a content block.</summary>
+    [Parameter(Position = 0)]
+    [ValidateNotNullOrEmpty]
+    public string? Path { get; set; }
 
-    /// <summary>DSL scriptblock describing presentation content.</summary>
-    [Parameter(Position = 1)]
-    public ScriptBlock? Content { get; set; }
-
-    /// <summary>Open the presentation after saving.</summary>
+    /// <summary>Allow the new document to replace an existing destination.</summary>
     [Parameter]
-    public SwitchParameter Open { get; set; }
+    public SwitchParameter Force { get; set; }
 
-    /// <summary>Skip saving after executing the DSL.</summary>
+    /// <summary>Built-in theme name, theme object, or PowerPoint template path. Defaults to Modern.</summary>
     [Parameter]
-    public SwitchParameter NoSave { get; set; }
+    [OfficeThemeTransformation]
+    public OfficeThemeInput? Theme { get; set; }
 
-    /// <summary>Emit the saved <see cref="FileInfo"/> for chaining.</summary>
+    /// <summary>Password for the saved file; plaintext input warns, and credentials contribute their password.</summary>
     [Parameter]
-    public SwitchParameter PassThru { get; set; }
-
-    /// <summary>Password used to save the presentation as an encrypted package.</summary>
-    [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        if (NoSave.IsPresent && Open.IsPresent) {
-            throw new PSArgumentException("-Open cannot be used with -NoSave because no file is written. Save the returned presentation explicitly, then use -Open on Save-OfficePowerPoint.", nameof(Open));
-        }
-
-        var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
-        if (NoSave.IsPresent) {
-            if (!PdfCommandUtilities.ShouldWrite(this, resolvedPath, "Create PowerPoint presentation")) {
-                return;
-            }
-        } else {
-            if (!PdfCommandUtilities.ShouldWrite(this, resolvedPath, "Write new PowerPoint presentation")) {
-                return;
-            }
-        }
-
-        var directory = System.IO.Path.GetDirectoryName(resolvedPath);
-        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory)) {
-            Directory.CreateDirectory(directory);
-        }
-
-        PowerPointPresentation? presentation = null;
-        try {
-            presentation = PowerPointDocumentService.CreatePresentation(resolvedPath);
-
-            if (Content != null) {
-                using (PowerPointDslContext.Enter(presentation)) {
-                    try {
-                        Content.InvokeReturnAsIs();
-                    } catch (Exception ex) when (IsStopUpstream(ex)) {
-                        // Select-Object -First throws this to stop enumeration; ignore.
-                    }
-                }
-            }
-
-            if (NoSave.IsPresent) {
-                WriteObject(presentation);
-                return;
-            }
-
-            var savedPath = PowerPointDocumentService.SavePresentation(
-                presentation,
-                show: false,
-                Password,
-                filePath: null);
-            PowerPointDocumentService.ClosePresentation(presentation, save: false, show: false);
-            presentation = null;
-
-            if (Open.IsPresent) {
-                FileOpenService.Open(savedPath);
-            }
-
-            if (PassThru.IsPresent) {
-                WriteObject(new FileInfo(resolvedPath));
-            }
-        } catch (Exception ex) {
-            if (presentation != null) {
-                PowerPointDocumentService.ClosePresentation(presentation, save: false, show: false);
-            }
-            WriteError(new ErrorRecord(ex, "PowerPointCreateFailed", ErrorCategory.InvalidOperation, Path));
-        }
+        var options = new PowerPointCreateOptions {
+            PersistenceMode = DocumentPersistenceMode.Explicit,
+            Theme = Theme?.Theme ?? OfficeTheme.Modern,
+            Template = Theme?.TemplatePath
+        };
+        RunDocument(Path, isNew: true, force: Force.IsPresent,
+            path => path == null ? PowerPointPresentation.Create(options) : PowerPointPresentation.Create(path, options),
+            (document, path, allowLoss) => {
+                document.Save(path, PowerPointDocumentService.NativeSaveOptions(allowLoss, Password,
+                    MyInvocation.BoundParameters.ContainsKey(nameof(Password))));
+                return null;
+            });
     }
 
-    private static bool IsStopUpstream(Exception ex) {
-        return ex.GetType().Name == "StopUpstreamCommandsException";
-    }
-
+    /// <inheritdoc />
+    protected override void InvokeContent(PowerPointPresentation document) =>
+        PowerPointDocumentService.InvokeContent(document, Content!);
 }

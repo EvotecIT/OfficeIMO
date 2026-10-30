@@ -8,21 +8,21 @@ $rows = @(
     [PSCustomObject]@{ Month = 'Mar'; MonthNumber = 3; Sales = 18; Profit = 8 }
 )
 
-$ppt = New-OfficePowerPoint -Path $path -NoSave
+$ppt = New-OfficePowerPoint -Path $path
 
-$columnSlide = Add-OfficePowerPointSlide -Presentation $ppt -Layout 1 -PassThru
-Set-OfficePowerPointSlideTitle -Slide $columnSlide -Title 'Column Chart'
-Add-OfficePowerPointChart -Slide $columnSlide -Data $rows -CategoryProperty Month -SeriesProperty Sales, Profit -Title 'Sales vs Profit'
+$columnSlide = Add-OfficePowerPointSlide -Document $ppt -PassThru
+Set-OfficePowerPointSlide -Slide $columnSlide -Title 'Column Chart'
+Add-OfficePowerPointChart -Slide $columnSlide -Data $rows -Category Month -Value Sales, Profit -Title 'Sales vs Profit'
 
-$pieSlide = Add-OfficePowerPointSlide -Presentation $ppt -Layout 1 -PassThru
-Set-OfficePowerPointSlideTitle -Slide $pieSlide -Title 'Pie Chart'
-Add-OfficePowerPointChart -Slide $pieSlide -Type Pie -Data $rows -CategoryProperty Month -SeriesProperty Sales -Title 'Sales Mix'
+$pieSlide = Add-OfficePowerPointSlide -Document $ppt -PassThru
+Set-OfficePowerPointSlide -Slide $pieSlide -Title 'Pie Chart'
+Add-OfficePowerPointChart -Slide $pieSlide -Type Pie -Data $rows -Category Month -Value Sales -Title 'Sales Mix'
 
-$scatterSlide = Add-OfficePowerPointSlide -Presentation $ppt -Layout 1 -PassThru
-Set-OfficePowerPointSlideTitle -Slide $scatterSlide -Title 'Scatter Chart'
+$scatterSlide = Add-OfficePowerPointSlide -Document $ppt -PassThru
+Set-OfficePowerPointSlide -Slide $scatterSlide -Title 'Scatter Chart'
 Add-OfficePowerPointChart -Slide $scatterSlide -Type Scatter -Data $rows -XProperty MonthNumber -YProperty Sales, Profit -Title 'Trend Scatter'
 
-Save-OfficePowerPoint -Presentation $ppt
+Save-OfficePowerPoint -Document $ppt
 $ppt | Close-OfficePowerPoint
 
 Write-Host "Presentation saved to $path"

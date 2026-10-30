@@ -45,16 +45,10 @@ $familyDefinitions = @(
         match = { param($name) $name -match 'OfficeEpub' }
     }
     [ordered]@{
-        id = 'invoicing'; title = 'Electronic invoicing'; description = 'Create, edit, validate, and convert invoice XML and generate hybrid invoice PDFs.'
+        id = 'conversion'; title = 'Conversion and capabilities'; description = 'Discover executable routes and protected-content support, and run bounded single-file, selected-file, and resumable directory jobs.'
         docs = 'automation-patterns'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Workflows'
-        samples = @('New-OfficeInvoice', 'Save-OfficeInvoice', 'Test-OfficeInvoice', 'Export-OfficeInvoicePdf')
-        match = { param($name) $name -match 'OfficeInvoice' }
-    }
-    [ordered]@{
-        id = 'conversion'; title = 'Conversion jobs'; description = 'Discover executable routes and run bounded single-file, selected-file, and resumable directory jobs.'
-        docs = 'automation-patterns'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Workflows'
-        samples = @('Get-OfficeConversionRoute', 'New-OfficeConversionOptions', 'ConvertTo-OfficeDocument')
-        match = { param($name) $name -match 'OfficeConversion' -or $name -eq 'ConvertTo-OfficeDocument' }
+        samples = @('Get-OfficeDocumentCapability', 'New-OfficeConversionOptions', 'Convert-OfficeDocument')
+        match = { param($name) $name -match 'OfficeConversion' -or $name -in 'Convert-OfficeDocument', 'ConvertTo-OfficeDocument', 'Get-OfficeDocumentCapability' }
     }
     [ordered]@{
         id = 'word'; title = 'Word'; description = 'Create, inspect, update, review, merge, protect, and convert DOC and DOCX documents.'
@@ -71,7 +65,7 @@ $familyDefinitions = @(
     [ordered]@{
         id = 'powerpoint'; title = 'PowerPoint'; description = 'Compose, inspect, update, import, theme, and render repeatable presentation decks.'
         docs = 'powerpoint'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/PowerPoint'
-        samples = @('New-OfficePowerPoint', 'Add-OfficePowerPointSlide', 'Add-OfficePowerPointChart', 'Get-OfficePowerPointInspection')
+        samples = @('New-OfficePowerPoint', 'Add-OfficePowerPointSlide', 'Add-OfficePowerPointChart', 'Get-OfficePowerPointSlide')
         match = { param($name) $name -match 'OfficePowerPoint' }
     }
     [ordered]@{
@@ -157,12 +151,6 @@ $familyDefinitions = @(
         docs = 'automation-patterns'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples'
         samples = @('ConvertTo-OfficeVisual')
         match = { param($name) $name -eq 'ConvertTo-OfficeVisual' }
-    }
-    [ordered]@{
-        id = 'protection'; title = 'Protection capabilities'; description = 'Discover the machine-readable protected-content support contract shared across OfficeIMO formats.'
-        docs = 'automation-patterns'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples'
-        samples = @('Get-OfficeProtectionCapability')
-        match = { param($name) $name -eq 'Get-OfficeProtectionCapability' }
     }
     [ordered]@{
         id = 'shared'; title = 'Shared authoring primitives'; description = 'Create reusable text runs shared by document DSLs.'

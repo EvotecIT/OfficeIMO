@@ -43,8 +43,26 @@ namespace OfficeIMO.PowerPoint {
             var slides = _document.Compose(new PowerPointDeckPlan().Add(plan), options).Slides;
             // Appearance applies to every physical continuation before the transaction is accepted.
             finalize?.Invoke(slides);
+            foreach (var slide in slides) RemoveUnusedMaterializationRelationships(slide.SlidePart);
             _completed = true;
             return slides;
+        }
+
+        /// <summary>Release source references only after every detached continuation slice has bound.</summary>
+        private static void RemoveUnusedMaterializationRelationships(SlidePart part) {
+            var used = new HashSet<string>(part.Slide!.Descendants().SelectMany(node => node.GetAttributes())
+                .Where(attribute => attribute.NamespaceUri == PowerPointUtils.RelationshipIdNamespace)
+                .Select(attribute => attribute.Value).OfType<string>(), StringComparer.Ordinal);
+            foreach (var link in part.HyperlinkRelationships.Where(link => !used.Contains(link.Id)).ToArray())
+                part.DeleteReferenceRelationship(link);
+            var audio = part.DataPartReferenceRelationships.OfType<AudioReferenceRelationship>()
+                .Where(link => !used.Contains(link.Id)).ToArray();
+            var media = audio.Select(link => link.DataPart).OfType<MediaDataPart>().ToArray();
+            foreach (var link in audio) part.DeleteReferenceRelationship(link);
+            PowerPointEmbeddedSound.RemoveUnreferencedMediaDataParts((PresentationDocument)part.OpenXmlPackage, media);
+            foreach (var child in part.Parts.Where(child => child.OpenXmlPart is ImagePart or ChartPart
+                         && !used.Contains(child.RelationshipId)).ToArray())
+                part.DeletePart(child.RelationshipId);
         }
 
         /// <summary>Captures notes structurally so a failed collected column cannot leave text or empty note parts.</summary>
@@ -53,13 +71,21 @@ namespace OfficeIMO.PowerPoint {
             var presentation = part.GetParentParts().OfType<PresentationPart>().Single();
             var notes = part.NotesSlidePart;
             var root = (NotesSlide?)notes?.NotesSlide?.CloneNode(true);
+            var relationships = notes == null ? null : new PowerPointLayoutNotesSnapshot(notes);
             var master = presentation.NotesMasterPart;
             var presentationRoot = presentation.Presentation!;
             var masterIds = (NotesMasterIdList?)presentationRoot.NotesMasterIdList?.CloneNode(true);
             return () => {
                 if (notes == null) {
-                    if (part.NotesSlidePart != null) part.DeletePart(part.NotesSlidePart);
-                } else notes.NotesSlide = root;
+                    if (part.NotesSlidePart != null) {
+                        var media = PowerPointEmbeddedSound.GetReferencedMediaDataParts(part.NotesSlidePart);
+                        part.DeletePart(part.NotesSlidePart);
+                        PowerPointEmbeddedSound.RemoveUnreferencedMediaDataParts((PresentationDocument)part.OpenXmlPackage, media);
+                    }
+                } else {
+                    relationships!.Restore();
+                    notes.NotesSlide = root;
+                }
                 if (master == null && presentation.NotesMasterPart != null && !presentation.SlideParts.Any(s => s.NotesSlidePart != null)) {
                     presentation.DeletePart(presentation.NotesMasterPart);
                     presentationRoot.NotesMasterIdList = masterIds;

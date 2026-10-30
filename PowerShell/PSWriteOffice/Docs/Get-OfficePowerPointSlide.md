@@ -6,41 +6,97 @@ schema: 2.0.0
 ---
 # Get-OfficePowerPointSlide
 ## SYNOPSIS
-Enumerates slides or retrieves a specific slide.
+Gets editable slides from a live document, or detached slide summaries from files.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
-Get-OfficePowerPointSlide [-Presentation <PowerPointPresentation>] [-Index <Int32>] [<CommonParameters>]
+Get-OfficePowerPointSlide [[-Document] <PowerPointPresentation>] [-Slide <int[]>] [-Summary] [<CommonParameters>]
+```
+
+### Path
+```powershell
+Get-OfficePowerPointSlide [-Path] <string[]> [-Slide <int[]>] [-Summary] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficePowerPointSlide -LiteralPath <string[]> [-Slide <int[]>] [-Summary] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Supports pipeline-friendly iteration over Slides or direct index selection.
+Gets editable slides from a live document, or detached slide summaries from files.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> Get-OfficePowerPointSlide -Presentation $ppt | Get-OfficePowerPointPlaceholder -PlaceholderType Title | Select-Object -ExpandProperty Text
+Get-ChildItem .\Decks -Filter *.pptx | Get-OfficePowerPointSlide -Summary | Select-Object Path, SlideIndex, Title
 ```
 
-Streams each slide so you can read the title placeholder text.
 
 ### EXAMPLE 2
 ```powershell
-PS> New-OfficePowerPoint -Path .\deck.pptx { Get-OfficePowerPointSlide | Select-Object -First 1 }
+Get-OfficePowerPointSlide -Document $deck -Slide 3
 ```
 
-Uses the current DSL presentation context.
 
 ## PARAMETERS
 
-### -Index
-Optional zero-based index; omit to enumerate all slides.
+### -Document
+Gets or sets a live document; omission uses the enclosing document block.
 
 ```yaml
-Type: Int32
-Parameter Sets: __AllParameterSets
+Type: PowerPointPresentation
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: 0
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -LiteralPath
+Gets or sets literal file paths, including FileInfo pipeline input.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Path
+Gets or sets file paths with provider wildcard expansion.
+
+```yaml
+Type: String[]
+Parameter Sets: Path
+Aliases: None
+Possible values:
+
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
+```
+
+### -Slide
+Gets or sets one-based slide positions; omission selects every slide.
+
+```yaml
+Type: Int32[]
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -51,19 +107,19 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Presentation
-Presentation to inspect (optional inside DSL).
+### -Summary
+Gets or sets whether to return summaries; required when inspecting files.
 
 ```yaml
-Type: PowerPointPresentation
-Parameter Sets: __AllParameterSets
+Type: SwitchParameter
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
 Required: False
 Position: named
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -73,10 +129,12 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 - `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `System.String[]`
 
 ## OUTPUTS
 
-- `None`
+- `OfficeIMO.PowerPoint.PowerPointSlide`
+- `PSWriteOffice.Services.PowerPoint.PowerPointSlideSummaryInfo`: PowerShell-friendly summary of a PowerPoint slide.
 
 ## RELATED LINKS
 

@@ -16,11 +16,24 @@ Clearing PowerPoint axis-label text styling restores the theme's font, size and
 colour while retaining label rotation. It no longer leaves those text properties
 unset.
 
+## PowerPoint composition defaults
+
+Automatic card composition fits up to eight cards per slide and honors
+`MaxColumns`. Set `PowerPointDeckContinuationOptions.CardsPerSlide = 6` to keep
+the previous continuation limit.
+
+## HTML paragraph spacing
+
+The HTML engine gives `p` elements browser-default margins of `1em` above and
+below, with adjacent margin collapse. Explicit CSS overrides these defaults.
+Use `p { margin-top: 0 }` to keep the previous top spacing.
+
 ## Word new-document defaults
 
 New documents take their heading styles from the default `OfficeTheme`: Heading 1
 to 6 use the theme type scale, text colour and bold weight, with space after each
-heading, and `Title` and `Subtitle` styles are defined. `AddTable` sizes default
+heading, and `Title` and `Subtitle` styles are defined. Apply them through
+`WordParagraphStyles.Title` and `WordParagraphStyles.Subtitle`. `AddTable` sizes default
 columns to the section's text width instead of 2400 twips each. Loaded documents
 keep their own styles. To keep the previous look in a new document, set the
 heading style definitions and column widths explicitly.
@@ -35,7 +48,9 @@ unaligned Modern table cell now applies the theme's numeric alignment. Set
 New `OfficeIMOModern` tables mark the first row as a repeating header (`w:tblHeader`),
 including in Word PDF output. Set `table.RepeatHeaderRowAtTheTopOfEachPage = false` to
 turn repetition off. Headerless object tables keep every row as body data; loading an
-existing table does not add a repeating header.
+existing table does not add a repeating header. HTML conversion preserves source
+body/header rows, and PDF import honours `RepeatHeaderRows`, including with Modern
+tables.
 
 `Bold = false` and `Italic = false` now explicitly disable inherited emphasis
 instead of removing the direct setting. This lets regular text override a

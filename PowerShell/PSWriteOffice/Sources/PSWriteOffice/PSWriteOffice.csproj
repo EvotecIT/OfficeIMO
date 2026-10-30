@@ -42,9 +42,6 @@
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Project\OfficeIMO.Project.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Access\OfficeIMO.Access.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Epub\OfficeIMO.Epub.csproj" />
-    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Invoicing\OfficeIMO.Invoicing.csproj" />
-    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Invoicing.Validation\OfficeIMO.Invoicing.Validation.csproj" Condition="'$(TargetFramework)' != 'net472'" />
-    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Invoicing.Pdf\OfficeIMO.Invoicing.Pdf.csproj" />
 
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Adf\OfficeIMO.Adf.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Confluence\OfficeIMO.Confluence.csproj" />

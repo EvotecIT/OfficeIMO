@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PSWriteOffice\PSWriteOffice.csproj" />
+    <Compile Include="..\..\..\..\OfficeIMO.Chm.Tests\ChmFixture.cs" Link="Fixtures\ChmFixture.cs" />
   </ItemGroup>
 
   <!-- Downloaded only for the isolated PowerShell conflict test; never referenced or copied to product output. -->

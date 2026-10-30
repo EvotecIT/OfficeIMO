@@ -48,7 +48,7 @@ Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $R
         # Copyright statement for this module
         Copyright              = "(c) 2011 - $((Get-Date).Year) Przemyslaw Klys @ Evotec. All rights reserved."
         # Description of the functionality provided by this module
-        Description            = 'PowerShell document automation for Office, PDF, Project, Access, EPUB, electronic invoices, iWork, OneNote, OpenDocument, email, and text formats. Create, edit, inspect, and convert through OfficeIMO without Microsoft Office installed.'
+        Description            = 'PowerShell document automation for Office, PDF, Project, Access, EPUB, iWork, OneNote, OpenDocument, email, and text formats. Create, edit, inspect, and convert through OfficeIMO without Microsoft Office installed.'
         # Tags applied to this module. These help with module discovery in online galleries.
         Tags                   = @('officeimo', 'word', 'excel', 'powerpoint', 'pdf', 'iwork', 'pages', 'numbers', 'keynote', 'onenote', 'ocr', 'provenance', 'security', 'opendocument', 'email', 'markdown', 'asciidoc', 'latex', 'csv', 'confluence', 'adf', 'atlassian', 'docx', 'xlsx', 'pptx', 'openxml', 'windows', 'linux', 'macos')
         # A URL to the main website for this project.
@@ -110,7 +110,7 @@ Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $R
     # when creating PSD1 use special style without comments and with only required parameters
     New-ConfigurationFormat -ApplyTo 'DefaultPSD1', 'OnMergePSD1' -PSD1Style 'Minimal'
     # configuration for documentation, at the same time it enables documentation processing
-    New-ConfigurationDocumentation -Enable:$true -PathReadme 'Docs/Readme.md' -Path 'Docs'
+    New-ConfigurationDocumentation -Enable:$true -PathReadme 'Docs/Readme.md' -Path 'Docs' -AboutTopicsSourcePath "$PSScriptRoot/../Help/About"
 
     New-ConfigurationImportModule -ImportSelf
 

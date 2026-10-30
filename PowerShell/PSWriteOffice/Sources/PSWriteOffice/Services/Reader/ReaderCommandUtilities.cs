@@ -15,10 +15,6 @@ internal static class ReaderCommandUtilities
 
     internal static OfficeDocumentReader Reader => SharedReader.Value;
 
-    internal static string ResolvePath(PSCmdlet cmdlet, string path)
-        => OfficeFileCommandUtilities.ResolvePath(cmdlet, path);
-
-
     internal static OfficeDocumentReaderBuilder CreateBuilder(ReaderAllOptions? options = null)
     {
         return new OfficeDocumentReaderBuilder()

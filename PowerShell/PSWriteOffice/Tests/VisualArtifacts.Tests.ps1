@@ -328,7 +328,8 @@ Describe 'ChartForgeX visual artifacts' {
             }
         } | Out-Null
         New-OfficePowerPoint -Path $powerPointPath {
-            PptSlide { $visual | Add-OfficePowerPointVisual -X 36 -Y 54 | Out-Null }
+            $slide = PowerPointSlide -PassThru
+            $visual | Add-OfficePowerPointVisual -Slide $slide -X 36 -Y 54 | Out-Null
         } | Out-Null
         Test-Path $wordPath | Should -BeTrue
         Test-Path $excelPath | Should -BeTrue

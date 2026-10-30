@@ -177,8 +177,8 @@ Describe 'Open XML parameter contracts' {
             'Add-OfficeWordTextBox:VerticalPositionRelativeFrom' = 'OfficeIMO.Word.WordVerticalRelativePosition'
             'Protect-OfficeWordDocument:ProtectionType' = 'OfficeIMO.Word.WordDocumentProtectionType'
             'Set-OfficeWordTableCell:TextDirection' = 'OfficeIMO.Word.WordTextDirection'
-            'Add-OfficePowerPointSlide:LayoutType' = 'OfficeIMO.PowerPoint.PowerPointSlideLayoutType'
-            'Set-OfficePowerPointSlideLayout:LayoutType' = 'OfficeIMO.PowerPoint.PowerPointSlideLayoutType'
+            'Add-OfficePowerPointSlide:Layout' = 'OfficeIMO.PowerPoint.PowerPointLayout'
+            'Set-OfficePowerPointSlide:Transition' = 'OfficeIMO.PowerPoint.PowerPointSlideTransition'
         }
 
         foreach ($entry in $contracts.GetEnumerator()) {

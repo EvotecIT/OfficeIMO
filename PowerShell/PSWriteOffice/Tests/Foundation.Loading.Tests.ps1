@@ -18,7 +18,7 @@ Describe 'Foundation assembly isolation and module lifetime' {
         $result.ModuleIsDefault | Should -BeFalse
         $result.ConflictIsDefault | Should -BeTrue
         $result.ModuleOpenXmlVersion | Should -Not -Be $result.ConflictVersion
-        ($result.Hint -join ' ') | Should -BeLike '*ExcelNew was replaced by New-OfficeExcel*'
+        ($result.Hint -join ' ') | Should -Match 'ExcelNew.*New-OfficeExcel'
         $result.PriorWasCalled | Should -BeTrue
         $result.HandlerRestored | Should -BeTrue
     }
@@ -27,7 +27,7 @@ Describe 'Foundation assembly isolation and module lifetime' {
         $output = & pwsh -NoProfile -File (Join-Path $PSScriptRoot 'Foundation.Loading.Smoke.ps1') -ModulePath $moduleManifest -ConflictPath $conflictPath -WithoutLoaderAssembly 2>&1
         $LASTEXITCODE | Should -Be 0 -Because ($output -join [Environment]::NewLine)
         $result = ($output | Where-Object { $_ -is [string] -and $_.StartsWith('{') } | Select-Object -Last 1) | ConvertFrom-Json
-        ($result.Hint -join ' ') | Should -BeLike '*ExcelNew was replaced by New-OfficeExcel*'
+        ($result.Hint -join ' ') | Should -Match 'ExcelNew.*New-OfficeExcel'
         $result.HandlerRestored | Should -BeTrue
     }
 

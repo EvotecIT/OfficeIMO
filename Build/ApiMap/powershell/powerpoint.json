@@ -6,7 +6,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Creates a themed presentation; with a content block, builds, saves and closes it.",
-      "outputType": "PowerPointPresentation (Live set), System.IO.FileInfo (Content set with -PassThru)",
+      "outputType": "PowerPointDocument (Live set), System.IO.FileInfo (Content set with -PassThru)",
       "shouldProcess": true,
       "parameterSets": [
         {
@@ -279,7 +279,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Opens an existing presentation; with a content block, edits, saves and closes it.",
-      "outputType": "PowerPointPresentation (no block), System.IO.FileInfo (block with -PassThru)",
+      "outputType": "PowerPointDocument (no block), System.IO.FileInfo (block with -PassThru)",
       "parameterSets": [
         {
           "name": "Path",
@@ -407,7 +407,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": true,
               "position": 0,
               "pipeline": "value"
@@ -477,7 +477,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": true,
               "position": 0,
               "pipeline": "value"
@@ -670,7 +670,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -3018,7 +3018,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -3077,7 +3077,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -3108,7 +3108,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -3390,7 +3390,7 @@
             },
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3445,7 +3445,7 @@
             },
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3500,7 +3500,7 @@
             },
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3591,9 +3591,9 @@
             {
               "name": "Summary",
               "type": "switch",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "none",
-              "notes": "Required with a path: a file is read for its summary and closed again."
+              "notes": "Required when reading files and checked before opening them. The switch is validated at runtime so a live document can bind through the pipeline without PowerShell prompting for this file-only switch."
             }
           ]
         },
@@ -3622,9 +3622,9 @@
             {
               "name": "Summary",
               "type": "switch",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "none",
-              "notes": "Required with a path: a file is read for its summary and closed again."
+              "notes": "Required when reading files and checked before opening them. The switch is validated at runtime so a live document can bind through the pipeline without PowerShell prompting for this file-only switch."
             }
           ]
         },
@@ -3634,7 +3634,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "position": 0,
               "pipeline": "value"
@@ -3688,7 +3688,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3742,7 +3742,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -3781,7 +3781,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3822,13 +3822,13 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
             {
               "name": "SourceDocument",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": true,
               "pipeline": "none"
             },
@@ -3892,7 +3892,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -3933,7 +3933,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "position": 0,
               "pipeline": "value"
@@ -3963,7 +3963,7 @@
         {
           "title": "Drop the appendix from a shared copy",
           "description": "Looks up the Appendix section and removes its slides before saving a copy for customers.",
-          "code": "$deck = Open-OfficePowerPoint -Path .\\Sales\\Managed-Services.pptx\n$appendix = Get-OfficePowerPointSection -Document $deck -Name 'Appendix'\nRemove-OfficePowerPointSlide -Document $deck -Slide $appendix.SlideIndices\nSave-OfficePowerPoint -Document $deck -Path .\\Sales\\Managed-Services-Customer.pptx\nClose-OfficePowerPoint -Document $deck"
+          "code": "$deck = Open-OfficePowerPoint -Path .\\Sales\\Managed-Services.pptx\n$appendix = Get-OfficePowerPointSection -Document $deck -Name 'Appendix'\n$slides = @($appendix.SlideIndices | ForEach-Object { $_ + 1 })\nRemove-OfficePowerPointSlide -Document $deck -Slide $slides\nSave-OfficePowerPoint -Document $deck -Path .\\Sales\\Managed-Services-Customer.pptx\nClose-OfficePowerPoint -Document $deck"
         }
       ],
       "notes": "Inside a New-/Open-OfficePowerPoint block -Document can be left out; the block's presentation is used."
@@ -3981,7 +3981,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -4046,7 +4046,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -4092,7 +4092,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -4131,7 +4131,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -4182,7 +4182,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -4490,7 +4490,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -4570,7 +4570,7 @@
             },
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -4601,7 +4601,7 @@
             },
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -4652,7 +4652,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "position": 0,
               "pipeline": "value"
@@ -4686,7 +4686,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Applies a theme to an existing deck or customizes its colors, fonts and name.",
-      "outputType": "PowerPointPresentation (with -PassThru)",
+      "outputType": "PowerPointDocument (with -PassThru)",
       "parameterSets": [
         {
           "name": "Document",
@@ -4694,7 +4694,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -4814,7 +4814,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "position": 0,
               "pipeline": "value"
@@ -4856,7 +4856,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -4874,7 +4874,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -4904,7 +4904,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -4956,7 +4956,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },
@@ -5177,7 +5177,7 @@
           "parameters": [
             {
               "name": "Document",
-              "type": "PowerPointPresentation",
+              "type": "PowerPointDocument",
               "mandatory": false,
               "pipeline": "value"
             },

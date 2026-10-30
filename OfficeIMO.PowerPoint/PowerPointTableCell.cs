@@ -11,13 +11,15 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public partial class PowerPointTableCell {
         private const int EmusPerPoint = 12700;
-        private readonly SlidePart? _slidePart;
-        private readonly OpenXmlPartContainer? _ownerPart;
+        private readonly SlidePart? _initialSlidePart;
+        private SlidePart? _slidePart => Cell.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
+        private readonly OpenXmlPartContainer? _initialOwnerPart;
+        private OpenXmlPartContainer? _ownerPart => _initialOwnerPart is SlidePart ? _slidePart : _initialOwnerPart;
 
         internal PowerPointTableCell(TableCell cell, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
             Cell = cell;
-            _slidePart = slidePart;
-            _ownerPart = ownerPart ?? slidePart;
+            _initialSlidePart = slidePart;
+            _initialOwnerPart = ownerPart ?? slidePart;
         }
 
         internal TableCell Cell { get; }
@@ -33,8 +35,6 @@ namespace OfficeIMO.PowerPoint {
 
             set {
                 Cell.TextBody ??= PowerPointTableTextDefaults.CreateTextBody();
-                string[] discardedSoundIds = PowerPointEmbeddedSound
-                    .GetRelationshipIds(Cell.TextBody);
                 A.Paragraph? sourceParagraph = Cell.TextBody.GetFirstChild<A.Paragraph>();
                 A.RunProperties? existingRunProperties = sourceParagraph?
                     .Elements<A.Run>()
@@ -42,6 +42,9 @@ namespace OfficeIMO.PowerPoint {
                     .RunProperties?
                     .CloneNode(true) as A.RunProperties;
                 A.ParagraphProperties? existingParagraphProperties = sourceParagraph?.ParagraphProperties?.CloneNode(true) as A.ParagraphProperties;
+                if (existingParagraphProperties != null) {
+                    foreach (var link in existingParagraphProperties.Descendants<A.HyperlinkType>().ToArray()) link.Remove();
+                }
                 A.EndParagraphRunProperties? existingEndProperties = sourceParagraph?
                     .GetFirstChild<A.EndParagraphRunProperties>()?
                     .CloneNode(true) as A.EndParagraphRunProperties;
@@ -65,10 +68,9 @@ namespace OfficeIMO.PowerPoint {
                     new A.Run(runProperties, new A.Text(value ?? string.Empty)),
                     endProperties);
 
-                Cell.TextBody.RemoveAllChildren<A.Paragraph>();
+                foreach (var previous in Cell.TextBody.Elements<A.Paragraph>().ToArray())
+                    PowerPointTextRun.DiscardContent(previous, _ownerPart as OpenXmlPart ?? _slidePart);
                 Cell.TextBody.Append(paragraph);
-                PowerPointEmbeddedSound.RemoveIfUnused(_ownerPart as OpenXmlPart ?? _slidePart,
-                    discardedSoundIds);
             }
         }
 

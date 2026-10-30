@@ -2,19 +2,19 @@
   "package": "OfficeIMO.Excel",
   "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
   "summary": {
-    "changes": 282,
+    "changes": 283,
     "byAction": {
       "change": 145,
       "internalize": 4,
       "merge": 94,
       "remove": 19,
-      "rename": 20
+      "rename": 21
     },
     "byCategory": {
       "authoring": 108,
       "conversion": 3,
       "lifecycle": 52,
-      "naming": 1,
+      "naming": 2,
       "options": 11,
       "units": 106,
       "visibility": 1
@@ -443,6 +443,17 @@
     "InsertObjects<T> writes a plain range; decide whether AddTable<T> covers that (AsRange option) or a SetValues<T> stays."
   ],
   "changes": [
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.AddWorksheet(string name)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelDocument.AddSheet(string name)",
+      "reason": "Worksheet authoring uses AddSheet and returns the typed ExcelSheet.",
+      "file": "OfficeIMO.Excel/ExcelDocument.Worksheets.cs",
+      "category": "naming",
+      "phase": "B",
+      "applied": "phase-b-pending"
+    },
     {
       "old": "OfficeIMO.Excel.ExcelDocument.AnalyzeConversion(string sourcePath, string destinationPath, ExcelDocumentConversionOptions options = null)",
       "kind": "method",

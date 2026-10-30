@@ -17,6 +17,8 @@ Install-Module PSWriteOffice -Scope CurrentUser
 
 PSWriteOffice runs on PowerShell 7.4 and later (including 7.6), and on Windows PowerShell 5.1. Upgrading from 3.5 or earlier? The [migration guide](../../MIGRATION.md) maps every renamed and merged command, and calling a removed command prints its replacement.
 
+`Export-OfficeProjectReport`, `Get-OfficePrinter` and `Send-OfficePdfPrinter` require PowerShell 7.4 or later. Run `Get-Help about_PSWriteOffice` for the document workflow, or `Get-Help <command> -Full` for parameters and examples.
+
 ## One line each
 
 Export objects to a styled Excel table with a frozen header, fitted columns and number formats inferred from the data:

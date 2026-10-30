@@ -15,7 +15,7 @@ New-OfficeWord -Path $docPath {
             WordParagraph 'Alias DSL Sample' -Style Heading2
         }
         WordFooter {
-            WordPageNumber -IncludeTotalPages
+            WordPageNumber -IncludeTotal
         }
 
         WordParagraph {

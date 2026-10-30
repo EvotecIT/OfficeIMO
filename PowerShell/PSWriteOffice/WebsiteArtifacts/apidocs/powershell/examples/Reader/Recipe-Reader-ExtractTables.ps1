@@ -10,6 +10,6 @@ MarkdownNew -Path $path {
     MarkdownTable -InputObject $scores
 }
 
-Read-OfficeDocument -As Tables -Path $path
-Export-OfficeDocumentAsset -Type Table -Path $path -OutputDirectory $sidecars
-Read-OfficeDocument -As Chunks -Path $path
+Get-OfficeDocumentTable -Path $path
+Get-OfficeDocumentTable -Path $path -OutputDirectory $sidecars
+Get-OfficeDocumentChunk -Path $path

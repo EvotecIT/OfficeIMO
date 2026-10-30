@@ -19,14 +19,10 @@ Describe 'PSWriteOffice public API consistency' {
         @($inputPathCommands.Name | Sort-Object) | Should -Be @('ConvertTo-OfficeDocument', 'Export-OfficeConversionJob', 'Export-OfficeDocumentPdf')
     }
 
-    It 'reserves Show for semantic visibility choices' {
-        $allowed = @(
-            'Set-OfficeExcelGridlines'
-            'Set-OfficeExcelSheetVisibility'
-        )
-        $commands = @($script:OfficeCommands | Where-Object { $_.Parameters.ContainsKey('Show') })
-
-        @($commands.Name | Sort-Object) | Should -Be @($allowed | Sort-Object)
+    It 'uses a switch to open saved presentations through the lifecycle commands' {
+        foreach ($name in 'New-OfficePowerPoint', 'Open-OfficePowerPoint', 'Save-OfficePowerPoint') {
+            (Get-Command $name).Parameters['Show'].ParameterType | Should -Be ([System.Management.Automation.SwitchParameter])
+        }
     }
 
     It 'keeps format conversion out of New and Save lifecycle parameters' {
@@ -83,7 +79,17 @@ Describe 'PSWriteOffice public API consistency' {
 
     It 'offers PassThru on commands that perform mutations' {
         $mutationVerbs = @('Add', 'Clear', 'Copy', 'Edit', 'Move', 'Protect', 'Remove', 'Rename', 'Set', 'Unprotect', 'Update')
-        $intentionalTransforms = @('Set-OfficeConfluenceManagedSection', 'Set-OfficePdfCompliance', 'Set-OfficePdfElectronicInvoice')
+        $intentionalTransforms = @(
+            'Set-OfficeConfluenceManagedSection'
+            'Set-OfficePdfCompliance'
+            # These semantic blocks form a larger composition and have no single native object output.
+            'Add-OfficePowerPointCard'
+            'Add-OfficePowerPointColumn'
+            'Add-OfficePowerPointKpi'
+            'Add-OfficePowerPointLocation'
+            'Add-OfficePowerPointQuote'
+            'Add-OfficePowerPointStep'
+        )
         $missing = @(
             $script:OfficeCommands |
                 Where-Object {
@@ -189,44 +195,6 @@ Describe 'PSWriteOffice public API consistency' {
         $command.Parameters['DestinationPath'].Aliases | Should -Contain 'OutputPath'
     }
 
-    It 'uses one explicit persistence contract when closing Office documents' {
-        foreach ($name in 'Close-OfficeWord', 'Close-OfficeExcel', 'Close-OfficePowerPoint') {
-            $command = Get-Command $name
-            $command.Parameters.Keys | Should -Contain 'Save' -Because "$name should make persistence explicit"
-            $command.Parameters.Keys | Should -Contain 'Path' -Because "$name should support save-as while closing"
-            $command.Parameters.Keys | Should -Contain 'Open' -Because "$name should use the common viewer switch"
-            $command.Parameters.Keys | Should -Contain 'WhatIf' -Because "$name can save or dispose a live document"
-            $command.Parameters.Keys | Should -Contain 'Confirm' -Because "$name can save or dispose a live document"
-        }
-
-        $word = New-OfficeWord -Path (Join-Path $TestDrive 'close-word.docx') -NoSave
-        $excel = New-OfficeExcel -Path (Join-Path $TestDrive 'close-excel.xlsx') -NoSave
-        $powerPoint = New-OfficePowerPoint -Path (Join-Path $TestDrive 'close-powerpoint.pptx') -NoSave
-        try {
-            { $word | Close-OfficeWord -Open -ErrorAction Stop } | Should -Throw '*Use -Save or -Path with -Open*'
-            { $excel | Close-OfficeExcel -Open -ErrorAction Stop } | Should -Throw '*Use -Save or -Path with -Open*'
-            { $powerPoint | Close-OfficePowerPoint -Open -ErrorAction Stop } | Should -Throw '*Use -Save or -Path with -Open*'
-        } finally {
-            if ($word) { $word | Close-OfficeWord -Confirm:$false }
-            if ($excel) { $excel | Close-OfficeExcel -Confirm:$false }
-            if ($powerPoint) { $powerPoint | Close-OfficePowerPoint -Confirm:$false }
-        }
-    }
-
-    It 'rejects Open when NoSave prevents a file from being written' {
-        $cases = @(
-            { New-OfficeWord -Path (Join-Path $TestDrive 'word.docx') -NoSave -Open -ErrorAction Stop }
-            { New-OfficeExcel -Path (Join-Path $TestDrive 'excel.xlsx') -NoSave -Open -ErrorAction Stop }
-            { New-OfficePowerPoint -Path (Join-Path $TestDrive 'powerpoint.pptx') -NoSave -Open -ErrorAction Stop }
-            { New-OfficePdf -Path (Join-Path $TestDrive 'document.pdf') -NoSave -Open -ErrorAction Stop }
-            { New-OfficeVisio -Path (Join-Path $TestDrive 'visio.vsdx') -NoSave -Open -ErrorAction Stop }
-        )
-
-        foreach ($case in $cases) {
-            $case | Should -Throw '*-Open cannot be used with -NoSave*'
-        }
-    }
-
     It 'pipes a saved FileInfo directly into format-neutral PDF export' {
         $wordPath = Join-Path $TestDrive 'pipeline.docx'
         $pdfPath = Join-Path $TestDrive 'pipeline.pdf'
@@ -256,7 +224,7 @@ Describe 'PSWriteOffice public API consistency' {
             $quietOutput = @(switch ($case.Name) {
                     Word { New-OfficeWord -Path $quietPath }
                     Excel { New-OfficeExcel -Path $quietPath }
-                    PowerPoint { New-OfficePowerPoint -Path $quietPath }
+                    PowerPoint { New-OfficePowerPoint -Path $quietPath {} }
                     Markdown { New-OfficeMarkdown -Path $quietPath }
                     PDF { New-OfficePdf -Path $quietPath { PdfParagraph 'API contract' } }
                     Visio { New-OfficeVisio -Path $quietPath }
@@ -269,7 +237,7 @@ Describe 'PSWriteOffice public API consistency' {
             $passThruOutput = @(switch ($case.Name) {
                     Word { New-OfficeWord -Path $passThruPath -PassThru }
                     Excel { New-OfficeExcel -Path $passThruPath -PassThru }
-                    PowerPoint { New-OfficePowerPoint -Path $passThruPath -PassThru }
+                    PowerPoint { New-OfficePowerPoint -Path $passThruPath -PassThru {} }
                     Markdown { New-OfficeMarkdown -Path $passThruPath -PassThru }
                     PDF { New-OfficePdf -Path $passThruPath -PassThru { PdfParagraph 'API contract' } }
                     Visio { New-OfficeVisio -Path $passThruPath -PassThru }
@@ -279,27 +247,6 @@ Describe 'PSWriteOffice public API consistency' {
             $passThruOutput[0] | Should -BeOfType System.IO.FileInfo
             $passThruOutput[0].FullName | Should -Be $passThruPath
         }
-    }
-
-    It 'offers matching Office-prefixed DSL roots without replacing canonical New commands' {
-        $roots = [ordered]@{
-            OfficeWord         = 'New-OfficeWord'
-            OfficeExcel        = 'New-OfficeExcel'
-            OfficePowerPoint   = 'New-OfficePowerPoint'
-            OfficePdf          = 'New-OfficePdf'
-            OfficeMarkdown     = 'New-OfficeMarkdown'
-            OfficeRtf          = 'New-OfficeRtf'
-            OfficeVisio        = 'New-OfficeVisio'
-            OfficeOpenDocument = 'New-OfficeOpenDocument'
-        }
-
-        foreach ($entry in $roots.GetEnumerator()) {
-            $alias = Get-Command $entry.Key
-            $alias | Should -BeOfType System.Management.Automation.AliasInfo
-            $alias.ResolvedCommandName | Should -Be $entry.Value
-        }
-
-        (Get-Command VisioStencilImport).ResolvedCommandName | Should -Be 'Import-OfficeVisioStencil'
     }
 
     It 'preserves published PDF import option builders as compatibility aliases' {

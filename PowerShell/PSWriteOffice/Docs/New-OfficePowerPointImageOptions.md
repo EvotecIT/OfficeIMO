@@ -11,7 +11,7 @@ Creates discoverable slide selection and rendering settings for Export-OfficePow
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficePowerPointImageOptions [-SlideNumber <int[]>] [-IncludeHiddenSlides] [-IncludeSlideBackground] [-IncludeSlideContent] [-IncludePictures] [-IncludeAutoShapes] [-IncludeTextBoxes] [-IncludeTables] [-IncludeCharts] [-IncludeHiddenShapes] [-Scale <Double>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-BackgroundColor <string>] [-TargetDpi <Double>] [-MaximumRasterPixels <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixels <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
+New-OfficePowerPointImageOptions [-SlideNumber <int[]>] [-IncludeHiddenSlides] [-NoSlideBackground] [-NoSlideContent] [-NoPictures] [-NoAutoShapes] [-NoTextBoxes] [-NoTables] [-NoCharts] [-IncludeHiddenShapes] [-Scale <Double>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-BackgroundColor <string>] [-TargetDpi <Double>] [-MaximumRasterPixelCount <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixelCount <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,7 +21,7 @@ Creates discoverable slide selection and rendering settings for Export-OfficePow
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficePowerPointImageOptions -SlideNumber 1,3 -IncludeSlideBackground -IncludeSlideContent
+PS> $options = New-OfficePowerPointImageOptions -SlideNumber 1,3 -NoPictures
 Export-OfficePowerPointImage -Path .\Deck.pptx -OutputPath .\Slides -Options $options
 ```
 
@@ -33,38 +33,6 @@ Background color name or hex value.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludeAutoShapes
-Render auto shapes.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludeCharts
-Render charts.
-
-```yaml
-Type: SwitchParameter
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -94,86 +62,6 @@ Accept wildcard characters: False
 
 ### -IncludeHiddenSlides
 Include hidden slides.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludePictures
-Render pictures.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludeSlideBackground
-Render slide backgrounds.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludeSlideContent
-Render slide content.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludeTables
-Render tables.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludeTextBoxes
-Render text boxes.
 
 ```yaml
 Type: SwitchParameter
@@ -252,7 +140,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaximumRasterPixels
+### -MaximumRasterPixelCount
 Maximum pixels allocated for one raster image.
 
 ```yaml
@@ -284,11 +172,123 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaximumTotalRasterPixels
+### -MaximumTotalRasterPixelCount
 Maximum aggregate raster pixels accepted from one batch.
 
 ```yaml
 Type: Int64
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoAutoShapes
+Omit auto shapes.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoCharts
+Omit charts.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoPictures
+Omit pictures.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoSlideBackground
+Omit slide backgrounds.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoSlideContent
+Omit slide content.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoTables
+Omit tables.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoTextBoxes
+Omit text boxes.
+
+```yaml
+Type: SwitchParameter
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

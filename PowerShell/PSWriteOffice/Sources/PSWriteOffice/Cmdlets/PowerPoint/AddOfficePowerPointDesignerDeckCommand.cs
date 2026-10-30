@@ -1,6 +1,7 @@
 using System;
 using System.Management.Automation;
 using OfficeIMO.PowerPoint;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.PowerPoint;
 
@@ -122,7 +123,8 @@ public sealed class AddOfficePowerPointDesignerDeckCommand : PSCmdlet
             return;
         }
 
-        var presentation = Presentation ?? PowerPointDslContext.Require(this).Presentation;
+        var presentation = Presentation ?? OfficeDocumentContext.Find<PowerPointPresentation>()
+            ?? throw new PSArgumentException("Supply -Presentation or invoke the command inside New-OfficePowerPoint.");
         var slideIndexOffset = presentation.Slides.Count;
         var options = PowerPointCompositionOptions.FromBrief(brief);
         options.AlternativeCount = AlternativeCount;

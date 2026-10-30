@@ -114,7 +114,7 @@ Accept wildcard characters: False
 ```
 
 ### -ConversionRouteId
-Optional exact canonical route identifier from Get-OfficeConversionRoute.
+Optional exact canonical route identifier from Get-OfficeDocumentCapability -Conversion.
 
 ```yaml
 Type: String

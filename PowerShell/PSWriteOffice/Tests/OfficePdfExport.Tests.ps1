@@ -47,7 +47,7 @@ Describe 'Office document PDF exports' {
         $powerPoint = New-OfficePowerPointPdfOptions `
             -PageLayout Handouts `
             -HandoutSlidesPerPage 3 `
-            -IncludeSpeakerNotes `
+            -NoSpeakerNotes:$false `
             -IncludeHiddenSlides:$false
         $powerPoint.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions'
         $powerPoint.PageLayout.ToString() | Should -Be 'Handouts'
@@ -164,9 +164,7 @@ Describe 'Office document PDF exports' {
         $powerPointPath = Join-Path $TestDrive 'new-powerpoint.pptx'
         $powerPointPdf = Join-Path $TestDrive 'new-powerpoint.pdf'
         New-OfficePowerPoint -Path $powerPointPath {
-            PptSlide {
-                PptTitle -Title 'New PowerPoint PDF sidecar'
-            }
+            PowerPointSlide -Title 'New PowerPoint PDF sidecar'
         }
         Export-OfficeDocumentPdf -InputPath $powerPointPath -Path $powerPointPdf
 
@@ -280,12 +278,10 @@ Describe 'Office document PDF exports' {
         $pdf = Join-Path $TestDrive 'deck-report.pdf'
 
         New-OfficePowerPoint -Path $pptx {
-            PptSlide {
-                PptTitle -Title 'PowerPoint PDF export smoke'
-            }
+            PowerPointSlide -Title 'PowerPoint PDF export smoke'
         }
 
-        $presentation = Get-OfficePowerPoint -Path $pptx
+        $presentation = Open-OfficePowerPoint -LiteralPath $pptx
         try {
             $presentation | Export-OfficeDocumentPdf -Path $pdf
         } finally {

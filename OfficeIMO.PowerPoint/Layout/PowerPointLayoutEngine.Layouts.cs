@@ -348,12 +348,14 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutRect box = grid.Box(2, 9, 4, 6);
             PowerPointTextStyleSpec style = context.Style(PowerPointTextRole.Quote);
             double size = style.Size;
+            var nativeBody = ContentBlocks(slide).OfType<PowerPointLayoutText>().FirstOrDefault()?.NativeBody;
             // The quote must end above the attribution rule at the safe line count, not just within five lines.
-            while (size - 2D >= style.Minimum && (context.SafeLines(text, style, box.Width, size) > 5 ||
+            while (nativeBody == null && size - 2D >= style.Minimum && (context.SafeLines(text, style, box.Width, size) > 5 ||
                                                   context.Height(text, style, box.Width, size) > box.Height)) size -= 2D;
-            double quoteWidth = PowerPointTextMeasure.BalancedWidth(text, size, box.Width, theme.HeadingFont, false, style.Tracking);
+            // Native admission/splitting measures authored fonts at this exact width. Narrowing afterwards changes wrapping.
+            double quoteWidth = nativeBody != null ? box.Width : PowerPointTextMeasure.BalancedWidth(text, size, box.Width, theme.HeadingFont, false, style.Tracking);
             writer.Text("Quote", box.WithWidth(quoteWidth), PowerPointLayoutNativeText.Attach(context.Paragraph(text, PowerPointTextRole.Quote, size: size),
-                ContentBlocks(slide).OfType<PowerPointLayoutText>().FirstOrDefault()?.NativeBody),
+                nativeBody),
                 placeholder: "<p:ph type=\"title\"/>");
             if (string.IsNullOrWhiteSpace(attribution)) return;
             PowerPointLayoutRect attributionBox = grid.Box(2, 7, 10, 2);

@@ -3,6 +3,7 @@ using OfficeIMO;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.Word;
 
@@ -26,6 +27,7 @@ public sealed class NewOfficeWordPdfOptionsCommand : PSCmdlet {
 
     /// <summary>PDF page size.</summary>
     [Parameter]
+    [OfficePageSizeTransformation]
     public PdfPageSize? PageSize { get; set; }
 
     /// <summary>PDF page orientation.</summary>

@@ -6,85 +6,31 @@ schema: 2.0.0
 ---
 # Close-OfficePowerPoint
 ## SYNOPSIS
-Closes a PowerPoint presentation and optionally saves it.
+Closes a live presentation without saving it.
 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Close-OfficePowerPoint -Presentation <PowerPointPresentation> [-Save] [-Path <string>] [-Open] [-Password <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Close-OfficePowerPoint [-Document <PowerPointPresentation>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Provides a cmdlet wrapper so PowerShell scripts do not need to call Dispose directly.
+Releases the native document and writes no output. Save changes explicitly with Save-OfficePowerPoint before closing. Documents configured for SaveOnDispose must be reopened with explicit persistence.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $ppt = Get-OfficePowerPoint -Path .\deck.pptx; Close-OfficePowerPoint -Presentation $ppt
+$deck = Open-OfficePowerPoint -Path ./Review.pptx
+Save-OfficePowerPoint -Document $deck
+Close-OfficePowerPoint -Document $deck
 ```
 
-Releases the loaded presentation instance.
-
-### EXAMPLE 2
-```powershell
-PS> Close-OfficePowerPoint -Presentation $ppt -Save -Open
-```
-
-Saves the presentation, opens it in PowerPoint, and releases the object.
 
 ## PARAMETERS
 
-### -Open
-Open the presentation after saving. Requires -Save or -Path.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: Show
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Password
-Password used to save the presentation as an encrypted package.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Path
-Optional target path when saving.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: FilePath
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Presentation
-Presentation to close.
+### -Document
+Gets or sets an explicit live document; omission uses the enclosing content block.
 
 ```yaml
 Type: PowerPointPresentation
@@ -92,26 +38,10 @@ Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
 
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
-### -Save
-Persist changes before closing.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
 Required: False
 Position: named
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 

@@ -10,7 +10,7 @@ $initialRows = @(
 
 New-OfficeExcel -Path $path {
     ExcelSheet 'Readiness' {
-        ExcelTable -Data $initialRows -TableName 'ServiceReadiness' -AutoFit
+        ExcelTable -Data $initialRows -Name 'ServiceReadiness' -AutoFit
     }
     ExcelSheet 'Notes' {
         Set-OfficeExcelCell -Address A1 -Value 'This workbook is modified after it is created.'

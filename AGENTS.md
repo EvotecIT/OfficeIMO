@@ -42,6 +42,7 @@
 
 ## Testing evidence
 
+- Before adding or changing tests, apply the shared [test authoring gate](skills/test-audit/SKILL.md#authoring-gate) and [proof design guidance](skills/contract-focused-tests/SKILL.md). Use [campaign mode](skills/test-audit/CAMPAIGN.md) only for deliberate pruning. Resolve these shared links against `CODEX_HOME` (default `~/.codex`).
 - Do not use product unit tests to pin human-authored README, roadmap, migration, compatibility, planning, or agent prose.
 - Test Markdown when it is a supported input/output format. Compare generated documents with their executable generator or machine-readable source of truth.
 - Exercise documentation examples through real compile, restore, or run consumers where practical.

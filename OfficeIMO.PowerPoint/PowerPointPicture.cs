@@ -10,8 +10,10 @@ namespace OfficeIMO.PowerPoint {
     ///     Represents an image placed on a slide.
     /// </summary>
     public partial class PowerPointPicture : PowerPointShape {
-        private readonly SlidePart? _slidePart;
-        private readonly OpenXmlPartContainer _ownerPart;
+        private readonly SlidePart? _initialSlidePart;
+        private SlidePart? _slidePart => Element.Ancestors<Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
+        private readonly OpenXmlPartContainer _initialOwnerPart;
+        private OpenXmlPartContainer _ownerPart => _initialOwnerPart is SlidePart ? _slidePart! : _initialOwnerPart;
 
         internal PowerPointPicture(Picture picture, SlidePart slidePart) : this(picture, slidePart, slidePart) {
         }
@@ -20,8 +22,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private PowerPointPicture(Picture picture, SlidePart? slidePart, OpenXmlPartContainer ownerPart) : base(picture) {
-            _slidePart = slidePart;
-            _ownerPart = ownerPart ?? throw new ArgumentNullException(nameof(ownerPart));
+            _initialSlidePart = slidePart;
+            _initialOwnerPart = ownerPart ?? throw new ArgumentNullException(nameof(ownerPart));
         }
 
         internal SlidePart SlidePart => _slidePart ?? throw new InvalidOperationException("This picture is not owned by a slide part.");

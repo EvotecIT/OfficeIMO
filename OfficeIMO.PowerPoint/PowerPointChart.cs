@@ -13,14 +13,17 @@ namespace OfficeIMO.PowerPoint {
         ///     Represents a chart on a slide.
         /// </summary>
         public partial class PowerPointChart : PowerPointShape {
-        private readonly OpenXmlPartContainer _ownerPart;
+        private readonly OpenXmlPartContainer _initialOwnerPart;
+        private OpenXmlPartContainer _ownerPart => _initialOwnerPart is SlidePart
+            ? Element.Ancestors<Slide>().FirstOrDefault()?.SlidePart ?? _initialOwnerPart
+            : _initialOwnerPart;
 
         internal PowerPointChart(GraphicFrame frame, SlidePart slidePart) : base(frame) {
-            _ownerPart = slidePart ?? throw new ArgumentNullException(nameof(slidePart));
+            _initialOwnerPart = slidePart ?? throw new ArgumentNullException(nameof(slidePart));
         }
 
         internal PowerPointChart(GraphicFrame frame, OpenXmlPartContainer ownerPart) : base(frame) {
-            _ownerPart = ownerPart ?? throw new ArgumentNullException(nameof(ownerPart));
+            _initialOwnerPart = ownerPart ?? throw new ArgumentNullException(nameof(ownerPart));
         }
 
         private GraphicFrame Frame => (GraphicFrame)Element;

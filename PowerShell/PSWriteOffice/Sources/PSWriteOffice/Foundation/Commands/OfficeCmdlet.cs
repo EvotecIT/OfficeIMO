@@ -15,6 +15,13 @@ public abstract class OfficeCmdlet : PSCmdlet {
     protected string ResolveOutputDirectory(string path) => OfficePath.ResolveOutput(SessionState, path, directory: true);
     /// <summary>Stops the invocation for an invalid command argument.</summary>
     protected void InvalidArgument(Exception exception, object? input, string code = "invalid-argument") => ThrowTerminatingError(OfficeError.Create(exception, code, input, ErrorCategory.InvalidArgument));
+    /// <summary>Resolves a live document argument or its enclosing content scope.</summary>
+    protected TDocument ResolveDocument<TDocument>(TDocument? document) where TDocument : class {
+        var resolved = document ?? OfficeDocumentContext.Find<TDocument>();
+        if (resolved != null) return resolved;
+        InvalidArgument(new ArgumentException("Supply -Document, pipe a live document, or invoke this command inside a New-/Open- content block."), document, "document-required");
+        throw new InvalidOperationException();
+    }
     /// <summary>Reports an item failure while allowing subsequent pipeline input.</summary>
     protected void ItemError(Exception exception, string code, object? input) => WriteError(OfficeError.Create(exception, code, input));
 }
@@ -26,10 +33,5 @@ public abstract class OfficeDocumentCmdlet<TDocument> : OfficeCmdlet where TDocu
     [ValidateNotNull]
     public TDocument? Document { get; set; }
     /// <summary>Resolves the explicit or enclosing document, failing clearly when neither exists.</summary>
-    protected TDocument GetDocument() {
-        var document = Document ?? OfficeDocumentContext.Find<TDocument>();
-        if (document != null) return document;
-        InvalidArgument(new ArgumentException("Supply -Document, pipe a live document, or invoke this command inside a New-/Open- content block."), Document, "document-required");
-        throw new InvalidOperationException();
-    }
+    protected TDocument GetDocument() => ResolveDocument(Document);
 }

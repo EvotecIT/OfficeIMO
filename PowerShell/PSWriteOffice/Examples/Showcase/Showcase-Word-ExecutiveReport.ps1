@@ -99,7 +99,7 @@ New-OfficeWord -Path $path {
         WordParagraph 'Recorded incidents fell from eight in January to three in June. June availability is 99.82%; percentages and incident counts use different units and are reported separately.'
         WordParagraph {
             WordParagraphStyle -SpacingBeforePoints 12 -SpacingAfterPoints 12
-            WordChart -Type Line -Data $trend -CategoryProperty Month -SeriesProperty Incidents -Title 'Incidents by month' -XAxisTitle 'Month' -YAxisTitle 'Incidents' -FitToPageWidth -WidthFraction 1 -HeightPixels 240
+            WordChart -Type Line -Data $trend -Category Month -Value Incidents -Title 'Incidents by month' -XAxisTitle 'Month' -YAxisTitle 'Incidents' -FitToPageWidth -WidthFraction 1 -HeightPixels 240
         }
 
         WordParagraph -Text 'Action Plan' -Style Heading1

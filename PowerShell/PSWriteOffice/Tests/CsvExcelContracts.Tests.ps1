@@ -194,7 +194,7 @@ Describe 'CSV and Excel mutation contracts' {
 
         New-OfficeExcel -Path $xlsx {
             ExcelSheet -Name Data {
-                Add-OfficeExcelTable -InputObject $rows -TableName Rows
+                Add-OfficeExcelTable -InputObject $rows -Name Rows
             }
         }
 

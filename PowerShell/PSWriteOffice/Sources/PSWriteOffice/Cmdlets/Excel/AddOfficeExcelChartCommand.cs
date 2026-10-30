@@ -1,157 +1,191 @@
 using System;
+using System.Collections.Generic;
 using System.Management.Automation;
+using OfficeIMO;
+using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Excel;
+using PSWriteOffice.Services.Table;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Adds a chart to the current worksheet using a range or table.</summary>
+/// <summary>Adds a native Excel chart from a range, named table or input rows.</summary>
+/// <para>Table columns are selected by header. With no value selection, every numeric column except the category is plotted. Input rows are written as a table below existing worksheet data. Output is quiet unless PassThru is specified.</para>
 /// <example>
-///   <summary>Add a chart from a range.</summary>
+///   <summary>Chart selected table columns.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Data' { Add-OfficeExcelChart -Range 'A1:D10' -Row 2 -Column 6 -Type Line -Title 'Trend' }</code>
-///   <para>Creates a line chart from A1:D10 and places it at F2.</para>
+///   <code>ExcelSheet 'Sales' { ExcelChart -Table Sales -Category Region -Value Revenue,Profit -Address F2 -Type ColumnClustered }</code>
+///   <para>Places a chart at F2 using only the named table's data rows.</para>
 /// </example>
 /// <example>
-///   <summary>Add a chart from a table.</summary>
+///   <summary>Write input rows and chart them.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Data' { Add-OfficeExcelChart -TableName 'Sales' -Row 2 -Column 6 -Type ColumnClustered }</code>
-///   <para>Creates a chart from the Sales table.</para>
+///   <code>$rows | Add-OfficeExcelChart -Document $book -Sheet Sales -Category Region -Value Revenue -Address F2 -Width 18cm -Height 9cm</code>
+///   <para>Writes a table on Sales and adds a native chart with length-based dimensions.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeExcelChart", DefaultParameterSetName = ParameterSetContextRange)]
+[Cmdlet(VerbsCommon.Add, "OfficeExcelChart", DefaultParameterSetName = RangeSet)]
 [Alias("ExcelChart")]
-public sealed class AddOfficeExcelChartCommand : PSCmdlet
-{
-    private const string ParameterSetContextRange = "ContextRange";
-    private const string ParameterSetContextTable = "ContextTable";
-    private const string ParameterSetDocumentRange = "DocumentRange";
-    private const string ParameterSetDocumentTable = "DocumentTable";
+[OutputType(typeof(ExcelChart))]
+public sealed partial class AddOfficeExcelChartCommand : PSCmdlet {
+    private const string RangeSet = "Range";
+    private const string TableSet = "Table";
+    private const string DataSet = "Data";
+    private readonly List<object?> _items = new();
+    private bool _explicitInput;
 
-    /// <summary>Workbook to operate on outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocumentRange)]
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocumentTable)]
-    public ExcelDocument Document { get; set; } = null!;
+    /// <summary>Workbook to modify outside an Excel composition block.</summary>
+    [Parameter(ValueFromPipeline = true, ParameterSetName = RangeSet)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = TableSet)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = DataSet)]
+    public ExcelDocument? Document { get; set; }
 
-    /// <summary>Worksheet name when using <see cref="Document"/>.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocumentRange)]
-    [Parameter(ParameterSetName = ParameterSetDocumentTable)]
-    public string? Sheet { get; set; }
+    /// <summary>Sheet name, one-based position or an existing sheet belonging to Document.</summary>
+    [Parameter]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector? Sheet { get; set; }
 
-    /// <summary>Worksheet index (0-based) when using <see cref="Document"/>.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocumentRange)]
-    [Parameter(ParameterSetName = ParameterSetDocumentTable)]
-    public int? SheetIndex { get; set; }
-
-    /// <summary>A1 range containing chart data.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetContextRange)]
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetDocumentRange)]
+    /// <summary>Bounded A1 range containing categories followed by value columns.</summary>
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = RangeSet)]
+    [ValidateNotNullOrEmpty]
     public string Range { get; set; } = string.Empty;
 
-    /// <summary>Table name containing chart data.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetContextTable)]
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetDocumentTable)]
-    public string TableName { get; set; } = string.Empty;
+    /// <summary>Name or display name of a table on the selected worksheet.</summary>
+    [Parameter(Mandatory = true, ParameterSetName = TableSet)]
+    [ValidateNotNullOrEmpty]
+    public string Table { get; set; } = string.Empty;
 
-    /// <summary>Top-left row (1-based) where the chart should be placed.</summary>
+    /// <summary>Objects or tabular input to write as a table and chart.</summary>
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = DataSet)]
+    [ValidateNotNull]
+    public object? InputObject { get; set; }
+
+    /// <summary>Category column; defaults to the first table column.</summary>
+    [Parameter(ParameterSetName = TableSet)]
+    [Parameter(Mandatory = true, ParameterSetName = DataSet)]
+    [ValidateNotNullOrEmpty]
+    public string? Category { get; set; }
+
+    /// <summary>Value columns in series order; defaults to all numeric table columns except Category.</summary>
+    [Parameter(ParameterSetName = TableSet)]
+    [Parameter(Mandatory = true, ParameterSetName = DataSet)]
+    [ValidateNotNullOrEmpty]
+    public string[]? Value { get; set; }
+
+    /// <summary>Single A1 cell anchoring the top-left corner of the chart.</summary>
     [Parameter(Mandatory = true)]
-    public int Row { get; set; }
+    [ValidateNotNullOrEmpty]
+    public string Address { get; set; } = string.Empty;
 
-    /// <summary>Top-left column (1-based) where the chart should be placed.</summary>
-    [Parameter(Mandatory = true)]
-    public int Column { get; set; }
-
-    /// <summary>Chart width in pixels.</summary>
+    /// <summary>Chart width; defaults to 640 pixels. Bare numbers mean points.</summary>
     [Parameter]
-    public int WidthPixels { get; set; } = 640;
+    [OfficeLengthTransformation]
+    public OfficeLength Width { get; set; } = OfficeLength.Pixels(640);
 
-    /// <summary>Chart height in pixels.</summary>
+    /// <summary>Chart height; defaults to 360 pixels. Bare numbers mean points.</summary>
     [Parameter]
-    public int HeightPixels { get; set; } = 360;
+    [OfficeLengthTransformation]
+    public OfficeLength Height { get; set; } = OfficeLength.Pixels(360);
 
-    /// <summary>Chart type.</summary>
+    /// <summary>Shared chart family. Bubble requires the separate native bubble-data contract.</summary>
     [Parameter]
-    public ExcelChartType Type { get; set; } = ExcelChartType.ColumnClustered;
+    public OfficeChartKind Type { get; set; } = OfficeChartKind.ColumnClustered;
 
     /// <summary>Chart title.</summary>
     [Parameter]
     public string? Title { get; set; }
 
-    /// <summary>Whether the range includes headers.</summary>
-    [Parameter(ParameterSetName = ParameterSetContextRange)]
-    [Parameter(ParameterSetName = ParameterSetDocumentRange)]
-    public bool HasHeaders { get; set; } = true;
-
-    /// <summary>Include cached data in the chart for portability.</summary>
+    /// <summary>Dashboard appearance preset from the native Excel chart owner.</summary>
     [Parameter]
-    public bool IncludeCachedData { get; set; } = true;
+    public ExcelDashboardChartPreset Preset { get; set; } = ExcelDashboardChartPreset.Comparison;
 
-    /// <summary>Emit the created chart.</summary>
+    /// <summary>Built-in chart style identifier.</summary>
+    [Parameter]
+    [ValidateRange(1, int.MaxValue)]
+    public int? Style { get; set; }
+
+    /// <summary>Built-in chart color-style identifier.</summary>
+    [Parameter]
+    [ValidateRange(1, int.MaxValue)]
+    public int? ColorStyle { get; set; }
+
+    /// <summary>Treat the first row of Range as data rather than column headers.</summary>
+    [Parameter(ParameterSetName = RangeSet)]
+    public SwitchParameter NoHeader { get; set; }
+
+    /// <summary>Omit cached chart values. Requires a contiguous category/value source block.</summary>
+    [Parameter]
+    public SwitchParameter NoCachedData { get; set; }
+
+    /// <summary>Return the native ExcelChart.</summary>
     [Parameter]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        if (Row <= 0 || Column <= 0)
-        {
-            throw new PSArgumentException("Row and Column must be 1 or greater.");
+    protected override void BeginProcessing() {
+        _explicitInput = MyInvocation.BoundParameters.ContainsKey(nameof(InputObject));
+    }
+
+    /// <inheritdoc />
+    protected override void ProcessRecord() {
+        if (ParameterSetName == DataSet) {
+            if (_explicitInput) _items.Clear();
+            TableInputCollector.AddInput(_items, InputObject, preserveTabularInput: true);
+            if (_explicitInput) AddChart();
+            return;
         }
 
+        AddChart();
+    }
+
+    /// <inheritdoc />
+    protected override void EndProcessing() {
+        if (ParameterSetName == DataSet && !_explicitInput) AddChart();
+    }
+
+    private void AddChart() {
+        var placement = ResolvePlacement();
         var sheet = ResolveSheet();
+        var plan = ParameterSetName == DataSet ? PlanInput(sheet) : PlanWorksheet(sheet);
+        var kind = ResolveChartKind();
+        ValidateChartData(plan.Data, kind);
+        if (NoCachedData.IsPresent && plan.SourceRange == null && plan.InputTable == null) {
+            throw new PSArgumentException("-NoCachedData requires contiguous category/value columns. The native snapshot chart API always writes cached data.", nameof(NoCachedData));
+        }
+
+        // All mapping, source, dimensions and family validation precede worksheet writes.
+        if (plan.InputTable != null) {
+            sheet.InsertDataTableAsTable(plan.InputTable, startRow: plan.StartRow, startColumn: 1, includeHeaders: true);
+        }
 
         ExcelChart chart;
-        if (ParameterSetName == ParameterSetContextTable || ParameterSetName == ParameterSetDocumentTable)
-        {
-            var tableRange = TryGetContextTableRange(sheet) ?? sheet.GetTableRange(TableName);
-            if (string.IsNullOrWhiteSpace(tableRange))
-            {
-                throw new InvalidOperationException($"Table '{TableName}' was not found on sheet '{sheet.Name}'.");
-            }
+        if (plan.SourceRange != null) {
+            chart = sheet.AddDashboardChart(new ExcelDashboardChartOptions {
+                Range = plan.SourceRange,
+                Row = placement.Row,
+                Column = placement.Column,
+                WidthPixels = placement.Width,
+                HeightPixels = placement.Height,
+                ChartType = ToExcelChartType(kind),
+                HasHeaders = plan.HasHeaders,
+                Title = Title,
+                IncludeCachedData = !NoCachedData.IsPresent,
+                Preset = Preset,
+                StyleId = Style,
+                ColorStyleId = ColorStyle
+            });
+        } else {
+            chart = sheet.AddChart(kind, plan.Data, placement.Row, placement.Column, placement.Width, placement.Height, Title);
+            chart.ApplyDashboardPreset(Preset, Style, ColorStyle);
+        }
 
-            chart = sheet.AddChartFromRange(tableRange!, Row, Column, WidthPixels, HeightPixels, Type, hasHeaders: true, Title, IncludeCachedData);
-        }
-        else
-        {
-            chart = sheet.AddChartFromRange(Range, Row, Column, WidthPixels, HeightPixels, Type, HasHeaders, Title, IncludeCachedData);
-        }
-
-        if (PassThru.IsPresent)
-        {
-            WriteObject(chart);
-        }
+        if (PassThru.IsPresent) WriteObject(chart);
     }
 
-    private ExcelSheet ResolveSheet()
-    {
-        if (ParameterSetName == ParameterSetDocumentRange || ParameterSetName == ParameterSetDocumentTable)
-        {
-            if (Document == null)
-            {
-                throw new PSArgumentException("Provide an Excel document.");
-            }
-
-            return ExcelSheetResolver.Resolve(Document, Sheet, SheetIndex);
-        }
-
-        var context = ExcelDslContext.Require(this);
-        return context.RequireSheet();
-    }
-
-    private string? TryGetContextTableRange(ExcelSheet sheet)
-    {
-        if (ParameterSetName != ParameterSetContextTable)
-        {
-            return null;
-        }
-
-        try
-        {
-            var context = ExcelDslContext.Require(this);
-            return context.TryGetTableRange(sheet, TableName, out var range) ? range : null;
-        }
-        catch (InvalidOperationException)
-        {
-            return null;
-        }
+    private ExcelSheet ResolveSheet() {
+        if (Document == null && Sheet?.Sheet is ExcelSheet explicitSheet && ExcelDslContext.Current == null) return explicitSheet;
+        var document = Document ?? ExcelDslContext.Require(this).Document;
+        if (Sheet != null) return Sheet.Resolve(document.Sheets, sheet => sheet.Name);
+        return Document != null ? ExcelSheetResolver.Resolve(document, null, null) : ExcelDslContext.Require(this).RequireSheet();
     }
 }

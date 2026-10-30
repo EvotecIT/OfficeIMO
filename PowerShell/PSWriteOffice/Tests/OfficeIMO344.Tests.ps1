@@ -66,16 +66,4 @@ Describe 'OfficeIMO 3.4.4 integration' {
         $handle.Dispose()
     }
 
-    It 'rejects oversized invoice XML before writing a PDF' {
-        $xml = Join-Path $TestDrive 'oversized.xml'
-        $stream = [System.IO.File]::Create($xml)
-        try { $stream.SetLength(16MB + 1) } finally { $stream.Dispose() }
-        $output = Join-Path $TestDrive 'blocked-invoice.pdf'
-        { New-OfficePdf -Path $output {
-                PdfElectronicInvoice -Path $xml
-            } -ErrorAction Stop } | Should -Throw '*CII XML exceeds the maximum byte length*'
-        Test-Path -LiteralPath $output | Should -BeFalse
-        $handle = [System.IO.File]::Open($xml, 'Open', 'ReadWrite', 'None')
-        $handle.Dispose()
-    }
 }

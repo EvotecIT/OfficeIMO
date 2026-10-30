@@ -15,50 +15,45 @@ MarkdownNew -Path '.\Service-Status.md' {
 WordNew -Path '.\Service-Status.docx' {
     WordSection {
         WordHeader { WordParagraph -Text 'Weekly service status' -Style Heading2 }
-        WordFooter { WordPageNumber -IncludeTotalPages }
+        WordFooter { WordPageNumber -IncludeTotal }
         WordParagraph -Text 'Service Status' -Style Heading1
         WordParagraph -Text 'A document for owners who need narrative, tables, and an approval-ready file.'
         WordTable -InputObject $services -Style GridTable4Accent1 -Layout AutoFitToWindow {
             WordTableCondition -FilterScript { $_.Status -eq 'Action' } -BackgroundColor '#FEE2E2'
             WordTableCondition -FilterScript { $_.Status -eq 'Watch' } -BackgroundColor '#FEF3C7'
         }
-        WordChart -Type Bar -Data $services -CategoryProperty Service -SeriesProperty Incidents -Title 'Incidents by service' -FitToPageWidth
+        WordChart -Type Bar -Data $services -Category Service -Value Incidents -Title 'Incidents by service' -FitToPageWidth
     }
 }
 
 ExcelNew -Path '.\Service-Status.xlsx' {
     ExcelSheet 'Services' {
         # Keep the chart's category and one numeric measure adjacent; owners and percentages remain in the table.
-        ExcelTable -Data ($services | Select-Object Service,Incidents,Owner,Availability,Status) -TableName 'ServiceStatus' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium9' -AutoFit
+        ExcelTable -Data ($services | Select-Object Service,Incidents,Owner,Availability,Status) -Name 'ServiceStatus' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium9' -AutoFit
         ExcelFreeze -TopRows 1
         ExcelValidationList -TableName 'ServiceStatus' -HeaderName Status -Values Healthy,Watch,Action
         ExcelConditionalColorScale -Range 'D2:D4' -StartColor '#FEE2E2' -EndColor '#DCFCE7'
-        ExcelChart -Range 'A1:B4' -Row 7 -Column 1 -Type ColumnClustered -Title 'Incidents by service' -WidthPixels 700 -HeightPixels 320
+        ExcelChart -Range 'A1:B4' -Address A7 -Type ColumnClustered -Title 'Incidents by service' -Width 700px -Height 320px
         ExcelOrientation -Orientation Landscape
         ExcelPageSetup -FitToWidth 1 -FitToHeight 1
     }
     ExcelTableOfContents -SheetName 'Index' -AddBackLinks -BackLinkText 'Back to Index'
 }
 
-PptNew -Path '.\Service-Status.pptx' {
-    PptSlideSize -Preset Screen16x9
-    PptSlide {
-        PptTitle -Title 'Weekly Service Status'
-        PptTextBox -Text 'Three services, one owner conversation' -X 90 -Y 190 -Width 700 -Height 70
-        PptNotes -Text 'Lead with the Remote access action and confirm its owner.'
+New-OfficePowerPoint -Path '.\Service-Status.pptx' {
+    Set-OfficePowerPointSlideSize -Preset Screen16x9
+    PowerPointSlide -Title 'Weekly Service Status' -Subtitle 'Three services, one owner conversation' {
+        PowerPointNotes 'Lead with the Remote access action and confirm its owner.'
     }
-    PptSlide {
-        PptTitle -Title 'Current status'
-        PptTable -Data $services -X 55 -Y 130 -Width 840 -Height 210
-        PptTextBox -Run @{ Text = 'Decision: assign the Remote access action before the next service review.'; FontSize = 20; Color = '#0F172A' } -X 60 -Y 390 -Width 840 -Height 75
-        PptNotes -Text 'Use the table for exact values and confirm the action owner.'
+    PowerPointSlide -Title 'Current status' {
+        PowerPointTable -InputObject $services
+        PowerPointParagraph 'Decision: assign the Remote access action before the next service review.'
+        PowerPointNotes 'Use the table for exact values and confirm the action owner.'
     }
-    PptSlide {
-        PptTitle -Title 'Where to focus the review'
-        PptChart -Data $services -CategoryProperty Service -SeriesProperty Incidents -Type ClusteredColumn -Title 'Incidents by service' -X 90 -Y 135 -Width 780 -Height 290
-        PptTextBox -Run @{ Text = 'Availability remains a percentage in the status table; this chart compares incident counts.'; FontSize = 18; Color = '#475569' } -X 60 -Y 450 -Width 840 -Height 55
-        PptNotes -Text 'Discuss incident reduction separately from availability targets.'
-    }
+    $focus = PowerPointSlide -Title 'Where to focus the review' -PassThru
+    PowerPointChart -Slide $focus -InputObject $services -Category Service -Value Incidents -Type ClusteredColumn -Title 'Incidents by service' -X 90 -Y 135 -Width 780 -Height 290
+    Add-OfficePowerPointTextBox -Slide $focus -Run @{ Text = 'Availability remains a percentage in the status table; this chart compares incident counts.'; FontSize = 18; Color = '#475569' } -X 60 -Y 450 -Width 840 -Height 55
+    PowerPointNotes -Slide $focus -Text 'Discuss incident reduction separately from availability targets.'
 }
 
 PdfNew -Path '.\Service-Status.pdf' {

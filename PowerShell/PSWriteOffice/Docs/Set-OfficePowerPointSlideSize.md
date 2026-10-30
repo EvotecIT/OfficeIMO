@@ -6,115 +6,63 @@ schema: 2.0.0
 ---
 # Set-OfficePowerPointSlideSize
 ## SYNOPSIS
-Sets the slide size for a PowerPoint presentation.
+Sets a presentation's slide size using a preset or physical lengths.
 
 ## SYNTAX
 ### Preset (Default)
 ```powershell
-Set-OfficePowerPointSlideSize -Preset <PowerPointSlideSizePreset> [-Presentation <PowerPointPresentation>] [-Portrait] [-PassThru] [<CommonParameters>]
+Set-OfficePowerPointSlideSize -Preset <PowerPointSlideSizePreset> [-Portrait] [-PassThru] [-Document <PowerPointPresentation>] [<CommonParameters>]
 ```
 
-### Centimeters
+### Size
 ```powershell
-Set-OfficePowerPointSlideSize -WidthCm <double> -HeightCm <double> [-Presentation <PowerPointPresentation>] [-PassThru] [<CommonParameters>]
-```
-
-### Inches
-```powershell
-Set-OfficePowerPointSlideSize -WidthInches <double> -HeightInches <double> [-Presentation <PowerPointPresentation>] [-PassThru] [<CommonParameters>]
-```
-
-### Points
-```powershell
-Set-OfficePowerPointSlideSize -WidthPoints <double> -HeightPoints <double> [-Presentation <PowerPointPresentation>] [-PassThru] [<CommonParameters>]
-```
-
-### Emus
-```powershell
-Set-OfficePowerPointSlideSize -WidthEmus <long> -HeightEmus <long> [-Presentation <PowerPointPresentation>] [-PassThru] [<CommonParameters>]
+Set-OfficePowerPointSlideSize -Width <OfficeLength> -Height <OfficeLength> [-PassThru] [-Document <PowerPointPresentation>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Supports common presets as well as explicit width and height in centimeters, inches, points, or EMUs.
+Numbers mean points; length strings accept pt, cm, mm, in, px or emu. PassThru returns the native slide size.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficePowerPoint -Path .\Examples\Documents\PowerPointWidescreen.pptx {
-    Set-OfficePowerPointSlideSize -Preset Screen16x9
-    Add-OfficePowerPointSlide -Layout 1 -PassThru | Set-OfficePowerPointSlideTitle -Title 'Widescreen deck'
-}
+Set-OfficePowerPointSlideSize -Document $deck -Preset Screen4x3 -Portrait
 ```
 
-Applies the 16:9 widescreen preset before adding slides.
 
 ### EXAMPLE 2
 ```powershell
-PS> $ppt = New-OfficePowerPoint -Path .\Examples\Documents\PowerPointCustomSize.pptx -NoSave
-Set-OfficePowerPointSlideSize -Presentation $ppt -WidthCm 25.4 -HeightCm 14.0
-Add-OfficePowerPointSlide -Presentation $ppt -Layout 1 -PassThru | Set-OfficePowerPointSlideTitle -Title 'Custom size'
-$ppt | Close-OfficePowerPoint -Save
+New-OfficePowerPoint -Path ./Review.pptx {
+    Set-OfficePowerPointSlideSize -Width '25.4cm' -Height '14cm'
+    PowerPointSlide -Title 'Service review'
+}
 ```
 
-Sets the presentation slide size to a custom 25.4 x 14.0 cm layout.
 
 ## PARAMETERS
 
-### -HeightCm
-Custom slide height in centimeters.
+### -Document
+Gets or sets an explicit live document; omission uses the enclosing content block.
 
 ```yaml
-Type: Double
-Parameter Sets: Centimeters
+Type: PowerPointPresentation
+Parameter Sets: Preset, Size
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -HeightEmus
-Custom slide height in EMUs.
+### -Height
+Gets or sets the custom slide height; numbers mean points.
 
 ```yaml
-Type: Int64
-Parameter Sets: Emus
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -HeightInches
-Custom slide height in inches.
-
-```yaml
-Type: Double
-Parameter Sets: Inches
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -HeightPoints
-Custom slide height in points.
-
-```yaml
-Type: Double
-Parameter Sets: Points
+Type: OfficeLength
+Parameter Sets: Size
 Aliases: None
 Possible values:
 
@@ -126,11 +74,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the object created or changed by the command.
+Gets or sets whether to return the native slide size after editing.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Preset, Centimeters, Inches, Points, Emus
+Parameter Sets: Preset, Size
 Aliases: None
 Possible values:
 
@@ -142,7 +90,7 @@ Accept wildcard characters: False
 ```
 
 ### -Portrait
-Apply the preset in portrait orientation.
+Gets or sets whether to rotate the chosen preset to portrait orientation.
 
 ```yaml
 Type: SwitchParameter
@@ -157,24 +105,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Presentation
-Presentation to update (optional inside New-OfficePowerPoint).
-
-```yaml
-Type: PowerPointPresentation
-Parameter Sets: Preset, Centimeters, Inches, Points, Emus
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
 ### -Preset
-Preset slide size to apply.
+Gets or sets a standard slide size.
 
 ```yaml
 Type: PowerPointSlideSizePreset
@@ -189,60 +121,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -WidthCm
-Custom slide width in centimeters.
+### -Width
+Gets or sets the custom slide width; numbers mean points.
 
 ```yaml
-Type: Double
-Parameter Sets: Centimeters
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -WidthEmus
-Custom slide width in EMUs.
-
-```yaml
-Type: Int64
-Parameter Sets: Emus
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -WidthInches
-Custom slide width in inches.
-
-```yaml
-Type: Double
-Parameter Sets: Inches
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -WidthPoints
-Custom slide width in points.
-
-```yaml
-Type: Double
-Parameter Sets: Points
+Type: OfficeLength
+Parameter Sets: Size
 Aliases: None
 Possible values:
 

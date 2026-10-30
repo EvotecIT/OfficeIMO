@@ -1,6 +1,18 @@
 {
   "package": "OfficeIMO.Html",
-  "changes": [],
+  "changes": [
+    {
+      "old": "HTML p elements: margin-top 0; margin-bottom 1em",
+      "kind": "behavior",
+      "action": "change",
+      "new": "HTML p elements: margin-top 1em; margin-bottom 1em",
+      "reason": "The HTML engine follows browser paragraph defaults, including adjacent margin collapse. Explicit CSS overrides these defaults; use p { margin-top: 0 } to retain the previous top spacing.",
+      "file": "OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs",
+      "category": "conversion",
+      "phase": "M6",
+      "applied": "applied"
+    }
+  ],
   "extraChanges": [
     {
       "phase": "A",

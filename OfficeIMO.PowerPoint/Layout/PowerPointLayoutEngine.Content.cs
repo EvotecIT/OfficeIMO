@@ -466,13 +466,27 @@ namespace OfficeIMO.PowerPoint {
                 part.TableRange = (rows[0] + 1, rows[rows.Count - 1] + 1, table.Rows.Count);
                 PowerPointLayoutTable pageTable = table.WithRows(rows.Select(i => table.Rows[i]).ToList());
                 foreach (PowerPointLayoutBlock block in slide.Blocks.Where(b => b.IsContentBlock && !ReferenceEquals(b, lede))) {
-                    part.Blocks.Add(ReferenceEquals(block, source) ? pageTable : block);
+                    part.Blocks.Add(ReferenceEquals(block, source) ? pageTable : page == 0 ? block : CopyRepeatedNativeContent(block));
                 }
 
                 part.SourceNote = slide.SourceNote;
                 yield return part;
             }
         }
+
+        /// <summary>Repeated table context is independent of the live nodes on the first physical slide.</summary>
+        private static PowerPointLayoutBlock CopyRepeatedNativeContent(PowerPointLayoutBlock block) => block switch {
+            PowerPointLayoutList list when list.NativeBody != null => new PowerPointLayoutList(Array.Empty<string>(), list.Numbered) {
+                NativeBody = list.NativeBody.CopyForRepeat(), NativeStart = list.NativeStart
+            },
+            PowerPointLayoutText text when text.NativeBody != null => new PowerPointLayoutText(Array.Empty<string>()) {
+                NativeBody = text.NativeBody.CopyForRepeat()
+            },
+            PowerPointLayoutChart chart when chart.NativeChart != null => CopyRepeatedNativeChart(chart),
+            PowerPointLayoutImage image when image.NativePicture != null => CopyRepeatedNativeImage(image),
+            PowerPointLayoutColumn column => new PowerPointLayoutColumn(column.Title, column.Blocks.Select(CopyRepeatedNativeContent).ToList()),
+            _ => block
+        };
 
         private static string Emu(double points) => ((long)Math.Round(points * 12700D)).ToString(CultureInfo.InvariantCulture);
 
@@ -558,7 +572,7 @@ namespace OfficeIMO.PowerPoint {
                     context.Paragraph(table.Caption!, PowerPointTextRole.Caption));
             }
 
-            return result;
+            return table.NativeBody?.Bind(writer.Slide, result) ?? result;
         }
 
         // ------------------------------------------------------------------ lists, text, charts, images
@@ -611,6 +625,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal static void RenderChart(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointLayoutChart chart, PowerPointLayoutRect box) {
+            if (chart.NativeChart != null) {
+                ArrangeNativeFigure(writer.Slide, chart.NativeChart, box);
+                return;
+            }
             // The chart label sits left-aligned above the plot as slide text (charts.title.align = left). A native
             // chart title is centred by every renderer, so the chart itself carries no title.
             if (!string.IsNullOrWhiteSpace(chart.Title)) {
@@ -830,6 +848,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Pictures keep their aspect ratio: contained in the box (top-left) or cover-cropped around the focal point.</summary>
         internal static PowerPointPicture RenderImage(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointLayoutImage image,
             PowerPointLayoutRect box, bool cover) {
+            if (image.NativePicture != null) return RenderNativeImage(context, writer, image, box, cover);
             PowerPointPicture picture = writer.Slide.AddPicture(image.Path, PowerPointUnits.FromPoints(box.X), PowerPointUnits.FromPoints(box.Y),
                 PowerPointUnits.FromPoints(box.Width), PowerPointUnits.FromPoints(box.Height));
             if (!PowerPointImageSize.TryRead(image.Path, out int pw, out int ph)) return picture;

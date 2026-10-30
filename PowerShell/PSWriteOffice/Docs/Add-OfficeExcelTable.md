@@ -11,7 +11,7 @@ Writes tabular data to the current worksheet and formats it as an Excel table.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Add-OfficeExcelTable [-InputObject] <Object> [-Worksheet <ExcelSheet>] [-Document <ExcelDocument>] [-Sheet <string>] [-SheetIndex <Int32>] [-StartRow <int>] [-StartColumn <int>] [-NoHeader] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-TableName <string>] [-TableStyle <ExcelTableStyle>] [-ShowFirstColumn] [-ShowLastColumn] [-NoRowStripes] [-ShowColumnStripes] [-NoAutoFilter] [-AutoFit] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelTable [-InputObject] <Object> [-Worksheet <ExcelSheet>] [-Document <ExcelDocument>] [-Sheet <string>] [-SheetIndex <Int32>] [-StartRow <int>] [-StartColumn <int>] [-NoHeader] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-Name <string>] [-ColumnFormat <hashtable>] [-Culture <cultureinfo>] [-TableStyle <ExcelTableStyle>] [-ShowFirstColumn] [-ShowLastColumn] [-NoRowStripes] [-ShowColumnStripes] [-NoAutoFilter] [-AutoFit] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -22,14 +22,14 @@ Accepts objects, dictionaries, DataTable/DataView/IDataReader inputs, or DataRow
 ### EXAMPLE 1
 ```powershell
 PS> $data = @([pscustomobject]@{ Region='NA'; Revenue=100 }, [pscustomobject]@{ Region='EMEA'; Revenue=150 })
-ExcelSheet 'Data' { Add-OfficeExcelTable -InputObject $data -TableName 'Sales' }
+ExcelSheet 'Data' { Add-OfficeExcelTable -InputObject $data -Name 'Sales' }
 ```
 
 Writes two rows and formats them as a styled Excel table.
 
 ### EXAMPLE 2
 ```powershell
-PS> Add-OfficeExcelTable -Worksheet $sheet -InputObject $rows -TableName 'Sales' -AutoFit
+PS> Add-OfficeExcelTable -Worksheet $sheet -InputObject $rows -Name 'Sales' -AutoFit
 ```
 
 Writes the rows into a live workbook without requiring an active DSL scope.
@@ -57,6 +57,38 @@ Text used between items when a cell contains a collection.
 
 ```yaml
 Type: String
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ColumnFormat
+Header-to-format mapping, using presets such as Percent or custom Excel number formats.
+
+```yaml
+Type: Hashtable
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Culture
+Culture used by number-format presets.
+
+```yaml
+Type: CultureInfo
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -153,6 +185,22 @@ Maximum nesting depth allowed while normalizing one cell value. Defaults to 64; 
 
 ```yaml
 Type: Int32
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Name
+Name to assign to the table.
+
+```yaml
+Type: String
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -329,22 +377,6 @@ Starting row for the data (1-based).
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -TableName
-Name to assign to the table.
-
-```yaml
-Type: String
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

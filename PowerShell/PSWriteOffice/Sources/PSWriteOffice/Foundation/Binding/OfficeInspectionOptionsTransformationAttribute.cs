@@ -19,6 +19,9 @@ public sealed class OfficeInspectionOptionsTransformationAttribute : ArgumentTra
             if (value is IDictionary dictionary && dictionary.Keys.Cast<object>().All(key => key is string name &&
                 typeof(OfficeInspectOptions).GetProperty(name, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance) != null))
                 return new OfficeOptionsTransformationAttribute(typeof(OfficeInspectOptions)).Transform(engineIntrinsics, value);
+            if (value is IDictionary native && native.Keys.Cast<object>().All(key => key is string name &&
+                typeof(OfficeIMO.PowerPoint.PowerPointInspectionOptions).GetProperty(name, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance) != null))
+                return new OfficeOptionsTransformationAttribute(typeof(OfficeIMO.PowerPoint.PowerPointInspectionOptions)).Transform(engineIntrinsics, value);
             return ((object[])new OfficeReadOptionsTransformationAttribute().Transform(engineIntrinsics, new[] { value! }))[0];
         }).ToArray();
     }

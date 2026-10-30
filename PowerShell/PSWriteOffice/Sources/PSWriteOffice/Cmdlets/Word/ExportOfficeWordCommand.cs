@@ -85,7 +85,7 @@ public sealed class ExportOfficeWordCommand : OfficeCmdlet {
 
             using WordDocument document = WordDocument.Create();
             if (Title != null) {
-                document.AddParagraph(Title).SetStyleId("Title");
+                document.AddParagraph(Title).Style = WordParagraphStyles.Title;
             }
             WordTable table = document.AddTableFromObjects(rows, Style, includeHeader: !NoHeader);
             table.AutoFitToContents();

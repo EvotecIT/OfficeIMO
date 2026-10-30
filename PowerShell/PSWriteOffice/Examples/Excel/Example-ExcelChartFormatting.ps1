@@ -10,9 +10,9 @@ $rows = @(
 
 New-OfficeExcel -Path $path {
     Add-OfficeExcelSheet -Name 'Data' -Content {
-        Add-OfficeExcelTable -Data $rows -TableName 'Sales' -AutoFit
+        Add-OfficeExcelTable -Data $rows -Name 'Sales' -AutoFit
 
-        $chart = Add-OfficeExcelChart -TableName 'Sales' -Row 6 -Column 1 -Type Pie -Title 'Revenue Mix' -PassThru
+        $chart = Add-OfficeExcelChart -Table 'Sales' -Address A6 -Type Pie -Title 'Revenue Mix' -PassThru
         $chart |
             Set-OfficeExcelChartLegend -Position Right -PassThru |
             Set-OfficeExcelChartDataLabels -ShowValue $true -ShowPercent $true -Position OutsideEnd -NumberFormat '0.0%' -SourceLinked:$false -PassThru |

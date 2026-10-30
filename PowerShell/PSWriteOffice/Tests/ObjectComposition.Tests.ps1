@@ -9,7 +9,7 @@ BeforeAll {
 
 Describe 'Object-style document composition' {
     It 'exports the concise PowerPoint section alias used by DSL recipes' {
-        (Get-Alias PptSection).ResolvedCommandName | Should -Be 'Add-OfficePowerPointSection'
+        (Get-Alias PowerPointSection).ResolvedCommandName | Should -Be 'Add-OfficePowerPointSection'
     }
 
     It 'composes and saves a Word document without a DSL scriptblock' {
@@ -78,7 +78,7 @@ Describe 'Object-style document composition' {
         try {
             $sheet = $workbook | Add-OfficeExcelSheet -Name 'Projects' -PassThru
             $sheet | Set-OfficeExcelCell -Address A1 -Value 'Portfolio' -BackgroundColor '#D9EAF7'
-            Add-OfficeExcelTable -Worksheet $sheet -InputObject $rows -StartRow 3 -TableName 'Projects' -AutoFit
+            Add-OfficeExcelTable -Worksheet $sheet -InputObject $rows -StartRow 3 -Name 'Projects' -AutoFit
             Set-OfficeExcelCell -Document $workbook -Sheet 'Projects' -Address C4 -NumberFormat '0%'
             $workbook | Save-OfficeExcel
         } finally {

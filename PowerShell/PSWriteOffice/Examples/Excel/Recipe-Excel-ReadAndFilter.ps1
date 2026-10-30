@@ -7,7 +7,7 @@ $rows = @(
 
 ExcelNew -Path $path {
     ExcelSheet 'Services' {
-        ExcelTable -Data $rows -TableName 'ServiceHealth' -AutoFit
+        ExcelTable -Data $rows -Name 'ServiceHealth' -AutoFit
     }
 }
 

@@ -320,7 +320,7 @@ Describe 'Expanded OfficeIMO support' {
         $pdfPath = Join-Path $TestDrive 'images.pdf'
         New-OfficeWord -Path $wordPath { WordSection { WordParagraph -Text 'Word image' } } | Out-Null
         New-OfficeExcel -Path $excelPath { ExcelSheet 'Data' { ExcelCell -Address A1 -Value 'Excel image' } } | Out-Null
-        New-OfficePowerPoint -Path $powerPointPath { PptSlide { PptTitle -Title 'PowerPoint image' } } | Out-Null
+        New-OfficePowerPoint -Path $powerPointPath { PowerPointSlide -Title 'PowerPoint image' } | Out-Null
         New-OfficePdf -Path $pdfPath { PdfParagraph 'PDF image' } | Out-Null
 
         $quietImagePath = Join-Path $TestDrive 'word-quiet.svg'
@@ -401,10 +401,10 @@ Describe 'Expanded OfficeIMO support' {
 
     It 'releases path-loaded PowerPoint presentations after image export' {
         $powerPointPath = Join-Path $TestDrive 'transient.pptx'
-        New-OfficePowerPoint -Path $powerPointPath { PptSlide { PptTitle -Title 'Transient' } } | Out-Null
+        New-OfficePowerPoint -Path $powerPointPath { PowerPointSlide -Title 'Transient' } | Out-Null
 
         Export-OfficePowerPointImage -Path $powerPointPath -OutputPath (Join-Path $TestDrive 'transient-images') -Format Svg | Out-Null
-        Get-OfficePowerPointInspection -Path $powerPointPath | Out-Null
+        Test-OfficePowerPoint -Path $powerPointPath | Out-Null
 
         $renamedPath = Join-Path $TestDrive 'transient-renamed.pptx'
         Move-Item -LiteralPath $powerPointPath -Destination $renamedPath
@@ -417,7 +417,7 @@ Describe 'Expanded OfficeIMO support' {
         $powerPointPath = Join-Path $TestDrive 'convert.pptx'
         New-OfficeWord -Path $wordPath { WordSection { WordParagraph -Text 'Convert' } } | Out-Null
         New-OfficeExcel -Path $excelPath { ExcelSheet 'Data' { ExcelCell -Address A1 -Value 'Convert' } } | Out-Null
-        New-OfficePowerPoint -Path $powerPointPath { PptSlide { PptTitle -Title 'Convert' } } | Out-Null
+        New-OfficePowerPoint -Path $powerPointPath { PowerPointSlide -Title 'Convert' } | Out-Null
 
         ConvertTo-OfficeOpenDocument -Path $wordPath -OutputPath (Join-Path $TestDrive 'convert.odt') | Out-Null
         ConvertTo-OfficeOpenDocument -Path $excelPath -OutputPath (Join-Path $TestDrive 'convert.ods') | Out-Null
@@ -439,13 +439,13 @@ Describe 'Expanded OfficeIMO support' {
         $deck = Join-Path $TestDrive 'inspection.pptx'
         New-OfficeWord -Path $before { WordSection { WordParagraph -Text 'Before text' } } | Out-Null
         New-OfficeWord -Path $after { WordSection { WordParagraph -Text 'After text' } } | Out-Null
-        New-OfficePowerPoint -Path $deck { PptSlide { PptTitle -Title 'Inspection' } } | Out-Null
+        New-OfficePowerPoint -Path $deck { PowerPointSlide -Title 'Inspection' } | Out-Null
 
         $comparison = Compare-OfficeWordDocument -ReferencePath $before -DifferencePath $after -RedlinePath $redline
         $comparison.GetType().FullName | Should -Be 'OfficeIMO.Word.WordComparisonResult'
         Test-Path -LiteralPath $redline | Should -BeTrue
         (Get-OfficeWordReview -Path $redline).GetType().FullName | Should -Be 'OfficeIMO.Word.WordReviewReport'
-        (Get-OfficePowerPointInspection -Path $deck).GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointInspectionReport'
+        (Test-OfficePowerPoint -Path $deck).GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointInspectionReport'
     }
 
     It 'runs PDF sanitization, XFDF, interaction, overlay, comparison, and rewrite proof' {

@@ -67,6 +67,7 @@ namespace OfficeIMO.Excel {
         /// <returns>The created chart.</returns>
         public ExcelChart AddDashboardChart(ExcelDashboardChartOptions options) {
             if (options == null) throw new ArgumentNullException(nameof(options));
+            if (!Enum.IsDefined(typeof(ExcelDashboardChartPreset), options.Preset)) throw new ArgumentOutOfRangeException(nameof(options.Preset));
             if (options.Row <= 0 || options.Row > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(options.Row), "Chart row must be between 1 and the Excel row limit.");
             if (options.Column <= 0 || options.Column > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(options.Column), "Chart column must be between 1 and the Excel column limit.");
             if (options.WidthPixels <= 0) throw new ArgumentOutOfRangeException(nameof(options.WidthPixels), "Chart width must be greater than zero.");
@@ -79,14 +80,18 @@ namespace OfficeIMO.Excel {
             var chartType = options.ChartType ?? preset.ChartType;
             int width = options.WidthPixels ?? preset.WidthPixels;
             int height = options.HeightPixels ?? preset.HeightPixels;
-            int styleId = options.StyleId ?? preset.StyleId;
-            int colorStyleId = options.ColorStyleId ?? preset.ColorStyleId;
 
             ExcelChart chart = !string.IsNullOrWhiteSpace(options.TableName)
                 ? AddChartFromTable(options.TableName!, options.Row, options.Column, width, height, chartType, options.Title, options.IncludeCachedData)
                 : AddChartFromRange(options.Range!, options.Row, options.Column, width, height, chartType, options.HasHeaders, options.Title, options.IncludeCachedData);
 
-            chart.ApplyStylePreset(styleId, colorStyleId);
+            return chart.ApplyDashboardPreset(options.Preset, options.StyleId, options.ColorStyleId);
+        }
+
+        internal static void ApplyDashboardAppearance(ExcelChart chart, ExcelDashboardChartPreset kind,
+            int? styleId, int? colorStyleId) {
+            var preset = ResolveDashboardChartPreset(kind);
+            chart.ApplyStylePreset(styleId ?? preset.StyleId, colorStyleId ?? preset.ColorStyleId);
             if (preset.HideLegend) {
                 chart.HideLegend();
             } else {
@@ -104,11 +109,9 @@ namespace OfficeIMO.Excel {
                     numberFormat: null);
             }
 
-            if (!string.IsNullOrWhiteSpace(options.Title)) {
+            if (!string.IsNullOrWhiteSpace(chart.Title)) {
                 chart.SetTitleTextStyle(fontSizePoints: 12, bold: true);
             }
-
-            return chart;
         }
 
         private static ResolvedDashboardChartPreset ResolveDashboardChartPreset(ExcelDashboardChartPreset preset) {

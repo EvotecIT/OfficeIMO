@@ -1074,7 +1074,7 @@ Describe 'Word DSL surface' {
 
         New-OfficeWord -Path $path {
             Add-OfficeWordParagraph -Text 'Revenue mix'
-            Add-OfficeWordChart -Type Pie -Data $rows -CategoryProperty Region -SeriesProperty Revenue -Title 'Regional Revenue Mix'
+            Add-OfficeWordChart -Type Pie -Data $rows -Category Region -Value Revenue -Title 'Regional Revenue Mix'
         } | Out-Null
 
         $document = Get-OfficeWord -Path $path -ReadOnly
@@ -1148,7 +1148,7 @@ Describe 'Word DSL surface' {
 
         $document = New-OfficeWord -Path $path -NoSave
         try {
-            $chart = Add-OfficeWordChart -Document $document -Type Line -InputObject $rows -CategoryProperty Month -SeriesProperty Sales, Profit -Legend -XAxisTitle 'Month' -YAxisTitle 'Value' -Title 'Monthly Trend' -PassThru
+            $chart = Add-OfficeWordChart -Document $document -Type Line -InputObject $rows -Category Month -Value Sales, Profit -Legend -XAxisTitle 'Month' -YAxisTitle 'Value' -Title 'Monthly Trend' -PassThru
             $chart.Title | Should -Be 'Monthly Trend'
             Save-OfficeWord -Document $document | Out-Null
         } finally {
@@ -1240,7 +1240,7 @@ Describe 'Word DSL surface' {
             $table = Add-OfficeWordTable -InputObject $tableRows -Style 'GridTable1LightAccent1' -PassThru
             $paragraph = $table.Rows[1].Cells[1].AddParagraph()
 
-            Add-OfficeWordChart -Paragraph $paragraph -Type Pie -InputObject $chartRows -CategoryProperty Region -SeriesProperty Revenue -Title 'Regional Revenue Mix'
+            Add-OfficeWordChart -Paragraph $paragraph -Type Pie -InputObject $chartRows -Category Region -Value Revenue -Title 'Regional Revenue Mix'
         } | Out-Null
 
         $document = Get-OfficeWord -Path $path -ReadOnly

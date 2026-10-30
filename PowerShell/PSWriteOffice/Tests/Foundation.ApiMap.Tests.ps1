@@ -2,7 +2,7 @@ BeforeAll {
     $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../..'))
     $moduleManifest = if ($env:PSWRITEOFFICE_MODULE_MANIFEST) { $env:PSWRITEOFFICE_MODULE_MANIFEST } else { Join-Path $PSScriptRoot '../PSWriteOffice.psd1' }
     $module = Import-Module $moduleManifest -Global -PassThru -ErrorAction Stop
-    $maps = @(Get-ChildItem -LiteralPath (Join-Path $repo 'Build/ApiMap/powershell') -Filter '*.json' | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json })
+    $maps = @(Get-ChildItem -LiteralPath (Join-Path $repo 'Build/ApiMap/powershell') -Filter '*.json' | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8 | ConvertFrom-Json })
 }
 Describe 'Command map foundations' {
     It 'validates map coverage and integrity against the built module metadata' {

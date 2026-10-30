@@ -434,7 +434,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        /// <summary>Discards only a failed child command's subtree and relationships no surviving content uses.</summary>
+        /// <summary>Removes a content subtree and the relationships no surviving content uses.</summary>
         internal static void DiscardContent(DocumentFormat.OpenXml.OpenXmlElement content, OpenXmlPart? ownerPart) {
             string[] soundIds = PowerPointEmbeddedSound.GetRelationshipIds(content);
             string[] linkIds = content.Descendants<A.HyperlinkType>()

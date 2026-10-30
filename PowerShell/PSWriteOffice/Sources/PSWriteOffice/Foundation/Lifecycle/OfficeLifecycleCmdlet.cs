@@ -47,13 +47,15 @@ public abstract class OfficeLifecycleCmdlet<TDocument> : OfficeCmdlet, IDisposab
         if (!ShouldProcess(resolved!, isNew ? "Create document" : "Save document")) return;
         try {
             FileInfo result = OfficeContentLifecycle.Run(resolved!, isNew, isNew && !force, AllowLoss,
-                p => factory(p), _ => Content.Invoke(), save, _stop.Token, error => ThrowTerminatingError(OfficeError.NativeSave(error, resolved)));
+                p => factory(p), document => InvokeContent(document), save, _stop.Token, error => ThrowTerminatingError(OfficeError.NativeSave(error, resolved)));
             if (Show) OfficeShow.Open(result.FullName);
             if (PassThru) WriteObject(result);
         } catch (PipelineStoppedException) { throw; }
         catch (OperationCanceledException) when (_stop.IsCancellationRequested) { throw new PipelineStoppedException(); }
         // Block failures propagate unchanged; never turn a terminating authoring error into a success result.
     }
+    /// <summary>Runs the content block on the pipeline thread; formats can enter their native authoring scope here.</summary>
+    protected virtual void InvokeContent(TDocument document) => Content!.Invoke();
     /// <summary>Releases the lifecycle cancellation source after the command finishes.</summary>
     public void Dispose() => _stop.Dispose();
     /// <inheritdoc />

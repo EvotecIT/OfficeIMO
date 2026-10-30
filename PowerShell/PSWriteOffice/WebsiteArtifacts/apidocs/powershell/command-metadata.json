@@ -1299,16 +1299,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordHeaderCommand.cs#L17"
     },
     {
-      "name": "Add-OfficeWordHeading",
-      "kind": "Cmdlet",
-      "aliases": [
-        "WordHeading"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordHeadingCommand.cs",
-      "sourceLine": 45,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordHeadingCommand.cs#L45"
-    },
-    {
       "name": "Add-OfficeWordHyperlink",
       "kind": "Cmdlet",
       "aliases": [
@@ -1684,8 +1674,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Ocr/ConvertFromOfficeImageCommand.cs",
-      "sourceLine": 37,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Ocr/ConvertFromOfficeImageCommand.cs#L37"
+      "sourceLine": 35,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Ocr/ConvertFromOfficeImageCommand.cs#L35"
     },
     {
       "name": "ConvertFrom-OfficeIWork",
@@ -1736,8 +1726,8 @@
         "ConvertFrom-PdfHtml"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/ConvertFromOfficePdfHtmlCommand.cs",
-      "sourceLine": 24,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/ConvertFromOfficePdfHtmlCommand.cs#L24"
+      "sourceLine": 23,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/ConvertFromOfficePdfHtmlCommand.cs#L23"
     },
     {
       "name": "ConvertFrom-OfficeRtf",
@@ -1790,8 +1780,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/ConvertToOfficeDocumentCommand.cs",
-      "sourceLine": 29,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertToOfficeDocumentCommand.cs#L29"
+      "sourceLine": 32,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertToOfficeDocumentCommand.cs#L32"
     },
     {
       "name": "ConvertTo-OfficeExcelHtml",
@@ -1808,8 +1798,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/ConvertToOfficeExcelWorkbookCommand.cs",
-      "sourceLine": 27,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/ConvertToOfficeExcelWorkbookCommand.cs#L27"
+      "sourceLine": 26,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/ConvertToOfficeExcelWorkbookCommand.cs#L26"
     },
     {
       "name": "ConvertTo-OfficeLatexMarkdown",
@@ -1852,8 +1842,8 @@
         "ConvertTo-PdfExcel"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/ConvertToOfficePdfExcelCommand.cs",
-      "sourceLine": 23,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/ConvertToOfficePdfExcelCommand.cs#L23"
+      "sourceLine": 22,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/ConvertToOfficePdfExcelCommand.cs#L22"
     },
     {
       "name": "ConvertTo-OfficePdfFlatAnnotation",
@@ -1904,8 +1894,8 @@
         "ConvertTo-PdfPowerPoint"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/ConvertToOfficePdfPowerPointCommand.cs",
-      "sourceLine": 23,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/ConvertToOfficePdfPowerPointCommand.cs#L23"
+      "sourceLine": 22,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/ConvertToOfficePdfPowerPointCommand.cs#L22"
     },
     {
       "name": "ConvertTo-OfficePdfRedacted",
@@ -1948,8 +1938,8 @@
         "ConvertTo-PdfWord"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/ConvertToOfficePdfWordCommand.cs",
-      "sourceLine": 23,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/ConvertToOfficePdfWordCommand.cs#L23"
+      "sourceLine": 22,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/ConvertToOfficePdfWordCommand.cs#L22"
     },
     {
       "name": "ConvertTo-OfficePowerPointHtml",
@@ -2022,8 +2012,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/ConvertToOfficeWordDocumentCommand.cs",
-      "sourceLine": 27,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/ConvertToOfficeWordDocumentCommand.cs#L27"
+      "sourceLine": 26,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/ConvertToOfficeWordDocumentCommand.cs#L26"
     },
     {
       "name": "ConvertTo-OfficeWordHtml",
@@ -2098,8 +2088,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeConversionJobCommand.cs",
-      "sourceLine": 25,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeConversionJobCommand.cs#L25"
+      "sourceLine": 26,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeConversionJobCommand.cs#L26"
     },
     {
       "name": "Export-OfficeCsv",
@@ -2108,14 +2098,6 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Csv/ExportOfficeCsvCommand.cs",
       "sourceLine": 29,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Csv/ExportOfficeCsvCommand.cs#L29"
-    },
-    {
-      "name": "Export-OfficeDocumentAsset",
-      "kind": "Cmdlet",
-      "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/ExportOfficeDocumentAssetCommand.cs",
-      "sourceLine": 23,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/ExportOfficeDocumentAssetCommand.cs#L23"
     },
     {
       "name": "Export-OfficeDocumentPdf",
@@ -2376,8 +2358,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/GetOfficeConversionJobReportCommand.cs",
-      "sourceLine": 18,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/GetOfficeConversionJobReportCommand.cs#L18"
+      "sourceLine": 21,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/GetOfficeConversionJobReportCommand.cs#L21"
     },
     {
       "name": "Get-OfficeConversionRoute",
@@ -2396,20 +2378,113 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Csv/GetOfficeCsvCommand.cs#L36"
     },
     {
-      "name": "Get-OfficeDocumentCapability",
+      "name": "Get-OfficeDocument",
       "kind": "Cmdlet",
-      "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentCapabilityCommand.cs",
-      "sourceLine": 18,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentCapabilityCommand.cs#L18"
+      "aliases": [
+        "Read-OfficeDocument"
+      ],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentCommand.cs",
+      "sourceLine": 21,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentCommand.cs#L21"
     },
     {
-      "name": "Get-OfficeDocumentInfo",
+      "name": "Get-OfficeDocumentAsset",
+      "kind": "Cmdlet",
+      "aliases": [
+        "Export-OfficeDocumentAsset",
+        "Read-OfficeDocumentAsset"
+      ],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentAssetCommand.cs",
+      "sourceLine": 26,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentAssetCommand.cs#L26"
+    },
+    {
+      "name": "Get-OfficeDocumentBatch",
       "kind": "Cmdlet",
       "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentInfoCommand.cs",
-      "sourceLine": 25,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentInfoCommand.cs#L25"
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentBatchCommand.cs",
+      "sourceLine": 19,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentBatchCommand.cs#L19"
+    },
+    {
+      "name": "Get-OfficeDocumentCapability",
+      "kind": "Cmdlet",
+      "aliases": [
+        "Get-OfficeReaderCapability"
+      ],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentCapabilityCommand.cs",
+      "sourceLine": 19,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentCapabilityCommand.cs#L19"
+    },
+    {
+      "name": "Get-OfficeDocumentChunk",
+      "kind": "Cmdlet",
+      "aliases": [
+        "Read-OfficeDocumentChunk"
+      ],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentChunkCommand.cs",
+      "sourceLine": 22,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentChunkCommand.cs#L22"
+    },
+    {
+      "name": "Get-OfficeDocumentDetection",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentDetectionCommand.cs",
+      "sourceLine": 16,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentDetectionCommand.cs#L16"
+    },
+    {
+      "name": "Get-OfficeDocumentHierarchy",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentHierarchyCommand.cs",
+      "sourceLine": 17,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentHierarchyCommand.cs#L17"
+    },
+    {
+      "name": "Get-OfficeDocumentIngest",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentIngestCommand.cs",
+      "sourceLine": 17,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentIngestCommand.cs#L17"
+    },
+    {
+      "name": "Get-OfficeDocumentPageMarkdown",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentPageMarkdownCommand.cs",
+      "sourceLine": 19,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentPageMarkdownCommand.cs#L19"
+    },
+    {
+      "name": "Get-OfficeDocumentStructured",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentStructuredCommand.cs",
+      "sourceLine": 16,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentStructuredCommand.cs#L16"
+    },
+    {
+      "name": "Get-OfficeDocumentTable",
+      "kind": "Cmdlet",
+      "aliases": [
+        "Read-OfficeDocumentTable"
+      ],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentTableCommand.cs",
+      "sourceLine": 19,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentTableCommand.cs#L19"
+    },
+    {
+      "name": "Get-OfficeDocumentVisual",
+      "kind": "Cmdlet",
+      "aliases": [
+        "Read-OfficeDocumentVisual"
+      ],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentVisualCommand.cs",
+      "sourceLine": 18,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentVisualCommand.cs#L18"
     },
     {
       "name": "Get-OfficeEmail",
@@ -2903,8 +2978,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/GetOfficePdfPreflightCommand.cs",
-      "sourceLine": 19,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/GetOfficePdfPreflightCommand.cs#L19"
+      "sourceLine": 18,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/GetOfficePdfPreflightCommand.cs#L18"
     },
     {
       "name": "Get-OfficePdfRedactionPlan",
@@ -3447,8 +3522,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/InvokeOfficeConversionJobCommand.cs",
-      "sourceLine": 24,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/InvokeOfficeConversionJobCommand.cs#L24"
+      "sourceLine": 27,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/InvokeOfficeConversionJobCommand.cs#L27"
     },
     {
       "name": "Invoke-OfficeExcelAutoFit",
@@ -3582,14 +3657,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/JoinOfficeWordDocumentCommand.cs#L34"
     },
     {
-      "name": "Merge-OfficeDocument",
-      "kind": "Cmdlet",
-      "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/MergeOfficeDocumentCommand.cs",
-      "sourceLine": 30,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/MergeOfficeDocumentCommand.cs#L30"
-    },
-    {
       "name": "Move-OfficeExcelSheet",
       "kind": "Cmdlet",
       "aliases": [
@@ -3629,32 +3696,16 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/NewOfficeConversionOptionsCommand.cs",
-      "sourceLine": 29,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/NewOfficeConversionOptionsCommand.cs#L29"
-    },
-    {
-      "name": "New-OfficeDocumentHierarchyOptions",
-      "kind": "Cmdlet",
-      "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/NewOfficeDocumentHierarchyOptionsCommand.cs",
-      "sourceLine": 15,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/NewOfficeDocumentHierarchyOptionsCommand.cs#L15"
+      "sourceLine": 36,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/NewOfficeConversionOptionsCommand.cs#L36"
     },
     {
       "name": "New-OfficeDocumentReader",
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/NewOfficeDocumentReaderCommand.cs",
-      "sourceLine": 21,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/NewOfficeDocumentReaderCommand.cs#L21"
-    },
-    {
-      "name": "New-OfficeDocumentReaderOptions",
-      "kind": "Cmdlet",
-      "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/NewOfficeDocumentReaderOptionsCommand.cs",
-      "sourceLine": 17,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/NewOfficeDocumentReaderOptionsCommand.cs#L17"
+      "sourceLine": 24,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/NewOfficeDocumentReaderCommand.cs#L24"
     },
     {
       "name": "New-OfficeEmailMailboxReaderOptions",
@@ -3817,14 +3868,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/NewOfficeMarkdownPdfOptionsCommand.cs#L18"
     },
     {
-      "name": "New-OfficeOcrOptions",
-      "kind": "Cmdlet",
-      "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Ocr/NewOfficeOcrOptionsCommand.cs",
-      "sourceLine": 17,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Ocr/NewOfficeOcrOptionsCommand.cs#L17"
-    },
-    {
       "name": "New-OfficeOpenDocument",
       "kind": "Cmdlet",
       "aliases": [
@@ -3851,8 +3894,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/NewOfficePdfExcelImportOptionsCommand.cs",
-      "sourceLine": 18,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/NewOfficePdfExcelImportOptionsCommand.cs#L18"
+      "sourceLine": 17,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/NewOfficePdfExcelImportOptionsCommand.cs#L17"
     },
     {
       "name": "New-OfficePdfImageOptions",
@@ -3917,8 +3960,8 @@
         "New-OfficePdfPowerPointImportOptions"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePdfPowerPointImportOptionsCommand.cs",
-      "sourceLine": 19,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePdfPowerPointImportOptionsCommand.cs#L19"
+      "sourceLine": 18,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePdfPowerPointImportOptionsCommand.cs#L18"
     },
     {
       "name": "New-OfficePdfToWordOptions",
@@ -3927,8 +3970,8 @@
         "New-OfficePdfWordImportOptions"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/NewOfficePdfWordImportOptionsCommand.cs",
-      "sourceLine": 19,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/NewOfficePdfWordImportOptionsCommand.cs#L19"
+      "sourceLine": 18,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/NewOfficePdfWordImportOptionsCommand.cs#L18"
     },
     {
       "name": "New-OfficePdfVisualComparisonOptions",
@@ -3991,6 +4034,14 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Project/NewOfficeProjectCommand.cs",
       "sourceLine": 18,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Project/NewOfficeProjectCommand.cs#L18"
+    },
+    {
+      "name": "New-OfficeReaderHierarchyOptions",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/NewOfficeReaderHierarchyOptionsCommand.cs",
+      "sourceLine": 15,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/NewOfficeReaderHierarchyOptionsCommand.cs#L15"
     },
     {
       "name": "New-OfficeRtf",
@@ -4125,14 +4176,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordTableCellCommand.cs#L18"
     },
     {
-      "name": "Protect-OfficeDocument",
-      "kind": "Cmdlet",
-      "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/ProtectOfficeDocumentCommand.cs",
-      "sourceLine": 43,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ProtectOfficeDocumentCommand.cs#L43"
-    },
-    {
       "name": "Protect-OfficeExcelSheet",
       "kind": "Cmdlet",
       "aliases": [
@@ -4167,14 +4210,6 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Confluence/PublishOfficeConfluencePageCommand.cs",
       "sourceLine": 25,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Confluence/PublishOfficeConfluencePageCommand.cs#L25"
-    },
-    {
-      "name": "Read-OfficeDocument",
-      "kind": "Cmdlet",
-      "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/ReadOfficeDocumentCommand.cs",
-      "sourceLine": 24,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/ReadOfficeDocumentCommand.cs#L24"
     },
     {
       "name": "Read-OfficePdf",
@@ -4408,8 +4443,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/SearchOfficeDocumentCommand.cs",
-      "sourceLine": 23,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/SearchOfficeDocumentCommand.cs#L23"
+      "sourceLine": 28,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/SearchOfficeDocumentCommand.cs#L28"
     },
     {
       "name": "Send-OfficeConfluenceAttachment",
