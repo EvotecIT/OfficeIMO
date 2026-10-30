@@ -139,13 +139,14 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             new[] { "Total", "6 397,62 PLN" }
         };
 
-        return CreateVisualBaselineDocument(new PdfCreateOptions {
+        return CreateVisualBaselineDocument(PdfReportVisualFixtureStyles.Apply(new PdfCreateOptions {
                 PageWidth = 595,
                 PageHeight = 842,
                 MarginLeft = 50,
                 MarginRight = 50,
                 MarginTop = 54,
                 MarginBottom = 58,
+                BackgroundColor = null,
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 11,
                 DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(25, 25, 25),
@@ -155,7 +156,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 FooterAlign = PdfAlign.Center,
                 FooterOffsetY = 28,
                 ShowPageNumbers = true
-            })
+            }))
             .Meta(title: "OfficeIMO.Pdf Line-Item Visual Gate", author: "OfficeIMO")
             .Compose(document => {
                 document.Page(page => {

@@ -1673,16 +1673,16 @@
     {
       "old": "OfficeIMO.Pdf.PdfDocumentReadResult",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "replacement": "Adapters take PdfDocument only.",
-      "reason": "Second read model: every PDF reconstruction adapter has a parallel PdfDocumentReadResult overload set.",
+      "action": "keep",
+      "new": "OfficeIMO.Pdf.PdfDocumentReadResult",
+      "replacement": "PdfDocument.Read() returns the detached logical reading result; reconstruction adapters accept PdfDocument.",
+      "reason": "The documented Read() result is covered by the design visibility exception for results and models of a public API. It has no separate load/save lifecycle. Parallel reconstruction overloads were removed in Phase A.",
       "file": "OfficeIMO.Pdf/Reading/Logical/PdfDocumentReadResult.Attachments.cs, OfficeIMO.Pdf/Reading/Logical/PdfDocumentReadResult.CatalogActions.cs, OfficeIMO.Pdf/Reading/Logical/PdfDocumentReadResult.OptionalContent.cs (+10 partial files)",
       "category": "lifecycle",
-      "notes": "Candidate.",
+      "notes": "Retained documented result contract.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "PdfDocument owns loading, physical pages, extraction and logical Read(). The read-only logical result remains the model returned by Read until the Phase B generated visibility pass accounts for OCR, structured export and inspection result models. Adapters expose PdfDocument source overloads only."
+      "applied": "phase-b-retained-public-contract",
+      "note": "README reading, OCR and structured export examples expose this immutable logical result. Generated visibility analysis retains the type through PdfDocument.Read; individual undocumented helpers remain review candidates."
     },
     {
       "old": "OfficeIMO.Pdf.PdfSaveResult",
@@ -3774,6 +3774,22 @@
         "OfficeIMO.Pdf.Tests/Pdf/PdfComposePageHeaderFooterRenderingTests.cs",
         "OfficeIMO.Pdf.Tests/Pdf/PdfConversionTypographyTests.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "Fixed report and background-watermark edit fixtures inherited Modern page/type defaults",
+      "new": "Fixed reports declare their measured page/type/list rhythm; visible background-watermark edits use an explicitly transparent source; ordinary opaque page stacking remains covered",
+      "reason": "Modern creation defaults remain in production. Fixed geometry baselines need explicit fixture inputs, and an opaque page correctly covers a watermark painted behind its content.",
+      "files": [
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentVisualBaselineTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentRasterVisualBaselineReportScenarios.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentRasterVisualBaselineSupport.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfReportVisualFixtureStyles.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfWatermarkWorkflowTests.cs"
+      ],
+      "applied": "phase-b-applied",
+      "note": "All five previously failing PDF cases pass with unchanged assertions and goldens. The owning reading-result type remains public under the design model/result exception; adapter reconstruction takes PdfDocument only."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

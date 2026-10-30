@@ -149,11 +149,14 @@ public sealed class PdfWatermarkWorkflowTests {
     [InlineData(false)]
     [InlineData(true)]
     public void SavedWatermarkSettingsCanBeReadAndEditedWithoutOriginalOptions(bool image) {
+        // Keep the background transparent so it cannot cover the watermark beneath the page content.
+        byte[] source = Source(new PdfCreateOptions { BackgroundColor = null });
         var original = Options(image);
         original.X = null;
         original.Y = 120;
         original.BehindContent = true;
-        var first = PdfDocument.Load(Source()).Stamp.Watermark(original);
+        var first = PdfDocument.Load(source).Stamp.Watermark(original);
+        Assert.False(Render(source, 2).SequenceEqual(Render(first.ToBytes(), 2)));
         var reopened = PdfDocument.Load(first.ToBytes());
         var saved = Assert.Single(reopened.Stamp.ReadWatermarks());
         Assert.Equal(original.Id, saved.Id);
@@ -175,7 +178,34 @@ public sealed class PdfWatermarkWorkflowTests {
         var changed = reopened.Stamp.Watermark(saved);
         Assert.Single(changed.Stamp.ReadWatermarks());
         Assert.Equal(100, changed.Stamp.ReadWatermarks()[0].Width);
+        Assert.Equal(145, changed.Stamp.ReadWatermarks()[0].Y);
         Assert.False(Render(first.ToBytes(), 2).SequenceEqual(Render(changed.ToBytes(), 2)));
+        string fixture = image ? "saved-image-watermark" : "saved-text-watermark";
+        PdfDocumentRasterVisualBaselineTests.WriteReviewPdfArtifact(fixture + "-before", first.ToBytes());
+        PdfDocumentRasterVisualBaselineTests.WriteReviewPdfArtifact(fixture + "-after", changed.ToBytes());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SavedBackgroundWatermarkEditsRemainCoveredByOpaquePageContent(bool image) {
+        byte[] source = Source();
+        var original = Options(image);
+        original.BehindContent = true;
+        byte[] first = PdfDocument.Load(source).Stamp.Watermark(original).ToBytes();
+        var reopened = PdfDocument.Load(first);
+        var saved = Assert.Single(reopened.Stamp.ReadWatermarks());
+        saved.Width = 100;
+        saved.Y = 145;
+        byte[] changed = reopened.Stamp.Watermark(saved).ToBytes();
+        var revised = Assert.Single(PdfDocument.Load(changed).Stamp.ReadWatermarks());
+
+        Assert.Equal(original.Id, revised.Id);
+        Assert.True(revised.BehindContent);
+        Assert.Equal(100, revised.Width);
+        Assert.Equal(145, revised.Y);
+        Assert.Equal(Render(source, 2), Render(first, 2));
+        Assert.Equal(Render(source, 2), Render(changed, 2));
     }
 
     [Fact]
@@ -408,10 +438,10 @@ public sealed class PdfWatermarkWorkflowTests {
         Color = global::OfficeIMO.OfficeColor.FromRgb(240, 20, 20), Opacity = 0.5, TargetPages = PdfPageSelector.Parse("2")
     };
 
-    private static byte[] Source() => PdfDocument.Create(document => {
+    private static byte[] Source(PdfCreateOptions? options = null) => PdfDocument.Create(document => {
         document.Page(page => page.Size(400, 500).Content(content => content.Text("Original first page")));
         document.Page(page => page.Size(400, 500).Content(content => content.Text("Original second page")));
-    }).ToBytes();
+    }, options).ToBytes();
 
     private static byte[] CreateSolidBmp(int width, int height) {
         int rowLength = ((width * 3 + 3) / 4) * 4;
