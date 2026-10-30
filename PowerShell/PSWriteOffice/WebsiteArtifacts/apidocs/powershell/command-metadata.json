@@ -1695,6 +1695,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/CloseOfficeExcelCommand.cs#L13"
     },
     {
+      "name": "Close-OfficeMarkdown",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/CloseOfficeMarkdownCommand.cs",
+      "sourceLine": 10,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/CloseOfficeMarkdownCommand.cs#L10"
+    },
+    {
       "name": "Close-OfficePowerPoint",
       "kind": "Cmdlet",
       "aliases": [],
@@ -2815,14 +2823,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Latex/GetOfficeLatexCommand.cs#L11"
     },
     {
-      "name": "Get-OfficeMarkdown",
-      "kind": "Cmdlet",
-      "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/GetOfficeMarkdownCommand.cs",
-      "sourceLine": 25,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/GetOfficeMarkdownCommand.cs#L25"
-    },
-    {
       "name": "Get-OfficeMarkdownFrontMatter",
       "kind": "Cmdlet",
       "aliases": [],
@@ -3834,13 +3834,10 @@
     {
       "name": "New-OfficeMarkdown",
       "kind": "Cmdlet",
-      "aliases": [
-        "MarkdownNew",
-        "OfficeMarkdown"
-      ],
+      "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/NewOfficeMarkdownCommand.cs",
-      "sourceLine": 34,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/NewOfficeMarkdownCommand.cs#L34"
+      "sourceLine": 20,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/NewOfficeMarkdownCommand.cs#L20"
     },
     {
       "name": "New-OfficeMarkdownPdfOptions",
@@ -3849,6 +3846,14 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/NewOfficeMarkdownPdfOptionsCommand.cs",
       "sourceLine": 18,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/NewOfficeMarkdownPdfOptionsCommand.cs#L18"
+    },
+    {
+      "name": "New-OfficeMarkdownReaderOptions",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/NewOfficeMarkdownReaderOptionsCommand.cs",
+      "sourceLine": 14,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/NewOfficeMarkdownReaderOptionsCommand.cs#L14"
     },
     {
       "name": "New-OfficeOcrOptions",
@@ -4163,6 +4168,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordTableCellCommand.cs#L18"
     },
     {
+      "name": "Open-OfficeMarkdown",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/OpenOfficeMarkdownCommand.cs",
+      "sourceLine": 17,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/OpenOfficeMarkdownCommand.cs#L17"
+    },
+    {
       "name": "Open-OfficePowerPoint",
       "kind": "Cmdlet",
       "aliases": [],
@@ -4396,8 +4409,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/SaveOfficeMarkdownCommand.cs",
-      "sourceLine": 20,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/SaveOfficeMarkdownCommand.cs#L20"
+      "sourceLine": 17,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/SaveOfficeMarkdownCommand.cs#L17"
     },
     {
       "name": "Save-OfficeOpenDocument",

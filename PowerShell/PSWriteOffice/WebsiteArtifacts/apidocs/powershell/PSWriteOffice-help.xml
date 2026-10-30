@@ -64423,6 +64423,73 @@ cells. This keeps existing-document editing simple without forcing callers back 
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
+      <command:name>Close-OfficeMarkdown</command:name>
+      <command:verb>Close</command:verb>
+      <command:noun>OfficeMarkdown</command:noun>
+      <maml:description>
+        <maml:para>Completes a live Markdown document's lifetime without saving.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Completes a live Markdown document's lifetime without saving.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="__AllParameterSets">
+        <maml:name>Close-OfficeMarkdown</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Markdown document to close.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">MarkdownDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>MarkdownDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Markdown document to close.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">MarkdownDocument</command:parameterValue>
+        <dev:type>
+          <maml:name>MarkdownDocument</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>OfficeIMO.Markdown.MarkdownDocument</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues />
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Discard pending changes.</maml:title>
+        <dev:code>$document | Close-OfficeMarkdown</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
       <command:name>Close-OfficePowerPoint</command:name>
       <command:verb>Close</command:verb>
       <command:noun>OfficePowerPoint</command:noun>
@@ -75246,7 +75313,7 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>Get-OfficeMarkdown -Path .\README.md | ConvertFrom-OfficeWordMarkdown</dev:code>
+        <dev:code>Open-OfficeMarkdown -Path .\README.md | ConvertFrom-OfficeWordMarkdown</dev:code>
         <dev:remarks>
           <maml:para>Returns a Word document instance for further edits.</maml:para>
         </dev:remarks>
@@ -121150,551 +121217,6 @@ expressions.</maml:para>
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
-      <command:name>Get-OfficeMarkdown</command:name>
-      <command:verb>Get</command:verb>
-      <command:noun>OfficeMarkdown</command:noun>
-      <maml:description>
-        <maml:para>Parses Markdown text or files into a Markdown document model.</maml:para>
-      </maml:description>
-    </command:details>
-    <maml:description>
-      <maml:para>Returns an MarkdownDocument for inspection or further rendering.</maml:para>
-    </maml:description>
-    <command:syntax>
-      <command:syntaxItem parameterSetName="Path">
-        <maml:name>Get-OfficeMarkdown</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>AllowDataUrls</maml:name>
-          <maml:description>
-            <maml:para>Allow data URLs while parsing Markdown links and images.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
-          <dev:type>
-            <maml:name>Boolean</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>AllowedUrlScheme</maml:name>
-          <maml:description>
-            <maml:para>Allowed URL schemes when URL scheme restriction is enabled.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>AllowMailtoUrls</maml:name>
-          <maml:description>
-            <maml:para>Allow mailto URLs while parsing Markdown links.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
-          <dev:type>
-            <maml:name>Boolean</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>AllowProtocolRelativeUrls</maml:name>
-          <maml:description>
-            <maml:para>Allow protocol-relative URLs while parsing Markdown links and images.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
-          <dev:type>
-            <maml:name>Boolean</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>BaseUri</maml:name>
-          <maml:description>
-            <maml:para>Base URI used to resolve and restrict relative Markdown links and images.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>DisallowFileUrls</maml:name>
-          <maml:description>
-            <maml:para>Block file URLs while parsing Markdown links and images.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
-          <dev:type>
-            <maml:name>Boolean</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MaxInputCharacters</maml:name>
-          <maml:description>
-            <maml:para>Maximum Markdown input length accepted by the reader.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NormalizeInput</maml:name>
-          <maml:description>
-            <maml:para>Applies a built-in Markdown input normalization preset before parsing.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">MarkdownInputNormalizationPreset</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">IntelligenceXTranscript</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">IntelligenceXTranscriptStrict</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">DocsLoose</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>MarkdownInputNormalizationPreset</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="ReaderOptions">
-          <maml:name>Options</maml:name>
-          <maml:description>
-            <maml:para>Optional reader options.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">MarkdownLoadOptions</command:parameterValue>
-          <dev:type>
-            <maml:name>MarkdownLoadOptions</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue, ByPropertyName)" position="0" aliases="InputPath,FilePath,FullName,LiteralPath">
-          <maml:name>Path</maml:name>
-          <maml:description>
-            <maml:para>Path to the Markdown file.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Profile</maml:name>
-          <maml:description>
-            <maml:para>Named reader profile used when Options is not supplied.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">MarkdownDialectProfile</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">OfficeIMO</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CommonMark</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">GitHubFlavoredMarkdown</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Portable</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>MarkdownDialectProfile</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>RestrictUrlSchemes</maml:name>
-          <maml:description>
-            <maml:para>Restrict parsed URL schemes to the allow-list.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
-          <dev:type>
-            <maml:name>Boolean</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Text">
-        <maml:name>Get-OfficeMarkdown</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>AllowDataUrls</maml:name>
-          <maml:description>
-            <maml:para>Allow data URLs while parsing Markdown links and images.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
-          <dev:type>
-            <maml:name>Boolean</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>AllowedUrlScheme</maml:name>
-          <maml:description>
-            <maml:para>Allowed URL schemes when URL scheme restriction is enabled.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>AllowMailtoUrls</maml:name>
-          <maml:description>
-            <maml:para>Allow mailto URLs while parsing Markdown links.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
-          <dev:type>
-            <maml:name>Boolean</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>AllowProtocolRelativeUrls</maml:name>
-          <maml:description>
-            <maml:para>Allow protocol-relative URLs while parsing Markdown links and images.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
-          <dev:type>
-            <maml:name>Boolean</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>BaseUri</maml:name>
-          <maml:description>
-            <maml:para>Base URI used to resolve and restrict relative Markdown links and images.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>DisallowFileUrls</maml:name>
-          <maml:description>
-            <maml:para>Block file URLs while parsing Markdown links and images.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
-          <dev:type>
-            <maml:name>Boolean</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MaxInputCharacters</maml:name>
-          <maml:description>
-            <maml:para>Maximum Markdown input length accepted by the reader.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NormalizeInput</maml:name>
-          <maml:description>
-            <maml:para>Applies a built-in Markdown input normalization preset before parsing.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">MarkdownInputNormalizationPreset</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">IntelligenceXTranscript</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">IntelligenceXTranscriptStrict</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">DocsLoose</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>MarkdownInputNormalizationPreset</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="ReaderOptions">
-          <maml:name>Options</maml:name>
-          <maml:description>
-            <maml:para>Optional reader options.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">MarkdownLoadOptions</command:parameterValue>
-          <dev:type>
-            <maml:name>MarkdownLoadOptions</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Profile</maml:name>
-          <maml:description>
-            <maml:para>Named reader profile used when Options is not supplied.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">MarkdownDialectProfile</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">OfficeIMO</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CommonMark</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">GitHubFlavoredMarkdown</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Portable</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>MarkdownDialectProfile</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>RestrictUrlSchemes</maml:name>
-          <maml:description>
-            <maml:para>Restrict parsed URL schemes to the allow-list.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
-          <dev:type>
-            <maml:name>Boolean</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Text</maml:name>
-          <maml:description>
-            <maml:para>Markdown text to parse.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-    </command:syntax>
-    <command:parameters>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>AllowDataUrls</maml:name>
-        <maml:description>
-          <maml:para>Allow data URLs while parsing Markdown links and images.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
-        <dev:type>
-          <maml:name>Boolean</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>AllowedUrlScheme</maml:name>
-        <maml:description>
-          <maml:para>Allowed URL schemes when URL scheme restriction is enabled.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-        <dev:type>
-          <maml:name>String[]</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>AllowMailtoUrls</maml:name>
-        <maml:description>
-          <maml:para>Allow mailto URLs while parsing Markdown links.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
-        <dev:type>
-          <maml:name>Boolean</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>AllowProtocolRelativeUrls</maml:name>
-        <maml:description>
-          <maml:para>Allow protocol-relative URLs while parsing Markdown links and images.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
-        <dev:type>
-          <maml:name>Boolean</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>BaseUri</maml:name>
-        <maml:description>
-          <maml:para>Base URI used to resolve and restrict relative Markdown links and images.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>DisallowFileUrls</maml:name>
-        <maml:description>
-          <maml:para>Block file URLs while parsing Markdown links and images.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
-        <dev:type>
-          <maml:name>Boolean</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>MaxInputCharacters</maml:name>
-        <maml:description>
-          <maml:para>Maximum Markdown input length accepted by the reader.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>NormalizeInput</maml:name>
-        <maml:description>
-          <maml:para>Applies a built-in Markdown input normalization preset before parsing.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">MarkdownInputNormalizationPreset</command:parameterValue>
-        <command:parameterValueGroup>
-          <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">IntelligenceXTranscript</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">IntelligenceXTranscriptStrict</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">DocsLoose</command:parameterValue>
-        </command:parameterValueGroup>
-        <dev:type>
-          <maml:name>MarkdownInputNormalizationPreset</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="ReaderOptions">
-        <maml:name>Options</maml:name>
-        <maml:description>
-          <maml:para>Optional reader options.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">MarkdownLoadOptions</command:parameterValue>
-        <dev:type>
-          <maml:name>MarkdownLoadOptions</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue, ByPropertyName)" position="0" aliases="InputPath,FilePath,FullName,LiteralPath">
-        <maml:name>Path</maml:name>
-        <maml:description>
-          <maml:para>Path to the Markdown file.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Profile</maml:name>
-        <maml:description>
-          <maml:para>Named reader profile used when Options is not supplied.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">MarkdownDialectProfile</command:parameterValue>
-        <command:parameterValueGroup>
-          <command:parameterValue required="false" variableLength="false">OfficeIMO</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">CommonMark</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">GitHubFlavoredMarkdown</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Portable</command:parameterValue>
-        </command:parameterValueGroup>
-        <dev:type>
-          <maml:name>MarkdownDialectProfile</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>RestrictUrlSchemes</maml:name>
-        <maml:description>
-          <maml:para>Restrict parsed URL schemes to the allow-list.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
-        <dev:type>
-          <maml:name>Boolean</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Text</maml:name>
-        <maml:description>
-          <maml:para>Markdown text to parse.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-    </command:parameters>
-    <command:inputTypes>
-      <command:inputType>
-        <dev:type>
-          <maml:name>System.String</maml:name>
-        </dev:type>
-      </command:inputType>
-    </command:inputTypes>
-    <command:returnValues>
-      <command:returnValue>
-        <dev:type>
-          <maml:name>OfficeIMO.Markdown.MarkdownDocument</maml:name>
-        </dev:type>
-      </command:returnValue>
-    </command:returnValues>
-    <maml:alertSet>
-      <maml:alert>
-        <maml:para></maml:para>
-      </maml:alert>
-    </maml:alertSet>
-    <command:examples>
-      <command:example>
-        <maml:title>Parse a Markdown file.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$md = Get-OfficeMarkdown -Path .\README.md</dev:code>
-        <dev:remarks>
-          <maml:para>Loads the file into a Markdown document object.</maml:para>
-        </dev:remarks>
-      </command:example>
-      <command:example>
-        <maml:title>Parse Markdown text in-memory.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$md = Get-OfficeMarkdown -Text '# Title`n`nBody text'</dev:code>
-        <dev:remarks>
-          <maml:para>Parses Markdown text directly into a document model.</maml:para>
-        </dev:remarks>
-      </command:example>
-    </command:examples>
-    <command:relatedLinks />
-  </command:command>
-  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
-    <command:details>
       <command:name>Get-OfficeMarkdownFrontMatter</command:name>
       <command:verb>Get</command:verb>
       <command:noun>OfficeMarkdownFrontMatter</command:noun>
@@ -123468,7 +122990,7 @@ expressions.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>Get-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownHeading -MinLevel 2</dev:code>
+        <dev:code>Open-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownHeading -MinLevel 2</dev:code>
         <dev:remarks>
           <maml:para>Returns headings from an existing Markdown document object.</maml:para>
         </dev:remarks>
@@ -124386,7 +123908,7 @@ expressions.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>Get-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownNode -NodeType '*Table*'</dev:code>
+        <dev:code>Open-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownNode -NodeType '*Table*'</dev:code>
         <dev:remarks>
           <maml:para>Returns matching nodes from an existing Markdown document.</maml:para>
         </dev:remarks>
@@ -125150,7 +124672,7 @@ expressions.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>Get-OfficeMarkdown -Path .\Report.md | Get-OfficeMarkdownTable -AsObject</dev:code>
+        <dev:code>Open-OfficeMarkdown -Path .\Report.md | Get-OfficeMarkdownTable -AsObject</dev:code>
         <dev:remarks>
           <maml:para>Returns table rows as PowerShell objects using the Markdown header row as property names.</maml:para>
         </dev:remarks>
@@ -159655,19 +159177,31 @@ document for Document input. Native merge options determine which content is imp
       <command:verb>New</command:verb>
       <command:noun>OfficeMarkdown</command:noun>
       <maml:description>
-        <maml:para>Creates a Markdown document using a DSL scriptblock.</maml:para>
+        <maml:para>Creates a live Markdown document, or atomically publishes a completed content block.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Runs the scriptblock against a Markdown document and saves it to disk unless -NoSave is specified.</maml:para>
+      <maml:para>Creates a live Markdown document, or atomically publishes a completed content block.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="__AllParameterSets">
         <maml:name>New-OfficeMarkdown</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowLoss</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether native-save loss is explicitly accepted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
           <maml:name>Content</maml:name>
           <maml:description>
-            <maml:para>DSL scriptblock describing Markdown content.</maml:para>
+            <maml:para>Gets or sets a content block; omission returns the live document.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
           <dev:type>
@@ -159677,9 +159211,21 @@ document for Document input. Native merge options determine which content is imp
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Force</maml:name>
+          <maml:description>
+            <maml:para>Allow an existing destination; a failed block preserves its original contents.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>ImageRenderingMode</maml:name>
           <maml:description>
-            <maml:para>Controls how Markdown images are serialized.</maml:para>
+            <maml:para>Image serialization used when publishing a block.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">MarkdownImageRenderingMode</command:parameterValue>
           <command:parameterValueGroup>
@@ -159696,23 +159242,16 @@ document for Document input. Native merge options determine which content is imp
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>LineEnding</maml:name>
           <maml:description>
-            <maml:para>Markdown line ending: CRLF, LF, CR, or a literal line ending string.</maml:para>
+            <maml:para>Line endings used when publishing a block.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLineEnding</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">LF</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">CRLF</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">CR</command:parameterValue>
+          </command:parameterValueGroup>
           <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoSave</maml:name>
-          <maml:description>
-            <maml:para>Skip saving after executing the DSL.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
+            <maml:name>OfficeLineEnding</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -159720,7 +159259,7 @@ document for Document input. Native merge options determine which content is imp
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Emit a FileInfo for chaining.</maml:para>
+            <maml:para>Gets or sets whether a completed content block returns the saved FileInfo.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -159729,12 +159268,12 @@ document for Document input. Native merge options determine which content is imp
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath,OutputPath">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
           <maml:name>Path</maml:name>
           <maml:description>
-            <maml:para>Destination path for the Markdown file.</maml:para>
+            <maml:para>Optional associated path; a content block requires a destination.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
             <maml:name>String</maml:name>
             <maml:uri />
@@ -159742,11 +159281,28 @@ document for Document input. Native merge options determine which content is imp
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Show</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether the saved file opens in the system default application.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>UnorderedListMarker</maml:name>
           <maml:description>
-            <maml:para>Unordered list marker: '-', '*', or '+'.</maml:para>
+            <maml:para>Unordered list marker used when publishing a block.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">-</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">*</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">+</command:parameterValue>
+          </command:parameterValueGroup>
           <dev:type>
             <maml:name>String</maml:name>
             <maml:uri />
@@ -159756,7 +159312,7 @@ document for Document input. Native merge options determine which content is imp
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>WriteOptions</maml:name>
           <maml:description>
-            <maml:para>Optional Markdown writer options.</maml:para>
+            <maml:para>Native Markdown save settings or a hashtable, used when publishing a block.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">MarkdownSaveOptions</command:parameterValue>
           <dev:type>
@@ -159768,7 +159324,7 @@ document for Document input. Native merge options determine which content is imp
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>WriteProfile</maml:name>
           <maml:description>
-            <maml:para>Friendly Markdown writer profile.</maml:para>
+            <maml:para>Writer profile used when publishing a block.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficeMarkdownWriteProfile</command:parameterValue>
           <command:parameterValueGroup>
@@ -159785,10 +159341,22 @@ document for Document input. Native merge options determine which content is imp
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>AllowLoss</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether native-save loss is explicitly accepted.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
         <maml:name>Content</maml:name>
         <maml:description>
-          <maml:para>DSL scriptblock describing Markdown content.</maml:para>
+          <maml:para>Gets or sets a content block; omission returns the live document.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
         <dev:type>
@@ -159798,9 +159366,21 @@ document for Document input. Native merge options determine which content is imp
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Force</maml:name>
+        <maml:description>
+          <maml:para>Allow an existing destination; a failed block preserves its original contents.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>ImageRenderingMode</maml:name>
         <maml:description>
-          <maml:para>Controls how Markdown images are serialized.</maml:para>
+          <maml:para>Image serialization used when publishing a block.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">MarkdownImageRenderingMode</command:parameterValue>
         <command:parameterValueGroup>
@@ -159817,23 +159397,16 @@ document for Document input. Native merge options determine which content is imp
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>LineEnding</maml:name>
         <maml:description>
-          <maml:para>Markdown line ending: CRLF, LF, CR, or a literal line ending string.</maml:para>
+          <maml:para>Line endings used when publishing a block.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLineEnding</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">LF</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">CRLF</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">CR</command:parameterValue>
+        </command:parameterValueGroup>
         <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>NoSave</maml:name>
-        <maml:description>
-          <maml:para>Skip saving after executing the DSL.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
+          <maml:name>OfficeLineEnding</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -159841,7 +159414,7 @@ document for Document input. Native merge options determine which content is imp
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>PassThru</maml:name>
         <maml:description>
-          <maml:para>Emit a FileInfo for chaining.</maml:para>
+          <maml:para>Gets or sets whether a completed content block returns the saved FileInfo.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -159850,12 +159423,12 @@ document for Document input. Native merge options determine which content is imp
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath,OutputPath">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
         <maml:name>Path</maml:name>
         <maml:description>
-          <maml:para>Destination path for the Markdown file.</maml:para>
+          <maml:para>Optional associated path; a content block requires a destination.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
           <maml:name>String</maml:name>
           <maml:uri />
@@ -159863,11 +159436,28 @@ document for Document input. Native merge options determine which content is imp
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Show</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether the saved file opens in the system default application.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>UnorderedListMarker</maml:name>
         <maml:description>
-          <maml:para>Unordered list marker: '-', '*', or '+'.</maml:para>
+          <maml:para>Unordered list marker used when publishing a block.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">-</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">*</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">+</command:parameterValue>
+        </command:parameterValueGroup>
         <dev:type>
           <maml:name>String</maml:name>
           <maml:uri />
@@ -159877,7 +159467,7 @@ document for Document input. Native merge options determine which content is imp
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>WriteOptions</maml:name>
         <maml:description>
-          <maml:para>Optional Markdown writer options.</maml:para>
+          <maml:para>Native Markdown save settings or a hashtable, used when publishing a block.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">MarkdownSaveOptions</command:parameterValue>
         <dev:type>
@@ -159889,7 +159479,7 @@ document for Document input. Native merge options determine which content is imp
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>WriteProfile</maml:name>
         <maml:description>
-          <maml:para>Friendly Markdown writer profile.</maml:para>
+          <maml:para>Writer profile used when publishing a block.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">OfficeMarkdownWriteProfile</command:parameterValue>
         <command:parameterValueGroup>
@@ -159930,28 +159520,20 @@ document for Document input. Native merge options determine which content is imp
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Create a Markdown document with headings and a table.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>New-OfficeMarkdown -Path .\README.md { MarkdownHeading -Level 1 -Text 'Report'; MarkdownTable -InputObject $data }</dev:code>
+        <maml:title>Create a report in one block.</maml:title>
+        <dev:code>New-OfficeMarkdown -Path ./Report.md -PassThru { MarkdownHeading -Text 'Report' }</dev:code>
         <dev:remarks>
-          <maml:para>Creates a README file with a heading and table content.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
-        <maml:title>Create a report with multiple tables.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>New-OfficeMarkdown -Path .\Report.md {
-                MarkdownHeading -Level 1 -Text 'Summary'
-                MarkdownTable -InputObject $summary
-                MarkdownHeading -Level 2 -Text 'Details'
-                MarkdownTable -InputObject $details
-              }</dev:code>
+        <maml:title>Compose a live document before saving.</maml:title>
+        <dev:code>$document = New-OfficeMarkdown -Path ./Report.md
+            $document | MarkdownHeading -Text 'Report'
+            $document | Save-OfficeMarkdown
+            $document | Close-OfficeMarkdown</dev:code>
         <dev:remarks>
-          <maml:para>Creates a report with two tables separated by headings.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -160535,6 +160117,320 @@ document for Document input. Native merge options determine which content is imp
             Export-OfficeDocumentPdf -InputPath .\Report.md -Path .\Report.pdf -MarkdownOptions $options</dev:code>
         <dev:remarks>
           <maml:para>Builds a typed options object through ordinary PowerShell parameters; no hashtable or .NET construction is required.</maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
+      <command:name>New-OfficeMarkdownReaderOptions</command:name>
+      <command:verb>New</command:verb>
+      <command:noun>OfficeMarkdownReaderOptions</command:noun>
+      <maml:description>
+        <maml:para>Creates native Markdown dialect, normalization, URL and input-limit settings.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Creates native Markdown dialect, normalization, URL and input-limit settings.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="__AllParameterSets">
+        <maml:name>New-OfficeMarkdownReaderOptions</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowDataUrls</maml:name>
+          <maml:description>
+            <maml:para>Allow data URLs.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowedUrlScheme</maml:name>
+          <maml:description>
+            <maml:para>Allowed URL schemes; supplying this enables the allow-list.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowMailtoUrls</maml:name>
+          <maml:description>
+            <maml:para>Allow mailto links.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowProtocolRelativeUrls</maml:name>
+          <maml:description>
+            <maml:para>Allow protocol-relative links.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>BaseUri</maml:name>
+          <maml:description>
+            <maml:para>Base URI for relative links and images.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>DisallowFileUrls</maml:name>
+          <maml:description>
+            <maml:para>Block file URLs.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MaxInputCharacters</maml:name>
+          <maml:description>
+            <maml:para>Maximum input characters accepted by the native reader.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NormalizeInput</maml:name>
+          <maml:description>
+            <maml:para>Input normalization preset.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">MarkdownInputNormalizationPreset</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">IntelligenceXTranscript</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">IntelligenceXTranscriptStrict</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DocsLoose</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>MarkdownInputNormalizationPreset</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Profile</maml:name>
+          <maml:description>
+            <maml:para>Native Markdown dialect profile.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">MarkdownDialectProfile</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">OfficeIMO</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">CommonMark</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">GitHubFlavoredMarkdown</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Portable</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>MarkdownDialectProfile</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>RestrictUrlSchemes</maml:name>
+          <maml:description>
+            <maml:para>Restrict links to the native allow-list.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>AllowDataUrls</maml:name>
+        <maml:description>
+          <maml:para>Allow data URLs.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>AllowedUrlScheme</maml:name>
+        <maml:description>
+          <maml:para>Allowed URL schemes; supplying this enables the allow-list.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>AllowMailtoUrls</maml:name>
+        <maml:description>
+          <maml:para>Allow mailto links.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>AllowProtocolRelativeUrls</maml:name>
+        <maml:description>
+          <maml:para>Allow protocol-relative links.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>BaseUri</maml:name>
+        <maml:description>
+          <maml:para>Base URI for relative links and images.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>DisallowFileUrls</maml:name>
+        <maml:description>
+          <maml:para>Block file URLs.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>MaxInputCharacters</maml:name>
+        <maml:description>
+          <maml:para>Maximum input characters accepted by the native reader.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NormalizeInput</maml:name>
+        <maml:description>
+          <maml:para>Input normalization preset.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">MarkdownInputNormalizationPreset</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">IntelligenceXTranscript</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">IntelligenceXTranscriptStrict</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">DocsLoose</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>MarkdownInputNormalizationPreset</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Profile</maml:name>
+        <maml:description>
+          <maml:para>Native Markdown dialect profile.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">MarkdownDialectProfile</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">OfficeIMO</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">CommonMark</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">GitHubFlavoredMarkdown</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Portable</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>MarkdownDialectProfile</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>RestrictUrlSchemes</maml:name>
+        <maml:description>
+          <maml:para>Restrict links to the native allow-list.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>None</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Markdown.MarkdownLoadOptions</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Bound input from uploaded files.</maml:title>
+        <dev:code>$options = New-OfficeMarkdownReaderOptions -MaxInputCharacters 500000 -DisallowFileUrls
+            Open-OfficeMarkdown -Path ./Uploads/*.md -Options $options</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -174244,6 +174140,421 @@ Use -NoSave or omit -Path when a document object should be returned for further 
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
+      <command:name>Open-OfficeMarkdown</command:name>
+      <command:verb>Open</command:verb>
+      <command:noun>OfficeMarkdown</command:noun>
+      <maml:description>
+        <maml:para>Opens native Markdown from a file or parses text; a file content block saves atomically.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Opens native Markdown from a file or parses text; a file content block saves atomically.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Path">
+        <maml:name>Open-OfficeMarkdown</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowLoss</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether native-save loss is explicitly accepted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+          <maml:name>Content</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets a content block; omission returns the live document.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
+          <dev:type>
+            <maml:name>ScriptBlock</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Options</maml:name>
+          <maml:description>
+            <maml:para>Native reader options followed by optional native-property hashtable overrides.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Object[]</command:parameterValue>
+          <dev:type>
+            <maml:name>Object[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether a completed content block returns the saved FileInfo.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="None">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Markdown source with FileSystem wildcard expansion.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Show</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether the saved file opens in the system default application.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>WriteOptions</maml:name>
+          <maml:description>
+            <maml:para>Native settings used when saving a file content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">MarkdownSaveOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>MarkdownSaveOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="LiteralPath">
+        <maml:name>Open-OfficeMarkdown</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowLoss</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether native-save loss is explicitly accepted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+          <maml:name>Content</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets a content block; omission returns the live document.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
+          <dev:type>
+            <maml:name>ScriptBlock</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="FullName,PSPath">
+          <maml:name>LiteralPath</maml:name>
+          <maml:description>
+            <maml:para>Literal source path, including FileInfo.FullName and provider PSPath.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Options</maml:name>
+          <maml:description>
+            <maml:para>Native reader options followed by optional native-property hashtable overrides.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Object[]</command:parameterValue>
+          <dev:type>
+            <maml:name>Object[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether a completed content block returns the saved FileInfo.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Show</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether the saved file opens in the system default application.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>WriteOptions</maml:name>
+          <maml:description>
+            <maml:para>Native settings used when saving a file content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">MarkdownSaveOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>MarkdownSaveOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="Text">
+        <maml:name>Open-OfficeMarkdown</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowLoss</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether native-save loss is explicitly accepted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+          <maml:name>Content</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets a content block; omission returns the live document.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
+          <dev:type>
+            <maml:name>ScriptBlock</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Options</maml:name>
+          <maml:description>
+            <maml:para>Native reader options followed by optional native-property hashtable overrides.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Object[]</command:parameterValue>
+          <dev:type>
+            <maml:name>Object[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether a completed content block returns the saved FileInfo.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Show</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether the saved file opens in the system default application.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Text</maml:name>
+          <maml:description>
+            <maml:para>Markdown to parse without a file or authoring block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>AllowLoss</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether native-save loss is explicitly accepted.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+        <maml:name>Content</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets a content block; omission returns the live document.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
+        <dev:type>
+          <maml:name>ScriptBlock</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="FullName,PSPath">
+        <maml:name>LiteralPath</maml:name>
+        <maml:description>
+          <maml:para>Literal source path, including FileInfo.FullName and provider PSPath.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Options</maml:name>
+        <maml:description>
+          <maml:para>Native reader options followed by optional native-property hashtable overrides.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Object[]</command:parameterValue>
+        <dev:type>
+          <maml:name>Object[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>PassThru</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether a completed content block returns the saved FileInfo.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="None">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>Markdown source with FileSystem wildcard expansion.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Show</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether the saved file opens in the system default application.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Text</maml:name>
+        <maml:description>
+          <maml:para>Markdown to parse without a file or authoring block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>WriteOptions</maml:name>
+        <maml:description>
+          <maml:para>Native settings used when saving a file content block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">MarkdownSaveOptions</command:parameterValue>
+        <dev:type>
+          <maml:name>MarkdownSaveOptions</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Markdown.MarkdownDocument</maml:name>
+        </dev:type>
+      </command:returnValue>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>System.IO.FileInfo</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Open a literal path from a file pipeline.</maml:title>
+        <dev:code>$document = Get-Item -LiteralPath './Review[final].md' | Open-OfficeMarkdown</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Parse text with bounded reader options.</maml:title>
+        <dev:code>Open-OfficeMarkdown -Text '# Report' -Options (New-OfficeMarkdownReaderOptions -MaxInputCharacters 500000)</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
       <command:name>Open-OfficePowerPoint</command:name>
       <command:verb>Open</command:verb>
       <command:noun>OfficePowerPoint</command:noun>
@@ -182871,16 +183182,28 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <command:verb>Save</command:verb>
       <command:noun>OfficeMarkdown</command:noun>
       <maml:description>
-        <maml:para>Saves a Markdown document without changing its lifetime.</maml:para>
+        <maml:para>Saves a live Markdown document using its native save policy and keeps it available.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Saves a Markdown document without changing its lifetime.</maml:para>
+      <maml:para>Saves a live Markdown document using its native save policy and keeps it available.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="__AllParameterSets">
         <maml:name>Save-OfficeMarkdown</maml:name>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowLoss</maml:name>
+          <maml:description>
+            <maml:para>Accept explicit native-save omissions, overriding WriteOptions when supplied.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
           <maml:description>
             <maml:para>Markdown document to save.</maml:para>
@@ -182895,7 +183218,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>ImageRenderingMode</maml:name>
           <maml:description>
-            <maml:para>Controls how Markdown images are serialized.</maml:para>
+            <maml:para>Controls Markdown image serialization.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">MarkdownImageRenderingMode</command:parameterValue>
           <command:parameterValueGroup>
@@ -182912,11 +183235,16 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>LineEnding</maml:name>
           <maml:description>
-            <maml:para>Markdown line ending: CRLF, LF, CR, or a literal line ending string.</maml:para>
+            <maml:para>Output line endings.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLineEnding</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">LF</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">CRLF</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">CR</command:parameterValue>
+          </command:parameterValueGroup>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>OfficeLineEnding</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -182924,7 +183252,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Emit the Markdown document rather than the saved file.</maml:para>
+            <maml:para>Return the saved file.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -182933,12 +183261,12 @@ options retain their owner password, permission mask, algorithm, metadata settin
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="FilePath">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
           <maml:name>Path</maml:name>
           <maml:description>
-            <maml:para>Destination Markdown path.</maml:para>
+            <maml:para>Optional destination; omission saves to the associated path.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
             <maml:name>String</maml:name>
             <maml:uri />
@@ -182948,9 +183276,14 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>UnorderedListMarker</maml:name>
           <maml:description>
-            <maml:para>Unordered list marker: '-', '*', or '+'.</maml:para>
+            <maml:para>Unordered list marker.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">-</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">*</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">+</command:parameterValue>
+          </command:parameterValueGroup>
           <dev:type>
             <maml:name>String</maml:name>
             <maml:uri />
@@ -182960,7 +183293,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>WriteOptions</maml:name>
           <maml:description>
-            <maml:para>Optional Markdown writer options.</maml:para>
+            <maml:para>Native save settings, or a hashtable of native option properties.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">MarkdownSaveOptions</command:parameterValue>
           <dev:type>
@@ -182989,7 +183322,19 @@ options retain their owner password, permission mask, algorithm, metadata settin
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>AllowLoss</maml:name>
+        <maml:description>
+          <maml:para>Accept explicit native-save omissions, overriding WriteOptions when supplied.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
         <maml:name>Document</maml:name>
         <maml:description>
           <maml:para>Markdown document to save.</maml:para>
@@ -183004,7 +183349,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>ImageRenderingMode</maml:name>
         <maml:description>
-          <maml:para>Controls how Markdown images are serialized.</maml:para>
+          <maml:para>Controls Markdown image serialization.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">MarkdownImageRenderingMode</command:parameterValue>
         <command:parameterValueGroup>
@@ -183021,11 +183366,16 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>LineEnding</maml:name>
         <maml:description>
-          <maml:para>Markdown line ending: CRLF, LF, CR, or a literal line ending string.</maml:para>
+          <maml:para>Output line endings.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLineEnding</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">LF</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">CRLF</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">CR</command:parameterValue>
+        </command:parameterValueGroup>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>OfficeLineEnding</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -183033,7 +183383,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>PassThru</maml:name>
         <maml:description>
-          <maml:para>Emit the Markdown document rather than the saved file.</maml:para>
+          <maml:para>Return the saved file.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -183042,12 +183392,12 @@ options retain their owner password, permission mask, algorithm, metadata settin
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="FilePath">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
         <maml:name>Path</maml:name>
         <maml:description>
-          <maml:para>Destination Markdown path.</maml:para>
+          <maml:para>Optional destination; omission saves to the associated path.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
           <maml:name>String</maml:name>
           <maml:uri />
@@ -183057,9 +183407,14 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>UnorderedListMarker</maml:name>
         <maml:description>
-          <maml:para>Unordered list marker: '-', '*', or '+'.</maml:para>
+          <maml:para>Unordered list marker.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">-</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">*</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">+</command:parameterValue>
+        </command:parameterValueGroup>
         <dev:type>
           <maml:name>String</maml:name>
           <maml:uri />
@@ -183069,7 +183424,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>WriteOptions</maml:name>
         <maml:description>
-          <maml:para>Optional Markdown writer options.</maml:para>
+          <maml:para>Native save settings, or a hashtable of native option properties.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">MarkdownSaveOptions</command:parameterValue>
         <dev:type>
@@ -183106,7 +183461,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
     <command:returnValues>
       <command:returnValue>
         <dev:type>
-          <maml:name>OfficeIMO.Markdown.MarkdownDocument</maml:name>
+          <maml:name>System.IO.FileInfo</maml:name>
         </dev:type>
       </command:returnValue>
     </command:returnValues>
@@ -183117,13 +183472,17 @@ options retain their owner password, permission mask, algorithm, metadata settin
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Save a Markdown document.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$doc | Save-OfficeMarkdown -Path .\Report.md</dev:code>
+        <maml:title>Save to the document's associated path.</maml:title>
+        <dev:code>$document | Save-OfficeMarkdown -PassThru</dev:code>
         <dev:remarks>
-          <maml:para>Writes the Markdown artifact and keeps the document available for further changes.</maml:para>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Write a CRLF copy.</maml:title>
+        <dev:code>Save-OfficeMarkdown -Document $document -Path ./Publish/Report.md -LineEnding CRLF -PassThru</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>

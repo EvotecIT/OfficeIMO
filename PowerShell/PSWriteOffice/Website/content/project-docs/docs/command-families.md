@@ -18,7 +18,7 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 | Access | 9 | [Native document workflows](/docs/pswriteoffice/automation-patterns/) |
 | EPUB | 7 | [Native document workflows](/docs/pswriteoffice/automation-patterns/) |
 | PowerPoint | 69 | [PowerPoint automation](/docs/pswriteoffice/powerpoint/) |
-| Markdown | 25 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
+| Markdown | 27 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | Visio | 24 | [Visio diagrams](/docs/pswriteoffice/visio/) |
 | Reader, extraction, and OCR | 15 | [Reader, extraction, and OCR](/docs/pswriteoffice/reader/) |
 | Archive migration and evidence | 5 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
