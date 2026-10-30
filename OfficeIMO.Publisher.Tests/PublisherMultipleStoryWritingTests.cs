@@ -70,15 +70,17 @@ public sealed class PublisherMultipleStoryWritingTests {
     }
 
     [Fact]
-    public void Distinct_styles_exceeding_the_native_directory_profile_refuse_output_without_changing_the_model() {
+    public void Distinct_styles_allocate_chained_directories_without_losing_overflow_or_formatting() {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/TextFormattingPages/native-textformattingpages.pub"));
         PublisherTextStory source = Assert.Single(document.TextStories);
         var paragraphs = source.Paragraphs.Select((paragraph, index) => ReplaceParagraph(paragraph, paragraph.Runs[0].Text, 12 + index, true)).ToArray();
         document.ReplaceStoryParagraphs(source.Id, paragraphs);
-        var error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
-        Assert.True(Assert.IsType<PublisherSaveReport>(error.Report).HasErrors);
-        Assert.Equal(source.Text, document.TextStories[0].Text);
-        Assert.Equal(Enumerable.Range(12, 96).Select(size => (double)size), document.TextStories[0].Paragraphs.Select(paragraph => paragraph.Runs[0].FontSize));
+        byte[] bytes = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        PublisherDocument reopened = PublisherDocument.Load(bytes);
+        Assert.Equal(source.Text, reopened.TextStories[0].Text);
+        Assert.Equal(Enumerable.Range(12, 96).Select(size => (double)size), reopened.TextStories[0].Paragraphs.Select(paragraph => paragraph.Runs[0].FontSize));
+        Assert.All(reopened.TextStories[0].Paragraphs, paragraph => Assert.True(paragraph.Runs[0].Bold));
+        Assert.True(reopened.Pages[0].TextFrames[0].HasOverflow);
     }
 
     private static IReadOnlyList<OfficeRichTextParagraph> Replace(PublisherTextStory story, string[] text, double size, bool bold) =>

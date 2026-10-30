@@ -15,10 +15,10 @@ internal static partial class PublisherQuillParagraphWriter {
 
     internal static bool TryPlan(PublisherBinaryData data, PublisherParseContext context, PublisherQuillStoryStyles binding,
         PublisherTextStory before, PublisherTextStory after, int outputTextOffset, CancellationToken token,
-        out List<PublisherQuillFormattingRange> pc, out List<PublisherQuillFormattingRange> pp) {
+        out List<PublisherQuillFormattingRange> pc, out List<PublisherQuillFormattingRange> pp, PublisherQuillWriteResources? resources = null) {
         pc = new(); pp = new();
         if (before.Paragraphs.Count != after.Paragraphs.Count)
-            return TryPlanTopology(data, context, binding, before, after, outputTextOffset, token, pc, pp);
+            return TryPlanTopology(data, context, binding, before, after, outputTextOffset, token, pc, pp, resources);
         PublisherQuillStyleUse[] characters = binding.Uses.Where(use => use.Tag == "FDPC").ToArray();
         PublisherQuillStyleUse[] paragraphs = binding.Uses.Where(use => use.Tag == "FDPP").ToArray();
         if (paragraphs.Length != before.Paragraphs.Count) return false;
@@ -48,14 +48,14 @@ internal static partial class PublisherQuillParagraphWriter {
                 token.ThrowIfCancellationRequested();
                 int original = oldRuns.Count == 1 ? 0 : index;
                 byte[]? style = PublisherQuillCharacterStyleWriter.Rewrite(data, uses[original].DirectDefinition,
-                    oldRuns[original], newRuns[index], context);
+                    oldRuns[original], newRuns[index], context, resources);
                 if (style == null) return false;
                 if (newRuns[index].Text.Length == 0) continue;
                 position = checked(position + newRuns[index].Text.Length * 2);
                 AppendRange(pc, position, style);
             }
             byte[]? terminator = PublisherQuillCharacterStyleWriter.Rewrite(data, cr.Value.DirectDefinition,
-                oldRuns[oldRuns.Count - 1], newRuns[newRuns.Count - 1], context);
+                oldRuns[oldRuns.Count - 1], newRuns[newRuns.Count - 1], context, resources);
             if (terminator == null) return false;
             position = checked(position + 2);
             AppendRange(pc, position, terminator);

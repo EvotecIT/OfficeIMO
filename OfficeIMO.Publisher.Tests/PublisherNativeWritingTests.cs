@@ -161,7 +161,7 @@ public sealed class PublisherNativeWritingTests {
 
     [Theory]
     [InlineData("empty-story")]
-    [InlineData("italic-format")]
+    [InlineData("background-format")]
     [InlineData("page")]
     [InlineData("master")]
     [InlineData("assignment")]
@@ -183,11 +183,12 @@ public sealed class PublisherNativeWritingTests {
         PublisherPage page = document.Pages[0];
         switch (mutation) {
             case "empty-story": document.ReplaceStoryParagraphs(document.TextStories[0].Id, Array.Empty<OfficeRichTextParagraph>()); break;
-            case "italic-format":
+            case "background-format":
                 OfficeRichTextParagraph originalParagraph = document.TextStories[0].Paragraphs[0];
                 OfficeRichTextRun run = originalParagraph.Runs[0];
                 document.ReplaceStoryParagraphs(document.TextStories[0].Id, new[] { new OfficeRichTextParagraph(new[] {
-                    new OfficeRichTextRun(run.Text, run.FontSize, run.Color, run.Bold, !run.Italic, run.Underline, run.FontFamily)
+                    new OfficeRichTextRun(run.Text, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily,
+                        backgroundColor: OfficeColor.Yellow)
                 }, originalParagraph.Alignment, originalParagraph.LineHeight, originalParagraph.Margins,
                     originalParagraph.Indent, originalParagraph.LineHeightFactor).WithTabStops(originalParagraph.TabStops) }); break;
             case "page": document.AddPage(); break;

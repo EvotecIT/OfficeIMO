@@ -4,7 +4,7 @@ internal static partial class PublisherQuillParagraphWriter {
     /// <summary>Count changes repeat unambiguous source definitions; projected equality alone does not establish native equivalence.</summary>
     private static bool TryPlanTopology(PublisherBinaryData data, PublisherParseContext context, PublisherQuillStoryStyles binding,
         PublisherTextStory before, PublisherTextStory after, int outputTextOffset, CancellationToken token,
-        List<PublisherQuillFormattingRange> pc, List<PublisherQuillFormattingRange> pp) {
+        List<PublisherQuillFormattingRange> pc, List<PublisherQuillFormattingRange> pp, PublisherQuillWriteResources? resources) {
         var paragraphs = binding.Uses.Where(use => use.Tag == "FDPP").ToArray();
         var characters = binding.Uses.Where(use => use.Tag == "FDPC").ToArray();
         if (paragraphs.Length != before.Paragraphs.Count || paragraphs.Length == 0 || after.Paragraphs.Count == 0) return false;
@@ -35,13 +35,13 @@ internal static partial class PublisherQuillParagraphWriter {
             if (runs.Count == 0 || last && runs.All(run => run.Text.Length == 0)
                 && !Copy(final.Value.DirectDefinition).SequenceEqual(bodyBytes)) return false;
             foreach (var run in runs) {
-                byte[]? style = PublisherQuillCharacterStyleWriter.Rewrite(data, body.Value.DirectDefinition, originalRun, run, context);
+                byte[]? style = PublisherQuillCharacterStyleWriter.Rewrite(data, body.Value.DirectDefinition, originalRun, run, context, resources);
                 if (style == null) return false;
                 if (run.Text.Length == 0) continue;
                 position = checked(position + run.Text.Length * 2); AppendRange(pc, position, style);
             }
             byte[]? terminator = PublisherQuillCharacterStyleWriter.Rewrite(data,
-                last ? final.Value.DirectDefinition : body.Value.DirectDefinition, originalRun, runs[runs.Count - 1], context);
+                last ? final.Value.DirectDefinition : body.Value.DirectDefinition, originalRun, runs[runs.Count - 1], context, resources);
             if (terminator == null) return false;
             position = checked(position + 2); AppendRange(pc, position, terminator);
             pp.Add(new PublisherQuillFormattingRange(position, paragraphBytes));

@@ -41,12 +41,14 @@ internal sealed partial class PublisherNativeWriter {
 
     private bool TryRewriteStories() {
         if (!SameKeys(_baseline.Text.Stories, _current.Text.Stories) || _baseline.Text.TableStories.Count != 0) return false;
+        bool extended = false;
         foreach (var entry in _baseline.Text.Stories) {
             PublisherTextStory current = _current.Text.Stories[entry.Key];
             if (StoryEqual(entry.Value, current)) continue;
-            if (!CanRewriteStory(entry.Value, current) || !CanRewriteStoryFrames(entry.Key)) return false;
+            if (!CanRewriteStory(entry.Value, current, out bool changedFormatting) || !CanRewriteStoryFrames(entry.Key)) return false;
+            extended |= changedFormatting;
         }
-        if (_baseline.Text.Stories.Count == 1 && _baseline.Text.Frames.Count == 1 && _styleDependencies.Count == 1) {
+        if (!extended && _baseline.Text.Stories.Count == 1 && _baseline.Text.Frames.Count == 1 && _styleDependencies.Count == 1) {
             _quillBytes = PublisherQuillTextWriter.TryRewrite(_imported.NativeSource!.QuillBytes, _styleDependencies[0],
                 _baseline.Text.Stories.Values.Single(), _current.Text.Stories.Values.Single(), _sourceLimits, _maximumBytes, _token);
             if (_quillBytes != null) return true;
@@ -67,7 +69,8 @@ internal sealed partial class PublisherNativeWriter {
             && frame.PageId.HasValue && pages.Contains(frame.PageId.Value));
     }
 
-    private static bool CanRewriteStory(PublisherTextStory before, PublisherTextStory after) {
+    private static bool CanRewriteStory(PublisherTextStory before, PublisherTextStory after, out bool extended) {
+        extended = false;
         if (before.Id != after.Id || before.Paragraphs.Count == 0 || after.Paragraphs.Count == 0) return false;
         bool reshape = before.Paragraphs.Count != after.Paragraphs.Count;
         if (reshape && before.Paragraphs.Any(paragraph => paragraph.Runs.Count != 1 || paragraph.Label != null
@@ -77,9 +80,11 @@ internal sealed partial class PublisherNativeWriter {
             OfficeRichTextParagraph a = before.Paragraphs[reshape ? 0 : paragraph], b = after.Paragraphs[paragraph];
             if (a.Runs.Count < 1 || b.Runs.Count < 1 || a.Runs.Count != 1 && a.Runs.Count != b.Runs.Count
                 || a.Label != null || b.Label != null || !ParagraphFormattingEqual(a, b)) return false;
-            for (int index = 0; index < b.Runs.Count; index++)
+            for (int index = 0; index < b.Runs.Count; index++) {
                 if (b.Runs[index].Text.Length == 0 && (!reshape && before.Paragraphs.Count == 1 || b.Runs.Count != 1)
-                    || !RunOtherFormattingEqual(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index])) return false;
+                    || !RunPreservedFormattingEqual(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index])) return false;
+                extended |= PublisherQuillCharacterStyleWriter.HasExtendedChanges(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index]);
+            }
         }
         return true;
     }
@@ -186,11 +191,9 @@ internal sealed partial class PublisherNativeWriter {
         && a.Margins.Equals(b.Margins) && a.Indent == b.Indent && LabelEqual(a.Label, b.Label) && TabsEqual(a.TabStops, b.TabStops);
     private static bool RunEqual(OfficeRichTextRun a, OfficeRichTextRun b) => a.Text == b.Text && RunFormattingEqual(a, b);
     private static bool RunFormattingEqual(OfficeRichTextRun a, OfficeRichTextRun b) => a.FontSize == b.FontSize
-        && a.Bold == b.Bold && RunOtherFormattingEqual(a, b);
-    private static bool RunOtherFormattingEqual(OfficeRichTextRun a, OfficeRichTextRun b) =>
-        a.Color == b.Color && a.FontFamily == b.FontFamily && a.Italic == b.Italic
-        && a.UnderlineStyle == b.UnderlineStyle && a.StrikethroughStyle == b.StrikethroughStyle && a.Baseline == b.Baseline
-        && a.BackgroundColor == b.BackgroundColor && a.ParagraphIndent == b.ParagraphIndent
+        && a.Bold == b.Bold && !PublisherQuillCharacterStyleWriter.HasExtendedChanges(a, b) && RunPreservedFormattingEqual(a, b);
+    private static bool RunPreservedFormattingEqual(OfficeRichTextRun a, OfficeRichTextRun b) =>
+        a.BackgroundColor == b.BackgroundColor && a.ParagraphIndent == b.ParagraphIndent
         && a.LinkUri == b.LinkUri && a.LinkDestinationName == b.LinkDestinationName;
     private static bool LabelEqual(OfficeTextParagraphLabel? a, OfficeTextParagraphLabel? b) => ReferenceEquals(a, b)
         || a != null && b != null && a.Position == b.Position && a.Alignment == b.Alignment && a.MinimumWidth == b.MinimumWidth
