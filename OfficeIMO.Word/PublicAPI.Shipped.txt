@@ -4385,25 +4385,25 @@ OfficeIMO.Word.WordTableOverlap
 OfficeIMO.Word.WordTableOverlap.Never = 0 -> OfficeIMO.Word.WordTableOverlap
 OfficeIMO.Word.WordTableOverlap.Overlap = 1 -> OfficeIMO.Word.WordTableOverlap
 OfficeIMO.Word.WordTablePosition
-OfficeIMO.Word.WordTablePosition.BottomFromText.get -> short?
+OfficeIMO.Word.WordTablePosition.BottomFromText.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordTablePosition.BottomFromText.set -> void
 OfficeIMO.Word.WordTablePosition.HorizontalAnchor.get -> OfficeIMO.Word.WordTableHorizontalAnchor?
 OfficeIMO.Word.WordTablePosition.HorizontalAnchor.set -> void
-OfficeIMO.Word.WordTablePosition.LeftFromText.get -> short?
+OfficeIMO.Word.WordTablePosition.LeftFromText.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordTablePosition.LeftFromText.set -> void
-OfficeIMO.Word.WordTablePosition.RightFromText.get -> short?
+OfficeIMO.Word.WordTablePosition.RightFromText.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordTablePosition.RightFromText.set -> void
 OfficeIMO.Word.WordTablePosition.TableOverlap.get -> OfficeIMO.Word.WordTableOverlap?
 OfficeIMO.Word.WordTablePosition.TableOverlap.set -> void
-OfficeIMO.Word.WordTablePosition.TablePositionX.get -> int?
+OfficeIMO.Word.WordTablePosition.TablePositionX.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordTablePosition.TablePositionX.set -> void
 OfficeIMO.Word.WordTablePosition.TablePositionXAlignment.get -> OfficeIMO.Word.WordTableHorizontalAlignment?
 OfficeIMO.Word.WordTablePosition.TablePositionXAlignment.set -> void
-OfficeIMO.Word.WordTablePosition.TablePositionY.get -> int?
+OfficeIMO.Word.WordTablePosition.TablePositionY.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordTablePosition.TablePositionY.set -> void
 OfficeIMO.Word.WordTablePosition.TablePositionYAlignment.get -> OfficeIMO.Word.WordTableVerticalPositionAlignment?
 OfficeIMO.Word.WordTablePosition.TablePositionYAlignment.set -> void
-OfficeIMO.Word.WordTablePosition.TopFromText.get -> short?
+OfficeIMO.Word.WordTablePosition.TopFromText.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordTablePosition.TopFromText.set -> void
 OfficeIMO.Word.WordTablePosition.VerticalAnchor.get -> OfficeIMO.Word.WordTableVerticalAnchor?
 OfficeIMO.Word.WordTablePosition.VerticalAnchor.set -> void

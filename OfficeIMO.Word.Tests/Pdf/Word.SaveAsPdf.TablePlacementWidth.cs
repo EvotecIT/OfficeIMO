@@ -168,7 +168,7 @@ public partial class Word {
             WordTable positionedTable = document.AddTable(1, 1);
             ConfigureMarginTable(positionedTable, "PositionOffset");
             positionedTable.Position.HorizontalAnchor = WordTableHorizontalAnchor.Margin;
-            positionedTable.Position.TablePositionX = 720;
+            positionedTable.Position.TablePositionX = global::OfficeIMO.OfficeLength.Points(36);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {

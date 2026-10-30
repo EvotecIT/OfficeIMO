@@ -821,6 +821,22 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_CreatingWordDocumentWithTablesAndMoreOptions() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAndMoreOptions.docx");
+            var lengths = new (Action<WordTablePosition, OfficeLength?> Set,
+                Func<WordTablePosition, OfficeLength?> Get,
+                Func<TablePositionProperties, long?> Native, long Min, long Max)[] {
+                ((p, v) => p.LeftFromText = v, p => p.LeftFromText,
+                    n => n.LeftFromText?.Value, short.MinValue, short.MaxValue),
+                ((p, v) => p.RightFromText = v, p => p.RightFromText,
+                    n => n.RightFromText?.Value, short.MinValue, short.MaxValue),
+                ((p, v) => p.TopFromText = v, p => p.TopFromText,
+                    n => n.TopFromText?.Value, short.MinValue, short.MaxValue),
+                ((p, v) => p.BottomFromText = v, p => p.BottomFromText,
+                    n => n.BottomFromText?.Value, short.MinValue, short.MaxValue),
+                ((p, v) => p.TablePositionX = v, p => p.TablePositionX,
+                    n => n.TablePositionX?.Value, int.MinValue, int.MaxValue),
+                ((p, v) => p.TablePositionY = v, p => p.TablePositionY,
+                    n => n.TablePositionY?.Value, int.MinValue, int.MaxValue)
+            };
             using (WordDocument document = WordDocument.Create(filePath)) {
 
                 var wordTable1 = document.AddTable(4, 4, WordTableStyle.GridTable1LightAccent1);
@@ -900,20 +916,21 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable1.Position.HorizontalAnchor == null);
 
 
-                wordTable1.Position.LeftFromText = 100;
+                wordTable1.Position.LeftFromText = OfficeLength.Points(5.03);
 
-                wordTable1.Position.RightFromText = 180;
+                wordTable1.Position.RightFromText = OfficeLength.Inches(0.125);
 
 
-                wordTable1.Position.TopFromText = 50;
+                wordTable1.Position.TopFromText = OfficeLength.Millimeters(1);
 
-                wordTable1.Position.BottomFromText = 130;
+                wordTable1.Position.BottomFromText = OfficeLength.Centimeters(0.5);
 
                 wordTable1.Position.TablePositionXAlignment = WordTableHorizontalAlignment.Left;
 
                 wordTable1.Position.HorizontalAnchor = WordTableHorizontalAnchor.Margin;
 
-                wordTable1.Position.TablePositionY = 1;
+                wordTable1.Position.TablePositionX = OfficeLength.Emus(-318);
+                wordTable1.Position.TablePositionY = OfficeLength.Pixels(2);
 
                 document.Save();
             }
@@ -933,12 +950,20 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable1.Description == "This is a table showing some features");
                 Assert.True(wordTable1.Title == "This is a title of the table");
 
-                Assert.True(wordTable1.Position.RightFromText == 180);
-                Assert.True(wordTable1.Position.LeftFromText == 100);
-                Assert.True(wordTable1.Position.TopFromText == 50);
-                Assert.True(wordTable1.Position.BottomFromText == 130);
+                Assert.Equal(OfficeLength.Emus(180L * 635), wordTable1.Position.RightFromText);
+                Assert.Equal(OfficeLength.Emus(101L * 635), wordTable1.Position.LeftFromText);
+                Assert.Equal(OfficeLength.Emus(57L * 635), wordTable1.Position.TopFromText);
+                Assert.Equal(OfficeLength.Emus(283L * 635), wordTable1.Position.BottomFromText);
                 Assert.True(wordTable1.Position.TablePositionXAlignment == WordTableHorizontalAlignment.Left);
-                Assert.True(wordTable1.Position.TablePositionY == 1);
+                Assert.Equal(OfficeLength.Emus(30L * 635), wordTable1.Position.TablePositionY);
+                Assert.Equal(OfficeLength.Emus(-635), wordTable1.Position.TablePositionX);
+                TablePositionProperties native = wordTable1._tableProperties!.TablePositionProperties!;
+                Assert.Equal((short)101, native.LeftFromText!.Value);
+                Assert.Equal((short)180, native.RightFromText!.Value);
+                Assert.Equal((short)57, native.TopFromText!.Value);
+                Assert.Equal((short)283, native.BottomFromText!.Value);
+                Assert.Equal(-1, native.TablePositionX!.Value);
+                Assert.Equal(30, native.TablePositionY!.Value);
                 Assert.True(wordTable1.Position.HorizontalAnchor == WordTableHorizontalAnchor.Margin);
 
                 Assert.True(wordTable1.Rows[1].Cells.Count == 4);
@@ -947,6 +972,102 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable1.Rows[2].Cells[4].Paragraphs[0].Text == "This cell is outside a bit");
                 Assert.True(wordTable1.Rows[2].Cells[4].TextDirection == WordTextDirection.TopToBottomLeftToRightRotated);
 
+            }
+            // Exercise the native ranges through the saved DOCX, including rounding
+            // toward each extreme from just under half a twip outside the range.
+            foreach (bool maximum in new[] { false, true }) {
+                using (WordDocument document = WordDocument.Load(filePath)) {
+                    foreach (var length in lengths) {
+                        long boundary = maximum ? length.Max : length.Min;
+                        length.Set(document.Tables[0].Position,
+                            OfficeLength.Emus(boundary * 635 + (maximum ? 317 : -317)));
+                    }
+                    document.Save();
+                }
+                using (WordDocument document = WordDocument.Load(filePath)) {
+                    WordTable table = document.Tables[0];
+                    foreach (var length in lengths) {
+                        long boundary = maximum ? length.Max : length.Min;
+                        Assert.Equal(OfficeLength.Emus(boundary * 635), length.Get(table.Position));
+                        Assert.Equal((long?)boundary, length.Native(table._tableProperties!.TablePositionProperties!));
+                    }
+                }
+            }
+
+            // Whole EMUs cannot land exactly on a half twip (635 EMUs per twip).
+            // Check both neighbors on each side and an explicit zero.
+            foreach (var sample in new (long Emus, long Twips)[] {
+                (-318, -1), (-317, 0), (0, 0), (317, 0), (318, 1) }) {
+                using (WordDocument document = WordDocument.Load(filePath)) {
+                    foreach (var length in lengths)
+                        length.Set(document.Tables[0].Position, OfficeLength.Emus(sample.Emus));
+                    document.Save();
+                }
+                using (WordDocument document = WordDocument.Load(filePath)) {
+                    WordTable table = document.Tables[0];
+                    foreach (var length in lengths) {
+                        Assert.Equal(OfficeLength.Emus(sample.Twips * 635), length.Get(table.Position));
+                        Assert.Equal((long?)sample.Twips, length.Native(table._tableProperties!.TablePositionProperties!));
+                    }
+                }
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordTable table = document.Tables[0];
+                for (int index = 0; index < lengths.Length; index++) {
+                    var length = lengths[index];
+                    // The first rejected EMU beyond either quantized native limit.
+                    foreach (long invalid in new[] { length.Min * 635 - 318,
+                        length.Max * 635 + 318, long.MinValue, long.MaxValue }) {
+                        string before = table._table.OuterXml;
+                        Assert.Throws<OverflowException>(() => length.Set(table.Position, OfficeLength.Emus(invalid)));
+                        Assert.Equal(before, table._table.OuterXml);
+                    }
+                    length.Set(table.Position, null);
+                    Assert.Null(length.Get(table.Position));
+                    Assert.Null(length.Native(table._tableProperties!.TablePositionProperties!));
+                    foreach (var remaining in lengths.Skip(index + 1)) {
+                        Assert.Equal(OfficeLength.Emus(635), remaining.Get(table.Position));
+                        Assert.Equal((long?)1, remaining.Native(table._tableProperties!.TablePositionProperties!));
+                    }
+                }
+                Assert.Equal(WordTableHorizontalAnchor.Margin, table.Position.HorizontalAnchor);
+                Assert.Equal(WordTableVerticalAnchor.Text, table.Position.VerticalAnchor);
+                Assert.Equal(WordTableHorizontalAlignment.Left, table.Position.TablePositionXAlignment);
+                Assert.Equal(WordTableOverlap.Overlap, table.Position.TableOverlap);
+                document.Save();
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordTable table = document.Tables[0];
+                foreach (var length in lengths) {
+                    Assert.Null(length.Get(table.Position));
+                    Assert.Null(length.Native(table._tableProperties!.TablePositionProperties!));
+                }
+                Assert.Equal(WordTableHorizontalAnchor.Margin, table.Position.HorizontalAnchor);
+                Assert.Equal(WordTableVerticalAnchor.Text, table.Position.VerticalAnchor);
+                Assert.Equal(WordTableHorizontalAlignment.Left, table.Position.TablePositionXAlignment);
+                Assert.Equal(WordTableOverlap.Overlap, table.Position.TableOverlap);
+
+                // Imported tables may omit tblPr or just tblpPr. Neither a null
+                // assignment nor a rejected length may materialize those elements.
+                foreach (bool omitTableProperties in new[] { false, true }) {
+                    foreach (var length in lengths) {
+                        WordTable absent = document.AddTable(1, 1);
+                        if (omitTableProperties) absent._tableProperties!.Remove();
+                        else absent._tableProperties!.TablePositionProperties?.Remove();
+                        string before = absent._table.OuterXml;
+                        Assert.Null(length.Get(absent.Position));
+                        length.Set(absent.Position, null);
+                        Assert.Equal(before, absent._table.OuterXml);
+                        foreach (long invalid in new[] { length.Min * 635 - 318, length.Max * 635 + 318 }) {
+                            Assert.Throws<OverflowException>(() => length.Set(absent.Position, OfficeLength.Emus(invalid)));
+                            Assert.Equal(before, absent._table.OuterXml);
+                        }
+                        length.Set(absent.Position, OfficeLength.Zero);
+                        Assert.Equal(OfficeLength.Zero, length.Get(absent.Position));
+                        Assert.Equal((long?)0, length.Native(absent._tableProperties!.TablePositionProperties!));
+                    }
+                }
             }
         }
 

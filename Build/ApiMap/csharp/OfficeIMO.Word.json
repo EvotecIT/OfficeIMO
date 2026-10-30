@@ -8138,6 +8138,21 @@
         "Website/content/blog/generate-docx-from-template-dotnet.md",
         "Website/content/docs/word/templates/index.md"
       ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "WordTablePosition distance-from-text Int16 twips and signed X/Y Int32 twips.",
+      "new": "Nullable OfficeLength distances and anchor offsets; native signed twips are validated before mutation.",
+      "reason": "Floating-table positioning follows the common physical geometry contract while retaining native precision, bounds and null-versus-zero behavior.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Word/WordTablePosition.cs",
+        "OfficeIMO.Word.Tests/Word.Tables.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.TablePlacementWidth.cs",
+        "OfficeIMO.Word/README.md"
+      ],
+      "note": "The six physical properties retain their native signed Int16/Int32 storage limits, rounded through OfficeLength.ToTwips before creating or changing table properties. Null clears only the existing native attribute."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

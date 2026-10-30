@@ -292,11 +292,22 @@ section.Margins.Left = OfficeLength.Centimeters(2.5);
 var paragraph = document.AddParagraph("A measured paragraph");
 paragraph.IndentationFirstLine = OfficeLength.Inches(0.5);
 paragraph.LineSpacingAfter = OfficeLength.Points(8);
-var row = document.AddTable(1, 1).Rows[0];
+var table = document.AddTable(1, 1);
+var row = table.Rows[0];
 row.MinimumHeight = OfficeLength.Points(20);
 row.Cells[0].MarginLeft = OfficeLength.Millimeters(2);
+table.AllowTextWrap = true;
+table.Position.HorizontalAnchor = WordTableHorizontalAnchor.Margin;
+table.Position.TablePositionX = OfficeLength.Points(36);
+table.Position.TablePositionY = OfficeLength.Millimeters(5);
+table.Position.LeftFromText = OfficeLength.Centimeters(0.2);
+table.Position.RightFromText = OfficeLength.Inches(0.125);
+table.Position.TopFromText = OfficeLength.Points(3);
+table.Position.BottomFromText = OfficeLength.Zero;
 document.Save();
 ```
+
+Floating-table `Position` exposes nullable `OfficeLength` values for `LeftFromText`, `RightFromText`, `TopFromText`, `BottomFromText`, `TablePositionX` and `TablePositionY`. Assignment rounds to whole twips, with midpoint ties away from zero. The four text gaps retain signed 16-bit twip storage; X and Y retain signed 32-bit twip storage. A rounded value outside that range throws `OverflowException` before changing the table XML. Null removes only that attribute, and zero remains explicit. Anchors and alignments remain enums. Use `ToPoints()` or `ToTwips()` when reading a length for a numeric boundary.
 
 `document.AddSection(WordSectionBreakType.OddPage)` returns the new section. Its `BreakType` property gets or changes how that section starts relative to the preceding section; the preceding section retains its own start type. `AddSection()` starts on the next page and continues page numbering. Set a new section's numbering restart explicitly when needed. All five start types survive DOCX and supported native DOC saves.
 
