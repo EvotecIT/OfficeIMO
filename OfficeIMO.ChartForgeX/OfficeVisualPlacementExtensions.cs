@@ -23,7 +23,7 @@ public static partial class OfficeVisualPlacementExtensions {
         if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
         conversion = artifact.ToOfficeVisual(options);
         if (options?.WidthPoints == null && options?.HeightPoints == null) {
-            double width = paragraph.GetContentWidthPoints();
+            double width = paragraph.GetContentWidth().ToPoints();
             if (conversion.WidthPoints > width) conversion = conversion.WithSize(width);
         }
         return paragraph.AddVisualArtifact(conversion, wrapping);

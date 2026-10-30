@@ -72,7 +72,7 @@ public sealed partial class OfficeVisualIntegrationTests {
             double available;
             using (var document = WordDocument.Create(wordPath)) {
                 var paragraph = document.AddParagraph();
-                available = paragraph.GetContentWidthPoints();
+                available = paragraph.GetContentWidth().ToPoints();
                 paragraph.AddVisualArtifact(artifact);
                 document.Save();
             }

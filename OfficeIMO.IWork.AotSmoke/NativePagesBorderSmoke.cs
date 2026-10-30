@@ -36,10 +36,10 @@ internal static class NativePagesBorderSmoke {
         using var reopened = WordDocument.Load(saved);
         using var native = WordDocument.Load(reference);
         var output = reopened.Tables.Single();
-        Require(output.RowHeight.SequenceEqual(new[] { 560, 540, 560, 560 }),
+        Require(output.RowHeight.Select(height => checked((int)(height?.ToTwips() ?? 0))).SequenceEqual(new[] { 560, 540, 560, 560 }),
             "Pages physical row heights did not account for Word bottom padding.");
-        Require(output.LayoutMode == WordTableLayoutMode.Fixed && output.WidthType == WordTableWidthUnit.Dxa
-            && output.Width == 8640 && output.GridColumnWidth.SequenceEqual(new[] { 2160, 2160, 2160, 2160 }),
+        Require(output.LayoutMode == WordTableLayoutMode.Fixed && output.Width == WordTableWidth.Length(OfficeIMO.OfficeLength.Points(432))
+            && output.GridColumnWidth.SequenceEqual(Enumerable.Repeat(OfficeIMO.OfficeLength.Points(108), 4)),
             "Pages standalone table did not retain its fixed grid.");
         var exported = native.Tables.Single();
         int edges = 0;

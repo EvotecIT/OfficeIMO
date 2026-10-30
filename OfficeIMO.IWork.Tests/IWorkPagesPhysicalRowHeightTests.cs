@@ -16,7 +16,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);
         WordTable table = Assert.Single(reopened.Tables);
-        Assert.Equal(new[] { 560, 540, 560, 560 }, table.RowHeight);
+        Assert.Equal(new[] { 560, 540, 560, 560 }, table.RowHeight.Select(height => checked((int)(height?.ToTwips() ?? 0))));
         for (int row = 0; row < table.Rows.Count; row++) {
             var cells = table.Rows[row].Cells;
             Assert.All(cells, cell => Assert.Equal((short)80, checked((short?)(cell.MarginBottom?.ToTwips()))));
@@ -67,7 +67,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(8, result.Projection.Tables[0].GetCell(2, 1)!.Padding!.BottomPoints);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);
-        Assert.Equal(new[] { 240, 240 }, Assert.Single(reopened.Tables).RowHeight);
+        Assert.Equal(new[] { 240, 240 }, Assert.Single(reopened.Tables).RowHeight.Select(height => checked((int)(height?.ToTwips() ?? 0))));
         Assert.Equal(WordCellMerge.Continue, reopened.Tables[0].Rows[1].Cells[0].VerticalMerge);
         Assert.Equal((short)160, checked((short?)(reopened.Tables[0].Rows[1].Cells[0].MarginBottom?.ToTwips())));
         Assert.Empty(reopened.ValidateDocument());

@@ -23,7 +23,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);
         var table = Assert.Single(reopened.Tables);
-        Assert.Equal(new[] { 405, 200, 600 }, table.RowHeight);
+        Assert.Equal(new[] { 405, 200, 600 }, table.RowHeight.Select(height => checked((int)(height?.ToTwips() ?? 0))));
         Assert.Equal(new[] { 810, 400 }.Select(value => (WordTableWidth?)WordTableWidth.Length(OfficeLength.Emus((long)value * 635))), table.ColumnWidth);
         Assert.Empty(reopened.ValidateDocument());
     }
@@ -45,7 +45,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); partial.Value.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);
         var table = Assert.Single(reopened.Tables);
-        Assert.Equal(missingRow ? new[] { 405, 203, 600 } : new[] { 405, 200, 600 }, table.RowHeight);
+        Assert.Equal(missingRow ? new[] { 405, 203, 600 } : new[] { 405, 200, 600 }, table.RowHeight.Select(height => checked((int)(height?.ToTwips() ?? 0))));
         Assert.Equal((missingRow ? new[] { 810, 400 } : new[] { 810, 403 }).Select(value => (WordTableWidth?)WordTableWidth.Length(OfficeLength.Emus((long)value * 635))), table.ColumnWidth);
     }
 

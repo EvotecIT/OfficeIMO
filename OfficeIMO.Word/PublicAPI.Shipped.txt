@@ -3109,7 +3109,7 @@ OfficeIMO.Word.WordParagraph.FontFamilyHighAnsi.set -> void
 OfficeIMO.Word.WordParagraph.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraph.FontSize.set -> void
 OfficeIMO.Word.WordParagraph.FootNote.get -> OfficeIMO.Word.WordFootNote?
-OfficeIMO.Word.WordParagraph.GetContentWidthPoints() -> double
+OfficeIMO.Word.WordParagraph.GetContentWidth() -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordParagraph.GetFormattedRuns() -> System.Collections.Generic.IEnumerable<OfficeIMO.Word.WordFormattedRun>!
 OfficeIMO.Word.WordParagraph.GetListStyle() -> OfficeIMO.Word.WordListStyle?
 OfficeIMO.Word.WordParagraph.GetRuns() -> System.Collections.Generic.IEnumerable<OfficeIMO.Word.WordParagraph!>!
@@ -4096,12 +4096,12 @@ OfficeIMO.Word.WordSmartArt.NodeCount.get -> int
 OfficeIMO.Word.WordSmartArt.Nodes.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordSmartArtNode!>!
 OfficeIMO.Word.WordSmartArt.RemoveNodeAt(int index) -> void
 OfficeIMO.Word.WordSmartArt.ReplaceTexts(System.Collections.Generic.IEnumerable<string!>! texts) -> void
-OfficeIMO.Word.WordSmartArt.ReplaceTexts(System.Collections.Generic.IEnumerable<string!>! texts, bool bold, bool italic, bool underline, string? colorHex = null, double? sizePt = null) -> void
-OfficeIMO.Word.WordSmartArt.ReplaceTexts(bool bold, bool italic, bool underline, string? colorHex = null, double? sizePt = null, params string![]! texts) -> void
+OfficeIMO.Word.WordSmartArt.ReplaceTexts(System.Collections.Generic.IEnumerable<string!>! texts, bool bold, bool italic, bool underline, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null) -> void
+OfficeIMO.Word.WordSmartArt.ReplaceTexts(bool bold, bool italic, bool underline, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null, params string![]! texts) -> void
 OfficeIMO.Word.WordSmartArt.ReplaceTexts(params string![]! texts) -> void
 OfficeIMO.Word.WordSmartArt.SetNodeText(int index, string! text) -> void
 OfficeIMO.Word.WordSmartArt.SetNodeText(int index, string! text, bool bold, bool italic) -> void
-OfficeIMO.Word.WordSmartArt.SetNodeText(int index, string! text, bool bold, bool italic, bool underline, string? colorHex, double? sizePt) -> void
+OfficeIMO.Word.WordSmartArt.SetNodeText(int index, string! text, bool bold, bool italic, bool underline, string? colorHex, OfficeIMO.OfficeLength? fontSize) -> void
 OfficeIMO.Word.WordSmartArt.TryGetLayoutSnapshot(out OfficeIMO.Word.WordDrawingLayoutInfo! snapshot) -> bool
 OfficeIMO.Word.WordSmartArtNode
 OfficeIMO.Word.WordSmartArtNode.Id.get -> string!
@@ -4251,7 +4251,7 @@ OfficeIMO.Word.WordTable.RepeatAsHeaderRowAtTheTopOfEachPage.set -> void
 OfficeIMO.Word.WordTable.RepeatHeaderRowAtTheTopOfEachPage.get -> bool
 OfficeIMO.Word.WordTable.RepeatHeaderRowAtTheTopOfEachPage.set -> void
 OfficeIMO.Word.WordTable.RepeatingSections.get -> System.Collections.Generic.List<OfficeIMO.Word.WordRepeatingSection!>!
-OfficeIMO.Word.WordTable.RowHeight.get -> System.Collections.Generic.List<int>!
+OfficeIMO.Word.WordTable.RowHeight.get -> System.Collections.Generic.List<OfficeIMO.OfficeLength?>!
 OfficeIMO.Word.WordTable.RowHeight.set -> void
 OfficeIMO.Word.WordTable.Rows.get -> System.Collections.Generic.List<OfficeIMO.Word.WordTableRow!>!
 OfficeIMO.Word.WordTable.RowsCount.get -> int

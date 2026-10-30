@@ -36,7 +36,7 @@ public sealed partial class IWorkBoundaryTests {
                 Assert.Equal(expected.Vertical == IWorkCellVerticalAlignment.Middle ? WordTableVerticalAlignment.Center : WordTableVerticalAlignment.Bottom,
                     cell.VerticalAlignment);
             }
-            Assert.Equal(new[] { 800, 680, 680, 640 }, target.RowHeight);
+            Assert.Equal(new[] { 800, 680, 680, 640 }, target.RowHeight.Select(height => checked((int)(height?.ToTwips() ?? 0))));
             Assert.Equal((short)40, checked((short?)(target.Rows[0].Cells[0].MarginLeft?.ToTwips())));
             Assert.Equal((short)0, checked((short?)(target.Rows[0].Cells[0].MarginBottom?.ToTwips())));
             Assert.Equal(WordTableVerticalAlignment.Bottom, target.Rows[0].Cells[0].VerticalAlignment);

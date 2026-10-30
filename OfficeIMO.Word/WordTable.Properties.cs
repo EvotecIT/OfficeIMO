@@ -339,23 +339,21 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set row heights for the table
-        /// </summary>
-        public List<int> RowHeight {
-            get {
-                var listReturn = new List<int>();
-                for (int rowIndex = 0; rowIndex < this.Rows.Count; rowIndex++) {
-                    listReturn.Add(checked((int?)(this.Rows[rowIndex].Height?.ToTwips())) ?? 0);
-                }
-                return listReturn;
-            }
+        /// <summary>Gets declared row heights, including absent constraints, or applies exact heights in row order.</summary>
+        /// <remarks>Null removes a row's height constraint. All values are checked before any row is changed.</remarks>
+        public List<OfficeLength?> RowHeight {
+            get => Rows.Select(row => row.Height).ToList();
             set {
-                for (int rowIndex = 0; rowIndex < value.Count; rowIndex++) {
-                    this.Rows[rowIndex].Height = global::OfficeIMO.OfficeLength.Points((value[rowIndex]) / 20D);
+                if (value == null) throw new ArgumentNullException(nameof(value));
+                if (value.Count > Rows.Count)
+                    throw new ArgumentException("Row heights exceed the table's row count.", nameof(value));
+                foreach (OfficeLength? height in value) {
+                    if (height < OfficeLength.Zero)
+                        throw new ArgumentOutOfRangeException(nameof(value), "Row height cannot be negative.");
+                    if (height.HasValue) _ = checked((int)height.Value.ToTwips());
                 }
+                for (int index = 0; index < value.Count; index++) Rows[index].Height = value[index];
             }
-
         }
 
         /// <summary>

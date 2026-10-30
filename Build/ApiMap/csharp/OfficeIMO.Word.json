@@ -2375,11 +2375,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Public geometry uses OfficeLength without a unit-suffixed alias. SmartArt font sizes are checked before diagram mutation and serialized as native hundredth-points. Content-width estimates return a physical length. WordLine.StrokeWeight was already migrated with the drawing geometry batch; this reconciles its original map row. Word library builds pass without warnings/errors on net10.0, net8.0, netstandard2.0 and isolated net472. The native geometry/SmartArt closure passes 66 cases on net10.0; iWork boundary tests pass 2665 cases after consumer migration."
     },
     {
       "old": "OfficeIMO.Word.WordChart.SetSize(int widthPx, int? heightPx = null)",
@@ -2868,11 +2868,11 @@
       "notes": "Numeric parameters with unit-suffixed names: ",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Public geometry uses OfficeLength without a unit-suffixed alias. SmartArt font sizes are checked before diagram mutation and serialized as native hundredth-points. Content-width estimates return a physical length. WordLine.StrokeWeight was already migrated with the drawing geometry batch; this reconciles its original map row. Word library builds pass without warnings/errors on net10.0, net8.0, netstandard2.0 and isolated net472. The native geometry/SmartArt closure passes 66 cases on net10.0; iWork boundary tests pass 2665 cases after consumer migration."
     },
     {
       "old": "OfficeIMO.Word.WordSmartArt.ReplaceTexts(bool bold, bool italic, bool underline, string colorHex = null, double? sizePt = null, string[] texts)",
@@ -2885,11 +2885,11 @@
       "notes": "Numeric parameters with unit-suffixed names: ",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Public geometry uses OfficeLength without a unit-suffixed alias. SmartArt font sizes are checked before diagram mutation and serialized as native hundredth-points. Content-width estimates return a physical length. WordLine.StrokeWeight was already migrated with the drawing geometry batch; this reconciles its original map row. Word library builds pass without warnings/errors on net10.0, net8.0, netstandard2.0 and isolated net472. The native geometry/SmartArt closure passes 66 cases on net10.0; iWork boundary tests pass 2665 cases after consumer migration."
     },
     {
       "old": "OfficeIMO.Word.WordSmartArt.SetNodeText(int index, string text, bool bold, bool italic, bool underline, string colorHex, double? sizePt)",
@@ -2902,11 +2902,11 @@
       "notes": "Numeric parameters with unit-suffixed names: ",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Public geometry uses OfficeLength without a unit-suffixed alias. SmartArt font sizes are checked before diagram mutation and serialized as native hundredth-points. Content-width estimates return a physical length. WordLine.StrokeWeight was already migrated with the drawing geometry batch; this reconciles its original map row. Word library builds pass without warnings/errors on net10.0, net8.0, netstandard2.0 and isolated net472. The native geometry/SmartArt closure passes 66 cases on net10.0; iWork boundary tests pass 2665 cases after consumer migration."
     },
     {
       "old": "OfficeIMO.Word.WordChartSnapshot.HeightPoints",
@@ -3138,17 +3138,17 @@
       "old": "OfficeIMO.Word.WordLine.StrokeWeightPt",
       "kind": "property",
       "action": "change",
-      "new": "OfficeIMO.Word.WordLine.StrokeWeightPt : OfficeLength",
+      "new": "OfficeIMO.Word.WordLine.StrokeWeight : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordLine.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Public geometry uses OfficeLength without a unit-suffixed alias. SmartArt font sizes are checked before diagram mutation and serialized as native hundredth-points. Content-width estimates return a physical length. WordLine.StrokeWeight was already migrated with the drawing geometry batch; this reconciles its original map row."
     },
     {
       "old": "OfficeIMO.Word.WordListLevel.IndentationHangingCentimeters",
@@ -7095,6 +7095,19 @@
         "OfficeIMO.Word.Tests/Word.CompareDocuments.StructuredReports.cs",
         "OfficeIMO.Word.Tests/Word.LegacyDoc.InheritedLineSpacing.cs",
         "OfficeIMO.Word.Tests/Word.Settings.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "WordTable.RowHeight : List<int> (twips, missing values read as zero)",
+      "new": "WordTable.RowHeight : List<OfficeLength?>",
+      "reason": "The table-level collection exposes physical geometry alongside the already typed row properties. Null and zero are distinct constraints.",
+      "note": "The complete input is checked for row count, negative values and native integer overflow before any row is changed. Values are rounded at the existing row serialization boundary; null removes a constraint. Native iWork tests, smoke consumers and the Word table example are migrated. Word native geometry/SmartArt closure passes 66 cases; iWork boundary closure passes 2665 cases. The iWork NativePagesBorderSmoke consumer also adopts the previously migrated WordTableWidth and typed grid contract.",
+      "files": [
+        "OfficeIMO.Word/WordTable.Properties.cs",
+        "OfficeIMO.Word.Tests/Word.PhysicalCollectionGeometry.cs"
       ]
     }
   ],

@@ -69,7 +69,7 @@ namespace OfficeIMO.Examples.Word {
                 wordTable2.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
 
                 wordTable2.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(85.8)), WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(190.85)), WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(15)), WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(150)) };
-                wordTable2.RowHeight = new List<int>() { 1000, 300, 500, 200 };
+                wordTable2.RowHeight = new List<OfficeIMO.OfficeLength?> { OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(15), OfficeIMO.OfficeLength.Points(25), OfficeIMO.OfficeLength.Points(10) };
 
                 // add a cell to 3rd row
                 WordTableCell cell = wordTable2.Rows[2].AddCell();

@@ -63,7 +63,7 @@ public sealed partial class IWorkBoundaryTests {
         result.Value.Save(saved);
         saved.Position = 0;
         using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
-        Assert.Equal(new[] { 405, 200, 600 }, reopened.Tables[0].RowHeight);
+        Assert.Equal(new[] { 405, 200, 600 }, reopened.Tables[0].RowHeight.Select(height => checked((int)(height?.ToTwips() ?? 0))));
         Assert.Equal(autoResize ? 405 : (int?)null, checked((int?)(reopened.Tables[0].Rows[0].MinimumHeight?.ToTwips())));
         saved.Position = 0;
         using var zip = new ZipArchive(saved, ZipArchiveMode.Read, leaveOpen: true);

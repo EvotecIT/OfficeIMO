@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
         /// <summary>
-        /// Estimates the authored content width available to an inline drawing in this paragraph, in points.
+        /// Estimates the authored content width available to an inline drawing in this paragraph as a physical length.
         /// </summary>
         /// <returns>A positive width after the containing cell or section geometry and direct paragraph indents.</returns>
         /// <remarks>
@@ -18,7 +18,7 @@ namespace OfficeIMO.Word {
         /// The paragraph is detached, belongs to an unsupported text box, has ambiguous story geometry,
         /// or its margins and indents leave no positive content width.
         /// </exception>
-        public double GetContentWidthPoints() {
+        public OfficeLength GetContentWidth() {
             if (_paragraph.Parent == null) {
                 throw new InvalidOperationException("The paragraph must be attached to a document before its content width can be estimated.");
             }
@@ -69,7 +69,7 @@ namespace OfficeIMO.Word {
             if (width <= 0D) {
                 throw new InvalidOperationException("The paragraph margins and indents leave no positive content width. Use explicit drawing dimensions.");
             }
-            return width;
+            return OfficeLength.Points(width);
         }
 
         private double GetSectionPageContentWidthPoints(WordSection section) {

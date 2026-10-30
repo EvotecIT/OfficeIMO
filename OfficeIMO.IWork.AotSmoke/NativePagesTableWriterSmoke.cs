@@ -33,7 +33,7 @@ internal static class NativePagesTableWriterSmoke {
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);
         Require(reopened.Tables.Count == 2 && reopened.Tables[0].Rows.Count == 3
-            && reopened.Tables[1].Rows.Count == 2 && reopened.Tables[0].RowHeight.All(height => height == 880)
+            && reopened.Tables[1].Rows.Count == 2 && reopened.Tables[0].RowHeight.All(height => height?.ToTwips() == 880)
             && checked((short?)(reopened.Tables[0].Rows[2].Cells[2].MarginBottom?.ToTwips())) == 80
             && reopened.Tables[0].Rows[0].Cells[1].Paragraphs.Any(paragraph => paragraph.Text == "=SUM(A1:A2)")
             && !reopened.ValidateDocument().Any(), "Saved DOCX loses table separation, padding, height or literal text.");

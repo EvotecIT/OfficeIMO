@@ -94,7 +94,7 @@ public sealed partial class IWorkBoundaryTests {
             saved.Position = 0;
             using WordDocument reopened = WordDocument.Load(saved);
             WordTable output = Assert.Single(reopened.Tables);
-            Assert.Equal(new[] { 405, 200, 600 }, output.RowHeight);
+            Assert.Equal(new[] { 405, 200, 600 }, output.RowHeight.Select(height => checked((int)(height?.ToTwips() ?? 0))));
             Assert.Equal(new[] { 810, 400 }.Select(value => (WordTableWidth?)WordTableWidth.Length(OfficeLength.Emus((long)value * 635))), output.ColumnWidth);
         } else {
             using var result = source.ToPowerPointDocumentResult();

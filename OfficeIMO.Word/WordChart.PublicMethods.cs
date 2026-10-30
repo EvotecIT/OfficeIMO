@@ -23,8 +23,8 @@ namespace OfficeIMO.Word {
         public WordChart SetWidthToPageContent(double fraction = 1.0, OfficeLength? height = null) {
             if (_paragraph == null) return this;
             try {
-                var width = OfficeLength.Points(_paragraph.GetContentWidthPoints()
-                    * System.Math.Max(0.05, System.Math.Min(1.0, fraction)));
+                var width = _paragraph.GetContentWidth()
+                    * System.Math.Max(0.05, System.Math.Min(1.0, fraction));
                 return SetSize(width, height);
             } catch { return this; }
         }
