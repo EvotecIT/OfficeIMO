@@ -17,6 +17,31 @@ function capture(snapshot = fixture.snapshot) {
     pivot: { definition, rowAxis, columnAxis, columnGroups, distinctColumns, retainedColumns, columnsLimited } },
     async *rows({ signal } = {}) { for (const row of rows) { signal?.throwIfAborted(); yield row; } } };
 }
+
+test("pivot PDF distinguishes summary rows and right-aligns consistently formatted numeric values", async () => {
+  const snapshot = structuredClone(fixture.percent);
+  snapshot.rows[0].cells.v0_0 = { value: .186, text: "18,6%", mode: "percentGrandTotal", numberFormat: "0.00%" };
+  snapshot.rows[1].cells.v0_0 = { value: .093, text: "9,3%", mode: "percentGrandTotal", numberFormat: "0.00%" };
+  const input = capture(snapshot), source = createCanopyExport(input, "pdf");
+  assert.ok(source.columns.slice(1).every(column => column.alignment === "right"));
+  const pdf = await inspectPdf(await exportCanopy(input, "pdf"));
+  const runs = pdf.pages.flatMap(page => [...page.content.matchAll(/BT \/(F\d+) [\s\S]*?([-\d.]+) ([-\d.]+) Tm <([a-f0-9]*)> Tj ET/g)]
+    .map(match => ({ font: match[1], x: Number(match[2]), text: Buffer.from(match[4], "hex").toString("latin1") })));
+  assert.notEqual(runs.find(run => run.text === "South").font, runs.find(run => run.text === "C1").font,
+    "Parent and member labels use distinct emphasis in the actual PDF");
+  const large = runs.find(run => run.text === "18,60%"), small = runs.find(run => run.text === "9,30%");
+  assert.ok(large && small, "The native percent format pads both decimal places with the captured comma separator");
+  assert.ok(small.x > large.x, "A shorter number starts farther right in the same numeric column");
+  assert.doesNotMatch(pdf.text, /(?:^|\n)(?:18,6|9,3)%\n/);
+});
+
+test("pivot PDF honors explicit grouped number formats without changing captured raw values", async () => {
+  const snapshot = structuredClone(fixture.snapshot);
+  snapshot.rows[0].cells.v0_1.value = 1010; snapshot.rows[0].cells.v0_1.text = "1010";
+  const input = capture(snapshot), pdf = await inspectPdf(await exportCanopy(input, "pdf", { columnOptions: { v0_1: { format: "#,##0" } } }));
+  assert.ok(pdf.text.includes("1,010"));
+  assert.equal(snapshot.rows[0].cells.v0_1.value, 1010);
+});
 async function retain(name, blob) {
   if (process.env.OFFICEIMO_CANOPY_FIXTURES) await writeFile(process.env.OFFICEIMO_CANOPY_FIXTURES + "/" + name, new Uint8Array(await blob.arrayBuffer()));
 }
