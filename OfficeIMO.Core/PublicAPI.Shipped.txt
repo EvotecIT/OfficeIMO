@@ -731,19 +731,19 @@ OfficeIMO.Drawing.OfficeChartSnapshot.BubbleScalePercent.get -> double
 OfficeIMO.Drawing.OfficeChartSnapshot.BubbleSizeMode.get -> OfficeIMO.Drawing.OfficeChartBubbleSizeMode
 OfficeIMO.Drawing.OfficeChartSnapshot.ChartKind.get -> OfficeIMO.OfficeChartType
 OfficeIMO.Drawing.OfficeChartSnapshot.Data.get -> OfficeIMO.Drawing.OfficeChartData!
-OfficeIMO.Drawing.OfficeChartSnapshot.HeightPoints.get -> double
+OfficeIMO.Drawing.OfficeChartSnapshot.Height.get -> OfficeIMO.OfficeLength
 OfficeIMO.Drawing.OfficeChartSnapshot.Layout.get -> OfficeIMO.Drawing.OfficeChartLayout!
 OfficeIMO.Drawing.OfficeChartSnapshot.Name.get -> string!
-OfficeIMO.Drawing.OfficeChartSnapshot.OfficeChartSnapshot(string! name, string? title, OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, double widthPoints, double heightPoints, OfficeIMO.Drawing.OfficeChartStyle? style = null, OfficeIMO.Drawing.OfficeChartLayout? layout = null) -> void
-OfficeIMO.Drawing.OfficeChartSnapshot.OfficeChartSnapshot(string! name, string? title, OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, double widthPoints, double heightPoints, OfficeIMO.Drawing.OfficeChartStyle? style, OfficeIMO.Drawing.OfficeChartLayout? layout, OfficeIMO.Drawing.OfficeChartRadialLayout! radialLayout) -> void
-OfficeIMO.Drawing.OfficeChartSnapshot.OfficeChartSnapshot(string! name, string? title, OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, double widthPoints, double heightPoints, OfficeIMO.Drawing.OfficeChartStyle? style, OfficeIMO.Drawing.OfficeChartLayout? layout, double bubbleScalePercent, OfficeIMO.Drawing.OfficeChartBubbleSizeMode bubbleSizeMode) -> void
-OfficeIMO.Drawing.OfficeChartSnapshot.OfficeChartSnapshot(string! name, string? title, OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, double widthPoints, double heightPoints, OfficeIMO.Drawing.OfficeChartStyle? style, OfficeIMO.Drawing.OfficeChartLayout? layout, double bubbleScalePercent, OfficeIMO.Drawing.OfficeChartBubbleSizeMode bubbleSizeMode, OfficeIMO.Drawing.OfficeChartRadialLayout! radialLayout) -> void
-OfficeIMO.Drawing.OfficeChartSnapshot.OfficeChartSnapshot(string! name, string? title, OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, double widthPoints, double heightPoints, double bubbleScalePercent, OfficeIMO.Drawing.OfficeChartBubbleSizeMode bubbleSizeMode = OfficeIMO.Drawing.OfficeChartBubbleSizeMode.Area) -> void
+OfficeIMO.Drawing.OfficeChartSnapshot.OfficeChartSnapshot(string! name, string? title, OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.Drawing.OfficeChartStyle? style = null, OfficeIMO.Drawing.OfficeChartLayout? layout = null) -> void
+OfficeIMO.Drawing.OfficeChartSnapshot.OfficeChartSnapshot(string! name, string? title, OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.Drawing.OfficeChartStyle? style, OfficeIMO.Drawing.OfficeChartLayout? layout, OfficeIMO.Drawing.OfficeChartRadialLayout! radialLayout) -> void
+OfficeIMO.Drawing.OfficeChartSnapshot.OfficeChartSnapshot(string! name, string? title, OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.Drawing.OfficeChartStyle? style, OfficeIMO.Drawing.OfficeChartLayout? layout, double bubbleScalePercent, OfficeIMO.Drawing.OfficeChartBubbleSizeMode bubbleSizeMode) -> void
+OfficeIMO.Drawing.OfficeChartSnapshot.OfficeChartSnapshot(string! name, string? title, OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.Drawing.OfficeChartStyle? style, OfficeIMO.Drawing.OfficeChartLayout? layout, double bubbleScalePercent, OfficeIMO.Drawing.OfficeChartBubbleSizeMode bubbleSizeMode, OfficeIMO.Drawing.OfficeChartRadialLayout! radialLayout) -> void
+OfficeIMO.Drawing.OfficeChartSnapshot.OfficeChartSnapshot(string! name, string? title, OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, double bubbleScalePercent, OfficeIMO.Drawing.OfficeChartBubbleSizeMode bubbleSizeMode = OfficeIMO.Drawing.OfficeChartBubbleSizeMode.Area) -> void
 OfficeIMO.Drawing.OfficeChartSnapshot.RadialLayout.get -> OfficeIMO.Drawing.OfficeChartRadialLayout!
 OfficeIMO.Drawing.OfficeChartSnapshot.Style.get -> OfficeIMO.Drawing.OfficeChartStyle!
 OfficeIMO.Drawing.OfficeChartSnapshot.Title.get -> string?
-OfficeIMO.Drawing.OfficeChartSnapshot.WidthPoints.get -> double
-OfficeIMO.Drawing.OfficeChartSnapshot.WithSize(double widthPoints, double heightPoints) -> OfficeIMO.Drawing.OfficeChartSnapshot!
+OfficeIMO.Drawing.OfficeChartSnapshot.Width.get -> OfficeIMO.OfficeLength
+OfficeIMO.Drawing.OfficeChartSnapshot.WithSize(OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> OfficeIMO.Drawing.OfficeChartSnapshot!
 OfficeIMO.Drawing.OfficeChartStyle
 OfficeIMO.Drawing.OfficeChartStyle.AxisColor.get -> OfficeIMO.OfficeColor
 OfficeIMO.Drawing.OfficeChartStyle.AxisLineDashStyle.get -> OfficeIMO.Drawing.OfficeStrokeDashStyle?

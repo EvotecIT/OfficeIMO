@@ -259,8 +259,8 @@ public static partial class MarkdownPdfConverterExtensions {
                 title,
                 chartKind,
                 new OfficeChartData(labels, series),
-                width,
-                height,
+                global::OfficeIMO.OfficeLength.Points(width),
+                global::OfficeIMO.OfficeLength.Points(height),
                 CreateMarkdownChartStyle(root, chartKind),
                 CreateMarkdownChartLayout(root, chartKind, series, legendPosition, fillRadarSeries));
             return true;

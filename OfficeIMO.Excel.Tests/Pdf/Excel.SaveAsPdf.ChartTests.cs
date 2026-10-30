@@ -393,8 +393,8 @@ public partial class Excel {
             new OfficeChartData(
                 new[] { "Low", "High" },
                 new[] { new OfficeSeries("Value", new[] { 10D, 20D }) }),
-            360D,
-            220D);
+            global::OfficeIMO.OfficeLength.Points(360D),
+            global::OfficeIMO.OfficeLength.Points(220D));
 
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
         OfficeDrawingShape firstMarker = drawing.Shapes
@@ -414,8 +414,8 @@ public partial class Excel {
             new OfficeChartData(
                 new[] { "Low", "High" },
                 new[] { new OfficeSeries("Value", new[] { 10D, 20D }) }),
-            360D,
-            220D);
+            global::OfficeIMO.OfficeLength.Points(360D),
+            global::OfficeIMO.OfficeLength.Points(220D));
 
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
 
@@ -434,8 +434,8 @@ public partial class Excel {
                     new OfficeSeries("Outer", new[] { 3D, 2D, 1D }),
                     new OfficeSeries("Inner", new[] { 1D, 2D, 3D })
                 }),
-            360D,
-            220D);
+            global::OfficeIMO.OfficeLength.Points(360D),
+            global::OfficeIMO.OfficeLength.Points(220D));
 
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
         int slices = drawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Polygon);

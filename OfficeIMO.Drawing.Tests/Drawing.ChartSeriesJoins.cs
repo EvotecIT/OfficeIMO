@@ -141,7 +141,7 @@ public sealed class DrawingChartSeriesJoinTests {
     private static OfficeDrawing Render(OfficeChartType kind, OfficeSeries series, int count, OfficeChartLayout layout) =>
         OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, kind,
             new OfficeChartData(Enumerable.Range(0, count).Select(index => index.ToString()), new[] { series }),
-            400, 300, layout: layout));
+            global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300), layout: layout));
 
     private static IEnumerable<OfficeDrawingShape> SeriesInk(OfficeDrawing drawing) =>
         Shapes(drawing).Where(shape => shape.Shape.StrokeColor == Ink);

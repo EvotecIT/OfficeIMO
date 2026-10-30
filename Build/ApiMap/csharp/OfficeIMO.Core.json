@@ -929,6 +929,21 @@
       ],
       "applied": "phase-b-applied",
       "note": "Keep existing seven-component construction and normalized color semantics. Generated nullable source and all four shipped baselines build cleanly. Word native theme/table and PDF projection suites pass on net10.0; remaining format, AOT and framework gates are separate."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "OfficeChartSnapshot constructors and WithSize(double widthPoints, double heightPoints), WidthPoints and HeightPoints",
+      "new": "OfficeChartSnapshot constructors and WithSize(OfficeLength width, OfficeLength height), Width and Height",
+      "reason": "Shared chart snapshots are caller-visible geometry and use the same physical length contract as native authoring. Rendering converts to points at the drawing boundary.",
+      "files": [
+        "OfficeIMO.Core/OfficeChartSnapshot.cs",
+        "OfficeIMO.Core/OfficeChartDrawingRenderer.cs",
+        "OfficeIMO.Core/PublicAPI.Shipped.txt",
+        "OfficeIMO.Drawing.Tests/Drawing.ChartPhysicalSize.cs"
+      ],
+      "applied": "phase-b-applied",
+      "note": "All explicit snapshot constructors and resize consumers use typed lengths; positive-size validation and immutable chart metadata remain. Exact EMUs survive construction and resize."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

@@ -15,7 +15,7 @@ public sealed class DrawingExportQualityTests {
         var snapshot = new OfficeChartSnapshot("Native chart", "Overlay title", kind,
             new OfficeChartData(new[] { "A", "B", "C" }, new[] {
                 new OfficeSeries("Values", new[] { 1d, 2d, 3d })
-            }), 360, 240,
+            }), global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240),
             style: new OfficeChartStyle(titleFontSize: 24,
                 plotAreaBackgroundColor: OfficeColor.Parse("#224466")),
             layout: new OfficeChartLayout(overlayTitle: true, showLegend: false));
@@ -29,7 +29,7 @@ public sealed class DrawingExportQualityTests {
     public void ImportedLargeChartTitleReservesItsFullTextHeight() {
         var snapshot = new OfficeChartSnapshot("Native chart", "Shared combination", OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "Q1" }, new[] { new OfficeSeries("Volume", new[] { 100d }) }),
-            480, 300, style: new OfficeChartStyle(titleFontSize: 24),
+            global::OfficeIMO.OfficeLength.Points(480), global::OfficeIMO.OfficeLength.Points(300), style: new OfficeChartStyle(titleFontSize: 24),
             layout: new OfficeChartLayout(showLegend: false));
 
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
@@ -42,7 +42,7 @@ public sealed class DrawingExportQualityTests {
     public void SmallAuthoredChartPreservesAbsoluteTitleFontSize() {
         var snapshot = new OfficeChartSnapshot("Small chart", "Title", OfficeChartType.Line,
             new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 3d, 4d }, null, null, null,
-                true, markerSize: 10, markerShape: OfficeChartMarkerShape.Circle, strokeWidth: 2) }), 90, 30,
+                true, markerSize: 10, markerShape: OfficeChartMarkerShape.Circle, strokeWidth: 2) }), global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(30),
             style: new OfficeChartStyle(titleFontSize: 12), layout: new OfficeChartLayout(showLegend: false));
         var drawing = OfficeChartDrawingRenderer.Render(snapshot, useMinimumCanvas: false);
         var title = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Title");
@@ -67,7 +67,7 @@ public sealed class DrawingExportQualityTests {
     public void SmallChartQualityRenderingStillReportsOverlappingPointLabels() {
         var snapshot = new OfficeChartSnapshot("Small scatter", null, OfficeChartType.Scatter,
             new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 2d, 2d }, new[] { 1d, 1d }) }),
-            90, 30, layout: new OfficeChartLayout(showDataLabels: true, showDataLabelValues: true));
+            global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(30), layout: new OfficeChartLayout(showDataLabels: true, showDataLabelValues: true));
         var result = OfficeChartDrawingRenderer.RenderWithQuality(snapshot, useMinimumCanvas: false);
         Assert.Contains(result.QualityReport.Issues, issue => issue.Kind == OfficeDrawingQualityIssueKind.TextOverlap);
     }
@@ -75,7 +75,7 @@ public sealed class DrawingExportQualityTests {
     [Fact]
     public void ChartQualityRenderingCanPreserveSmallAuthoredDimensions() {
         var snapshot = new OfficeChartSnapshot("Small chart", null, OfficeChartType.ColumnClustered,
-            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 3d }) }), 90, 30);
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 3d }) }), global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(30));
         var authored = OfficeChartDrawingRenderer.RenderWithQuality(snapshot, useMinimumCanvas: false);
         Assert.Equal(90d, authored.Drawing.Width);
         Assert.Equal(30d, authored.Drawing.Height);

@@ -62,8 +62,8 @@ namespace OfficeIMO.Excel.Pdf {
                 snapshot.Title,
                 chartKind,
                 data,
-                snapshot.Width.ToPoints(),
-                snapshot.Height.ToPoints(),
+                snapshot.Width,
+                snapshot.Height,
                 options.ChartStyle ?? snapshot.Style,
                 options.ChartLayout ?? (preserveWorksheetLegend || chartKind is OfficeChartType.Pie or OfficeChartType.Doughnut
                     ? snapshot.Layout ?? new OfficeChartLayout()

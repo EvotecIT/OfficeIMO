@@ -69,7 +69,7 @@ public sealed class DrawingChartCategoryGeometryTests {
             new OfficeSeries("Low", new[] { 10d, 20d }, null, Second, null, showMarkers: false, connectLine: false)
         });
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, OfficeChartType.Line, data,
-            360, 240, layout: new OfficeChartLayout(showLegend: false, verticalAxisMinimum: 0, verticalAxisMaximum: 50)
+            global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: new OfficeChartLayout(showLegend: false, verticalAxisMinimum: 0, verticalAxisMaximum: 50)
                 .WithHighLowLines(true, rule, 1.5D)));
 
         OfficeDrawingShape[] rules = drawing.Shapes.Concat(drawing.Elements.OfType<OfficeDrawingGroup>().SelectMany(group => group.Drawing.Shapes))
@@ -85,7 +85,7 @@ public sealed class DrawingChartCategoryGeometryTests {
             new OfficeSeries("Series", new[] { 1d, 2d }, null, First)
         });
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, OfficeChartType.Area, data,
-            360, 240, layout: new OfficeChartLayout(showLegend: false, categoryAxisNumberFormat: "m/d/yyyy")));
+            global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: new OfficeChartLayout(showLegend: false, categoryAxisNumberFormat: "m/d/yyyy")));
 
         string[] labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
         Assert.Contains("5/1/2002", labels);
@@ -97,7 +97,7 @@ public sealed class DrawingChartCategoryGeometryTests {
             new OfficeSeries("First", new[] { 2d, 3d }, null, First),
             new OfficeSeries("Second", new[] { 4d, 1d }, null, Second)
         });
-        return OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, kind, data, 360, 240, layout: layout));
+        return OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, kind, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
     }
 
     private static OfficeDrawingShape[] Bars(OfficeDrawing drawing, OfficeColor color) =>

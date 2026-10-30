@@ -18,7 +18,7 @@ public sealed class DrawingChartSeriesPaintTests {
         }).WithLegendVisibility(false);
         Assert.Same(paint, series.SeriesStyle);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Paint", null, kind,
-            new OfficeChartData(new[] { "A", "B", "C" }, new[] { series }), 640, 360,
+            new OfficeChartData(new[] { "A", "B", "C" }, new[] { series }), global::OfficeIMO.OfficeLength.Points(640), global::OfficeIMO.OfficeLength.Points(360),
             layout: new OfficeChartLayout(showLegend: false)));
         var points = drawing.Shapes.Where(shape => shape.Shape.Kind == (kind == OfficeChartType.Bubble
             ? OfficeShapeKind.Ellipse : OfficeShapeKind.Rectangle) && shape.Shape.StrokeWidth == 3).ToArray();

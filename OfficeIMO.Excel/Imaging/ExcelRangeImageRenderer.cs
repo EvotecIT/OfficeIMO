@@ -524,7 +524,7 @@ namespace OfficeIMO.Excel {
                         ? OfficeChartAxisGroup.Secondary
                         : OfficeChartAxisGroup.Primary).WithSeriesStyle(series.SeriesStyle).WithPointStyles(series.PointStyles)
                             .WithPointExplosions(series.PointExplosions)));
-            officeSnapshot = new OfficeChartSnapshot(snapshot.Name, snapshot.Title, kind, data, Math.Max(1D, width), Math.Max(1D, height), snapshot.Style, snapshot.Layout, snapshot.BubbleScalePercent, snapshot.BubbleSizeMode, snapshot.RadialLayout);
+            officeSnapshot = new OfficeChartSnapshot(snapshot.Name, snapshot.Title, kind, data, global::OfficeIMO.OfficeLength.Points(Math.Max(1D, width)), global::OfficeIMO.OfficeLength.Points(Math.Max(1D, height)), snapshot.Style, snapshot.Layout, snapshot.BubbleScalePercent, snapshot.BubbleSizeMode, snapshot.RadialLayout);
             if (OfficeChartDrawingRenderer.HasUnsupportedAxisUnitBudget(officeSnapshot)) {
                 diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,

@@ -14,9 +14,9 @@ public sealed class DrawingChartRadialLayoutTests {
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Values", new[] { 2d, 1d })
         });
-        var plain = new OfficeChartSnapshot("", null, kind, data, 140, 120,
+        var plain = new OfficeChartSnapshot("", null, kind, data, global::OfficeIMO.OfficeLength.Points(140), global::OfficeIMO.OfficeLength.Points(120),
             layout: new OfficeChartLayout(showLegend: false));
-        var emptyOutside = new OfficeChartSnapshot("", null, kind, data, 140, 120,
+        var emptyOutside = new OfficeChartSnapshot("", null, kind, data, global::OfficeIMO.OfficeLength.Points(140), global::OfficeIMO.OfficeLength.Points(120),
             layout: new OfficeChartLayout(showLegend: false, showDataLabels: true,
                 showDataLabelCategoryNames: filtered,
                 dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd,
@@ -39,7 +39,7 @@ public sealed class DrawingChartRadialLayoutTests {
         var layout = new OfficeChartLayout(showLegend: false, showDataLabels: true,
             showDataLabelPercentages: true);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            kind, data, 360, 240, layout: layout));
+            kind, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
         OfficeDrawingShape[] slices = drawing.Shapes.Where(shape =>
             shape.Shape.Kind == OfficeShapeKind.Polygon).ToArray();
         Assert.Equal(2, slices.Length);
@@ -60,7 +60,7 @@ public sealed class DrawingChartRadialLayoutTests {
         var layout = new OfficeChartLayout(showLegend: false, showDataLabels: true,
             showDataLabelCategoryNames: true, dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            kind, data, 420, 300, layout: layout));
+            kind, data, global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(300), layout: layout));
         OfficeDrawingText[] labels = drawing.Elements.OfType<OfficeDrawingText>()
             .Where(text => text.Text.StartsWith("Cat", StringComparison.Ordinal)).ToArray();
         Assert.Equal(categories.Length, labels.Length);
@@ -89,7 +89,7 @@ public sealed class DrawingChartRadialLayoutTests {
         var layout = new OfficeChartLayout(showLegend: false, showDataLabels: true,
             showDataLabelCategoryNames: true, dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartType.Pie, data, 200, 240, layout: layout));
+            OfficeChartType.Pie, data, global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
         OfficeDrawingText[] labels = drawing.Elements.OfType<OfficeDrawingText>()
             .Where(text => text.Text is "A" or "B").ToArray();
         Assert.Equal(2, labels.Length);
@@ -109,7 +109,7 @@ public sealed class DrawingChartRadialLayoutTests {
         var layout = new OfficeChartLayout(showLegend: false, showDataLabels: true,
             showDataLabelCategoryNames: true, dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd);
         Assert.Throws<NotSupportedException>(() => OfficeChartDrawingRenderer.Render(
-            new OfficeChartSnapshot("", null, OfficeChartType.Pie, data, 300, 100, layout: layout)));
+            new OfficeChartSnapshot("", null, OfficeChartType.Pie, data, global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(100), layout: layout)));
     }
 
     [Fact]
@@ -120,11 +120,11 @@ public sealed class DrawingChartRadialLayoutTests {
         });
         var layout = new OfficeChartLayout(showLegend: false, showDataLabels: true,
             showDataLabelCategoryNames: true, dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd);
-        var snapshot = new OfficeChartSnapshot("", null, OfficeChartType.Doughnut, data, 420, 300,
+        var snapshot = new OfficeChartSnapshot("", null, OfficeChartType.Doughnut, data, global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(300),
             layout: layout);
         Assert.Throws<NotSupportedException>(() => OfficeChartDrawingRenderer.Render(snapshot));
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartType.Doughnut, data, 420, 300,
+            OfficeChartType.Doughnut, data, global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(300),
             layout: layout.WithDataLabelLeaderLines(false)));
         Assert.Equal(4, drawing.Elements.OfType<OfficeDrawingText>()
             .Count(text => text.Text is "A" or "B"));
@@ -140,7 +140,7 @@ public sealed class DrawingChartRadialLayoutTests {
             showDataLabelCategoryNames: true, dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd,
             dataLabelSeriesIndexes: new[] { 1 });
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartType.Doughnut, data, 420, 300, layout: layout));
+            OfficeChartType.Doughnut, data, global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(300), layout: layout));
         Assert.Equal(4, drawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Line));
     }
 
@@ -154,7 +154,7 @@ public sealed class DrawingChartRadialLayoutTests {
         var layout = new OfficeChartLayout(showLegend: false, showDataLabels: true,
             showDataLabelCategoryNames: true, dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartType.Pie, data, 420, 300, style, layout));
+            OfficeChartType.Pie, data, global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(300), style, layout));
         Assert.All(drawing.Elements.OfType<OfficeDrawingText>()
             .Where(text => text.Text is "A" or "B"), text => Assert.Equal(OfficeColor.Black, text.Color));
     }
@@ -167,7 +167,7 @@ public sealed class DrawingChartRadialLayoutTests {
         var data = new OfficeChartData(new[] { "A", "B", "C" },
             new[] { new OfficeSeries("Values", new[] { 3d, 4d, 5d }) });
         var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            kind, data, 90, 30, null, new OfficeChartLayout(showLegend: false)), false);
+            kind, data, global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(30), null, new OfficeChartLayout(showLegend: false)), false);
         var polygons = drawing.Shapes.Where(shape => shape.Shape.Kind == OfficeShapeKind.Polygon).ToArray();
         Assert.NotEmpty(polygons);
         foreach (var polygon in polygons)
@@ -184,7 +184,7 @@ public sealed class DrawingChartRadialLayoutTests {
     public void RadialGeometry_HoleMatchesPercentageAndLabelAnchorStaysOnRing(int hole) {
         var data = new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Status", new[] { 7d }) });
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Status", null,
-            OfficeChartType.Doughnut, data, 400, 400, null,
+            OfficeChartType.Doughnut, data, global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(400), null,
             new OfficeChartLayout(showLegend: false, showDataLabels: true, showDataLabelValues: true),
             new OfficeChartRadialLayout(90, hole)));
         OfficeDrawingShape ring = Assert.Single(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Polygon);
@@ -210,7 +210,7 @@ public sealed class DrawingChartRadialLayoutTests {
             new OfficeSeries("Outer", new[] { 1d }, null, color: OfficeColor.Parse("#0000FF"))
         });
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Rings", null,
-            OfficeChartType.Doughnut, data, 400, 400, null, new OfficeChartLayout(showLegend: false),
+            OfficeChartType.Doughnut, data, global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(400), null, new OfficeChartLayout(showLegend: false),
             new OfficeChartRadialLayout(doughnutHolePercent: 50)));
         var rings = drawing.Shapes.Where(s => s.Shape.Kind == OfficeShapeKind.Polygon).ToArray();
         Assert.Equal(2, rings.Length);

@@ -386,7 +386,7 @@ public sealed class WordChartOfficeSnapshotTests {
         axis.NumberingFormat!.FormatCode = "0.00";
         axis.AddChild(new C.MajorUnit { Val = 2 }, true);
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
-        var resized = snapshot.WithSize(200, 150);
+        var resized = snapshot.WithSize(OfficeLength.Points(200), OfficeLength.Points(150));
         Assert.Same(snapshot.Data, resized.Data);
         Assert.Same(snapshot.Style, resized.Style);
         Assert.Same(snapshot.Layout, resized.Layout);
@@ -395,8 +395,8 @@ public sealed class WordChartOfficeSnapshotTests {
         Assert.Equal(0, resized.Layout.VerticalAxisMinimum);
         Assert.Equal(10, resized.Layout.VerticalAxisMaximum);
         Assert.Equal(2, resized.Layout.VerticalAxisMajorUnit);
-        Assert.Equal(200, resized.WidthPoints);
-        Assert.Equal(150, resized.HeightPoints);
+        Assert.Equal(200, resized.Width.ToPoints());
+        Assert.Equal(150, resized.Height.ToPoints());
     }
 
     [Theory]

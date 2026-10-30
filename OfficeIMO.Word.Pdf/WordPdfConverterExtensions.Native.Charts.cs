@@ -130,8 +130,8 @@ namespace OfficeIMO.Word.Pdf {
                     title,
                     chartKind,
                     new OfficeChartData(categories, series),
-                    width,
-                    height,
+                    global::OfficeIMO.OfficeLength.Points(width),
+                    global::OfficeIMO.OfficeLength.Points(height),
                     style: style,
                     layout: layout,
                     radialLayout: radialLayout);

@@ -14,7 +14,7 @@ public sealed class DrawingChartExplodedSlicesTests {
             .WithPointExplosions(new[] { 25, 0 });
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { series });
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(
-            new OfficeChartSnapshot("", null, kind, data, 320, 240,
+            new OfficeChartSnapshot("", null, kind, data, global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(240),
                 null, new OfficeChartLayout(showLegend: false)), false);
         OfficeDrawingShape[] slices = drawing.Shapes
             .Where(item => item.Shape.Kind == OfficeShapeKind.Polygon).ToArray();
@@ -44,7 +44,7 @@ public sealed class DrawingChartExplodedSlicesTests {
             new OfficeSeries("Outer", new[] { 5d, 5d })
         });
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(
-            new OfficeChartSnapshot("", null, OfficeChartType.Doughnut, data, 320, 240,
+            new OfficeChartSnapshot("", null, OfficeChartType.Doughnut, data, global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(240),
                 null, new OfficeChartLayout(showLegend: false)), false);
         OfficeDrawingShape[] slices = drawing.Shapes
             .Where(item => item.Shape.Kind == OfficeShapeKind.Polygon).ToArray();
@@ -69,6 +69,6 @@ public sealed class DrawingChartExplodedSlicesTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => series.WithPointExplosions(new[] { 401, 0 }));
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { series });
         Assert.Throws<NotSupportedException>(() => OfficeChartDrawingRenderer.Render(
-            new OfficeChartSnapshot("", null, OfficeChartType.Line, data, 320, 240)));
+            new OfficeChartSnapshot("", null, OfficeChartType.Line, data, global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(240))));
     }
 }

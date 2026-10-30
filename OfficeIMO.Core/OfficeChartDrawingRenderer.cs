@@ -34,8 +34,8 @@ public static partial class OfficeChartDrawingRenderer {
             OfficeImageExportDiagnosticSeverity.Warning, "ChartPointStylesUnsupported", AreaPointStyleWarning,
             snapshot.Name, OfficeConversionLossKind.Approximation));
 
-        double width = useMinimumCanvas ? Math.Max(MinimumChartCanvasWidth, snapshot.WidthPoints) : Math.Max(1D, snapshot.WidthPoints);
-        double height = useMinimumCanvas ? Math.Max(MinimumChartCanvasHeight, snapshot.HeightPoints) : Math.Max(1D, snapshot.HeightPoints);
+        double width = useMinimumCanvas ? Math.Max(MinimumChartCanvasWidth, snapshot.Width.ToPoints()) : Math.Max(1D, snapshot.Width.ToPoints());
+        double height = useMinimumCanvas ? Math.Max(MinimumChartCanvasHeight, snapshot.Height.ToPoints()) : Math.Max(1D, snapshot.Height.ToPoints());
         OfficeChartStyle style = snapshot.Style;
         OfficeChartLayout layout = snapshot.Layout;
         var drawing = new OfficeDrawing(width, height);

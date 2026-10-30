@@ -62,7 +62,7 @@ public sealed class PowerPointChartPointStylesTests {
         Assert.True(reopened.Slides.Single().Charts.Single().TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         foreach (OfficeChartData source in new[] { data, snapshot.Data }) {
             OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Results", null,
-                OfficeChartType.ColumnClustered, source, 600, 320, layout: new OfficeChartLayout(showLegend: false)));
+                OfficeChartType.ColumnClustered, source, global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(320), layout: new OfficeChartLayout(showLegend: false)));
             Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Rectangle &&
                 shape.Shape.StrokeColor == OfficeColor.Black && shape.Shape.StrokeWidth == 2 && shape.Shape.Height > 50);
         }

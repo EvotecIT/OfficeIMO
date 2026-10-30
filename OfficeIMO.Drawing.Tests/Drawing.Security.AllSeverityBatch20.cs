@@ -141,8 +141,8 @@ public sealed class DrawingAllSeverityBatch20SecurityTests {
                         pointColors: null,
                         showMarkers: false)
                 }),
-            widthPoints: 240D,
-            heightPoints: 180D,
+            width: global::OfficeIMO.OfficeLength.Points(240D),
+            height: global::OfficeIMO.OfficeLength.Points(180D),
             layout: new OfficeChartLayout(
                 fillRadarSeries: false,
                 showLegend: false,

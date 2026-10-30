@@ -16,7 +16,7 @@ public sealed class DrawingChartPlotClippingTests {
         var layout = new OfficeChartLayout(showLegend: false);
 
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartType.Scatter, data, 360, 240, layout: layout));
+            OfficeChartType.Scatter, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
 
         Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Line &&
             shape.Shape.StrokeColor == ink && shape.Shape.Width > 100D && shape.Shape.Height > 100D);
@@ -37,7 +37,7 @@ public sealed class DrawingChartPlotClippingTests {
             verticalAxisMinimum: -double.MaxValue, verticalAxisMaximum: double.MaxValue);
 
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartType.Scatter, data, 360, 240, layout: layout));
+            OfficeChartType.Scatter, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(),
             item => item.Drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
                 shape.Shape.StrokeColor == ink));
@@ -57,7 +57,7 @@ public sealed class DrawingChartPlotClippingTests {
         var layout = new OfficeChartLayout(showLegend: false,
             verticalAxisMinimum: 0, verticalAxisMaximum: 5).WithCategoryPointsOnTickMarks(true);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartType.Area, data, 360, 240, layout: layout));
+            OfficeChartType.Area, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
         Assert.Contains(group.Drawing.Shapes, shape => shape.Shape.FillColor == ink);
         Assert.DoesNotContain(group.Drawing.Shapes, shape =>
@@ -86,7 +86,7 @@ public sealed class DrawingChartPlotClippingTests {
             horizontalAxisMinimum: 0, horizontalAxisMaximum: 1,
             verticalAxisMinimum: 0, verticalAxisMaximum: 1);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartType.Scatter, data, 360, 240, layout: layout));
+            OfficeChartType.Scatter, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(),
             item => item.Drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
                 shape.Shape.StrokeColor == ink));
@@ -112,7 +112,7 @@ public sealed class DrawingChartPlotClippingTests {
             horizontalAxisMinimum: 0, horizontalAxisMaximum: 1,
             verticalAxisMinimum: 0, verticalAxisMaximum: 1);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartType.Scatter, data, 360, 240, layout: layout));
+            OfficeChartType.Scatter, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(),
             item => item.Drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
                 shape.Shape.StrokeColor == ink));
@@ -135,7 +135,7 @@ public sealed class DrawingChartPlotClippingTests {
             horizontalAxisMinimum: 0, horizontalAxisMaximum: 1,
             verticalAxisMinimum: 0, verticalAxisMaximum: 1);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartType.Scatter, data, 360, 240, layout: layout));
+            OfficeChartType.Scatter, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(),
             item => item.Drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
                 shape.Shape.StrokeColor == ink));
@@ -160,7 +160,7 @@ public sealed class DrawingChartPlotClippingTests {
             horizontalAxisMinimum: 0, horizontalAxisMaximum: 1,
             verticalAxisMinimum: 0, verticalAxisMaximum: 1);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            kind, data, 360, 240, layout: layout));
+            kind, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
         Assert.Contains(drawing.Elements.OfType<OfficeDrawingGroup>(), group =>
             group.Drawing.Shapes.Any(shape => shape.Shape.StrokeColor == ink || shape.Shape.FillColor == ink));
     }
@@ -176,7 +176,7 @@ public sealed class DrawingChartPlotClippingTests {
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { series });
         var layout = new OfficeChartLayout(showLegend: false, verticalAxisMaximum: 5);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            kind, data, 360, 240, layout: layout));
+            kind, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
         for (int y = 0; y < raster.Height; y++)
             for (int x = 0; x < raster.Width; x++)
@@ -193,7 +193,7 @@ public sealed class DrawingChartPlotClippingTests {
             horizontalAxisMinimum: 0, horizontalAxisMaximum: 1,
             verticalAxisMinimum: 0, verticalAxisMaximum: 1);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartType.Scatter, data, 360, 240, layout: layout));
+            OfficeChartType.Scatter, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(),
             item => item.Drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
                 shape.Shape.StrokeColor == ink));
@@ -217,7 +217,7 @@ public sealed class DrawingChartPlotClippingTests {
         var layout = new OfficeChartLayout(showLegend: false,
             verticalAxisMinimum: 0, verticalAxisMaximum: 1).WithCategoryPointsOnTickMarks(true);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            kind, data, 360, 240, layout: layout));
+            kind, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(),
             item => item.Drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
                 shape.Shape.StrokeColor == ink));
@@ -238,7 +238,7 @@ public sealed class DrawingChartPlotClippingTests {
         });
         var layout = new OfficeChartLayout(showLegend: false, horizontalAxisMaximum: 5);
         var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartType.BarClustered, data, 360, 240, layout: layout));
+            OfficeChartType.BarClustered, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
         for (int y = 0; y < raster.Height; y++)
             for (int x = 0; x < raster.Width; x++)
@@ -258,7 +258,7 @@ public sealed class DrawingChartPlotClippingTests {
             horizontalAxisMinimum: 0, horizontalAxisMaximum: 10,
             verticalAxisMinimum: 0, verticalAxisMaximum: 10);
         var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartType.Scatter, data, 420, 260, layout: layout));
+            OfficeChartType.Scatter, data, global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(260), layout: layout));
 
         OfficeDrawingGroup[] groups = drawing.Elements.OfType<OfficeDrawingGroup>().ToArray();
         OfficeDrawingGroup lineGroup = Assert.Single(groups,
@@ -293,7 +293,7 @@ public sealed class DrawingChartPlotClippingTests {
             horizontalAxisMinimum: 0, horizontalAxisMaximum: 10,
             verticalAxisMinimum: 0, verticalAxisMaximum: 10);
         var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartType.Bubble, data, 420, 260, layout: layout));
+            OfficeChartType.Bubble, data, global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(260), layout: layout));
 
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
         OfficeDrawingShape firstBubble = group.Drawing.Shapes
@@ -317,7 +317,7 @@ public sealed class DrawingChartPlotClippingTests {
             dataLabelPosition: OfficeChartDataLabelPosition.Top,
             verticalAxisMinimum: 2, verticalAxisMaximum: 8);
         var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartType.Line, data, 360, 240, layout: layout));
+            OfficeChartType.Line, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
         OfficeDrawingText label = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(),
             text => text.Text == "8.00");
@@ -344,7 +344,7 @@ public sealed class DrawingChartPlotClippingTests {
         var style = new OfficeChartStyle(showBackground: false, palette: new[] { ink },
             showGridLines: false, showBorder: false);
         var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            kind, data, 360, 240, style, layout));
+            kind, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), style, layout));
 
         OfficeDrawingGroup group = drawing.Elements.OfType<OfficeDrawingGroup>().First();
         Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "5.00");

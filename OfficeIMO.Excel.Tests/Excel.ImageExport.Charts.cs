@@ -1686,8 +1686,8 @@ namespace OfficeIMO.Tests {
                 visualChart.Snapshot.Title,
                 OfficeChartType.ColumnClustered,
                 chartData,
-                visualChart.Width,
-                visualChart.Height,
+                global::OfficeIMO.OfficeLength.Points(visualChart.Width),
+                global::OfficeIMO.OfficeLength.Points(visualChart.Height),
                 visualChart.Snapshot.Style,
                 visualChart.Snapshot.Layout);
             OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(officeChartSnapshot);
@@ -1732,8 +1732,8 @@ namespace OfficeIMO.Tests {
                 visualChart.Snapshot.Title,
                 OfficeChartType.ColumnClustered,
                 chartData,
-                visualChart.Width,
-                visualChart.Height,
+                global::OfficeIMO.OfficeLength.Points(visualChart.Width),
+                global::OfficeIMO.OfficeLength.Points(visualChart.Height),
                 visualChart.Snapshot.Style,
                 visualChart.Snapshot.Layout);
             OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(officeChartSnapshot);
@@ -1784,8 +1784,8 @@ namespace OfficeIMO.Tests {
                 visualChart.Snapshot.Title,
                 OfficeChartType.ColumnClustered,
                 chartData,
-                visualChart.Width,
-                visualChart.Height,
+                global::OfficeIMO.OfficeLength.Points(visualChart.Width),
+                global::OfficeIMO.OfficeLength.Points(visualChart.Height),
                 visualChart.Snapshot.Style,
                 visualChart.Snapshot.Layout);
             OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(officeChartSnapshot);
@@ -1837,8 +1837,8 @@ namespace OfficeIMO.Tests {
                 visualChart.Snapshot.Title,
                 OfficeChartType.ColumnClustered,
                 chartData,
-                visualChart.Width,
-                visualChart.Height,
+                global::OfficeIMO.OfficeLength.Points(visualChart.Width),
+                global::OfficeIMO.OfficeLength.Points(visualChart.Height),
                 visualChart.Snapshot.Style,
                 visualChart.Snapshot.Layout);
             OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(officeChartSnapshot);
@@ -1883,8 +1883,8 @@ namespace OfficeIMO.Tests {
                 visualChart.Snapshot.Title,
                 OfficeChartType.ColumnClustered,
                 chartData,
-                visualChart.Width,
-                visualChart.Height,
+                global::OfficeIMO.OfficeLength.Points(visualChart.Width),
+                global::OfficeIMO.OfficeLength.Points(visualChart.Height),
                 visualChart.Snapshot.Style,
                 visualChart.Snapshot.Layout);
             OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(officeChartSnapshot);
@@ -1931,8 +1931,8 @@ namespace OfficeIMO.Tests {
                 visualChart.Snapshot.Title,
                 OfficeChartType.ColumnClustered,
                 chartData,
-                visualChart.Width,
-                visualChart.Height,
+                global::OfficeIMO.OfficeLength.Points(visualChart.Width),
+                global::OfficeIMO.OfficeLength.Points(visualChart.Height),
                 visualChart.Snapshot.Style,
                 visualChart.Snapshot.Layout);
             OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(officeChartSnapshot);
@@ -2045,8 +2045,8 @@ namespace OfficeIMO.Tests {
                 visualChart.Snapshot.Title,
                 OfficeChartType.ColumnClustered,
                 chartData,
-                visualChart.Width,
-                visualChart.Height,
+                global::OfficeIMO.OfficeLength.Points(visualChart.Width),
+                global::OfficeIMO.OfficeLength.Points(visualChart.Height),
                 visualChart.Snapshot.Style,
                 visualChart.Snapshot.Layout);
             OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(officeChartSnapshot);
@@ -2090,8 +2090,8 @@ namespace OfficeIMO.Tests {
                 visualChart.Snapshot.Title,
                 OfficeChartType.BarClustered,
                 chartData,
-                visualChart.Width,
-                visualChart.Height,
+                global::OfficeIMO.OfficeLength.Points(visualChart.Width),
+                global::OfficeIMO.OfficeLength.Points(visualChart.Height),
                 visualChart.Snapshot.Style,
                 visualChart.Snapshot.Layout);
             OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(officeChartSnapshot);

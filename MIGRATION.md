@@ -4246,3 +4246,5 @@ persistence mode to explicit. Disposal no longer writes pending edits over the
 encrypted file. Call `SaveEncrypted` explicitly for each later protected save;
 ordinary `Save` writes unencrypted output. Exporting encrypted output to another
 stream does not change the original destination's persistence mode.
+
+Shared chart snapshots now take `OfficeLength` dimensions in their constructors and `WithSize(width, height)`. Read `Width` and `Height`; call `.ToPoints()` only when passing dimensions to a numeric rendering boundary. For example, replace `snapshot.WithSize(320, 180)` with `snapshot.WithSize(OfficeLength.Points(320), OfficeLength.Points(180))`.

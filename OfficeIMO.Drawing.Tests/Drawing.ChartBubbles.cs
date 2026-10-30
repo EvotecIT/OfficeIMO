@@ -31,20 +31,6 @@ public class DrawingChartBubbleTests {
     }
 
     [Fact]
-    public void OfficeChartSnapshot_RetainsBinaryCompatibleConstructor() {
-        Assert.NotNull(typeof(OfficeChartSnapshot).GetConstructor(new[] {
-            typeof(string),
-            typeof(string),
-            typeof(OfficeChartType),
-            typeof(OfficeChartData),
-            typeof(double),
-            typeof(double),
-            typeof(OfficeChartStyle),
-            typeof(OfficeChartLayout)
-        }));
-    }
-
-    [Fact]
     public void OfficeChartDrawingRenderer_HonorsBubbleScaleAndSizeMode() {
         OfficeDrawing area = RenderBubbles(100D, OfficeChartBubbleSizeMode.Area);
         OfficeDrawing width = RenderBubbles(100D, OfficeChartBubbleSizeMode.Width);
@@ -139,8 +125,8 @@ public class DrawingChartBubbleTests {
                 null,
                 OfficeChartType.Bubble,
                 data,
-                widthPoints: 420D,
-                heightPoints: 260D,
+width: global::OfficeIMO.OfficeLength.Points(420D),
+height: global::OfficeIMO.OfficeLength.Points(260D),
                 style: null,
                 layout: new OfficeChartLayout(showLegend: false),
                 bubbleScalePercent: 200D,
@@ -190,8 +176,8 @@ public class DrawingChartBubbleTests {
                 null,
                 OfficeChartType.Bubble,
                 data,
-                widthPoints: 80D,
-                heightPoints: 60D,
+width: global::OfficeIMO.OfficeLength.Points(80D),
+height: global::OfficeIMO.OfficeLength.Points(60D),
                 layout: new OfficeChartLayout(showLegend: false)),
             useMinimumCanvas: false);
         OfficeDrawing scene = drawing;
@@ -232,7 +218,7 @@ public class DrawingChartBubbleTests {
             return OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
                 "Bubbles", null, OfficeChartType.Bubble,
                 new OfficeChartData(new[] { "A", "B" }, new[] { series }),
-                420D, 260D, layout: new OfficeChartLayout(showLegend: false)));
+                global::OfficeIMO.OfficeLength.Points(420D), global::OfficeIMO.OfficeLength.Points(260D), layout: new OfficeChartLayout(showLegend: false)));
         }
 
         OfficeDrawingShape baseline = Assert.Single(GetBubbles(Render(false)));
@@ -268,8 +254,8 @@ public class DrawingChartBubbleTests {
                 null,
                 OfficeChartType.Scatter,
                 data,
-                widthPoints: 420D,
-                heightPoints: 260D,
+width: global::OfficeIMO.OfficeLength.Points(420D),
+height: global::OfficeIMO.OfficeLength.Points(260D),
                 style: null,
                 layout: new OfficeChartLayout(showLegend: false),
                 bubbleScalePercent: 200D,
@@ -317,8 +303,8 @@ public class DrawingChartBubbleTests {
                 null,
                 OfficeChartType.Bubble,
                 data,
-                widthPoints: 420D,
-                heightPoints: 260D,
+width: global::OfficeIMO.OfficeLength.Points(420D),
+height: global::OfficeIMO.OfficeLength.Points(260D),
                 layout: new OfficeChartLayout(showLegend: false, showMarkers: false)));
 
         Assert.Equal(2, GetBubbles(drawing).Length);
@@ -346,8 +332,8 @@ public class DrawingChartBubbleTests {
                 null,
                 OfficeChartType.Bubble,
                 data,
-                widthPoints: 420D,
-                heightPoints: 260D));
+width: global::OfficeIMO.OfficeLength.Points(420D),
+height: global::OfficeIMO.OfficeLength.Points(260D)));
         OfficeDrawingShape bubble = Assert.Single(GetBubbles(drawing));
 
         Assert.False(Assert.Single(data.Series).ShowMarkerOutline);
@@ -369,8 +355,8 @@ public class DrawingChartBubbleTests {
             null,
             OfficeChartType.Bubble,
             data,
-            widthPoints: 420D,
-            heightPoints: 260D));
+width: global::OfficeIMO.OfficeLength.Points(420D),
+height: global::OfficeIMO.OfficeLength.Points(260D)));
     }
 
     [Fact]
@@ -391,8 +377,8 @@ public class DrawingChartBubbleTests {
             null,
             OfficeChartType.Scatter,
             data,
-            widthPoints: 420D,
-            heightPoints: 260D));
+width: global::OfficeIMO.OfficeLength.Points(420D),
+height: global::OfficeIMO.OfficeLength.Points(260D)));
     }
 
     [Fact]
@@ -410,8 +396,8 @@ public class DrawingChartBubbleTests {
             null,
             OfficeChartType.ColumnClustered,
             data,
-            widthPoints: 420D,
-            heightPoints: 260D));
+width: global::OfficeIMO.OfficeLength.Points(420D),
+height: global::OfficeIMO.OfficeLength.Points(260D)));
     }
 
     [Theory]
@@ -444,8 +430,8 @@ public class DrawingChartBubbleTests {
             null,
             OfficeChartType.Bubble,
             data,
-            widthPoints: 420D,
-            heightPoints: 260D,
+width: global::OfficeIMO.OfficeLength.Points(420D),
+height: global::OfficeIMO.OfficeLength.Points(260D),
             style: null,
             layout: new OfficeChartLayout(
                 showLegend: false,

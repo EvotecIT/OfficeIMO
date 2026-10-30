@@ -16,7 +16,7 @@ public sealed class DrawingChartSecondaryScaleTests {
         var layout = new OfficeChartLayout(showLegend: false, showMarkers: false)
             .WithSecondaryValueAxis(new OfficeChartValueAxisLayout(maximum: 5));
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartType.ColumnClustered, data, 360, 240, layout: layout));
+            OfficeChartType.ColumnClustered, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
         for (int y = 0; y < raster.Height; y++)
             for (int x = 0; x < raster.Width; x++)
@@ -44,7 +44,7 @@ public sealed class DrawingChartSecondaryScaleTests {
             var layout = new OfficeChartLayout(showLegend: false,
                 horizontalAxisMajorTickMark: horizontal ? mark : OfficeChartAxisTickMark.None,
                 verticalAxisMajorTickMark: horizontal ? OfficeChartAxisTickMark.None : mark);
-            var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, kind, data, 360, 240, layout: layout));
+            var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, kind, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
             var ticks = drawing.Shapes.Where(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
                 (horizontal ? shape.Shape.Width == 0 && shape.Shape.Height == 4 : shape.Shape.Width == 4 && shape.Shape.Height == 0)).ToArray();
             Assert.NotEmpty(ticks);
@@ -69,7 +69,7 @@ public sealed class DrawingChartSecondaryScaleTests {
                 new OfficeChartValueAxisLayout(minimum: 0, maximum: 4, majorUnit: 1, minorUnit: 0.5,
                     majorTickMark: mark, minorTickMark: mark));
             return OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-                OfficeChartType.ColumnClustered, data, 360, 240, layout: layout));
+                OfficeChartType.ColumnClustered, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
         }
         var without = Render(OfficeChartAxisTickMark.None);
         var with = Render(OfficeChartAxisTickMark.Outside);
@@ -93,7 +93,7 @@ public sealed class DrawingChartSecondaryScaleTests {
                 new OfficeChartValueAxisLayout(minimum: 0, maximum: 4, majorUnit: 1,
                     minorTickMark: mark));
             return OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, kind,
-                data, 360, 240, layout: layout)).Shapes.Count;
+                data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout)).Shapes.Count;
         }
         Assert.Equal(ShapeCount(OfficeChartAxisTickMark.None) + 16,
             ShapeCount(OfficeChartAxisTickMark.Outside));
@@ -110,7 +110,7 @@ public sealed class DrawingChartSecondaryScaleTests {
             new OfficeSeries("Secondary", new[] { 1d, 2d }, null, null, null, true, renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
         });
         var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Scale", null,
-            OfficeChartType.ColumnClustered, data, 360, 240, layout: layout));
+            OfficeChartType.ColumnClustered, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
         var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
         Assert.Contains("200.0", labels);
         Assert.Contains("400%", labels);
@@ -128,7 +128,7 @@ public sealed class DrawingChartSecondaryScaleTests {
             new OfficeSeries("Amount", new[] { 2d, 3d }, null, null, null, true,
                 renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
         });
-        var snapshot = new OfficeChartSnapshot("", null, OfficeChartType.ColumnClustered, data, 360, 240,
+        var snapshot = new OfficeChartSnapshot("", null, OfficeChartType.ColumnClustered, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240),
             layout: new OfficeChartLayout(showLegend: false).WithSecondaryValueAxis(new OfficeChartValueAxisLayout()));
         var labels = OfficeChartDrawingRenderer.Render(snapshot).Elements.OfType<OfficeDrawingText>()
             .Select(text => text.Text).ToArray();
