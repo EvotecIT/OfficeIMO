@@ -42,7 +42,7 @@ jobs:
       timeout_minutes: 90
       engine_mode: source
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
-      dotnet_version: "10.0.114"
+      dotnet_version: "10.0.x"
       dotnet_workloads: wasm-tools
       powerforge_repository: EvotecIT/PSPublishModule
       powerforge_ref: 9d7ff674528e837ea295a2a23d2fbc6856fd0e3a
