@@ -434,7 +434,7 @@ internal static partial class PdfWriter {
                 (textWidth > 0D ? textWidth + HeaderFooterInlineGap : 0D) +
                 imageConsumedWidth;
             double imageBottomY = isHeader
-                ? options.PageHeight - options.MarginTop + options.HeaderOffsetY - image.Height
+                ? options.PageHeight - options.MarginTop + options.HeaderOffsetY - (image.RestsOnHeaderBaseline ? 0D : image.Height)
                 : options.MarginBottom - options.FooterOffsetY;
             ImageBlock block = image.ToImageBlock();
             PdfImageStyle style = block.Style ?? new PdfImageStyle();

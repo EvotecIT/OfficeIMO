@@ -141,7 +141,7 @@ internal static partial class PdfWriter {
     private static void AddHeaderFooterImage(LayoutResult.Page page, PdfCreateOptions options, PdfHeaderFooterImage image, double x, bool isHeader) {
         string source = isHeader ? "Header" : "Footer";
         double y = isHeader
-            ? options.PageHeight - options.MarginTop + options.HeaderOffsetY - image.Height
+            ? options.PageHeight - options.MarginTop + options.HeaderOffsetY - (image.RestsOnHeaderBaseline ? 0D : image.Height)
             : options.MarginBottom - options.FooterOffsetY;
         ImageBlock block = image.ToImageBlock();
         PdfImageStyle style = block.Style ?? new PdfImageStyle();
