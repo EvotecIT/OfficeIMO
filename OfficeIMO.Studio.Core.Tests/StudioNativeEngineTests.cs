@@ -889,6 +889,22 @@ public sealed class StudioNativeEngineTests : IDisposable {
     }
 
     [Fact]
+    public async Task PdfConversionRetainsTheOpenDocumentsReadLimits() {
+        byte[] pdf = OfficeIMO.Pdf.PdfDocument.Create(compose => compose.Page(page =>
+            page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Budgeted conversion")))))).ToBytes();
+        string output = Path.Combine(_root, "budgeted.docx");
+        var options = new OfficeIMO.Pdf.PdfLoadOptions {
+            Limits = new OfficeIMO.Pdf.PdfReadLimits { MaxInputBytes = 32 }
+        };
+
+        InvalidOperationException failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            PdfConversion.ConvertPdfAsync(pdf, options, "word", output, default));
+
+        Assert.Contains("32", failure.Message, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
     public unsafe void The_C_interface_lists_formats_and_converts_a_document() {
         string text = Path.Combine(_root, "notes.txt");
         File.WriteAllText(text, "Quarterly notes");
