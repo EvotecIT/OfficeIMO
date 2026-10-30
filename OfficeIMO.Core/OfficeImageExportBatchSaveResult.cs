@@ -6,7 +6,7 @@ using System.Linq;
 namespace OfficeIMO.Drawing;
 
 /// <summary>Paths, metadata, and aggregate diagnostics returned by a payload-releasing batch save.</summary>
-public sealed class OfficeImageExportBatchSaveResult {
+internal sealed class OfficeImageExportBatchSaveResult {
     private readonly ReadOnlyCollection<OfficeImageExportSavedFile> _files;
 
     internal OfficeImageExportBatchSaveResult(IEnumerable<OfficeImageExportSavedFile> files) {

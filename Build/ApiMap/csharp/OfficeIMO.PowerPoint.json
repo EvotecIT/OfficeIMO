@@ -3359,7 +3359,7 @@
       "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3377,7 +3377,7 @@
       "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3395,7 +3395,7 @@
       "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3413,7 +3413,7 @@
       "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3430,7 +3430,7 @@
       "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3447,7 +3447,7 @@
       "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3464,7 +3464,7 @@
       "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3481,7 +3481,7 @@
       "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3498,7 +3498,7 @@
       "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3515,7 +3515,7 @@
       "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3532,7 +3532,7 @@
       "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3549,7 +3549,7 @@
       "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3566,7 +3566,7 @@
       "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3583,7 +3583,7 @@
       "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3600,7 +3600,7 @@
       "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3617,7 +3617,7 @@
       "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3908,7 +3908,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointParagraph.SetBulletSizePoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3925,7 +3925,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3942,7 +3942,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3959,7 +3959,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3976,7 +3976,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -3993,7 +3993,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4010,7 +4010,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4027,7 +4027,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4044,7 +4044,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4061,7 +4061,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4078,7 +4078,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4095,7 +4095,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4112,7 +4112,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4129,7 +4129,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithHangingPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4146,7 +4146,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithIndentPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4163,7 +4163,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithLeftMarginPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4180,7 +4180,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithLineSpacingPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4197,7 +4197,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithSpaceAfterPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4214,7 +4214,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithSpaceBeforePoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4231,7 +4231,7 @@
       "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4249,7 +4249,7 @@
       "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4267,7 +4267,7 @@
       "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4285,7 +4285,7 @@
       "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4303,7 +4303,7 @@
       "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4321,7 +4321,7 @@
       "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4339,7 +4339,7 @@
       "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4357,7 +4357,7 @@
       "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4375,7 +4375,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.SetLayoutPlaceholderTextMarginsCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4393,7 +4393,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.SetLayoutPlaceholderTextMarginsInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4411,7 +4411,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.SetLayoutPlaceholderTextMarginsPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4735,7 +4735,7 @@
       "notes": "One authoring method accepts physical lengths for placement. Shared path points remain logical geometry coordinates; native transform bounds, command limits, fill rules, gradients and rejected-input behavior retain their existing validation.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4752,7 +4752,7 @@
       "notes": "One authoring method accepts physical lengths for placement. Shared path points remain logical geometry coordinates; native transform bounds, command limits, fill rules, gradients and rejected-input behavior retain their existing validation.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4769,7 +4769,7 @@
       "notes": "One authoring method accepts physical lengths for placement. Shared path points remain logical geometry coordinates; native transform bounds, command limits, fill rules, gradients and rejected-input behavior retain their existing validation.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4786,7 +4786,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4808,7 +4808,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4830,7 +4830,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4852,7 +4852,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4874,7 +4874,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4896,7 +4896,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4918,7 +4918,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4940,7 +4940,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4962,7 +4962,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -4984,7 +4984,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -5006,7 +5006,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -5028,7 +5028,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -5152,7 +5152,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -5174,7 +5174,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -5196,7 +5196,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -5779,7 +5779,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.GetShapesInBoundsCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -5796,7 +5796,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.GetShapesInBoundsInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -5813,7 +5813,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.GetShapesInBoundsPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6323,7 +6323,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6340,7 +6340,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6357,7 +6357,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6374,7 +6374,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6391,7 +6391,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6408,7 +6408,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6425,7 +6425,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTable.SetCellPaddingCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6442,7 +6442,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTable.SetCellPaddingInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6459,7 +6459,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6476,7 +6476,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6493,7 +6493,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6510,7 +6510,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6527,7 +6527,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6544,7 +6544,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthsCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6561,7 +6561,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthsInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6578,7 +6578,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthsPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6595,7 +6595,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6612,7 +6612,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6629,7 +6629,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6646,7 +6646,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightsCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6663,7 +6663,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightsInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6680,7 +6680,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightsPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6697,7 +6697,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTableColumn`1.WithWidthCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6714,7 +6714,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTableColumn`1.WithWidthInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6731,7 +6731,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTableColumn`1.WithWidthPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6748,7 +6748,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTextBox.SetTextMarginsCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6765,7 +6765,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTextBox.SetTextMarginsInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6782,7 +6782,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6799,7 +6799,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6818,7 +6818,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6837,7 +6837,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6855,7 +6855,7 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6873,7 +6873,7 @@
       "notes": "Raw EMU long geometry parameters with EMU defaults.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6890,7 +6890,7 @@
       "notes": "Raw EMU long geometry parameters with EMU defaults.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6958,7 +6958,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -6980,7 +6980,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7002,7 +7002,7 @@
       "notes": "One authoring method accepts physical lengths for placement. Shared path points remain logical geometry coordinates; native transform bounds, command limits, fill rules, gradients and rejected-input behavior retain their existing validation.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7019,7 +7019,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7041,7 +7041,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7085,7 +7085,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7107,7 +7107,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7129,7 +7129,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7151,7 +7151,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7173,7 +7173,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7195,7 +7195,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7353,7 +7353,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7392,7 +7392,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7414,7 +7414,7 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7470,7 +7470,7 @@
       "notes": "Raw EMU long geometry parameters with EMU defaults.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7487,7 +7487,7 @@
       "notes": "Raw EMU long geometry parameters with EMU defaults.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7504,7 +7504,7 @@
       "notes": "Numeric parameters with unit-suffixed names: widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7521,7 +7521,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7538,7 +7538,7 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7555,7 +7555,7 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7572,7 +7572,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7589,7 +7589,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7606,7 +7606,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7623,7 +7623,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7640,7 +7640,7 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7657,7 +7657,7 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7674,7 +7674,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7691,7 +7691,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7708,7 +7708,7 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7725,7 +7725,7 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7742,7 +7742,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7759,7 +7759,7 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7776,7 +7776,7 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7793,7 +7793,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7810,7 +7810,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7827,7 +7827,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7844,7 +7844,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7861,7 +7861,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7878,7 +7878,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7895,7 +7895,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7912,7 +7912,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7929,7 +7929,7 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7946,7 +7946,7 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7963,7 +7963,7 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7980,7 +7980,7 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7997,7 +7997,7 @@
       "notes": "Numeric parameters with unit-suffixed names: widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8014,7 +8014,7 @@
       "notes": "Numeric parameters with unit-suffixed names: widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8031,7 +8031,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8048,7 +8048,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8065,7 +8065,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8082,7 +8082,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8099,7 +8099,7 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8116,7 +8116,7 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8133,7 +8133,7 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8150,7 +8150,7 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8167,7 +8167,7 @@
       "notes": "Numeric parameters with unit-suffixed names: widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8253,7 +8253,7 @@
       "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9223,7 +9223,7 @@
       "notes": "Numeric parameters with unit-suffixed names: bottomMarginCm, horizontalMarginCm, topCm",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9240,7 +9240,7 @@
       "notes": "Numeric parameters with unit-suffixed names: bottomMarginCm, gutterCm, horizontalMarginCm, topCm",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9257,7 +9257,7 @@
       "notes": "Numeric parameters with unit-suffixed names: bottomMarginCm, columnGutterCm, horizontalMarginCm, rowGutterCm, topCm",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9274,7 +9274,7 @@
       "notes": "Numeric parameters with unit-suffixed names: bottomMarginCm, gutterCm, horizontalMarginCm, topCm",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9291,7 +9291,7 @@
       "notes": "Numeric parameters with unit-suffixed names: bottomMarginCm, horizontalMarginCm, topCm",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9308,7 +9308,7 @@
       "notes": "Numeric parameters with unit-suffixed names: bottomMarginCm, horizontalMarginCm, topCm",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9376,7 +9376,7 @@
       "notes": "Numeric parameters with unit-suffixed names: widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9393,7 +9393,7 @@
       "notes": "Numeric parameters with unit-suffixed names: widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9410,7 +9410,7 @@
       "notes": "Numeric parameters with unit-suffixed names: widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9427,7 +9427,7 @@
       "notes": "Numeric parameters with unit-suffixed names: widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9444,7 +9444,7 @@
       "notes": "Numeric parameters with unit-suffixed names: widthEmus",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9461,7 +9461,7 @@
       "notes": "Numeric parameters with unit-suffixed names: spaceAfterPoints, spaceBeforePoints",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9477,7 +9477,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9493,7 +9493,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9509,7 +9509,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9525,7 +9525,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9541,7 +9541,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9557,7 +9557,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9573,7 +9573,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9589,7 +9589,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9605,7 +9605,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9621,7 +9621,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9637,7 +9637,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9960,7 +9960,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9976,7 +9976,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9992,7 +9992,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10008,7 +10008,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10024,7 +10024,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10040,7 +10040,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10056,7 +10056,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10072,7 +10072,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10088,7 +10088,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10104,7 +10104,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10120,7 +10120,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10136,7 +10136,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10152,7 +10152,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10170,7 +10170,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10428,7 +10428,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10764,7 +10764,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10780,7 +10780,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10796,7 +10796,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10812,7 +10812,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10828,7 +10828,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10844,7 +10844,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10860,7 +10860,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10876,7 +10876,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10892,7 +10892,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10908,7 +10908,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10924,7 +10924,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10940,7 +10940,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10956,7 +10956,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10972,7 +10972,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10988,7 +10988,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11004,7 +11004,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11020,7 +11020,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11052,7 +11052,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11068,7 +11068,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11084,7 +11084,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11100,7 +11100,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11116,7 +11116,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11132,7 +11132,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11148,7 +11148,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11164,7 +11164,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11180,7 +11180,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11196,7 +11196,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11212,7 +11212,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11228,7 +11228,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11244,7 +11244,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11260,7 +11260,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11276,7 +11276,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11292,7 +11292,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11308,7 +11308,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -11324,7 +11324,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "scratch-candidate-unapplied"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -12058,7 +12058,7 @@
       "notes": "70 public LegacyPpt* types. Candidate for M2.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -12166,7 +12166,7 @@
       "notes": "The native AddLine entry is present in the shipped baseline but absent from the original map. Preserve endpoint normalization and the native one-EMU degenerate extent.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",

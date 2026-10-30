@@ -1979,12 +1979,6 @@ OfficeIMO.Excel.ExcelNumberPreset.Percent = 3 -> OfficeIMO.Excel.ExcelNumberPres
 OfficeIMO.Excel.ExcelNumberPreset.Scientific = 5 -> OfficeIMO.Excel.ExcelNumberPreset
 OfficeIMO.Excel.ExcelNumberPreset.Text = 11 -> OfficeIMO.Excel.ExcelNumberPreset
 OfficeIMO.Excel.ExcelNumberPreset.Time = 8 -> OfficeIMO.Excel.ExcelNumberPreset
-OfficeIMO.Excel.ExcelObjectDataTableBuilderOptions
-OfficeIMO.Excel.ExcelObjectDataTableBuilderOptions.CollectionSeparator.get -> string!
-OfficeIMO.Excel.ExcelObjectDataTableBuilderOptions.CollectionSeparator.set -> void
-OfficeIMO.Excel.ExcelObjectDataTableBuilderOptions.ExcelObjectDataTableBuilderOptions() -> void
-OfficeIMO.Excel.ExcelObjectDataTableBuilderOptions.NormalizeCollectionValues.get -> bool
-OfficeIMO.Excel.ExcelObjectDataTableBuilderOptions.NormalizeCollectionValues.set -> void
 OfficeIMO.Excel.ExcelPackagePartInfo
 OfficeIMO.Excel.ExcelPackagePartInfo.ContentType.get -> string!
 OfficeIMO.Excel.ExcelPackagePartInfo.RelationshipId.get -> string!
@@ -2995,14 +2989,6 @@ OfficeIMO.Excel.ExcelRowMutationPlan.RequiresFullRecalculation.get -> bool
 OfficeIMO.Excel.ExcelRowMutationPlan.Result.get -> OfficeIMO.Excel.ExcelMutationResult?
 OfficeIMO.Excel.ExcelRowMutationPlan.ScannedElements.get -> int
 OfficeIMO.Excel.ExcelRowMutationPlan.SheetName.get -> string!
-OfficeIMO.Excel.ExcelRuntimePreflightReport
-OfficeIMO.Excel.ExcelRuntimePreflightReport.CurrentCultureName.get -> string!
-OfficeIMO.Excel.ExcelRuntimePreflightReport.CurrentUICultureName.get -> string!
-OfficeIMO.Excel.ExcelRuntimePreflightReport.FrameworkDescription.get -> string!
-OfficeIMO.Excel.ExcelRuntimePreflightReport.GlobalizationInvariantMode.get -> bool
-OfficeIMO.Excel.ExcelRuntimePreflightReport.IsClean.get -> bool
-OfficeIMO.Excel.ExcelRuntimePreflightReport.OSDescription.get -> string!
-OfficeIMO.Excel.ExcelRuntimePreflightReport.Warnings.get -> System.Collections.Generic.IReadOnlyList<string!>!
 OfficeIMO.Excel.ExcelSaveOptions
 OfficeIMO.Excel.ExcelSaveOptions.AllowLoss.get -> bool
 OfficeIMO.Excel.ExcelSaveOptions.AllowLoss.set -> void

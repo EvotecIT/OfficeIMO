@@ -391,13 +391,13 @@
       "file": [
         "OfficeIMO.Excel/ExcelRuntimePreflight.cs"
       ],
-      "why": "ExcelRuntimePreflight is already internal. ExcelRuntimePreflightReport remains public; its material model boundary is not proven redundant by this audit, so no accessibility edit is proposed.",
-      "reviewDisposition": "mixed-already-internal-and-uncertain-public-model",
+      "why": "The engine and report are internal implementation details; no documented public document API exposes this report.",
+      "reviewDisposition": "internalized-undocumented-implementation-model",
       "currentTypes": [
         {
           "type": "OfficeIMO.Excel.ExcelRuntimePreflightReport",
           "assembly": "OfficeIMO.Excel",
-          "visibility": "Public, Sealed, BeforeFieldInit"
+          "visibility": "NotPublic, Sealed, BeforeFieldInit"
         },
         {
           "type": "OfficeIMO.Excel.ExcelRuntimePreflight",
@@ -409,7 +409,8 @@
         "OfficeIMO.Excel/ExcelRuntimePreflight.cs"
       ],
       "reviewStatus": "reviewed-current-source",
-      "note": "Retained documented input, result, model or extension contracts; implementation-only helpers remain internal."
+      "note": "The approved documented-root/signature-closure rule resolves the previous uncertainty; see the exact type change entry.",
+      "applied": "phase-b-applied"
     },
     {
       "type": "OfficeIMO.Excel.ExcelWorkbookSnapshot (+ 19 Excel*Snapshot types)",
@@ -7486,7 +7487,7 @@
       "notes": "OfficeChartKind becomes OfficeChartType; widthPixels/heightPixels become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddChart(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7503,7 +7504,7 @@
       "notes": "Returns void today, while Word and PowerPoint return the table.",
       "implementation": {
         "phase": "B",
-        "status": "implemented-qualified"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7520,7 +7521,7 @@
       "notes": "Returns void today, while Word and PowerPoint return the table.",
       "implementation": {
         "phase": "B",
-        "status": "implemented-qualified"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7537,7 +7538,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7554,7 +7555,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7571,7 +7572,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7588,7 +7589,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7605,7 +7606,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7622,7 +7623,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7639,7 +7640,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7656,7 +7657,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7673,7 +7674,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7690,7 +7691,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7707,7 +7708,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7724,7 +7725,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7741,7 +7742,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7758,7 +7759,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7775,7 +7776,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7792,7 +7793,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7841,7 +7842,7 @@
       "notes": "One overload with an optional hidden-group collection returns the created grouping metadata. Manual groups are also included in GetPivotTables readback.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7858,7 +7859,7 @@
       "notes": "One overload with an optional hidden-group collection returns the created grouping metadata. Manual groups are also included in GetPivotTables readback.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7875,7 +7876,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7892,7 +7893,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7909,7 +7910,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7926,7 +7927,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7943,7 +7944,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7960,7 +7961,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7977,7 +7978,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -7994,7 +7995,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8011,7 +8012,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8028,7 +8029,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8045,7 +8046,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8062,7 +8063,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8079,7 +8080,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8096,7 +8097,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8113,7 +8114,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8130,7 +8131,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8147,7 +8148,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8164,7 +8165,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8181,7 +8182,7 @@
       "notes": "Returns the existing attached editable rule model; call UpdateConditionalFormattingRule to apply its edits. The native rule is captured directly during creation, without scanning existing rules or materializing source rows.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8229,7 +8230,7 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -8246,7 +8247,7 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9403,7 +9404,7 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, offsetXPixels, offsetYPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9421,7 +9422,7 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, offsetXPixels, offsetYPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9439,7 +9440,7 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, offsetXPixels, offsetYPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9457,7 +9458,7 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, offsetXPixels, offsetYPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9926,7 +9927,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9942,7 +9943,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9958,7 +9959,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -9974,7 +9975,7 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10321,7 +10322,7 @@
       "notes": "193 public types (LegacyXls*). Candidate for M2; check Reader.Excel and Excel.OpenDocument usage first.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
       "applied": "phase-b-applied",
@@ -10801,6 +10802,40 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "notes": "Rename the call to AddSheet; argument order, worksheet-name validation and cancellation behavior are unchanged."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelObjectDataTableBuilderOptions",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Only already-internal ExcelObjectDataTableBuilder.FromObjects accepts it. Public constructor alone is not an authored support root.",
+      "file": "OfficeIMO.Excel/ExcelObjectDataTableBuilderOptions.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Excel.ExcelObjectDataTableBuilderOptions",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "membersHiddenWithType": 3
+      },
+      "note": "Reviewed documentation roots, retained public signatures and actual cross-assembly callers; implementation access uses existing friends."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRuntimePreflightReport",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Only already-internal ExcelRuntimePreflight.InspectCurrent returns it. Earlier map uncertainty is superseded by the approved documented-root predicate.",
+      "file": "OfficeIMO.Excel/ExcelRuntimePreflight.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Excel.ExcelRuntimePreflightReport",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "membersHiddenWithType": 7
+      },
+      "note": "Reviewed documentation roots, retained public signatures and actual cross-assembly callers; implementation access uses existing friends."
     }
   ],
   "packageMoves": [

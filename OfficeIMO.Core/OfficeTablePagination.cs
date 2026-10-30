@@ -5,7 +5,7 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 /// <summary>A contiguous set of table rows and its measured height, including the repeated header.</summary>
-public sealed class OfficeTablePage {
+internal sealed class OfficeTablePage {
     internal OfficeTablePage(int offset, int count, double height) { RowOffset = offset; RowCount = count; Height = height; }
     /// <summary>Zero-based first source row.</summary>
     public int RowOffset { get; }

@@ -1034,8 +1034,6 @@ OfficeIMO.Word.WordCreateOptions.Template.set -> void
 OfficeIMO.Word.WordCreateOptions.Theme.get -> OfficeIMO.OfficeTheme?
 OfficeIMO.Word.WordCreateOptions.Theme.set -> void
 OfficeIMO.Word.WordCreateOptions.WordCreateOptions() -> void
-OfficeIMO.Word.WordCrossReference
-OfficeIMO.Word.WordCrossReference.WordCrossReference() -> void
 OfficeIMO.Word.WordCrossReferenceType
 OfficeIMO.Word.WordCrossReferenceType.Bookmark = 0 -> OfficeIMO.Word.WordCrossReferenceType
 OfficeIMO.Word.WordCrossReferenceType.Heading = 1 -> OfficeIMO.Word.WordCrossReferenceType
@@ -3154,11 +3152,6 @@ OfficeIMO.Word.WordParagraphAlignment.NumTab = 8 -> OfficeIMO.Word.WordParagraph
 OfficeIMO.Word.WordParagraphAlignment.Right = 3 -> OfficeIMO.Word.WordParagraphAlignment
 OfficeIMO.Word.WordParagraphAlignment.Start = 1 -> OfficeIMO.Word.WordParagraphAlignment
 OfficeIMO.Word.WordParagraphAlignment.ThaiDistribute = 11 -> OfficeIMO.Word.WordParagraphAlignment
-OfficeIMO.Word.WordParagraphBorder
-OfficeIMO.Word.WordParagraphBorder.Box = 2 -> OfficeIMO.Word.WordParagraphBorder
-OfficeIMO.Word.WordParagraphBorder.Custom = 1 -> OfficeIMO.Word.WordParagraphBorder
-OfficeIMO.Word.WordParagraphBorder.None = 0 -> OfficeIMO.Word.WordParagraphBorder
-OfficeIMO.Word.WordParagraphBorder.Shadow = 3 -> OfficeIMO.Word.WordParagraphBorder
 OfficeIMO.Word.WordParagraphBorderInfo
 OfficeIMO.Word.WordParagraphBorderInfo.ColorHex.get -> string?
 OfficeIMO.Word.WordParagraphBorderInfo.Size.get -> OfficeIMO.OfficeLength?
@@ -4854,7 +4847,6 @@ static OfficeIMO.Word.WordComparisonReportWriter.ToMarkdown(OfficeIMO.Word.WordC
 static OfficeIMO.Word.WordComparisonReportWriter.ToTextSummary(OfficeIMO.Word.WordComparisonResult! result) -> string!
 static OfficeIMO.Word.WordContentControlPictureValue.FromBytes(byte[]! bytes, string! fileName) -> OfficeIMO.Word.WordContentControlPictureValue!
 static OfficeIMO.Word.WordContentControlPictureValue.FromFile(string! filePath) -> OfficeIMO.Word.WordContentControlPictureValue!
-static OfficeIMO.Word.WordCrossReference.AddCrossReference(OfficeIMO.Word.WordParagraph! paragraph, string! referenceId, OfficeIMO.Word.WordCrossReferenceType type) -> OfficeIMO.Word.WordField!
 static OfficeIMO.Word.WordDocument.Create(OfficeIMO.Word.WordCreateOptions? options = null) -> OfficeIMO.Word.WordDocument!
 static OfficeIMO.Word.WordDocument.Create(System.IO.Stream! stream, OfficeIMO.Word.WordCreateOptions? options = null) -> OfficeIMO.Word.WordDocument!
 static OfficeIMO.Word.WordDocument.Create(string! filePath, OfficeIMO.Word.WordCreateOptions? options = null) -> OfficeIMO.Word.WordDocument!

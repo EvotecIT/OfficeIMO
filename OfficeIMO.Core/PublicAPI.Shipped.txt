@@ -317,52 +317,6 @@ OfficeIMO.Drawing.OfficeBorderSide.LineKind.get -> OfficeIMO.Drawing.OfficeBorde
 OfficeIMO.Drawing.OfficeBorderSide.OfficeBorderSide() -> void
 OfficeIMO.Drawing.OfficeBorderSide.OfficeBorderSide(OfficeIMO.OfficeColor color, double width, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, OfficeIMO.Drawing.OfficeBorderLineKind lineKind = OfficeIMO.Drawing.OfficeBorderLineKind.Single, double doubleLineSeparation = 0) -> void
 OfficeIMO.Drawing.OfficeBorderSide.Width.get -> double
-OfficeIMO.Drawing.OfficeCallout
-OfficeIMO.Drawing.OfficeCallout.AnchorX.get -> double
-OfficeIMO.Drawing.OfficeCallout.AnchorY.get -> double
-OfficeIMO.Drawing.OfficeCallout.Height.get -> double
-OfficeIMO.Drawing.OfficeCallout.OfficeCallout(double x, double y, double width, double height, double anchorX, double anchorY, string? title, string? text) -> void
-OfficeIMO.Drawing.OfficeCallout.OfficeCallout(double x, double y, double width, double height, double anchorX, double anchorY, string? title, string? text, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeRichTextRun!>? richTextRuns) -> void
-OfficeIMO.Drawing.OfficeCallout.RichTextRuns.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeRichTextRun!>!
-OfficeIMO.Drawing.OfficeCallout.Text.get -> string!
-OfficeIMO.Drawing.OfficeCallout.Title.get -> string!
-OfficeIMO.Drawing.OfficeCallout.Width.get -> double
-OfficeIMO.Drawing.OfficeCallout.X.get -> double
-OfficeIMO.Drawing.OfficeCallout.Y.get -> double
-OfficeIMO.Drawing.OfficeCalloutStyle
-OfficeIMO.Drawing.OfficeCalloutStyle.AccentColor.get -> OfficeIMO.OfficeColor
-OfficeIMO.Drawing.OfficeCalloutStyle.AccentColor.set -> void
-OfficeIMO.Drawing.OfficeCalloutStyle.FillColor.get -> OfficeIMO.OfficeColor
-OfficeIMO.Drawing.OfficeCalloutStyle.FillColor.set -> void
-OfficeIMO.Drawing.OfficeCalloutStyle.FontFamily.get -> string!
-OfficeIMO.Drawing.OfficeCalloutStyle.FontFamily.set -> void
-OfficeIMO.Drawing.OfficeCalloutStyle.HeaderFillColor.get -> OfficeIMO.OfficeColor
-OfficeIMO.Drawing.OfficeCalloutStyle.HeaderFillColor.set -> void
-OfficeIMO.Drawing.OfficeCalloutStyle.HeaderHeight.get -> double
-OfficeIMO.Drawing.OfficeCalloutStyle.HeaderHeight.set -> void
-OfficeIMO.Drawing.OfficeCalloutStyle.LineHeightFactor.get -> double
-OfficeIMO.Drawing.OfficeCalloutStyle.LineHeightFactor.set -> void
-OfficeIMO.Drawing.OfficeCalloutStyle.OfficeCalloutStyle() -> void
-OfficeIMO.Drawing.OfficeCalloutStyle.Padding.get -> double
-OfficeIMO.Drawing.OfficeCalloutStyle.Padding.set -> void
-OfficeIMO.Drawing.OfficeCalloutStyle.ShadowColor.get -> OfficeIMO.OfficeColor
-OfficeIMO.Drawing.OfficeCalloutStyle.ShadowColor.set -> void
-OfficeIMO.Drawing.OfficeCalloutStyle.ShadowOffsetX.get -> double
-OfficeIMO.Drawing.OfficeCalloutStyle.ShadowOffsetX.set -> void
-OfficeIMO.Drawing.OfficeCalloutStyle.ShadowOffsetY.get -> double
-OfficeIMO.Drawing.OfficeCalloutStyle.ShadowOffsetY.set -> void
-OfficeIMO.Drawing.OfficeCalloutStyle.ShadowSpread.get -> double
-OfficeIMO.Drawing.OfficeCalloutStyle.ShadowSpread.set -> void
-OfficeIMO.Drawing.OfficeCalloutStyle.StrokeColor.get -> OfficeIMO.OfficeColor
-OfficeIMO.Drawing.OfficeCalloutStyle.StrokeColor.set -> void
-OfficeIMO.Drawing.OfficeCalloutStyle.TextColor.get -> OfficeIMO.OfficeColor
-OfficeIMO.Drawing.OfficeCalloutStyle.TextColor.set -> void
-OfficeIMO.Drawing.OfficeCalloutStyle.TextFontSize.get -> double
-OfficeIMO.Drawing.OfficeCalloutStyle.TextFontSize.set -> void
-OfficeIMO.Drawing.OfficeCalloutStyle.TitleColor.get -> OfficeIMO.OfficeColor
-OfficeIMO.Drawing.OfficeCalloutStyle.TitleColor.set -> void
-OfficeIMO.Drawing.OfficeCalloutStyle.TitleFontSize.get -> double
-OfficeIMO.Drawing.OfficeCalloutStyle.TitleFontSize.set -> void
 OfficeIMO.Drawing.OfficeChartAxisCrossBetween
 OfficeIMO.Drawing.OfficeChartAxisCrossBetween.Between = 0 -> OfficeIMO.Drawing.OfficeChartAxisCrossBetween
 OfficeIMO.Drawing.OfficeChartAxisCrossBetween.MidpointCategory = 1 -> OfficeIMO.Drawing.OfficeChartAxisCrossBetween
@@ -706,13 +660,6 @@ OfficeIMO.Drawing.OfficeConicGradient.CreateDrawing(double width, double height,
 OfficeIMO.Drawing.OfficeConicGradient.OfficeConicGradient(double centerX, double centerY, double startAngle, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeGradientStop>! stops) -> void
 OfficeIMO.Drawing.OfficeConicGradient.StartAngle.get -> double
 OfficeIMO.Drawing.OfficeConicGradient.Stops.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeGradientStop>!
-OfficeIMO.Drawing.OfficeDataBarGeometry
-OfficeIMO.Drawing.OfficeDataBarGeometry.Height.get -> double
-OfficeIMO.Drawing.OfficeDataBarGeometry.IsVisible.get -> bool
-OfficeIMO.Drawing.OfficeDataBarGeometry.OfficeDataBarGeometry() -> void
-OfficeIMO.Drawing.OfficeDataBarGeometry.Width.get -> double
-OfficeIMO.Drawing.OfficeDataBarGeometry.X.get -> double
-OfficeIMO.Drawing.OfficeDataBarGeometry.Y.get -> double
 OfficeIMO.Drawing.OfficeDiagramKind
 OfficeIMO.Drawing.OfficeDiagramKind.Cycle = 2 -> OfficeIMO.Drawing.OfficeDiagramKind
 OfficeIMO.Drawing.OfficeDiagramKind.Hierarchy = 1 -> OfficeIMO.Drawing.OfficeDiagramKind
@@ -1347,9 +1294,6 @@ OfficeIMO.Drawing.OfficeImageExportBatchLimitException
 OfficeIMO.Drawing.OfficeImageExportBatchLimitException.Actual.get -> long
 OfficeIMO.Drawing.OfficeImageExportBatchLimitException.LimitName.get -> string!
 OfficeIMO.Drawing.OfficeImageExportBatchLimitException.Maximum.get -> long
-OfficeIMO.Drawing.OfficeImageExportBatchSaveResult
-OfficeIMO.Drawing.OfficeImageExportBatchSaveResult.Files.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportSavedFile!>!
-OfficeIMO.Drawing.OfficeImageExportBatchSaveResult.Report.get -> OfficeIMO.Drawing.OfficeImageExportReport!
 OfficeIMO.Drawing.OfficeImageExportConsumer
 OfficeIMO.Drawing.OfficeImageExportDiagnostic
 OfficeIMO.Drawing.OfficeImageExportDiagnostic.Code.get -> string!
@@ -1505,19 +1449,6 @@ OfficeIMO.Drawing.OfficeImageExportResult.SequenceIndex.get -> int?
 OfficeIMO.Drawing.OfficeImageExportResult.Source.get -> string?
 OfficeIMO.Drawing.OfficeImageExportResult.Width.get -> int
 OfficeIMO.Drawing.OfficeImageExportResult.WithDiagnostics(System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportDiagnostic!>! diagnostics) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Drawing.OfficeImageExportSavedFile
-OfficeIMO.Drawing.OfficeImageExportSavedFile.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportDiagnostic!>!
-OfficeIMO.Drawing.OfficeImageExportSavedFile.DpiX.get -> double
-OfficeIMO.Drawing.OfficeImageExportSavedFile.DpiY.get -> double
-OfficeIMO.Drawing.OfficeImageExportSavedFile.EncodedLength.get -> long
-OfficeIMO.Drawing.OfficeImageExportSavedFile.Format.get -> OfficeIMO.Drawing.OfficeImageExportFormat
-OfficeIMO.Drawing.OfficeImageExportSavedFile.Height.get -> int
-OfficeIMO.Drawing.OfficeImageExportSavedFile.Name.get -> string?
-OfficeIMO.Drawing.OfficeImageExportSavedFile.Path.get -> string!
-OfficeIMO.Drawing.OfficeImageExportSavedFile.SequenceCount.get -> int?
-OfficeIMO.Drawing.OfficeImageExportSavedFile.SequenceIndex.get -> int?
-OfficeIMO.Drawing.OfficeImageExportSavedFile.Source.get -> string?
-OfficeIMO.Drawing.OfficeImageExportSavedFile.Width.get -> int
 OfficeIMO.Drawing.OfficeImageExportTimeoutException
 OfficeIMO.Drawing.OfficeImageExportTimeoutException.OfficeImageExportTimeoutException(System.TimeSpan timeout, System.Exception? innerException = null) -> void
 OfficeIMO.Drawing.OfficeImageExportTimeoutException.Timeout.get -> System.TimeSpan
@@ -1573,13 +1504,6 @@ OfficeIMO.Drawing.OfficeImageInfo.OfficeImageInfo(OfficeIMO.Drawing.OfficeImageF
 OfficeIMO.Drawing.OfficeImageInfo.OfficeImageInfo(OfficeIMO.Drawing.OfficeImageFormat format, int width, int height, double dpiX, double dpiY, double? aspectRatio) -> void
 OfficeIMO.Drawing.OfficeImageInfo.TiffPhotometricInterpretation.get -> int?
 OfficeIMO.Drawing.OfficeImageInfo.Width.get -> int
-OfficeIMO.Drawing.OfficeImageLayer
-OfficeIMO.Drawing.OfficeImageLayer.Height.get -> double
-OfficeIMO.Drawing.OfficeImageLayer.RasterImage.get -> OfficeIMO.Drawing.OfficeRasterImage?
-OfficeIMO.Drawing.OfficeImageLayer.SvgInnerContent.get -> string?
-OfficeIMO.Drawing.OfficeImageLayer.Width.get -> double
-OfficeIMO.Drawing.OfficeImageLayer.X.get -> double
-OfficeIMO.Drawing.OfficeImageLayer.Y.get -> double
 OfficeIMO.Drawing.OfficeImageMetadata
 OfficeIMO.Drawing.OfficeImageMetadata.ApplyForEncoding(byte[]! encodedBytes, OfficeIMO.Drawing.OfficeRasterEncodingOptions? options = null, long maximumEncodedBytes = 134217728, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Drawing.OfficeRasterEncodingResult!
 OfficeIMO.Drawing.OfficeImageMetadata.ClearExif() -> void
@@ -1809,15 +1733,6 @@ OfficeIMO.Drawing.OfficeImageProjection.Width.get -> double
 OfficeIMO.Drawing.OfficeImageProjection.X.get -> double
 OfficeIMO.Drawing.OfficeImageProjection.Y.get -> double
 OfficeIMO.Drawing.OfficeImageReader
-OfficeIMO.Drawing.OfficeImageRenderPlan
-OfficeIMO.Drawing.OfficeImageRenderPlan.Fit.get -> OfficeIMO.Drawing.OfficeImageFit
-OfficeIMO.Drawing.OfficeImageRenderPlan.ImagePlacement.get -> OfficeIMO.Drawing.OfficeImagePlacement
-OfficeIMO.Drawing.OfficeImageRenderPlan.OfficeImageRenderPlan() -> void
-OfficeIMO.Drawing.OfficeImageRenderPlan.RequiresTargetClip.get -> bool
-OfficeIMO.Drawing.OfficeImageRenderPlan.SourceCrop.get -> OfficeIMO.Drawing.OfficeImageSourceCrop
-OfficeIMO.Drawing.OfficeImageRenderPlan.TargetPlacement.get -> OfficeIMO.Drawing.OfficeImagePlacement
-OfficeIMO.Drawing.OfficeImageRenderPlan.ToVisibleProjection(double rotationDegrees = 0, double? rotationCenterX = null, double? rotationCenterY = null, bool flipHorizontal = false, bool flipVertical = false) -> OfficeIMO.Drawing.OfficeImageProjection
-OfficeIMO.Drawing.OfficeImageRenderPlan.VisiblePlacement.get -> OfficeIMO.Drawing.OfficeImagePlacement
 OfficeIMO.Drawing.OfficeImageResolution
 OfficeIMO.Drawing.OfficeImageResolution.Horizontal.get -> double
 OfficeIMO.Drawing.OfficeImageResolution.OfficeImageResolution(double horizontal, double vertical, OfficeIMO.Drawing.OfficeImageResolutionUnit unit = OfficeIMO.Drawing.OfficeImageResolutionUnit.PixelsPerInch) -> void
@@ -2749,12 +2664,6 @@ OfficeIMO.Drawing.OfficeRational.Numerator.get -> uint
 OfficeIMO.Drawing.OfficeRational.OfficeRational() -> void
 OfficeIMO.Drawing.OfficeRational.OfficeRational(uint numerator, uint denominator) -> void
 OfficeIMO.Drawing.OfficeRational.ToDouble() -> double
-OfficeIMO.Drawing.OfficeRemoteImage
-OfficeIMO.Drawing.OfficeRemoteImage.ContentType.get -> string!
-OfficeIMO.Drawing.OfficeRemoteImage.FileName.get -> string!
-OfficeIMO.Drawing.OfficeRemoteImage.Source.get -> System.Uri!
-OfficeIMO.Drawing.OfficeRemoteImage.ToBytes() -> byte[]!
-OfficeIMO.Drawing.OfficeRemoteImage.ToStream() -> System.IO.MemoryStream!
 OfficeIMO.Drawing.OfficeRemoteImageLoadOptions
 OfficeIMO.Drawing.OfficeRemoteImageLoadOptions.AllowPrivateNetworkAddresses.get -> bool
 OfficeIMO.Drawing.OfficeRemoteImageLoadOptions.AllowPrivateNetworkAddresses.set -> void
@@ -3028,43 +2937,6 @@ OfficeIMO.Drawing.OfficeSoftMaskLuminosityStandard.Srgb = 0 -> OfficeIMO.Drawing
 OfficeIMO.Drawing.OfficeSoftMaskMode
 OfficeIMO.Drawing.OfficeSoftMaskMode.Alpha = 0 -> OfficeIMO.Drawing.OfficeSoftMaskMode
 OfficeIMO.Drawing.OfficeSoftMaskMode.Luminosity = 1 -> OfficeIMO.Drawing.OfficeSoftMaskMode
-OfficeIMO.Drawing.OfficeSparklineKind
-OfficeIMO.Drawing.OfficeSparklineKind.Column = 1 -> OfficeIMO.Drawing.OfficeSparklineKind
-OfficeIMO.Drawing.OfficeSparklineKind.Line = 0 -> OfficeIMO.Drawing.OfficeSparklineKind
-OfficeIMO.Drawing.OfficeSparklineKind.WinLoss = 2 -> OfficeIMO.Drawing.OfficeSparklineKind
-OfficeIMO.Drawing.OfficeSparklinePointStyle
-OfficeIMO.Drawing.OfficeSparklinePointStyle.Color.get -> OfficeIMO.OfficeColor
-OfficeIMO.Drawing.OfficeSparklinePointStyle.OfficeSparklinePointStyle() -> void
-OfficeIMO.Drawing.OfficeSparklinePointStyle.OfficeSparklinePointStyle(OfficeIMO.OfficeColor color, bool showMarker = false) -> void
-OfficeIMO.Drawing.OfficeSparklinePointStyle.ShowMarker.get -> bool
-OfficeIMO.Drawing.OfficeSparklineStyle
-OfficeIMO.Drawing.OfficeSparklineStyle.AxisColor.get -> OfficeIMO.OfficeColor
-OfficeIMO.Drawing.OfficeSparklineStyle.AxisColor.set -> void
-OfficeIMO.Drawing.OfficeSparklineStyle.AxisInset.get -> double
-OfficeIMO.Drawing.OfficeSparklineStyle.AxisInset.set -> void
-OfficeIMO.Drawing.OfficeSparklineStyle.AxisStrokeWidth.get -> double
-OfficeIMO.Drawing.OfficeSparklineStyle.AxisStrokeWidth.set -> void
-OfficeIMO.Drawing.OfficeSparklineStyle.ColumnWidthRatio.get -> double
-OfficeIMO.Drawing.OfficeSparklineStyle.ColumnWidthRatio.set -> void
-OfficeIMO.Drawing.OfficeSparklineStyle.DisplayAxis.get -> bool
-OfficeIMO.Drawing.OfficeSparklineStyle.DisplayAxis.set -> void
-OfficeIMO.Drawing.OfficeSparklineStyle.LineStrokeWidth.get -> double
-OfficeIMO.Drawing.OfficeSparklineStyle.LineStrokeWidth.set -> void
-OfficeIMO.Drawing.OfficeSparklineStyle.MarkerDiameter.get -> double
-OfficeIMO.Drawing.OfficeSparklineStyle.MarkerDiameter.set -> void
-OfficeIMO.Drawing.OfficeSparklineStyle.MaximumValue.get -> double?
-OfficeIMO.Drawing.OfficeSparklineStyle.MaximumValue.set -> void
-OfficeIMO.Drawing.OfficeSparklineStyle.MinimumValue.get -> double?
-OfficeIMO.Drawing.OfficeSparklineStyle.MinimumValue.set -> void
-OfficeIMO.Drawing.OfficeSparklineStyle.OfficeSparklineStyle() -> void
-OfficeIMO.Drawing.OfficeSparklineStyle.Padding.get -> double
-OfficeIMO.Drawing.OfficeSparklineStyle.Padding.set -> void
-OfficeIMO.Drawing.OfficeSparklineStyle.PointStyles.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeSparklinePointStyle>?
-OfficeIMO.Drawing.OfficeSparklineStyle.PointStyles.set -> void
-OfficeIMO.Drawing.OfficeSparklineStyle.SeriesColor.get -> OfficeIMO.OfficeColor
-OfficeIMO.Drawing.OfficeSparklineStyle.SeriesColor.set -> void
-OfficeIMO.Drawing.OfficeSparklineStyle.WinLossHeightRatio.get -> double
-OfficeIMO.Drawing.OfficeSparklineStyle.WinLossHeightRatio.set -> void
 OfficeIMO.Drawing.OfficeStrokeDashStyle
 OfficeIMO.Drawing.OfficeStrokeDashStyle.Dash = 1 -> OfficeIMO.Drawing.OfficeStrokeDashStyle
 OfficeIMO.Drawing.OfficeStrokeDashStyle.DashDot = 3 -> OfficeIMO.Drawing.OfficeStrokeDashStyle
@@ -3114,10 +2986,6 @@ OfficeIMO.Drawing.OfficeSvgFormatting
 OfficeIMO.Drawing.OfficeSvgSizeUnit
 OfficeIMO.Drawing.OfficeSvgSizeUnit.Pixel = 1 -> OfficeIMO.Drawing.OfficeSvgSizeUnit
 OfficeIMO.Drawing.OfficeSvgSizeUnit.Point = 0 -> OfficeIMO.Drawing.OfficeSvgSizeUnit
-OfficeIMO.Drawing.OfficeTablePage
-OfficeIMO.Drawing.OfficeTablePage.Height.get -> double
-OfficeIMO.Drawing.OfficeTablePage.RowCount.get -> int
-OfficeIMO.Drawing.OfficeTablePage.RowOffset.get -> int
 OfficeIMO.Drawing.OfficeTextAlignment
 OfficeIMO.Drawing.OfficeTextAlignment.Center = 1 -> OfficeIMO.Drawing.OfficeTextAlignment
 OfficeIMO.Drawing.OfficeTextAlignment.Justify = 3 -> OfficeIMO.Drawing.OfficeTextAlignment
@@ -3272,10 +3140,6 @@ OfficeIMO.Drawing.OfficeTextParagraphLabelFollowedBy
 OfficeIMO.Drawing.OfficeTextParagraphLabelFollowedBy.Nothing = 2 -> OfficeIMO.Drawing.OfficeTextParagraphLabelFollowedBy
 OfficeIMO.Drawing.OfficeTextParagraphLabelFollowedBy.Position = 0 -> OfficeIMO.Drawing.OfficeTextParagraphLabelFollowedBy
 OfficeIMO.Drawing.OfficeTextParagraphLabelFollowedBy.Space = 1 -> OfficeIMO.Drawing.OfficeTextParagraphLabelFollowedBy
-OfficeIMO.Drawing.OfficeTextScriptGeometry
-OfficeIMO.Drawing.OfficeTextScriptGeometry.BaselineOffset.get -> double
-OfficeIMO.Drawing.OfficeTextScriptGeometry.OfficeTextScriptGeometry() -> void
-OfficeIMO.Drawing.OfficeTextScriptGeometry.RenderedFontSize.get -> double
 OfficeIMO.Drawing.OfficeTextShapingBackend
 OfficeIMO.Drawing.OfficeTextShapingBackend.BrowserNative = 2 -> OfficeIMO.Drawing.OfficeTextShapingBackend
 OfficeIMO.Drawing.OfficeTextShapingBackend.HarfBuzz = 1 -> OfficeIMO.Drawing.OfficeTextShapingBackend
@@ -3361,16 +3225,6 @@ OfficeIMO.Drawing.OfficeTextVerticalAlignment
 OfficeIMO.Drawing.OfficeTextVerticalAlignment.Bottom = 2 -> OfficeIMO.Drawing.OfficeTextVerticalAlignment
 OfficeIMO.Drawing.OfficeTextVerticalAlignment.Center = 1 -> OfficeIMO.Drawing.OfficeTextVerticalAlignment
 OfficeIMO.Drawing.OfficeTextVerticalAlignment.Top = 0 -> OfficeIMO.Drawing.OfficeTextVerticalAlignment
-OfficeIMO.Drawing.OfficeTextZone
-OfficeIMO.Drawing.OfficeTextZone.AnchorX.get -> double
-OfficeIMO.Drawing.OfficeTextZone.OfficeTextZone() -> void
-OfficeIMO.Drawing.OfficeTextZone.OfficeTextZone(double x, double width, double anchorX) -> void
-OfficeIMO.Drawing.OfficeTextZone.Width.get -> double
-OfficeIMO.Drawing.OfficeTextZone.X.get -> double
-OfficeIMO.Drawing.OfficeTextZoneLayout
-OfficeIMO.Drawing.OfficeTextZoneLayout.Center.get -> OfficeIMO.Drawing.OfficeTextZone
-OfficeIMO.Drawing.OfficeTextZoneLayout.Left.get -> OfficeIMO.Drawing.OfficeTextZone
-OfficeIMO.Drawing.OfficeTextZoneLayout.Right.get -> OfficeIMO.Drawing.OfficeTextZone
 OfficeIMO.Drawing.OfficeTiffCodec
 OfficeIMO.Drawing.OfficeTiffCompression
 OfficeIMO.Drawing.OfficeTiffCompression.CcittGroup4 = 4 -> OfficeIMO.Drawing.OfficeTiffCompression
@@ -7245,8 +7099,6 @@ static OfficeIMO.Drawing.OfficeImageInfo.IsBrowserPreviewSafeExtension(string? f
 static OfficeIMO.Drawing.OfficeImageInfo.IsBrowserPreviewSafeFormat(OfficeIMO.Drawing.OfficeImageFormat format) -> bool
 static OfficeIMO.Drawing.OfficeImageInfo.NormalizeMimeType(string? contentType) -> string!
 static OfficeIMO.Drawing.OfficeImageInfo.TryNormalizeImageContentType(string? contentType, out string! normalizedContentType) -> bool
-static OfficeIMO.Drawing.OfficeImageLayer.FromRaster(OfficeIMO.Drawing.OfficeRasterImage! rasterImage, double x, double y, double width, double height) -> OfficeIMO.Drawing.OfficeImageLayer!
-static OfficeIMO.Drawing.OfficeImageLayer.FromSvgInner(string! svgInnerContent, double x, double y, double width, double height) -> OfficeIMO.Drawing.OfficeImageLayer!
 static OfficeIMO.Drawing.OfficeImageMetadata.Apply(byte[]! encodedBytes, OfficeIMO.Drawing.OfficeImageMetadata! metadata, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> byte[]!
 static OfficeIMO.Drawing.OfficeImageMetadata.Inspect(byte[]! encodedBytes, OfficeIMO.Drawing.OfficeImageMetadataInspectionOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Drawing.OfficeImageMetadataInspection!
 static OfficeIMO.Drawing.OfficeImageMetadata.InspectExifProfile(byte[]! profile, OfficeIMO.Drawing.OfficeImageMetadataInspectionOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Drawing.OfficeImageMetadataInspection!
@@ -7274,8 +7126,6 @@ static OfficeIMO.Drawing.OfficeImageReader.TryValidateContent(System.IO.Stream! 
 static OfficeIMO.Drawing.OfficeImageReader.TryValidateContent(System.IO.Stream! stream, string? fileName, out OfficeIMO.Drawing.OfficeImageInfo! info) -> bool
 static OfficeIMO.Drawing.OfficeImageReader.TryValidateContent(byte[]? data, string? fileName, System.Threading.CancellationToken cancellationToken, out OfficeIMO.Drawing.OfficeImageInfo! info) -> bool
 static OfficeIMO.Drawing.OfficeImageReader.TryValidateContent(byte[]? data, string? fileName, out OfficeIMO.Drawing.OfficeImageInfo! info) -> bool
-static OfficeIMO.Drawing.OfficeImageRenderPlan.CreateBottomLeft(double sourceWidth, double sourceHeight, double targetX, double targetBottomY, double targetWidth, double targetHeight, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Stretch, OfficeIMO.Drawing.OfficeImageSourceCrop sourceCrop = default(OfficeIMO.Drawing.OfficeImageSourceCrop)) -> OfficeIMO.Drawing.OfficeImageRenderPlan
-static OfficeIMO.Drawing.OfficeImageRenderPlan.CreateTopLeft(double sourceWidth, double sourceHeight, double targetX, double targetY, double targetWidth, double targetHeight, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Stretch, OfficeIMO.Drawing.OfficeImageSourceCrop sourceCrop = default(OfficeIMO.Drawing.OfficeImageSourceCrop)) -> OfficeIMO.Drawing.OfficeImageRenderPlan
 static OfficeIMO.Drawing.OfficeImageSourceCrop.FromClampedFractions(double left, double top, double right, double bottom) -> OfficeIMO.Drawing.OfficeImageSourceCrop
 static OfficeIMO.Drawing.OfficeImageSourceCrop.FromStrictFractions(double left, double top, double right, double bottom) -> OfficeIMO.Drawing.OfficeImageSourceCrop
 static OfficeIMO.Drawing.OfficeImageSourceCrop.LeavesVisibleSourceArea(double left, double top, double right, double bottom) -> bool
@@ -7619,8 +7469,6 @@ static OfficeIMO.Drawing.OfficeTextParagraphIndent.operator !=(OfficeIMO.Drawing
 static OfficeIMO.Drawing.OfficeTextParagraphIndent.operator ==(OfficeIMO.Drawing.OfficeTextParagraphIndent left, OfficeIMO.Drawing.OfficeTextParagraphIndent right) -> bool
 static OfficeIMO.Drawing.OfficeTextParagraphLabel.AtPosition(OfficeIMO.Drawing.OfficeRichTextRun! run, double position, OfficeIMO.Drawing.OfficeTextAlignment alignment = OfficeIMO.Drawing.OfficeTextAlignment.Left, OfficeIMO.Drawing.OfficeTextParagraphLabelFollowedBy followedBy = OfficeIMO.Drawing.OfficeTextParagraphLabelFollowedBy.Position, double? textPosition = null) -> OfficeIMO.Drawing.OfficeTextParagraphLabel!
 static OfficeIMO.Drawing.OfficeTextParagraphLabel.InBox(OfficeIMO.Drawing.OfficeRichTextRun! run, double position, double minimumWidth, OfficeIMO.Drawing.OfficeTextAlignment alignment = OfficeIMO.Drawing.OfficeTextAlignment.Left, double minimumDistance = 0) -> OfficeIMO.Drawing.OfficeTextParagraphLabel!
-static OfficeIMO.Drawing.OfficeTextScriptGeometry.Resolve(double sourceFontSize, int baselineLevel, double superscriptOffsetFactor = 0.3, double subscriptOffsetFactor = 0.15) -> OfficeIMO.Drawing.OfficeTextScriptGeometry
-static OfficeIMO.Drawing.OfficeTextZoneLayout.CreateThreeColumn(double width, double padding, double gap) -> OfficeIMO.Drawing.OfficeTextZoneLayout!
 static OfficeIMO.Drawing.OfficeTiffCodec.Encode(OfficeIMO.Drawing.OfficeRasterImage! image, OfficeIMO.Drawing.OfficeTiffEncodeOptions? options = null) -> byte[]!
 static OfficeIMO.Drawing.OfficeTiffCodec.EncodePages(System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeRasterImage!>! pages, OfficeIMO.Drawing.OfficeTiffEncodeOptions? options = null) -> byte[]!
 static OfficeIMO.Drawing.OfficeTiffCodec.EncodePages(System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeRasterImage!>! pages, OfficeIMO.Drawing.OfficeTiffEncodeOptions? options, System.Threading.CancellationToken cancellationToken) -> byte[]!

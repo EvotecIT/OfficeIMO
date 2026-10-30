@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Runtime diagnostics that can affect Excel import/export behavior.
     /// </summary>
-    public sealed class ExcelRuntimePreflightReport {
+    internal sealed class ExcelRuntimePreflightReport {
         internal ExcelRuntimePreflightReport(
             string frameworkDescription,
             string osDescription,

@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Provides helper methods for inserting cross reference fields.
     /// </summary>
-    public class WordCrossReference : WordElement {
+    internal class WordCrossReference : WordElement {
         /// <summary>
         /// Inserts a REF field referencing the specified bookmark or heading.
         /// </summary>

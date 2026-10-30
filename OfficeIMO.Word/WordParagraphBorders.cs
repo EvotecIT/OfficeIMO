@@ -5,7 +5,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Defines predefined paragraph border styles.
     /// </summary>
-    public enum WordParagraphBorder {
+    internal enum WordParagraphBorder {
         /// <summary>No borders are applied.</summary>
         None,
         /// <summary>Custom border configuration.</summary>
