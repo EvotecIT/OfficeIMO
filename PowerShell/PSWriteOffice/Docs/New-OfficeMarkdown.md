@@ -6,42 +6,54 @@ schema: 2.0.0
 ---
 # New-OfficeMarkdown
 ## SYNOPSIS
-Creates a Markdown document using a DSL scriptblock.
+Creates a live Markdown document, or atomically publishes a completed content block.
 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficeMarkdown [-Path] <string> [[-Content] <scriptblock>] [-PassThru] [-NoSave] [-WriteOptions <MarkdownSaveOptions>] [-WriteProfile <OfficeMarkdownWriteProfile>] [-ImageRenderingMode <MarkdownImageRenderingMode>] [-LineEnding <string>] [-UnorderedListMarker <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+New-OfficeMarkdown [[-Path] <string>] [[-Content] <scriptblock>] [-Force] [-WriteOptions <MarkdownSaveOptions>] [-WriteProfile <OfficeMarkdownWriteProfile>] [-ImageRenderingMode <MarkdownImageRenderingMode>] [-LineEnding <OfficeLineEnding>] [-UnorderedListMarker <string>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Runs the scriptblock against a Markdown document and saves it to disk unless -NoSave is specified.
+Creates a live Markdown document, or atomically publishes a completed content block.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficeMarkdown -Path .\README.md { MarkdownHeading -Level 1 -Text 'Report'; MarkdownTable -InputObject $data }
+New-OfficeMarkdown -Path ./Report.md -PassThru { MarkdownHeading -Text 'Report' }
 ```
 
-Creates a README file with a heading and table content.
 
 ### EXAMPLE 2
 ```powershell
-PS> New-OfficeMarkdown -Path .\Report.md {
-  MarkdownHeading -Level 1 -Text 'Summary'
-  MarkdownTable -InputObject $summary
-  MarkdownHeading -Level 2 -Text 'Details'
-  MarkdownTable -InputObject $details
-}
+$document = New-OfficeMarkdown -Path ./Report.md
+$document | MarkdownHeading -Text 'Report'
+$document | Save-OfficeMarkdown
+$document | Close-OfficeMarkdown
 ```
 
-Creates a report with two tables separated by headings.
 
 ## PARAMETERS
 
+### -AllowLoss
+Gets or sets whether native-save loss is explicitly accepted.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Content
-DSL scriptblock describing Markdown content.
+Gets or sets a content block; omission returns the live document.
 
 ```yaml
 Type: ScriptBlock
@@ -56,8 +68,24 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Force
+Allow an existing destination; a failed block preserves its original contents.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -ImageRenderingMode
-Controls how Markdown images are serialized.
+Image serialization used when publishing a block.
 
 ```yaml
 Type: MarkdownImageRenderingMode
@@ -73,29 +101,13 @@ Accept wildcard characters: False
 ```
 
 ### -LineEnding
-Markdown line ending: CRLF, LF, CR, or a literal line ending string.
+Line endings used when publishing a block.
 
 ```yaml
-Type: String
+Type: OfficeLineEnding
 Parameter Sets: __AllParameterSets
 Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -NoSave
-Skip saving after executing the DSL.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
+Possible values: LF, CRLF, CR
 
 Required: False
 Position: named
@@ -105,7 +117,7 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit a FileInfo for chaining.
+Gets or sets whether a completed content block returns the saved FileInfo.
 
 ```yaml
 Type: SwitchParameter
@@ -121,26 +133,26 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Destination path for the Markdown file.
+Optional associated path; a content block requires a destination.
 
 ```yaml
 Type: String
 Parameter Sets: __AllParameterSets
-Aliases: FilePath, OutputPath
+Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -UnorderedListMarker
-Unordered list marker: '-', '*', or '+'.
+### -Show
+Gets or sets whether the saved file opens in the system default application.
 
 ```yaml
-Type: String
+Type: SwitchParameter
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -152,8 +164,24 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -UnorderedListMarker
+Unordered list marker used when publishing a block.
+
+```yaml
+Type: String
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values: -, *, +
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -WriteOptions
-Optional Markdown writer options.
+Native Markdown save settings or a hashtable, used when publishing a block.
 
 ```yaml
 Type: MarkdownSaveOptions
@@ -169,7 +197,7 @@ Accept wildcard characters: False
 ```
 
 ### -WriteProfile
-Friendly Markdown writer profile.
+Writer profile used when publishing a block.
 
 ```yaml
 Type: OfficeMarkdownWriteProfile

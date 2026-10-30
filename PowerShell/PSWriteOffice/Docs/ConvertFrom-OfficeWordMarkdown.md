@@ -38,7 +38,7 @@ Writes a Word document containing the supplied Markdown.
 
 ### EXAMPLE 2
 ```powershell
-PS> Get-OfficeMarkdown -Path .\README.md | ConvertFrom-OfficeWordMarkdown
+PS> Open-OfficeMarkdown -Path .\README.md | ConvertFrom-OfficeWordMarkdown
 ```
 
 Returns a Word document instance for further edits.

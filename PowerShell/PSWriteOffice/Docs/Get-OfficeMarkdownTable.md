@@ -31,7 +31,7 @@ Gets Markdown tables from a Markdown document.
 
 ### EXAMPLE 1
 ```powershell
-PS> Get-OfficeMarkdown -Path .\Report.md | Get-OfficeMarkdownTable -AsObject
+PS> Open-OfficeMarkdown -Path .\Report.md | Get-OfficeMarkdownTable -AsObject
 ```
 
 Returns table rows as PowerShell objects using the Markdown header row as property names.

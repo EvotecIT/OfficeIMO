@@ -38,7 +38,7 @@ Parses Markdown text and returns the document headings.
 
 ### EXAMPLE 2
 ```powershell
-PS> Get-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownHeading -MinLevel 2
+PS> Open-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownHeading -MinLevel 2
 ```
 
 Returns headings from an existing Markdown document object.

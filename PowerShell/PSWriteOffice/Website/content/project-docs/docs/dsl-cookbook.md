@@ -43,7 +43,7 @@ These blocks call the same cmdlets and produce the same document. `PdfTheme` map
 - Excel: `ExcelNew` maps to `New-OfficeExcel`.
 - PowerPoint: `PptNew` maps to `New-OfficePowerPoint`.
 - PDF: `PdfNew` maps to `New-OfficePdf`; `PdfTheme` maps to `Set-OfficePdfTheme`.
-- Markdown: `MarkdownNew` maps to `New-OfficeMarkdown`.
+- Markdown: `New-OfficeMarkdown` creates the document; `MarkdownHeading` and `MarkdownParagraph` are content aliases inside its block.
 
 Canonical command names are easier to discover in generated help. Aliases make dense composition blocks easier to scan. Pick one form for a script rather than mixing `New-OfficePdf` with `PdfTheme` and other aliases.
 

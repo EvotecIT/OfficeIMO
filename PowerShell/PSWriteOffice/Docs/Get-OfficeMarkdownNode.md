@@ -38,7 +38,7 @@ Parses Markdown text and returns the document, block, and inline object tree.
 
 ### EXAMPLE 2
 ```powershell
-PS> Get-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownNode -NodeType '*Table*'
+PS> Open-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownNode -NodeType '*Table*'
 ```
 
 Returns matching nodes from an existing Markdown document.

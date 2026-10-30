@@ -526,6 +526,9 @@ Closes a native database without implicitly saving it.
 ### [Close-OfficeExcel](Close-OfficeExcel.md)
 Closes a live Excel workbook without saving pending changes.
 
+### [Close-OfficeMarkdown](Close-OfficeMarkdown.md)
+Completes a live Markdown document's lifetime without saving.
+
 ### [Close-OfficePowerPoint](Close-OfficePowerPoint.md)
 Closes a live presentation without saving it.
 
@@ -910,9 +913,6 @@ Reads a modern Apple Pages, Numbers, or Keynote package without launching iWork.
 ### [Get-OfficeLatex](Get-OfficeLatex.md)
 Parses a LaTeX file or source string into OfficeIMO's native document model.
 
-### [Get-OfficeMarkdown](Get-OfficeMarkdown.md)
-Parses Markdown text or files into a Markdown document model.
-
 ### [Get-OfficeMarkdownFrontMatter](Get-OfficeMarkdownFrontMatter.md)
 Gets YAML front matter entries from a Markdown document.
 
@@ -1262,10 +1262,13 @@ Creates typed HTML rendering options for Export-OfficeDocumentPdf.
 Creates discoverable layout, resource-limit, and rendering settings for HTML image export.
 
 ### [New-OfficeMarkdown](New-OfficeMarkdown.md)
-Creates a Markdown document using a DSL scriptblock.
+Creates a live Markdown document, or atomically publishes a completed content block.
 
 ### [New-OfficeMarkdownPdfOptions](New-OfficeMarkdownPdfOptions.md)
 Creates discoverable Markdown-to-PDF conversion options for Export-OfficeDocumentPdf.
+
+### [New-OfficeMarkdownReaderOptions](New-OfficeMarkdownReaderOptions.md)
+Creates native Markdown dialect, normalization, URL and input-limit settings.
 
 ### [New-OfficeOcrOptions](New-OfficeOcrOptions.md)
 Creates OCR settings without starting a provider or downloading language data.
@@ -1369,6 +1372,9 @@ Creates a discoverable Word revision filter for Resolve-OfficeWordRevision.
 ### [New-OfficeWordTableCell](New-OfficeWordTableCell.md)
 Creates a reusable Word table cell definition for explicit table rows.
 
+### [Open-OfficeMarkdown](Open-OfficeMarkdown.md)
+Opens native Markdown from a file or parses text; a file content block saves atomically.
+
 ### [Open-OfficePowerPoint](Open-OfficePowerPoint.md)
 Opens a presentation for explicit editing, or atomically saves a completed content block.
 
@@ -1451,7 +1457,7 @@ Saves a live Excel workbook without closing it.
 Saves an OfficeIMO LaTeX document.
 
 ### [Save-OfficeMarkdown](Save-OfficeMarkdown.md)
-Saves a Markdown document without changing its lifetime.
+Saves a live Markdown document using its native save policy and keeps it available.
 
 ### [Save-OfficeOpenDocument](Save-OfficeOpenDocument.md)
 Saves a native OpenDocument model with entry-level preservation diagnostics.
