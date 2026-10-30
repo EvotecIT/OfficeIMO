@@ -154,6 +154,18 @@ re-edits and explicitly changed paragraph-CR attributes. The contributor JSON
 commands above retain their narrower size/bold input schema; use the public
 rich-text model for the additional attributes.
 
+The public paragraph model also supports source saves for alignment, before/after
+spacing, margins, first-line or hanging indents, absolute/multiple line spacing
+and ordinary left tabs. The `sourceEditing.paragraphFormatting` record qualifies
+21 native save/reopen cases, including fractional points, per-paragraph values,
+linked overflow, count changes, clearing tabs and formatting/directory allocation.
+Its independent controls include two-tab ordinal arrays and paragraph-aligned
+left/center/right text. Center/right native paragraphs require the existing
+`WithParagraphAlignment()` tab option; fixed-grid requests are refused. The
+[support contract](../../../OfficeIMO.Publisher/SUPPORT.md) defines the admitted
+units, native field and tab-setting limits. These operations use the public
+rich-text API; the contributor JSON commands retain their narrower input schema.
+
 The multiple-story/page path retains existing story identities and order, admits
 one frame or a complete resolved ordinary document-page chain per changed story,
 and admits known directory chains with at most 20 descriptors per page and

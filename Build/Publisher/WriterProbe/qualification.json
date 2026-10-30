@@ -7674,6 +7674,2332 @@
         "Font substitution and installed-font metrics remain native-environment limits. Existing controls cover Arial, Cambria, Courier New and Consolas, not every font or producer.",
         "Source-built PowerShell conversion is qualified separately from packaged installation or PowerShell-native create/edit/save cmdlets."
       ]
+    },
+    "paragraphFormatting": {
+      "scope": "Bounded ordinary source-story paragraph formatting and native paragraph-aligned tab projection; no source-free native creation, repair-free acceptance or general renderer parity.",
+      "codecCommit": "3a3527f52f018e1994a0946aefdd81d9ffde66ac",
+      "implementationCommit": "4530420ea68b2a1c5c8d247f694d72609f3f91b5",
+      "sourceFiles": [
+        {
+          "path": "../../../Build/Publisher/Add-NativeParagraphFormatControl.ps1",
+          "sha256": "d65da75666567375a4b9fc82686a4a47e0ee5e9f4a8b4cf1db01a9a8a715ed44",
+          "gitBlobSha256": "d65da75666567375a4b9fc82686a4a47e0ee5e9f4a8b4cf1db01a9a8a715ed44"
+        },
+        {
+          "path": "../../../Build/Publisher/Invoke-NativeComparisonCase.ps1",
+          "sha256": "395db2c81f398b4a3c07f9ea3968b17644c002db7de8e243f008d6c17662894a",
+          "gitBlobSha256": "98794978d5a0f7389d2a665cc9f7a85bb5fb85ccd27e7e946b8d4879589c2aaa"
+        },
+        {
+          "path": "../../../Build/Publisher/Invoke-NativePublisherOperation.ps1",
+          "sha256": "8cd57bf9b556c98aed544c3d5365ccd3897b6e60306b5f92f3199ee1eccb79fa",
+          "gitBlobSha256": "c85834f12408b67cd87bc9210d529edb72e977ceebf7ef1ad0b9c886eacc747f"
+        },
+        {
+          "path": "../../../Build/Publisher/New-NativeComparisonCorpus.ps1",
+          "sha256": "37f2b13492b552833e25d57459f21ff907581dda9d645639e4d881802aad1ef1",
+          "gitBlobSha256": "12ad4c9870eb122c0c6f3a7a178c7e9085751da7dc72b29f015e2ae03402348c"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextAlignedTabs/native-textalignedtabs.json",
+          "sha256": "ec2d119aa750b1b23e83e50e52065d7e9ed7c47d3c9903052c3c2f412859dd8a",
+          "gitBlobSha256": "161c555029437a558c22fea6abb9fca979d638b4c9902ff1b3882301356b8ea2"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextAlignedTabs/native-textalignedtabs.pdf",
+          "sha256": "ce2027517d76bc15e99145c689440d6e66e0718af771eab535b3eb8b876b4e63",
+          "gitBlobSha256": "ce2027517d76bc15e99145c689440d6e66e0718af771eab535b3eb8b876b4e63"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextAlignedTabs/native-textalignedtabs.pub",
+          "sha256": "6e98cad32b07b02cce5bf9a60f7c0d8159a1fb37fdf8d9a1d03ef0b302cc34f2",
+          "gitBlobSha256": "6e98cad32b07b02cce5bf9a60f7c0d8159a1fb37fdf8d9a1d03ef0b302cc34f2"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextParagraphAttributes/native-textparagraphattributes.json",
+          "sha256": "90629aa3787567bcd756e1115ee6f4433308f0370a342e729f415d89de7f7f3a",
+          "gitBlobSha256": "e3dc0069cef04964e8adcf80d9fff613c5ad529ca25e785df0a38fa44d4152db"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextParagraphAttributes/native-textparagraphattributes.pdf",
+          "sha256": "04a6b25cc4337a43bfdb96126371319fe4313c06b475e10026bcc49fccbde8f3",
+          "gitBlobSha256": "04a6b25cc4337a43bfdb96126371319fe4313c06b475e10026bcc49fccbde8f3"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextParagraphAttributes/native-textparagraphattributes.pub",
+          "sha256": "ceca829da6caa699403af4bddccae78ca4149067d54ca1714384ed88a82079b3",
+          "gitBlobSha256": "ceca829da6caa699403af4bddccae78ca4149067d54ca1714384ed88a82079b3"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/PublisherParagraphAttributeTests.cs",
+          "sha256": "7dbbf27ce0fdfb3df734f3924f82fd51d9ccb4521aaaff4a87103617423fa90b",
+          "gitBlobSha256": "7dbbf27ce0fdfb3df734f3924f82fd51d9ccb4521aaaff4a87103617423fa90b"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/PublisherParagraphFormatWritingTests.cs",
+          "sha256": "f9e234906e6e7d030bc26a05a13a48da8d84f2bcb3d2c81eebdc85ad067ac212",
+          "gitBlobSha256": "f9e234906e6e7d030bc26a05a13a48da8d84f2bcb3d2c81eebdc85ad067ac212"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherNativeWriter.Compare.cs",
+          "sha256": "f3608d1cdffed3bbcabf8ef3db4ae0fc7f21f9f3907601963adc0ac4d1ad30be",
+          "gitBlobSha256": "f3608d1cdffed3bbcabf8ef3db4ae0fc7f21f9f3907601963adc0ac4d1ad30be"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherNativeWriter.cs",
+          "sha256": "955f5c7afd85394c7798e5831a3c4f5ee44d2a73bb22356badc7501b40c3d9aa",
+          "gitBlobSha256": "955f5c7afd85394c7798e5831a3c4f5ee44d2a73bb22356badc7501b40c3d9aa"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherParagraphStyle.cs",
+          "sha256": "0fbf774bb9537a9c4bbaf37b1e4aabe9bc292266066e57d84121ecc2110a6b83",
+          "gitBlobSha256": "a386d5a221da23f01e903024de1cfc3da7ce1f80621818ee4fd8e9ec584f39a5"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillCharacterStyleWriter.Extended.cs",
+          "sha256": "c59c1c7945f849eac561098fab3363b111cc8031451676a40c24f40a8fadbdfb",
+          "gitBlobSha256": "c59c1c7945f849eac561098fab3363b111cc8031451676a40c24f40a8fadbdfb"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillCharacterStyleWriter.cs",
+          "sha256": "3c8d2e20452ca8b2b73337db9eb7534ea1b5a3e0a821a0bbd6f7ebace14cc666",
+          "gitBlobSha256": "3c8d2e20452ca8b2b73337db9eb7534ea1b5a3e0a821a0bbd6f7ebace14cc666"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillOplWriter.cs",
+          "sha256": "1b52ea703ed8164103a4b1ac86c74d7d4cd6eedc731ae57e2d08aa0920ba4715",
+          "gitBlobSha256": "1b52ea703ed8164103a4b1ac86c74d7d4cd6eedc731ae57e2d08aa0920ba4715"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillParagraphStyleWriter.cs",
+          "sha256": "170907de75976ba5079a29b1a07b872193ff4446b775f5bc0a85894c4964343b",
+          "gitBlobSha256": "170907de75976ba5079a29b1a07b872193ff4446b775f5bc0a85894c4964343b"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Topology.cs",
+          "sha256": "d26dd9de7bb617dc5f600687b14d5a7452d26314c126e238060a1a50ff7f68f2",
+          "gitBlobSha256": "d26dd9de7bb617dc5f600687b14d5a7452d26314c126e238060a1a50ff7f68f2"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.cs",
+          "sha256": "12c6b72ed76b496d7bc23ce9a664260963591732836a0fc5a5ad6b925beba2c4",
+          "gitBlobSha256": "12c6b72ed76b496d7bc23ce9a664260963591732836a0fc5a5ad6b925beba2c4"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillStyleReader.Paragraphs.cs",
+          "sha256": "3449afac914604b8eac3cea255e3c63ae29fa2f1e1481d6c09c68bc5294b08fd",
+          "gitBlobSha256": "1e1e1e6cd656fe2e620314d05782b0796377c8c29bdec2a74865a34e5397807e"
+        }
+      ],
+      "sourceHashScope": "sha256 identifies qualified worktree bytes; gitBlobSha256 identifies Git-normalized bytes at codecCommit.",
+      "producer": {
+        "name": "Microsoft Publisher",
+        "version": "16.0",
+        "executableVersion": "16.0.20527.20088",
+        "automationSecurity": 3
+      },
+      "qualifiedOperations": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "publicApi": [
+        "ReplaceStoryParagraphs",
+        "ToPubBytesResult",
+        "SaveAsync"
+      ],
+      "controls": [
+        {
+          "case": "TextParagraphAttributes",
+          "profiles": 14,
+          "paragraphsPerProfile": 2,
+          "physicalPages": 4,
+          "contract": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextParagraphAttributes/native-textparagraphattributes.json",
+            "sha256": "90629aa3787567bcd756e1115ee6f4433308f0370a342e729f415d89de7f7f3a"
+          },
+          "files": [
+            {
+              "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextParagraphAttributes/native-textparagraphattributes.pub",
+              "sha256": "ceca829da6caa699403af4bddccae78ca4149067d54ca1714384ed88a82079b3"
+            },
+            {
+              "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextParagraphAttributes/native-textparagraphattributes.pdf",
+              "sha256": "04a6b25cc4337a43bfdb96126371319fe4313c06b475e10026bcc49fccbde8f3"
+            }
+          ],
+          "producer": {
+            "name": "Microsoft Publisher",
+            "version": "16.0",
+            "executableVersion": "16.0.20527.20088",
+            "powershell": "7.6.9",
+            "culture": "pl-PL",
+            "textFont": {
+              "family": "Arial",
+              "file": "arial.ttf",
+              "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+            },
+            "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+            "automationSecurity": 3
+          }
+        },
+        {
+          "case": "TextAlignedTabs",
+          "profiles": 3,
+          "paragraphsPerProfile": 2,
+          "physicalPages": 1,
+          "contract": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextAlignedTabs/native-textalignedtabs.json",
+            "sha256": "ec2d119aa750b1b23e83e50e52065d7e9ed7c47d3c9903052c3c2f412859dd8a"
+          },
+          "files": [
+            {
+              "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextAlignedTabs/native-textalignedtabs.pub",
+              "sha256": "6e98cad32b07b02cce5bf9a60f7c0d8159a1fb37fdf8d9a1d03ef0b302cc34f2"
+            },
+            {
+              "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextAlignedTabs/native-textalignedtabs.pdf",
+              "sha256": "ce2027517d76bc15e99145c689440d6e66e0718af771eab535b3eb8b876b4e63"
+            }
+          ],
+          "producer": {
+            "name": "Microsoft Publisher",
+            "version": "16.0",
+            "executableVersion": "16.0.20527.20088",
+            "powershell": "7.6.9",
+            "culture": "pl-PL",
+            "textFont": {
+              "family": "Arial",
+              "file": "arial.ttf",
+              "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+            },
+            "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+            "automationSecurity": 3
+          }
+        }
+      ],
+      "admittedAttributes": [
+        "Left/center/right/justified paragraph alignment",
+        "Spacing before/after and left/right margins",
+        "Canonical first-line or hanging indentation",
+        "Explicit absolute line height or line-height factor",
+        "Ordinary explicit left-tab positions and clearing",
+        "Native whole-tabbed-line alignment for center/right paragraphs"
+      ],
+      "nativeFields": {
+        "alignment": "04 UInt16: 0 left, 2 center, 1 right, 6 justify; these differ from the automation center/right values.",
+        "firstLine": "0C signed EMU",
+        "left": "0D signed EMU",
+        "right": "0E signed EMU",
+        "before": "12 unsigned EMU",
+        "after": "13 unsigned EMU",
+        "lineSpacing": "34 UInt32:exact points*8*12700+1, multiple*96*12700+2; the admitted packed flag bits and exact decoded units are checked.",
+        "tabs": "32/82 envelope:27/1A count,28/8A array; ordinal entries/88 with0/20 signed EMU position. The reader also retains the older repeated-zero profile."
+      },
+      "tabSemantics": {
+        "origin": "Minus projected paragraph left margin.",
+        "defaultIntervalPoints": 36,
+        "paragraphAlignment": "Resolved Center/Right sets the existing Core AlignWithParagraph option, including paragraphs with no current tab characters. Left/Justify uses false.",
+        "preservation": "The semantic alignment flag participates in change detection, but does not rewrite the native tab array during alignment-only changes.",
+        "sourceRegression": "An independently authored two-tab array uses entry IDs 0 and 1; the old reader rejected the second entry.",
+        "projectionRegression": "A centered indented tabbed line used the fixed managed grid. Carrying the existing alignment option corrects the large displacement; exact font metrics remain separate."
+      },
+      "verifiedInEveryCase": [
+        "Independent STSH style-pair/direct FDPP decoding retains requested native-resaved paragraph values and complete text, including overflow.",
+        "Body and CR character attributes remain intact; candidate character OPLs and unrelated paragraph tokens retain source bytes.",
+        "Unrelated Quill payloads, FONT/PL resources, logical streams and compound metadata remain unchanged; the stale thumbnail is removed.",
+        "Native initial/resaved all-page pixels and text/font/size/color/flags spans match; frame identities, links and geometry remain fixed.",
+        "Source bytes remain unchanged and default strict loss policy blocks unassessed edits. Explicit Allow does not bypass unsupported preparation."
+      ],
+      "nativePhysicalPageStates": 62,
+      "cases": [
+        {
+          "name": "combined",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "candidateSha256": "44f5492acb8bd7ba7e53f4ce707165759c0fc722e6da5a28c24d7817dcab2167",
+          "candidateBytes": 37376,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphCount": 1,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Center",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1.5,
+                "marginsPoints": {
+                  "Left": 36,
+                  "Top": 6,
+                  "Right": 18,
+                  "Bottom": 9
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 18,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [
+                  72,
+                  144
+                ],
+                "tabOriginPoints": -36,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": true
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "854cfe47f9ae7945168f214bdf937cd7a247bd7ffc0e1dcd8881aabbc35590f3"
+            }
+          ],
+          "paragraphPagesBefore": 1,
+          "paragraphPagesAfter": 1,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "2553aa0467bfe5748cd77c2dd62cc76d32d18a0f180561fc63d1e75ff01d517d"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "44f5492acb8bd7ba7e53f4ce707165759c0fc722e6da5a28c24d7817dcab2167"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "1184b3e5aaa8d6e0f86ec621cf3dbd1c0026346a47a22b868799eca946a01625"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "c3df01ba7d9b7705495661df1b0eb8067290482601da113d41aa06aabf4e5eb1"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "d010d822802c3b9328fc89ffb240a0dea123fc8f5350999417201522259de548"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "81e9319f54a1145af3cacdcc7ec795318cde99f38572dd8e453b6a85d7d2f811"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "e2472cac7533b100a4d123fd494bb04caa45348bf823f63c05e0241bce7df312"
+            }
+          ]
+        },
+        {
+          "name": "clear-tabs",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextParagraphAttributes/native-textparagraphattributes.pub",
+            "sha256": "ceca829da6caa699403af4bddccae78ca4149067d54ca1714384ed88a82079b3"
+          },
+          "candidateSha256": "cad5622a848ff7d0ace348fee5d9b632fdd7acea8efb4fcce9ff821558941829",
+          "candidateBytes": 53248,
+          "editRecipe": {
+            "storyId": 14,
+            "paragraphCount": 2,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Left",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 0,
+                  "Right": 0,
+                  "Bottom": 0
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": false
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "5fe74571e68ab6b34f473bb636806141f8cc4bf8d500e53188af6a95c65d195a"
+            },
+            {
+              "id": 3,
+              "sha256": "24947aa309d865255881852b2e7436f75c101a75d590de07713e5d8e8118a27c"
+            },
+            {
+              "id": 4,
+              "sha256": "7497aa5930a0cb06b4fabff0abfaa853a95fe2f0bce1e87a5b21f42c90b05077"
+            },
+            {
+              "id": 5,
+              "sha256": "0e2449fcd791bdd09b0a7140ead1395a8c4b855f1ce5c41bb2947d3457b4ecdc"
+            },
+            {
+              "id": 6,
+              "sha256": "a04af9411e3d301283141206d51ae82709fc7c80d8d02cae8b6089b7bbc09fe6"
+            },
+            {
+              "id": 7,
+              "sha256": "bb58751675aef28c5b6ca4635c19d9de4391ed8669c664b12501712282eecb1f"
+            },
+            {
+              "id": 8,
+              "sha256": "e621d2b1796bdfd7f6e44a71ad285beb2bd0411d1f36e030bd03e529274361c0"
+            },
+            {
+              "id": 9,
+              "sha256": "f5a9988d9f6ee4590c7b879b80d83aaf4efb9023e3a076edb66e0badf8226a4c"
+            },
+            {
+              "id": 10,
+              "sha256": "763eee0fcd1ea6c2c48b35e3e72b8831491b9e26991e19e5200abaa56a0533f5"
+            },
+            {
+              "id": 11,
+              "sha256": "0d6ed1c642fb6979a8a61ef473f70668eedf2f986e1d71045d45bb26bab2a656"
+            },
+            {
+              "id": 12,
+              "sha256": "e3b6ec7eeec3c54ad9563f0bd05cb6c6470e66af591a7e5bd1d6234f2465b63b"
+            },
+            {
+              "id": 13,
+              "sha256": "41cd17b977d5b7dbc4ef3257261307ef75bdc8d076b79b87c6082495f0b26990"
+            },
+            {
+              "id": 14,
+              "sha256": "b35c44693a44ffaff22b4f6eb77807728747965abbe63e7348882a97f1b0a780"
+            },
+            {
+              "id": 15,
+              "sha256": "cab0c9a83943df5d22f801d20eca0e6c3e698078fa0759945004befdb6253200"
+            }
+          ],
+          "paragraphPagesBefore": 2,
+          "paragraphPagesAfter": 2,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "7d6eb722b8f4c3a2b092f644b94a5b9fc9ed830b27bbb3b97c69434b69faa26e"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "2efb0c0edeb753f3772b33b8cdbbde1ad11613f9af2ca0c0d5b322b50b5d3788"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "e5ab199b014613c27f944ede8cf47288db54ced43e7e976d219fa424453d591d"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "3343870fc4d092d7f59ab35b8afc98cf33fb80e88af81a63fe68b7f774b10d9e"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "cad5622a848ff7d0ace348fee5d9b632fdd7acea8efb4fcce9ff821558941829"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "4f4f343cbf54198b0ccdd0262b3cce576d34a0a0faedc8d8140cc224cd594e49"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "28df12efa66ee588c59ff397f7c1009699139fdbe2fd2f324280b3cd0b79414f"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "d5976e1359fceacab2d9330ab246c459be6b51da3581b1e84ab87fbb6fced0e2"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "0eefa95f767c671a730cd7879a84bf6029fa2e19514278e1f22c6f6db2d6d04e"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "a1bfb898fdc97136918a3dd318ee792960726b84dcaa5bd84c748d9a214fceae"
+            }
+          ]
+        },
+        {
+          "name": "chained-reset",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextParagraphAttributes/native-textparagraphattributes.pub",
+            "sha256": "ceca829da6caa699403af4bddccae78ca4149067d54ca1714384ed88a82079b3"
+          },
+          "candidateSha256": "60751fc5bae12a4a8639103384262dcc7b0264e7c5ca214d3ccf4c2da128cf37",
+          "candidateBytes": 53248,
+          "editRecipe": {
+            "storyId": 15,
+            "paragraphCount": 2,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Left",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 0,
+                  "Right": 0,
+                  "Bottom": 0
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": false
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "5fe74571e68ab6b34f473bb636806141f8cc4bf8d500e53188af6a95c65d195a"
+            },
+            {
+              "id": 3,
+              "sha256": "24947aa309d865255881852b2e7436f75c101a75d590de07713e5d8e8118a27c"
+            },
+            {
+              "id": 4,
+              "sha256": "7497aa5930a0cb06b4fabff0abfaa853a95fe2f0bce1e87a5b21f42c90b05077"
+            },
+            {
+              "id": 5,
+              "sha256": "0e2449fcd791bdd09b0a7140ead1395a8c4b855f1ce5c41bb2947d3457b4ecdc"
+            },
+            {
+              "id": 6,
+              "sha256": "a04af9411e3d301283141206d51ae82709fc7c80d8d02cae8b6089b7bbc09fe6"
+            },
+            {
+              "id": 7,
+              "sha256": "bb58751675aef28c5b6ca4635c19d9de4391ed8669c664b12501712282eecb1f"
+            },
+            {
+              "id": 8,
+              "sha256": "e621d2b1796bdfd7f6e44a71ad285beb2bd0411d1f36e030bd03e529274361c0"
+            },
+            {
+              "id": 9,
+              "sha256": "f5a9988d9f6ee4590c7b879b80d83aaf4efb9023e3a076edb66e0badf8226a4c"
+            },
+            {
+              "id": 10,
+              "sha256": "763eee0fcd1ea6c2c48b35e3e72b8831491b9e26991e19e5200abaa56a0533f5"
+            },
+            {
+              "id": 11,
+              "sha256": "0d6ed1c642fb6979a8a61ef473f70668eedf2f986e1d71045d45bb26bab2a656"
+            },
+            {
+              "id": 12,
+              "sha256": "e3b6ec7eeec3c54ad9563f0bd05cb6c6470e66af591a7e5bd1d6234f2465b63b"
+            },
+            {
+              "id": 13,
+              "sha256": "41cd17b977d5b7dbc4ef3257261307ef75bdc8d076b79b87c6082495f0b26990"
+            },
+            {
+              "id": 14,
+              "sha256": "b35c44693a44ffaff22b4f6eb77807728747965abbe63e7348882a97f1b0a780"
+            },
+            {
+              "id": 15,
+              "sha256": "cab0c9a83943df5d22f801d20eca0e6c3e698078fa0759945004befdb6253200"
+            }
+          ],
+          "paragraphPagesBefore": 2,
+          "paragraphPagesAfter": 2,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "7d6eb722b8f4c3a2b092f644b94a5b9fc9ed830b27bbb3b97c69434b69faa26e"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "2efb0c0edeb753f3772b33b8cdbbde1ad11613f9af2ca0c0d5b322b50b5d3788"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "e5ab199b014613c27f944ede8cf47288db54ced43e7e976d219fa424453d591d"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "de60b6c9a17bfc7a78b1c3251c87606a09cfb203a0c1d9121499d29d3d0f4855"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "60751fc5bae12a4a8639103384262dcc7b0264e7c5ca214d3ccf4c2da128cf37"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "95e2e0d9cdb1ef1ec03f683db28d0cd8f12602b7c806243b956112a0e03dad3b"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "0003d4e84186b8f05003b287c2e931ed1297fa02ff7b47cd504db348b1cc9751"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "6113c6d5705ffd93b2267c4c71d5cc3e91bb26867f13271df02affed735e723e"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "949923a3076ef181ca2579d141442a589fa9167d15ecbb59eaa4c56bed34b11a"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "714a1f0d575a110ab4e5a0693de560d3e4976a5d08830b87575ca508cf918ee2"
+            }
+          ]
+        },
+        {
+          "name": "topology",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "candidateSha256": "e95a5539f65ded47cf2c5dde45c16a01de26dbf8f2199ad456e153c135e6a90f",
+          "candidateBytes": 37888,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphCount": 4,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Center",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1.19,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 0,
+                  "Right": 0,
+                  "Bottom": 6
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": true
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "f3cf1dc1a745d37c667950fd2fc1a7a885d258edcea07003149a5a274b4a37ac"
+            }
+          ],
+          "paragraphPagesBefore": 1,
+          "paragraphPagesAfter": 1,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "a8b6975cbab4f85e0a8475f8da12ed6a5c3e6caf567d643ce8b1e9794b6b5c61"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "e95a5539f65ded47cf2c5dde45c16a01de26dbf8f2199ad456e153c135e6a90f"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "b95d7859d75da4a55b0ae5e2cedb057ee0bab140cb09b6db9dfa1599fcc11608"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "4e5cf0673c4c4a5b24b9b15c161edc3c4b82a9784a670c6f2c487ca3f25502e1"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "69073e1638215fbc7432d1c78b910cdd0d6ad6e149367998be9febea438a7c40"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "7f90b0f634b448195e98abcc3107fb003639e08a9115d97b42f376a34ebee528"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "04869d7864a2159e37776efd307a2fc9f236196a0f672c249f6e0cd96e81c9d9"
+            }
+          ]
+        },
+        {
+          "name": "linked",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Newsletter/native-newsletter.pub",
+            "sha256": "def04c4f03de132d9b0f652e3acf63ce7340e3057e2e70738ae255a89e6a2c83"
+          },
+          "candidateSha256": "49dbe1273d1a8139380a014ba4a4e7020918549899e1778d12ce1e386dad7e20",
+          "candidateBytes": 44032,
+          "editRecipe": {
+            "storyId": 3,
+            "paragraphCount": 10,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Center",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1.5,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 0,
+                  "Right": 0,
+                  "Bottom": 6
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": true
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "f0b67d3cb48b81b786b73eb0a267c059b0c7a4565b3b78f610b9c7902fbff465"
+            },
+            {
+              "id": 3,
+              "sha256": "838921afddc8543b331bb303b90976450f76a1a1a1a27e347850b7d826eb2206"
+            }
+          ],
+          "paragraphPagesBefore": 1,
+          "paragraphPagesAfter": 1,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "76419b14aa85d99f393279cb64be4c73bf7abf11728c6341da3581ed1072a82d"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "0a9360d11a71e58e0dfc12a91e78e0b52f61fdefd0d47261453d986865cd6167"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "49dbe1273d1a8139380a014ba4a4e7020918549899e1778d12ce1e386dad7e20"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "4e9bc1f045752b2a42e1e80a5ea2f25056ebed489610ea0ad96c4d118a73ed91"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "522a0ab691434e1a9ebd139e1d8a9819fecbcf740b1eca5f8dd72ef24a11de87"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "1fd9f6c29424807e259ea09db69bb81a6aa6c538d4e7b30bc26a42788a65126c"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "5fabda87538f75ebae3fe513b8806714825c56b5fecd445a3edc7379a80a9cce"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "1f7713cdc5369d0692324f08252c3756de008d7dcd3c0442a46b3c13db07722c"
+            }
+          ]
+        },
+        {
+          "name": "center",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "candidateSha256": "fc9505ffe60e5227492a53d469010abf21afbba6a8e11dd142c9facb5ef6df4f",
+          "candidateBytes": 37376,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphCount": 1,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Center",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1.19,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 0,
+                  "Right": 0,
+                  "Bottom": 6
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": true
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "854cfe47f9ae7945168f214bdf937cd7a247bd7ffc0e1dcd8881aabbc35590f3"
+            }
+          ],
+          "paragraphPagesBefore": 1,
+          "paragraphPagesAfter": 1,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "579a558532e65bbeb4418efc1be4f7819baba35fc174a73684e910bcc1594b07"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "fc9505ffe60e5227492a53d469010abf21afbba6a8e11dd142c9facb5ef6df4f"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "2399bae2ac34ee159ed5fc78386a6bc070464c00d2cf73667caa829d34f83a57"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "f78b3c4b9cbd438801daa41ae9dc618e0281f2f47eb3ba59544f999697dfcf32"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "3a5cd07c7f2aa405756bfbd12afbfd191d35aed34af527df981ed458f7a510aa"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "f8117177e2ec226676665ef1b91f3acfa4cd2b978d6b48cc96cfd52ed4ae7dc0"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "509eb91cfebf40a98a4fcf17bbc1f1e332edb967524b55d719189a1cd04bf0e0"
+            }
+          ]
+        },
+        {
+          "name": "right",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "candidateSha256": "b1f6abcdfb35ca46368b6edab4a54400f2562ca0487bc6f48c96e48f1ff2575b",
+          "candidateBytes": 37376,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphCount": 1,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Right",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1.19,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 0,
+                  "Right": 0,
+                  "Bottom": 6
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": true
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "854cfe47f9ae7945168f214bdf937cd7a247bd7ffc0e1dcd8881aabbc35590f3"
+            }
+          ],
+          "paragraphPagesBefore": 1,
+          "paragraphPagesAfter": 1,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "cb84ae0da316323743f0603d57fa44e5f23ccb2cec69ea1a52daf893d10acd3e"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "b1f6abcdfb35ca46368b6edab4a54400f2562ca0487bc6f48c96e48f1ff2575b"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "d9bf31f373dad28fa78f64b12f83e3e8ee433c1c34a8aa3ace338ba9fe4e8325"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "f49041b40ce41d2acbfd6db8b1e4d0ff872ab166b4a68e24b4d974834e8bbced"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "4a079e23efdf957ff893abb8cac98534393c8269c5fafb1a7b96fc470926ce0c"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "07efb689aeee7eaa5d20461eb21fa1d4713649ffdc687f8f1ae5ed931d8a42dc"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "d90b43cb436db567b62bff0cc8db53033926c307aa603984c988c59bf6f8396b"
+            }
+          ]
+        },
+        {
+          "name": "justify",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "candidateSha256": "7103c317f243bbaf2003b64f4933e3fb90030b308bed315faee7f82bd9ca18b4",
+          "candidateBytes": 37376,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphCount": 1,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Justify",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1.19,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 0,
+                  "Right": 0,
+                  "Bottom": 6
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": false
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "854cfe47f9ae7945168f214bdf937cd7a247bd7ffc0e1dcd8881aabbc35590f3"
+            }
+          ],
+          "paragraphPagesBefore": 1,
+          "paragraphPagesAfter": 1,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "334bd4fd0ace48bba60ef0328df88aab9dd13e29d200649377bdd00f71d037d9"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "7103c317f243bbaf2003b64f4933e3fb90030b308bed315faee7f82bd9ca18b4"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "38e5bf771e42cf440f7c53bb484d06b119c0dd6db194d8ff891b50586f705a4b"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "2bcb733ec7897c8c267404043cd2b86bb32f20a9c0a506bd52b1aedf56020ac7"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "0c79e7d74fbf9c8a0ff7fabcf2237a0767b50fc1bb569f56270ff28dcc316bcc"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "cf0de999c846fd51eb838086929a12400c93d9fd20a48166e8476300356cdf63"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "d44343e57785c0e76edb258b198400dff3acf4841b7a312b3b6026d645a60ce9"
+            }
+          ]
+        },
+        {
+          "name": "spacing",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "candidateSha256": "f1b81d238fe4d6d8a3d6ba803af11a1320f4eb4edf2cd6a35e37aece665e1666",
+          "candidateBytes": 37376,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphCount": 1,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Left",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1.19,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 6,
+                  "Right": 0,
+                  "Bottom": 9
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": false
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "854cfe47f9ae7945168f214bdf937cd7a247bd7ffc0e1dcd8881aabbc35590f3"
+            }
+          ],
+          "paragraphPagesBefore": 1,
+          "paragraphPagesAfter": 1,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "9d873b6ec7c164557e0203e982f1e78797f29e7e2ae7499bbf38c6fa651d3ace"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "f1b81d238fe4d6d8a3d6ba803af11a1320f4eb4edf2cd6a35e37aece665e1666"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "3c45b8e6cd2e815bc71590879546f230a77e5a540a4cb81ea0aff04e9b8dc6e2"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "e39bc9e51553e626c6793311613cf5d3a04d7f54bdbe2ef7dd5035074385783b"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "21c5720ad3d526f4e87918d1db5616f65bd28da1e4e207300ccfd3aa2f8e42de"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "3e2d64cd537372b9a3ac26d301eee41f058e603f7bd08f2b0762f93912d679f8"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "7120516d0081f0c9d0bd47b1c2228443eb2ab153bc7ee849a62a9fa2af427c2c"
+            }
+          ]
+        },
+        {
+          "name": "insets",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "candidateSha256": "c9a33f73503f329d48ffe74f86e50a40268549fa67d91538627d31c8e66fa17b",
+          "candidateBytes": 37376,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphCount": 1,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Left",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1.19,
+                "marginsPoints": {
+                  "Left": 36,
+                  "Top": 0,
+                  "Right": 24,
+                  "Bottom": 6
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": -36,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": false
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "854cfe47f9ae7945168f214bdf937cd7a247bd7ffc0e1dcd8881aabbc35590f3"
+            }
+          ],
+          "paragraphPagesBefore": 1,
+          "paragraphPagesAfter": 1,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "6eab8c00979338380936289bab742ff39acbb0d1d77f17b8db946bbe31a84ee6"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "c9a33f73503f329d48ffe74f86e50a40268549fa67d91538627d31c8e66fa17b"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "23220b840721fd56b7c66faf1233c98af66f1416afb22f3a6874e78b216f1f14"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "6664a708e548aeef44db78e38ea50a0afa888b91583eac39b706903449f9555f"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "ee670141b377422629826f62a47f176e72e1e8da8bbc6c644ba8890b08e17dc6"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "54c84a8ba186df9579e8b4f430acb71073193e587e6b9e08da07c5ac14b08f5f"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "eb3976a01d52350d3e7d2513898ab3f38ce5b599b9a6e68ecca21ad45d8701b0"
+            }
+          ]
+        },
+        {
+          "name": "first",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "candidateSha256": "c68c045b64bdc6a5299bbbcd0e9f71973157f598c9d7690c1389f8ee6f2e557e",
+          "candidateBytes": 37376,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphCount": 1,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Left",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1.19,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 0,
+                  "Right": 0,
+                  "Bottom": 6
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 18,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": false
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "854cfe47f9ae7945168f214bdf937cd7a247bd7ffc0e1dcd8881aabbc35590f3"
+            }
+          ],
+          "paragraphPagesBefore": 1,
+          "paragraphPagesAfter": 1,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "34ae268ee9b2742c3590ae80d1928c33e1ff14ada8b026ab9d0f3334cc9c3f7f"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "c68c045b64bdc6a5299bbbcd0e9f71973157f598c9d7690c1389f8ee6f2e557e"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "23c4771838774911a9ed4a32d33f9c3c23d98f771a635b377cef1a7aea0f6df2"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "2aff802502ea02a7b0f2a75786c471e34b7a6810d9fa30f136071bb4984cb164"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "94cde749eafdc166992aa9145757fb4fd6677d02073ebe4aa5b10474b4b40fc7"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "9c7ec265f77619b2dac96503110aa5a998fdc4c01cc49968d2bebf22b01f6c38"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "1a0c1e57a8edb436998f90b82f34c385db79ed401885ec51b821984c6f69729c"
+            }
+          ]
+        },
+        {
+          "name": "hanging",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "candidateSha256": "542988e1d85ec7cfbaaeeb063d8a40e923c7a0170b6ec36190fb355c303428e0",
+          "candidateBytes": 37376,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphCount": 1,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Left",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1.19,
+                "marginsPoints": {
+                  "Left": 18,
+                  "Top": 0,
+                  "Right": 0,
+                  "Bottom": 6
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 18
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": -18,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": false
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "854cfe47f9ae7945168f214bdf937cd7a247bd7ffc0e1dcd8881aabbc35590f3"
+            }
+          ],
+          "paragraphPagesBefore": 1,
+          "paragraphPagesAfter": 1,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "34ae268ee9b2742c3590ae80d1928c33e1ff14ada8b026ab9d0f3334cc9c3f7f"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "542988e1d85ec7cfbaaeeb063d8a40e923c7a0170b6ec36190fb355c303428e0"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "c27dde8fe2662512c98fc1da060e7125216392b84afbaae41512a0884b2c6335"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "5e2113a565f404f6cf55fb0e372a180507454ca243ec3f5bd51cf46074762352"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "e09d12c3c4291bcf76f2e26f4fbe7a91fc4db4b181f275b5366703051761fce0"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "f9688c270655a6398cdcf5674a728781dcd86f805e8b75f47648bec4074d7a5b"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "600f72fb2a86456aee7836a41ea302d3de54f25cc93b66d8413159f3a9828845"
+            }
+          ]
+        },
+        {
+          "name": "exact",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "candidateSha256": "5342cc5d522f8c417ba6e9c001b27520197e824b9771628495ef72294842f41b",
+          "candidateBytes": 37376,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphCount": 1,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Left",
+                "lineHeightPoints": 18,
+                "lineHeightFactor": null,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 0,
+                  "Right": 0,
+                  "Bottom": 6
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": false
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "854cfe47f9ae7945168f214bdf937cd7a247bd7ffc0e1dcd8881aabbc35590f3"
+            }
+          ],
+          "paragraphPagesBefore": 1,
+          "paragraphPagesAfter": 1,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "043e4941e16406cc9fff81aa3bca49c025f28e6443679a60ec0f11c242c61b7f"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "5342cc5d522f8c417ba6e9c001b27520197e824b9771628495ef72294842f41b"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "05a7addb0167e5077e9de1e72d72f13aa621333591316efa9a629a99cf0e3acb"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "b13ec4476f56d461f81e688233fe9e4f3bc7d0da344f9ea68a611d3bc261146a"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "1bed725aeb72c99f7a3e46c0b7afc87df61f009bf73d6f63dffcaa79c35c1964"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "6462f5b8665e82771239457e715c47d56aa8e6ba0a308a681df8bea792661df4"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "ffc5a03269836dc00d8c434f2e6c29729ce755375c99311d387f93e8ded482f1"
+            }
+          ]
+        },
+        {
+          "name": "factor",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "candidateSha256": "209a35cbba7e05624ed4b4eb9a6e6e3323d9ded7bcc802a99c7afbf396022166",
+          "candidateBytes": 37376,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphCount": 1,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Left",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1.5,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 0,
+                  "Right": 0,
+                  "Bottom": 6
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": false
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "854cfe47f9ae7945168f214bdf937cd7a247bd7ffc0e1dcd8881aabbc35590f3"
+            }
+          ],
+          "paragraphPagesBefore": 1,
+          "paragraphPagesAfter": 1,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "334bd4fd0ace48bba60ef0328df88aab9dd13e29d200649377bdd00f71d037d9"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "209a35cbba7e05624ed4b4eb9a6e6e3323d9ded7bcc802a99c7afbf396022166"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "0c48f380e48fc46cc574d182436bd73e103b5a52173d8435a4482ee7213c5d5a"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "a7bdcd3cc5430b4583722f1e92b91f63058e8818152b914a989ce32b6bd5e95d"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "14d9bb45769daca592f2443b05d81a6ef5c0c7dfcbaac8e117b9ac0f8c937a06"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "eb9eb6a6500ddbeee59a16df6a5026730ea7cce0374e733aec786c66fb7b18f5"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "372aa9ed79252b37689dd87552c4d654c676bdeb6460c3ba24d0444fea102026"
+            }
+          ]
+        },
+        {
+          "name": "single",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextParagraphAttributes/native-textparagraphattributes.pub",
+            "sha256": "ceca829da6caa699403af4bddccae78ca4149067d54ca1714384ed88a82079b3"
+          },
+          "candidateSha256": "5386c7d1216e765455da64255b044980a45f227fed1121eb74e27bc9dd7c3f96",
+          "candidateBytes": 53248,
+          "editRecipe": {
+            "storyId": 10,
+            "paragraphCount": 2,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Left",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 0,
+                  "Right": 0,
+                  "Bottom": 0
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": false
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "5fe74571e68ab6b34f473bb636806141f8cc4bf8d500e53188af6a95c65d195a"
+            },
+            {
+              "id": 3,
+              "sha256": "24947aa309d865255881852b2e7436f75c101a75d590de07713e5d8e8118a27c"
+            },
+            {
+              "id": 4,
+              "sha256": "7497aa5930a0cb06b4fabff0abfaa853a95fe2f0bce1e87a5b21f42c90b05077"
+            },
+            {
+              "id": 5,
+              "sha256": "0e2449fcd791bdd09b0a7140ead1395a8c4b855f1ce5c41bb2947d3457b4ecdc"
+            },
+            {
+              "id": 6,
+              "sha256": "a04af9411e3d301283141206d51ae82709fc7c80d8d02cae8b6089b7bbc09fe6"
+            },
+            {
+              "id": 7,
+              "sha256": "bb58751675aef28c5b6ca4635c19d9de4391ed8669c664b12501712282eecb1f"
+            },
+            {
+              "id": 8,
+              "sha256": "e621d2b1796bdfd7f6e44a71ad285beb2bd0411d1f36e030bd03e529274361c0"
+            },
+            {
+              "id": 9,
+              "sha256": "f5a9988d9f6ee4590c7b879b80d83aaf4efb9023e3a076edb66e0badf8226a4c"
+            },
+            {
+              "id": 10,
+              "sha256": "763eee0fcd1ea6c2c48b35e3e72b8831491b9e26991e19e5200abaa56a0533f5"
+            },
+            {
+              "id": 11,
+              "sha256": "0d6ed1c642fb6979a8a61ef473f70668eedf2f986e1d71045d45bb26bab2a656"
+            },
+            {
+              "id": 12,
+              "sha256": "e3b6ec7eeec3c54ad9563f0bd05cb6c6470e66af591a7e5bd1d6234f2465b63b"
+            },
+            {
+              "id": 13,
+              "sha256": "41cd17b977d5b7dbc4ef3257261307ef75bdc8d076b79b87c6082495f0b26990"
+            },
+            {
+              "id": 14,
+              "sha256": "b35c44693a44ffaff22b4f6eb77807728747965abbe63e7348882a97f1b0a780"
+            },
+            {
+              "id": 15,
+              "sha256": "cab0c9a83943df5d22f801d20eca0e6c3e698078fa0759945004befdb6253200"
+            }
+          ],
+          "paragraphPagesBefore": 2,
+          "paragraphPagesAfter": 2,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "7d6eb722b8f4c3a2b092f644b94a5b9fc9ed830b27bbb3b97c69434b69faa26e"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "2efb0c0edeb753f3772b33b8cdbbde1ad11613f9af2ca0c0d5b322b50b5d3788"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "9776da7c56e9a61ada5dc1dc266ba306ec0d9fc7e53b9890bb9e15cca0c47e97"
+            },
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "b658d4954440b9c7fbbb6ee0efbae8515e1aecf82dfb5a5728c176cfa21097a8"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "5386c7d1216e765455da64255b044980a45f227fed1121eb74e27bc9dd7c3f96"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "6cfafbb71ca7bd2040635d102ac6c2e3303e901959c3654cd3a49921ffa19f06"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "ad61c6ed091893cde82fb8ae26fd78607acfdb658ecc84f8e0bbb8f7a831c7d5"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "243875d7f2903c97b9b4b51504059b5a53739d0d2002ba6d46a4ddb5dda52a24"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "acf8ee821921a3f3fad66fd6d2531b2b8c57da2dacc145ecaf583dae3967d6cc"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "002b1dc331c340a14b183bb53794dfeb1a7b33093d09c0fbebc3343c8ac3276f"
+            }
+          ]
+        },
+        {
+          "name": "tabs",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "candidateSha256": "b342868f9dd01247ab32e52ecbb1c1a877891553d815093119fb34bc636c240f",
+          "candidateBytes": 37376,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphCount": 1,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Left",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1.19,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 0,
+                  "Right": 0,
+                  "Bottom": 6
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [
+                  72,
+                  144
+                ],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": false
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "854cfe47f9ae7945168f214bdf937cd7a247bd7ffc0e1dcd8881aabbc35590f3"
+            }
+          ],
+          "paragraphPagesBefore": 1,
+          "paragraphPagesAfter": 1,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "334bd4fd0ace48bba60ef0328df88aab9dd13e29d200649377bdd00f71d037d9"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "b342868f9dd01247ab32e52ecbb1c1a877891553d815093119fb34bc636c240f"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "6239837fefedab8ce2ed303a5105605696a954eabe38f61859ee0b7e83fc8e30"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "1a42bfd3c646c2d09bd373a22af69fd147ef471697163cb30c0676d46f5d3405"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "de24d24a3dc237e551b575673ab56473389937e8a75402696c0bac25dbecd304"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "772c2d4bea7595dfeed0d18fa5b0efa57f19b18293230e4bd079e1029108468d"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "cc686663943af44bd3d0137e9303f33429b54f6e673a618cc56ea472dc2a89c9"
+            }
+          ]
+        },
+        {
+          "name": "per-paragraph",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextParagraphs/native-textparagraphs.pub",
+            "sha256": "8fcf3743fa67c16e68a56249374cfeba72aad69a2466c66a88ee3c51f29bb1b8"
+          },
+          "candidateSha256": "924fa7f49f14162219e35ce7407d555e6e5559caf7e12345050ff0fd10e96479",
+          "candidateBytes": 37376,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphCount": 3,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Center",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1.19,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 0,
+                  "Right": 0,
+                  "Bottom": 6
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": true
+              },
+              {
+                "alignment": "Left",
+                "lineHeightPoints": 18,
+                "lineHeightFactor": null,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 0,
+                  "Right": 0,
+                  "Bottom": 6
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": false
+              },
+              {
+                "alignment": "Left",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1.19,
+                "marginsPoints": {
+                  "Left": 18,
+                  "Top": 0,
+                  "Right": 0,
+                  "Bottom": 6
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 18
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": -18,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": false
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "cccc06e60015a8192127a7ced943b437e06c3f79cc09f382332058e72228501e"
+            }
+          ],
+          "paragraphPagesBefore": 1,
+          "paragraphPagesAfter": 1,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "7cca68fd1687847d86153f754b59559566bf78e4eea5f8a3780962a20036a377"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "924fa7f49f14162219e35ce7407d555e6e5559caf7e12345050ff0fd10e96479"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "a5055b0df76891cf1549e302bdadcb278c1c35d67fc135ae629626660a8f781e"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "0fd893b2bb15704e166683a9299f7c07a9b1a477347b705e2f66012f7d47561f"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "b33e818c21d9905b7d73b4d737b0e81fe02452b797c23a4323a1d642d5db124a"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "f62d994cc876d99e63b81269f2735ee30490a5e551ec17b2dcd7f016653b19c3"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "35b2f126857e20b9d210424bc7d7351b0fd06e0c6375b02f4a0462dda64c7fc4"
+            }
+          ]
+        },
+        {
+          "name": "allocation",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "candidateSha256": "bee98cd5c4059fa6a290fbc50480cd6a07a71786caacbf77d2b4b0ca42fe6d58",
+          "candidateBytes": 49664,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphCount": 240,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Left",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1.19,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 1,
+                  "Right": 0,
+                  "Bottom": 6
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": false
+              },
+              {
+                "alignment": "Left",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1.19,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 240,
+                  "Right": 0,
+                  "Bottom": 6
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": false
+              }
+            ],
+            "series": "For each of 240 paragraphs, set spacing before to its one-based ordinal in points; retain the other first-source-paragraph values."
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "63c7b96876ce11feb9c7d9a40cc3b1ad5168b1733500c5dc5a4b17a3aa2524f3"
+            }
+          ],
+          "paragraphPagesBefore": 1,
+          "paragraphPagesAfter": 8,
+          "directoryPagesAfter": 2,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "78aa6d5b24896bdb470abaf96705f80b54da5c8c0dbc98d0dc59e1e8873b586a"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "bee98cd5c4059fa6a290fbc50480cd6a07a71786caacbf77d2b4b0ca42fe6d58"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "74a9aa7b15dd4727a46c9769d6786bdab0392f57bfd9c06390fc615508d5e1bb"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "98d00f70a6e46b83fccf6b9fa15091af15124edeaf1d3d6e65809be35073a9ed"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "4e13c37ae9dbd76632aa87aa3ed5de2ee8880be2dbc0d35640dd65fee62e25e1"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "8a5f5c6c8df676df83ebaac36c88e5ba286333482da04fc5aacb6bfc630426cf"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "1608e03b45f1ab3ebc02c7d4d772a810d27784b7c802470ee73ee7c9ca68edc1"
+            }
+          ]
+        },
+        {
+          "name": "fractional-spacing",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "candidateSha256": "f8e41c52c7d46aee6181c0d83939b19eebfc7d8a74fe5f8b11a32a490cf20818",
+          "candidateBytes": 37376,
+          "editRecipe": {
+            "storyId": 2,
+            "paragraphCount": 1,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Left",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1.19,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 1.21,
+                  "Right": 0,
+                  "Bottom": 2.42
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": false
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "854cfe47f9ae7945168f214bdf937cd7a247bd7ffc0e1dcd8881aabbc35590f3"
+            }
+          ],
+          "paragraphPagesBefore": 1,
+          "paragraphPagesAfter": 1,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "7a1029282d7f3176e236fc585f999c62aa3670f1dc640a76e02a9509000844ca"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "f8e41c52c7d46aee6181c0d83939b19eebfc7d8a74fe5f8b11a32a490cf20818"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "ee87a421d21dc6a1deb7af4092a026c903657bd02b6e28106a631b363964f450"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "23653c436bf45d17c99521ea7e728bf203e30272bae8f4215d18f38cafc68c5d"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "12afe7895a95af06fe1316ae0ce837222e04e86cfd0d9475bc3c7b32f0170f72"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "27bc44ee5be42cb94011b96e93bbc058ea6d280ef912fc9bbafd080d79c6dcc8"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "80cafecc05e3c8806c10c11504af9c6ee1ab0e2fad40ba68bed423b6fe7490ec"
+            }
+          ]
+        },
+        {
+          "name": "aligned-center",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextAlignedTabs/native-textalignedtabs.pub",
+            "sha256": "6e98cad32b07b02cce5bf9a60f7c0d8159a1fb37fdf8d9a1d03ef0b302cc34f2"
+          },
+          "candidateSha256": "29cb608974a6b551f04f430237f4a4ec6242c8d8e74a57f89a995940d8c807f2",
+          "candidateBytes": 39936,
+          "editRecipe": {
+            "storyId": 3,
+            "paragraphCount": 2,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Center",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 0,
+                  "Right": 0,
+                  "Bottom": 12
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [
+                  72,
+                  144
+                ],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": true
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "c6de09dfc27cc152a15ff5b743f98b0e30801735ad524e3723c7e1ac883250e1"
+            },
+            {
+              "id": 3,
+              "sha256": "e18b4265ef775be7304c6a71677bfb6eb214cb9f66c4dbb40a79f29d53da7115"
+            },
+            {
+              "id": 4,
+              "sha256": "5f136fde45e2539bb83ebc3d892b0341b40817d2a8f5ab002464bd7bcff2db4b"
+            }
+          ],
+          "paragraphPagesBefore": 1,
+          "paragraphPagesAfter": 1,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "5941762890a5da070216b78f4ce260b9cfe7dc4548ea712691954f887ad1c454"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "29cb608974a6b551f04f430237f4a4ec6242c8d8e74a57f89a995940d8c807f2"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "a57e156dfe1fb2306d120eaa89900713e632801c41b5ae494206bce81886a4fd"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "412abab14cc72e2be2b8d9b83e31bded80f661681afc7fcf244fdf944527a437"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "1a331e5c5800ba8f7bb1853bf78c980db6457d940cd240cf588ba4f4e71fff61"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "803e25f8f161b60ca3888a84b8436cb27d947c4e20e0ae6fe80452a9112c6742"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "8d087ba98df0f69852d38fa02233d80049804a492e7789bf82fa9543ebc54edf"
+            }
+          ]
+        },
+        {
+          "name": "aligned-right",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextAlignedTabs/native-textalignedtabs.pub",
+            "sha256": "6e98cad32b07b02cce5bf9a60f7c0d8159a1fb37fdf8d9a1d03ef0b302cc34f2"
+          },
+          "candidateSha256": "f5a44ebccb1f5a224f8e34556befebc254f2e0b036790b9d4dadc937be89d586",
+          "candidateBytes": 39936,
+          "editRecipe": {
+            "storyId": 4,
+            "paragraphCount": 2,
+            "text": "Retain all source text; count changes repeat the first source paragraph.",
+            "paragraphProfiles": [
+              {
+                "alignment": "Right",
+                "lineHeightPoints": null,
+                "lineHeightFactor": 1,
+                "marginsPoints": {
+                  "Left": 0,
+                  "Top": 0,
+                  "Right": 0,
+                  "Bottom": 12
+                },
+                "indentPoints": {
+                  "FirstLineOffset": 0,
+                  "ContinuationLineOffset": 0
+                },
+                "tabPositionsPoints": [
+                  72,
+                  144
+                ],
+                "tabOriginPoints": 0,
+                "tabDefaultIntervalPoints": 36,
+                "tabsFollowParagraphAlignment": true
+              }
+            ]
+          },
+          "completeExpectedStoryUtf16": [
+            {
+              "id": 2,
+              "sha256": "c6de09dfc27cc152a15ff5b743f98b0e30801735ad524e3723c7e1ac883250e1"
+            },
+            {
+              "id": 3,
+              "sha256": "e18b4265ef775be7304c6a71677bfb6eb214cb9f66c4dbb40a79f29d53da7115"
+            },
+            {
+              "id": 4,
+              "sha256": "5f136fde45e2539bb83ebc3d892b0341b40817d2a8f5ab002464bd7bcff2db4b"
+            }
+          ],
+          "paragraphPagesBefore": 1,
+          "paragraphPagesAfter": 1,
+          "directoryPagesAfter": 1,
+          "nativePages": [
+            {
+              "width": 612,
+              "height": 792,
+              "sha256": "312a31a5b63cf9992cbc1ed37aa8b13ac9aa296d6e57541d94e1b9cbbc4d0871"
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "f5a44ebccb1f5a224f8e34556befebc254f2e0b036790b9d4dadc937be89d586"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "833c519e95d687467a4547327ae2d130028e68e0ad75ffa77ee9d11ffa8027a2"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "e4c15276fa0664235378e81cbc30be3ac6b7d67f7ab2a160ecc4f42ac4206abf"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "f8e93baa21d948d3418e0c8e8c30a32b8a3efe8ac85abb48ba345244d277faec"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "403a210704f5ec77435011ee82da21d8c1ba3a9c26ff9ede73983d6cf2904a85"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "f764dc9d39cfc1836c59d895ad31a54e80f7c355dc930ad3fe4fcd20903d9e06"
+            }
+          ]
+        }
+      ],
+      "nativeCandidateIdentityAfterTabFix": {
+        "originalCases": 19,
+        "byteIdentical": true
+      },
+      "priorAcceptedOutputs": {
+        "cases": 42,
+        "byteIdentical": true,
+        "groups": {
+          "character": 24,
+          "linked": 7,
+          "paragraphTopology": 11
+        }
+      },
+      "platformValidation": {
+        "publisherTestsPerFramework": 606,
+        "frameworks": [
+          "net10.0",
+          "net8.0",
+          "net472"
+        ],
+        "readerPublisherTests": 95,
+        "noIncrementalTestProjectBuilds": true,
+        "standard2Builds": [
+          "OfficeIMO.Publisher.Pdf",
+          "OfficeIMO.Reader.Publisher"
+        ],
+        "actualWriterProbeBuilt": true,
+        "sourceBuiltPowerShell": {
+          "runtime": "7.6.9",
+          "command": "ConvertTo-OfficeDocument",
+          "route": "publisher-pdf",
+          "cases": 4,
+          "reopenedPages": 8,
+          "actualPublisherAssemblyBound": true
+        },
+        "nativeControlScriptSyntax": [
+          "PowerShell7",
+          "WindowsPowerShell5.1"
+        ]
+      },
+      "visualEvidence": {
+        "nativeReferencePages": 5,
+        "managedPdfPages": 5,
+        "managedSvgPages": 5,
+        "alignmentMeasurements": {
+          "status": "Measured",
+          "nativeAlignmentRule": "Centered and right-aligned paragraphs shift the whole tabbed line. The reader now carries the existing shared AlignWithParagraph option; native saves require the matching option.",
+          "initialPositionHypothesis": {
+            "maximumDeltaPoints": 0.1,
+            "result": "Not established for right alignment; measured residual exceeds it."
+          },
+          "maximumMeasuredHorizontalDeltaPoints": 0.14801025390625,
+          "cases": [
+            {
+              "name": "Left",
+              "nativeX": [
+                54.0,
+                126.0199966430664,
+                198.0500030517578
+              ],
+              "managedX": [
+                54.0,
+                126.0,
+                198.0
+              ],
+              "absoluteDeltaPoints": [
+                0.0,
+                0.01999664306640625,
+                0.0500030517578125
+              ],
+              "nativeFonts": [
+                "ArialMT"
+              ],
+              "managedFonts": [
+                "Helvetica"
+              ]
+            },
+            {
+              "name": "Center",
+              "nativeX": [
+                220.00999450683594,
+                292.010009765625,
+                364.0299987792969
+              ],
+              "managedX": [
+                219.99600219726562,
+                291.9960021972656,
+                363.9960021972656
+              ],
+              "absoluteDeltaPoints": [
+                0.0139923095703125,
+                0.014007568359375,
+                0.03399658203125
+              ],
+              "nativeFonts": [
+                "ArialMT"
+              ],
+              "managedFonts": [
+                "Helvetica"
+              ]
+            },
+            {
+              "name": "Right",
+              "nativeX": [
+                386.1099853515625,
+                458.1400146484375,
+                530.1400146484375
+              ],
+              "managedX": [
+                385.99200439453125,
+                457.99200439453125,
+                529.9920043945312
+              ],
+              "absoluteDeltaPoints": [
+                0.11798095703125,
+                0.14801025390625,
+                0.14801025390625
+              ],
+              "nativeFonts": [
+                "ArialMT"
+              ],
+              "managedFonts": [
+                "Helvetica"
+              ]
+            },
+            {
+              "name": "CombinedIndentedCenter",
+              "nativeX": [
+                259.010009765625,
+                283.010009765625,
+                355.0299987792969
+              ],
+              "managedX": [
+                258.9960021972656,
+                282.9960021972656,
+                354.9960021972656
+              ],
+              "absoluteDeltaPoints": [
+                0.014007568359375,
+                0.014007568359375,
+                0.03399658203125
+              ],
+              "nativeFonts": [
+                "ArialMT"
+              ],
+              "managedFonts": [
+                "Helvetica"
+              ]
+            }
+          ],
+          "limits": [
+            "Native Arial/ArialMT and managed standard Helvetica are different fonts; exact metric, baseline and full-page parity remain unqualified.",
+            "The native combined indented center was initially misplaced by about 157 points on the managed fixed grid; after projection its word starts differ by at most 0.034 points."
+          ]
+        }
+      },
+      "refusals": [
+        "Incorrect field types, duplicate edited fields, ambiguous source tab metadata and values between admitted native units.",
+        "Custom tab origins/repeating intervals, per-stop alignment/leaders, fixed-grid Center/Right requests and simultaneous nonzero first/continuation offsets.",
+        "Changing both line-height values to null, nonuniform-source paragraph-count changes, unsafe empty paragraph substitution and zero-paragraph native stories.",
+        "A rewritten OPL that cannot fit the bounded formatting-page representation."
+      ],
+      "limits": [
+        "Exact bounded ordinary source-story profiles only. Repair-free opening, broad producer coverage and opaque semantics remain unassessed.",
+        "Native paragraph fields and style-pair inheritance are independently decoded; complete stories and body/CR character attributes are checked separately.",
+        "Native initial/resaved pixels and spans are compared, not managed/native layout parity.",
+        "Native/managed font and vertical metrics remain separate. The controlled word-start residual reaches 0.148 points with native ArialMT and standard managed Helvetica; the proposed 0.1-point universal bound was not established.",
+        "Source-built PowerShell conversion is separate from packaged installation and native create/edit/save cmdlets. Windows PowerShell 5.1 has syntax proof only; native authoring uses PowerShell 7."
+      ]
     }
   },
   "characterReading": {

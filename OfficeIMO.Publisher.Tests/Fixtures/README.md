@@ -59,8 +59,16 @@ weight, long-dash and compound patterns are distinct from the shared model's
 representable patterns. The fixture contracts record each requested attribute,
 and their native PDFs are independent appearance references.
 Both files use two chained Quill directories, with 22 and 26 descriptors.
-They also provide independent inputs for the remaining chained-directory
-story-writer work; reading them does not qualify native story save-back.
+They also provide independent inputs for the separately qualified character and
+chained-directory source-save profiles in the writer qualification record.
+TextParagraphAttributes covers fourteen whole-frame paragraph profiles across
+four pages: alignment, before/after spacing, margins, first-line/hanging indents,
+exact/multiple line spacing, two indexed left tabs and combined settings. Each
+frame contains two paragraphs. TextAlignedTabs adds a one-page left/center/right
+control for complete tabbed-line alignment. The native API may canonicalize a
+multiple of 1.5 to its preset rule; the contracts retain the observed values.
+These controls qualify paragraph recovery and the separately recorded save
+operations, with exact native font metrics and rendering parity still unassessed.
 Newsletter adds a two-page linked story
 and a picture. TableLabel adds a custom page size, styled 2-by-2 table, picture
 and Polish/Greek characters. Brochure adds two 792-by-612-point landscape sides,

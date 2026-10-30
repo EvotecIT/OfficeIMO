@@ -49,7 +49,7 @@ references do not report missing images.
 | Master pages | Recovered definitions applied to referring pages | Missing references report omission; nested master inheritance is unassessed |
 | Text | UTF-16 stories, styled paragraphs, referenced native style values, explicit reciprocal links or complete native story/frame catalog bindings, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; source style pairs and use ranges are retained internally, while names, builtin selectors and auxiliary inheritance metadata remain unassessed |
 | Character formatting | Native font names, size, referenced color, bold/italic, strikethrough, superscript/subscript and none, single, words-only, double, dotted, dashed and wavy underlines | Native underline weight, long-dash, compound and unknown patterns use the closest shared pattern with `PUB_TEXT_UNDERLINE_APPROXIMATED`. Font availability, exact metrics and decoration geometry remain separate rendering limits |
-| Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs | Numbering sequences, additional tab alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval |
+| Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs; complete tabbed lines follow recovered center/right paragraph alignment | Numbering sequences, additional per-stop alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval. Native font metrics and exact tabbed-line positions remain separate rendering limits |
 | Tables | `PublisherPage.Tables` exposes current tracks, spans, styled paragraphs, text and placement; qualified anchor-cell text edits preserve complete story partitions, and qualified bounds edits scale tracks proportionally; master tables remain on their master | Separate `CanEditCellText`/`CanEditBounds` and limitation properties identify supported operations. Unavailable frame geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`; individual cell borders, fills and padding are unassessed |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
 | Custom paths | Literal eight-byte signed and compact unsigned vertices in declared geometry space; bounded SG guide formulas and backward references; implicit open/closed line or cubic paths, explicit move/line/cubic/close/end commands, subpaths and no-fill/no-line controls | Device-pixel guide operands, limousine scaling, advanced commands and separate paint groups retain an explicit fallback; guide rounding, shared nonzero winding and native appearance remain unqualified |
@@ -146,7 +146,8 @@ records the independently qualified source-edit specimens.
 Paragraph counts can increase or decrease from a uniform source: every source
 paragraph has one run, matching projected formatting, byte-identical native
 paragraph definitions and matching body/intermediate-CR definitions. Added
-paragraphs repeat those definitions; the final source CR definition is retained.
+paragraphs use those definitions as a base, with qualified character and paragraph
+edits applied independently; the final source CR definition is retained.
 New runs can change size, bold, italic, representable underlines, single
 strikethrough, baseline, font family and opaque RGB text color. Unchanged
 attributes retain their source tokens; explicitly changed attributes also reach
@@ -161,6 +162,26 @@ Color edits require an absent or ordinary paired solid-color representation.
 They update both color references and retain existing palette entries; ordinary
 RGB entries are reused or appended. Other fill, opacity or ambiguous source
 representations refuse output.
+
+Paragraph saves support left, center, right and justified alignment, spacing
+before/after paragraphs, left/right margins, first-line or hanging indentation,
+and explicit absolute or multiple line spacing. Point values must be exactly
+representable in the admitted native units. Use `lineHeightFactor: 1` for explicit
+single spacing; clearing both line-height settings does not establish a native
+default. Simultaneous nonzero first-line and continuation offsets are outside
+the canonical native indent profile.
+
+Ordinary explicit left tabs can be added, replaced or cleared. The default
+interval is 36 points and the origin is `-paragraph.Margins.Left`. Native center
+and right paragraphs require `TabStops.AlignWithParagraph` to be true, using
+`WithParagraphAlignment()`; this includes paragraphs that currently contain no
+tabs so later text insertion retains the same behavior. Left and justified
+paragraphs use false. A fixed-grid center/right request is refused. Custom tab
+origins, repeating intervals, per-stop alignment and leader settings are outside
+this write profile. Existing unknown tab metadata is retained when only paragraph
+alignment changes. Native field widths and formatting-page capacity remain
+enforced.
+
 Nonuniform source definitions refuse count changes, even when their projected
 formatting looks equal. An empty final paragraph is refused when it would replace
 a different native typing definition. A zero-paragraph story remains unsupported
@@ -189,6 +210,26 @@ Source-built PSWriteOffice converts four edited publications through its existin
 in-process `publisher-pdf` route; all five output pages reopen. This qualifies
 these specimens and operations, with repair-free opening, general opaque semantics,
 packaged consumers and managed/native rendering parity still separate.
+
+The `sourceEditing.paragraphFormatting` qualification record covers 21 public
+save cases across 62 native physical page states. It includes per-paragraph
+values, clearing tabs, resetting a formatted chained source, linked overflow,
+uniform-source count changes, fractional point values, and 240 distinct paragraph
+formats that allocate formatting and directory pages. Independent decoding of
+style-pair inheritance and direct paragraph records verifies the native-resaved
+layout values, complete text and retained body/CR character attributes. Unrelated
+tokens, resources and storage remain unchanged; native PDF pixels and spans
+match before/after resave. Forty-two earlier saves remain byte-identical.
+Source-built PSWriteOffice converts four paragraph-edited publications through
+`publisher-pdf`, with eight reopened output pages.
+
+Two independent reading controls cover 17 whole-frame profiles over five pages,
+including indexed arrays with two tabs and left/center/right tabbed lines. The
+reader accepts canonical ordinal tab entries and retains the older repeated-zero
+profile. Native/managed inspection verifies the recovered alignment behavior;
+the controlled horizontal word-start measurements retain a maximum 0.148-point
+residual with native ArialMT and managed Helvetica. That measurement does not
+qualify exact font metrics, vertical positions or general rendering parity.
 
 Public native saving prepares and bounds the complete candidate before destination
 publication. `PublisherSaveOptions` defaults to a 64 MiB ceiling, `Block` loss

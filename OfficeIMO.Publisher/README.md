@@ -79,6 +79,12 @@ untransformed document-page frames. Native links, ownership and frame identities
 remain fixed. Known chained Quill layouts are supported; formatting and directory
 pages can be allocated or retired, and font/color resources can grow while existing
 entries retain their identities and bytes.
+Paragraph edits include alignment, before/after spacing, margins, first-line or
+hanging indents, explicit absolute/multiple line spacing, and ordinary left tabs.
+For native center/right paragraphs, use tab settings with
+`WithParagraphAlignment()`; the tab origin must remain `-paragraph.Margins.Left`
+and the default interval 36 points. Use `lineHeightFactor: 1` for explicit single
+spacing. The support contract defines native units and representability limits.
 Ambiguous source definitions, unsupported directory layouts and zero-paragraph
 native story states are refused. The [support contract](SUPPORT.md)
 defines the precise restrictions. Other in-memory edits, including new objects,
