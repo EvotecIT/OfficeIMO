@@ -143,18 +143,18 @@ document.Save();
 
 ```csharp
 document.AddHeadersAndFooters();
-document.AddHtmlToHeader(
+document.Sections.Last().GetOrCreateHeader(WordHeaderFooterType.Default).AddHtml(
     OfficeIMO.Html.HtmlConversionDocument.Parse("<p style='text-align: center;'>Company Header</p>"),
-    WordHeaderFooterType.Default
+    section: document.Sections.Last()
 );
 ```
 
 ### Add HTML to Footers
 
 ```csharp
-document.AddHtmlToFooter(
+document.Sections.Last().GetOrCreateFooter(WordHeaderFooterType.Default).AddHtml(
     OfficeIMO.Html.HtmlConversionDocument.Parse("<p style='font-size: 8pt; color: gray;'>Confidential</p>"),
-    WordHeaderFooterType.Default
+    section: document.Sections.Last()
 );
 ```
 
@@ -164,8 +164,10 @@ All `AddHtml*` methods have async counterparts:
 
 ```csharp
 await document.AddHtmlAsync("<p>Async HTML content</p>");
-await document.AddHtmlToHeaderAsync(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Header from HTML</p>"));
-await document.AddHtmlToFooterAsync(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Footer from HTML</p>"));
+await document.Sections.Last().GetOrCreateHeader(WordHeaderFooterType.Default).AddHtmlAsync(
+    OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Header from HTML</p>"), section: document.Sections.Last());
+await document.Sections.Last().GetOrCreateFooter(WordHeaderFooterType.Default).AddHtmlAsync(
+    OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Footer from HTML</p>"), section: document.Sections.Last());
 ```
 
 ## Supported HTML Elements

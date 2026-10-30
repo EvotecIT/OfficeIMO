@@ -191,65 +191,65 @@
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToHeader(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null)",
       "kind": "method",
       "action": "change",
-      "new": "WordHeader.AddHtml(html, WordHtmlImportOptions options = null)",
-      "reason": "Target the header/footer object instead of a document method with a WordHeaderFooterType? parameter.",
-      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
+      "new": "WordHeader.AddHtml(HtmlConversionDocument htmlDocument, WordHtmlImportOptions options = null, WordSection section = null) : IReadOnlyList<WordElement>",
+      "reason": "Select the running story on its receiver and optionally supply a sharing section for image and table geometry.",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.HeadersFooters.cs",
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending-section-context-decision",
-      "note": "A shared header/footer may serve sections with different widths; receiver-only import cannot retain the selected section context. The four existing entry points are retained until that target contract is resolved."
+      "applied": "phase-b-applied",
+      "note": "Returns IReadOnlyList<WordElement> containing only newly imported live elements in story order. Layout defaults to the first defining section; an explicit section must belong to the same document and share or inherit the story. Sync imports remain offline-only; async imports honor cancellation. The old document entry point is removed."
     },
     {
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToHeaderAsync(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "WordHeader.AddHtmlAsync(html, WordHtmlImportOptions options = null)",
-      "reason": "Target the header/footer object instead of a document method with a WordHeaderFooterType? parameter.",
-      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
+      "new": "WordHeader.AddHtmlAsync(HtmlConversionDocument htmlDocument, WordHtmlImportOptions options = null, WordSection section = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<WordElement>>",
+      "reason": "Select the running story on its receiver and optionally supply a sharing section for image and table geometry.",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.HeadersFooters.cs",
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending-section-context-decision",
-      "note": "A shared header/footer may serve sections with different widths; receiver-only import cannot retain the selected section context. The four existing entry points are retained until that target contract is resolved."
+      "applied": "phase-b-applied",
+      "note": "Returns Task<IReadOnlyList<WordElement>> containing only newly imported live elements in story order. Layout defaults to the first defining section; an explicit section must belong to the same document and share or inherit the story. Sync imports remain offline-only; async imports honor cancellation. The old document entry point is removed."
     },
     {
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToFooter(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null)",
       "kind": "method",
       "action": "change",
-      "new": "WordFooter.AddHtml(html, WordHtmlImportOptions options = null)",
-      "reason": "Target the header/footer object instead of a document method with a WordHeaderFooterType? parameter.",
-      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
+      "new": "WordFooter.AddHtml(HtmlConversionDocument htmlDocument, WordHtmlImportOptions options = null, WordSection section = null) : IReadOnlyList<WordElement>",
+      "reason": "Select the running story on its receiver and optionally supply a sharing section for image and table geometry.",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.HeadersFooters.cs",
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending-section-context-decision",
-      "note": "A shared header/footer may serve sections with different widths; receiver-only import cannot retain the selected section context. The four existing entry points are retained until that target contract is resolved."
+      "applied": "phase-b-applied",
+      "note": "Returns IReadOnlyList<WordElement> containing only newly imported live elements in story order. Layout defaults to the first defining section; an explicit section must belong to the same document and share or inherit the story. Sync imports remain offline-only; async imports honor cancellation. The old document entry point is removed."
     },
     {
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToFooterAsync(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "WordFooter.AddHtmlAsync(html, WordHtmlImportOptions options = null)",
-      "reason": "Target the header/footer object instead of a document method with a WordHeaderFooterType? parameter.",
-      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
+      "new": "WordFooter.AddHtmlAsync(HtmlConversionDocument htmlDocument, WordHtmlImportOptions options = null, WordSection section = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<WordElement>>",
+      "reason": "Select the running story on its receiver and optionally supply a sharing section for image and table geometry.",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.HeadersFooters.cs",
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending-section-context-decision",
-      "note": "A shared header/footer may serve sections with different widths; receiver-only import cannot retain the selected section context. The four existing entry points are retained until that target contract is resolved."
+      "applied": "phase-b-applied",
+      "note": "Returns Task<IReadOnlyList<WordElement>> containing only newly imported live elements in story order. Layout defaults to the first defining section; an explicit section must belong to the same document and share or inherit the story. Sync imports remain offline-only; async imports honor cancellation. The old document entry point is removed."
     },
     {
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.SaveAsHtmlAsync(WordDocument document, string path, WordToHtmlOptions options = null, CancellationToken cancellationToken = null)",

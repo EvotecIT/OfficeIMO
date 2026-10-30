@@ -138,10 +138,10 @@ namespace OfficeIMO.Tests {
                     await document.AddHtmlAsync(source, options);
                     break;
                 case "header":
-                    await document.AddHtmlToHeaderAsync(source, options: options);
+                    await document.Sections.Last().GetOrCreateHeader(WordHeaderFooterType.Default).AddHtmlAsync(source, options: options);
                     break;
                 case "footer":
-                    await document.AddHtmlToFooterAsync(source, options: options);
+                    await document.Sections.Last().GetOrCreateFooter(WordHeaderFooterType.Default).AddHtmlAsync(source, options: options);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(target));
@@ -177,10 +177,10 @@ namespace OfficeIMO.Tests {
                     await document.AddHtmlAsync(source, options);
                     break;
                 case "header":
-                    await document.AddHtmlToHeaderAsync(source, options: options);
+                    await document.Sections.Last().GetOrCreateHeader(WordHeaderFooterType.Default).AddHtmlAsync(source, options: options);
                     break;
                 case "footer":
-                    await document.AddHtmlToFooterAsync(source, options: options);
+                    await document.Sections.Last().GetOrCreateFooter(WordHeaderFooterType.Default).AddHtmlAsync(source, options: options);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(target));

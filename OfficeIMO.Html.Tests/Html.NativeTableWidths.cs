@@ -74,8 +74,8 @@ public class HtmlNativeTableWidths {
         target.Margins.Left = global::OfficeIMO.OfficeLength.Points(50D);
         target.Margins.Right = global::OfficeIMO.OfficeLength.Points(50D);
         HtmlConversionDocument html = HtmlConversionDocument.Parse("<ul><li><table " + attributes + ">" + FiveColumns + "</table></li></ul>");
-        if (scope == "header") word.AddHtmlToHeader(html);
-        else if (scope == "footer") word.AddHtmlToFooter(html);
+        if (scope == "header") target.GetOrCreateHeader(WordHeaderFooterType.Default).AddHtml(html);
+        else if (scope == "footer") target.GetOrCreateFooter(WordHeaderFooterType.Default).AddHtml(html);
         else word.AddHtml(html);
         using MemoryStream saved = new System.IO.MemoryStream(word.ToBytes());
         using var archive = new System.IO.Compression.ZipArchive(saved, System.IO.Compression.ZipArchiveMode.Read);
@@ -94,7 +94,7 @@ public class HtmlNativeTableWidths {
     [InlineData(true, 100, 5000, true)]
     [InlineData(false, 50, 2500, true)]
     [InlineData(true, 50, 2500, true)]
-    public void HtmlToWord_SharedStoryTableUsesTheSelectedLayoutSection(bool footer, int percent, int expectedWidth, bool inherited) {
+    public async System.Threading.Tasks.Task HtmlToWord_SharedStoryImageAndTableUseTheSelectedLayoutSection(bool footer, int percent, int expectedWidth, bool inherited) {
         using WordDocument word = WordDocument.Create();
         WordSection first = word.Sections[0];
         first.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(600D);
@@ -117,8 +117,38 @@ public class HtmlNativeTableWidths {
             if (!inherited) last._sectionProperties.PrependChild((DocumentFormat.OpenXml.Wordprocessing.HeaderReference)reference.CloneNode(true));
             last.Header.Default = first.Header.Default;
         }
-        HtmlConversionDocument html = HtmlConversionDocument.Parse("<ul><li><table style='width:" + percent + "%'>" + FiveColumns + "</table></li></ul>");
-        if (footer) word.AddHtmlToFooter(html); else word.AddHtmlToHeader(html);
+        const string pixel = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
+        HtmlConversionDocument html = HtmlConversionDocument.Parse("<ul><li><table style='width:" + percent + "%'>" + FiveColumns +
+            "</table></li></ul><p><img src='data:image/png;base64," + pixel + "' width='1200' height='1200' style='max-width:100%' alt='Shared story image'></p>");
+        WordHeaderFooter story = footer ? first.Footer.Default! : first.Header.Default!;
+        if (percent == 100 && !inherited) {
+            using WordDocument foreign = WordDocument.Create();
+            string before = (story._header as DocumentFormat.OpenXml.OpenXmlElement ?? story._footer!).OuterXml;
+            if (footer) {
+                Assert.Throws<ArgumentException>(() => first.Footer.Default!.AddHtml(html, section: foreign.Sections[0]));
+                WordFooter unrelatedStory = last.GetOrCreateFooter(WordHeaderFooterType.First);
+                string unrelatedBefore = unrelatedStory._footer!.OuterXml;
+                await Assert.ThrowsAsync<ArgumentException>(() => unrelatedStory.AddHtmlAsync(html, section: first));
+                Assert.Equal(unrelatedBefore, unrelatedStory._footer.OuterXml);
+            } else {
+                await Assert.ThrowsAsync<ArgumentException>(() => first.Header.Default!.AddHtmlAsync(html, section: foreign.Sections[0]));
+                WordHeader unrelatedStory = last.GetOrCreateHeader(WordHeaderFooterType.First);
+                string unrelatedBefore = unrelatedStory._header!.OuterXml;
+                Assert.Throws<ArgumentException>(() => unrelatedStory.AddHtml(html, section: first));
+                Assert.Equal(unrelatedBefore, unrelatedStory._header.OuterXml);
+            }
+            Assert.Equal(before, (story._header as DocumentFormat.OpenXml.OpenXmlElement ?? story._footer!).OuterXml);
+        }
+        var created = footer
+            ? await first.Footer.Default!.AddHtmlAsync(html, section: last)
+            : first.Header.Default!.AddHtml(html, section: last);
+        Assert.NotEmpty(created);
+        Assert.DoesNotContain(created.OfType<WordParagraph>(), paragraph => paragraph.Text.Contains("Shared footer", StringComparison.Ordinal) || paragraph.Text.Contains("Shared header", StringComparison.Ordinal));
+        WordParagraph importedImage = Assert.Single(created.OfType<WordParagraph>(), paragraph => paragraph.Image != null);
+        Assert.Equal(250D, importedImage.Image!.Width!.Value.ToPoints(), 3);
+        importedImage.AddText("Imported image");
+        if (footer) first.Footer.Default!.AddHtml(html);
+        else await first.Header.Default!.AddHtmlAsync(html);
         using MemoryStream saved = new System.IO.MemoryStream(word.ToBytes());
         using WordDocument reopened = WordDocument.Load(saved);
         using MemoryStream resaved = new System.IO.MemoryStream(reopened.ToBytes());
@@ -126,7 +156,12 @@ public class HtmlNativeTableWidths {
         XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
         int[] widths = archive.Entries.Where(entry => entry.FullName.StartsWith(footer ? "word/footer" : "word/header", StringComparison.Ordinal) && entry.FullName.EndsWith(".xml", StringComparison.Ordinal))
             .SelectMany(entry => { using var xml = entry.Open(); return XDocument.Load(xml).Descendants(w + "tblGrid").Select(grid => grid.Elements(w + "gridCol").Sum(col => (int)col.Attribute(w + "w")!)).ToArray(); }).ToArray();
-        Assert.Equal(expectedWidth, Assert.Single(widths));
+        Assert.Equal(new[] { expectedWidth, 9000 * percent / 100 }, widths);
+        XNamespace wp = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
+        long[] imageWidths = archive.Entries.Where(entry => entry.FullName.StartsWith(footer ? "word/footer" : "word/header", StringComparison.Ordinal) && entry.FullName.EndsWith(".xml", StringComparison.Ordinal))
+            .SelectMany(entry => { using var xml = entry.Open(); return XDocument.Load(xml).Descendants(wp + "extent").Select(extent => (long)extent.Attribute("cx")!).ToArray(); }).ToArray();
+        Assert.Equal(new[] { 5000L * 635, 9000L * 635 }, imageWidths);
+        Assert.Contains("Imported image", footer ? reopened.Sections[0].Footer.Default!.Paragraphs.Select(paragraph => paragraph.Text) : reopened.Sections[0].Header.Default!.Paragraphs.Select(paragraph => paragraph.Text));
     }
 
     [Fact]

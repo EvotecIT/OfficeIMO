@@ -30,9 +30,10 @@ Console.WriteLine(exported);
 ```
 
 HTML can also be appended to an existing body, header, footer, or table cell with
-`WordDocument.AddHtml`, `AddHtmlToHeader`, `AddHtmlToFooter`, and `WordTableCell.AddHtml`.
-The document and cell `AddHtml` methods accept HTML text or an existing
-`HtmlConversionDocument` and return `IReadOnlyList<WordElement>` containing live
+`WordDocument.AddHtml`, `WordHeader.AddHtml`, `WordFooter.AddHtml`, and
+`WordTableCell.AddHtml`. Body and cell imports accept HTML text or a parsed
+`HtmlConversionDocument`; header and footer imports accept a parsed source.
+These methods return `IReadOnlyList<WordElement>` containing live
 imported elements in document order; `AddHtmlAsync` returns
 `Task<IReadOnlyList<WordElement>>`. Paragraphs use the existing run-level Word
 projection; nested content remains inside its table or content control. An initial
@@ -42,7 +43,21 @@ remain editable. The parsed HTML source is not modified.
 
 ```csharp
 document.AddHtml("<p>Body content</p>");
+WordSection section = document.Sections[0];
+WordHeader header = section.GetOrCreateHeader(WordHeaderFooterType.Default);
+IReadOnlyList<WordElement> imported = header.AddHtml(
+    HtmlConversionDocument.Parse("<p>Report header</p>"), section: section);
+section.GetOrCreateFooter(WordHeaderFooterType.First).AddHtml(
+    HtmlConversionDocument.Parse("<p>First-page footer</p>"));
 ```
+
+Header and footer imports default to the first section defining the receiver's
+story. When sections share a header or footer, pass `section:` to use that
+section's content width for images and tables. The section must belong to the
+same document and share or inherit that story; unrelated contexts are rejected
+before insertion. The receiver selects the default, first-page, or even-page
+story. Synchronous imports remain offline-only; use `AddHtmlAsync` for remote
+resources and cancellation.
 
 To save an editable report from an HTML file:
 

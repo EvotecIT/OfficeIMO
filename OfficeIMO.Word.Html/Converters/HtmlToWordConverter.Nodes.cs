@@ -893,6 +893,12 @@ namespace OfficeIMO.Word.Html {
                                         out int? knownWidth)
                                     ? knownWidth
                                     : WordTable.EstimateCellContentWidthInDxa(doc, cell._tableCell);
+                            if (cell == null && headerFooter != null) {
+                                resolveImageContainerWidthTwips = () => Math.Max(1,
+                                    (int)(section.PageSettings.Width?.ToTwips() ?? WordPageSizes.A4.Width.ToTwips())
+                                    - (int)section.Margins.Left.GetValueOrDefault().ToTwips()
+                                    - (int)section.Margins.Right.GetValueOrDefault().ToTwips());
+                            }
                             ProcessImage(
                                 (IHtmlImageElement)element,
                                 doc,
