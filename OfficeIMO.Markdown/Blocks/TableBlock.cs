@@ -94,8 +94,8 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
     public IReadOnlyList<IReadOnlyList<InlineSequence>> RowInlines => BuildRowInlines();
     /// <summary>Optional column alignments per column (used when headers are present).</summary>
     public List<MarkdownColumnAlignment> Alignments { get; } = new List<MarkdownColumnAlignment>();
-    /// <summary>Optional fixed column widths in points. Null entries are sized by weights or defaults.</summary>
-    public List<double?> ColumnWidthPoints { get; } = new List<double?>();
+    /// <summary>Optional fixed physical column widths. Null entries are sized by weights or defaults.</summary>
+    public List<OfficeLength?> ColumnWidths { get; } = new List<OfficeLength?>();
     /// <summary>Optional relative column width weights. Missing columns default to 1.0 in consumers that support widths.</summary>
     public List<double> ColumnWidthWeights { get; } = new List<double>();
     /// <summary>Number of rows skipped due to table limits.</summary>
@@ -361,8 +361,8 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
 
         sb.Append("<colgroup>");
         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-            double? fixedWidth = columnIndex < ColumnWidthPoints.Count ? ColumnWidthPoints[columnIndex] : null;
-            if (fixedWidth.HasValue && fixedWidth.Value > 0D && !double.IsNaN(fixedWidth.Value) && !double.IsInfinity(fixedWidth.Value)) {
+            double? fixedWidth = columnIndex < ColumnWidths.Count ? ColumnWidths[columnIndex]?.ToPoints() : null;
+            if (fixedWidth.HasValue && fixedWidth.Value > 0D) {
                 sb.Append("<col style=\"width:");
                 sb.Append(fixedWidth.Value.ToString("0.###", CultureInfo.InvariantCulture));
                 sb.Append("pt\">");
@@ -374,7 +374,8 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
                 continue;
             }
 
-            double weight = columnIndex < ColumnWidthWeights.Count && ColumnWidthWeights[columnIndex] > 0D
+            double weight = columnIndex < ColumnWidthWeights.Count && ColumnWidthWeights[columnIndex] > 0D &&
+                !double.IsNaN(ColumnWidthWeights[columnIndex]) && !double.IsInfinity(ColumnWidthWeights[columnIndex])
                 ? ColumnWidthWeights[columnIndex]
                 : 1D;
             double percentage = weight / totalWeight * 100D;
@@ -392,7 +393,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
         }
 
         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-            if (columnIndex < ColumnWidthPoints.Count && ColumnWidthPoints[columnIndex].HasValue) {
+            if (columnIndex < ColumnWidths.Count && ColumnWidths[columnIndex].HasValue) {
                 return true;
             }
         }

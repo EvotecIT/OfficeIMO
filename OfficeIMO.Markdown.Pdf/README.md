@@ -127,6 +127,7 @@ MarkdownDocument.Load("Docs/status.md").SaveAsPdf("Artifacts/status.pdf", option
 ### Reuse one visual theme across HTML, PDF, and Word
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.Word.Markdown;
@@ -135,8 +136,8 @@ MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
     .WithColorScheme(MarkdownColorSchemeKind.Emerald)
     .WithColors(accent: "SeaGreen", heading: "#064e3b")
     .WithTable(table => {
-        table.BorderWidth = 0.9;
-        table.CellPaddingX = 8;
+        table.BorderWidth = OfficeLength.Points(0.9);
+        table.CellPaddingX = OfficeLength.Points(8);
         table.UseRowStripes = true;
     });
 

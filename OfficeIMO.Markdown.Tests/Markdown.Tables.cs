@@ -37,9 +37,9 @@ namespace OfficeIMO.Tests {
                     tableHeaderText: "#010203",
                     tableStripeBackground: "#f0f9ff")
                 .WithTable(table => {
-                    table.BorderWidth = 1.25;
-                    table.CellPaddingX = 9;
-                    table.CellPaddingY = 4;
+                    table.BorderWidth = OfficeLength.Points(1.25);
+                    table.CellPaddingX = OfficeLength.Inches(0.125);
+                    table.CellPaddingY = OfficeLength.Pixels(16D / 3D);
                     table.UseRowStripes = true;
                 });
             string md = """
@@ -53,7 +53,9 @@ Narrative body text.
 | Second | 2 |
 """;
 
-            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions { Theme = theme });
+            using var converted = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions { Theme = theme });
+            using var saved = new System.IO.MemoryStream(converted.ToBytes());
+            using var doc = WordDocument.Load(saved);
 
             var heading = doc.Paragraphs.First(p => p.Text == "Report Theme");
             Assert.Contains(heading.GetRuns(), run => string.Equals(run.ColorHex, "064e3b", System.StringComparison.OrdinalIgnoreCase));
@@ -122,7 +124,7 @@ Narrative body text.
         [Fact]
         public void MarkdownToWord_SharedVisualTheme_AllowsBorderlessTables() {
             MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
-                .WithTable(table => table.BorderWidth = 0);
+                .WithTable(table => table.BorderWidth = OfficeLength.Zero);
             string md = """
 | Name | Value |
 | --- | --- |
@@ -142,7 +144,7 @@ Narrative body text.
         public void MarkdownToWord_SharedVisualTheme_TreatsTransparentTableBordersAsNoBorder() {
             MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
                 .WithColors(border: "Transparent")
-                .WithTable(table => table.BorderWidth = 1.25);
+                .WithTable(table => table.BorderWidth = OfficeLength.Points(1.25));
             string md = """
 | Name | Value |
 | --- | --- |

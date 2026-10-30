@@ -22,14 +22,14 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 .WithColorScheme(MarkdownColorSchemeKind.Emerald)
                 .WithColors(accent: "SeaGreen", heading: "#064e3b");
 
-            theme.Table.BorderWidth = 1.2;
-            theme.Table.CellPaddingX = 11;
+            theme.Table.BorderWidth = global::OfficeIMO.OfficeLength.Points(1.2);
+            theme.Table.CellPaddingX = global::OfficeIMO.OfficeLength.Points(11);
             theme.Table.UseRowStripes = false;
 
             Assert.Equal("2E8B57", theme.Palette.Accent.ToRgbHex());
             Assert.Equal("064E3B", theme.Palette.Heading.ToRgbHex());
-            Assert.Equal(1.2, theme.Table.BorderWidth);
-            Assert.Equal(11, theme.Table.CellPaddingX);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(1.2), theme.Table.BorderWidth);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(11), theme.Table.CellPaddingX);
             Assert.False(theme.Table.UseRowStripes);
         }
 

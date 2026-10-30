@@ -2451,11 +2451,11 @@ OfficeIMO.Markdown.MarkdownTableOptions.AlignNumeric.get -> bool
 OfficeIMO.Markdown.MarkdownTableOptions.AlignNumeric.set -> void
 OfficeIMO.Markdown.MarkdownTableOptions.MarkdownTableOptions() -> void
 OfficeIMO.Markdown.MarkdownTableVisualStyle
-OfficeIMO.Markdown.MarkdownTableVisualStyle.BorderWidth.get -> double
+OfficeIMO.Markdown.MarkdownTableVisualStyle.BorderWidth.get -> OfficeIMO.OfficeLength
 OfficeIMO.Markdown.MarkdownTableVisualStyle.BorderWidth.set -> void
-OfficeIMO.Markdown.MarkdownTableVisualStyle.CellPaddingX.get -> double
+OfficeIMO.Markdown.MarkdownTableVisualStyle.CellPaddingX.get -> OfficeIMO.OfficeLength
 OfficeIMO.Markdown.MarkdownTableVisualStyle.CellPaddingX.set -> void
-OfficeIMO.Markdown.MarkdownTableVisualStyle.CellPaddingY.get -> double
+OfficeIMO.Markdown.MarkdownTableVisualStyle.CellPaddingY.get -> OfficeIMO.OfficeLength
 OfficeIMO.Markdown.MarkdownTableVisualStyle.CellPaddingY.set -> void
 OfficeIMO.Markdown.MarkdownTableVisualStyle.Clone() -> OfficeIMO.Markdown.MarkdownTableVisualStyle!
 OfficeIMO.Markdown.MarkdownTableVisualStyle.EmphasizeHeader.get -> bool
@@ -2710,7 +2710,7 @@ OfficeIMO.Markdown.TableBlock
 OfficeIMO.Markdown.TableBlock.Alignments.get -> System.Collections.Generic.List<OfficeIMO.Markdown.MarkdownColumnAlignment>!
 OfficeIMO.Markdown.TableBlock.BodyRows.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Markdown.TableRow!>!
 OfficeIMO.Markdown.TableBlock.ChildBlocks.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Markdown.IMarkdownBlock!>!
-OfficeIMO.Markdown.TableBlock.ColumnWidthPoints.get -> System.Collections.Generic.List<double?>!
+OfficeIMO.Markdown.TableBlock.ColumnWidths.get -> System.Collections.Generic.List<OfficeIMO.OfficeLength?>!
 OfficeIMO.Markdown.TableBlock.ColumnWidthWeights.get -> System.Collections.Generic.List<double>!
 OfficeIMO.Markdown.TableBlock.EnumerateCells() -> System.Collections.Generic.IEnumerable<OfficeIMO.Markdown.TableCell!>!
 OfficeIMO.Markdown.TableBlock.EnumerateRows() -> System.Collections.Generic.IEnumerable<OfficeIMO.Markdown.TableRow!>!

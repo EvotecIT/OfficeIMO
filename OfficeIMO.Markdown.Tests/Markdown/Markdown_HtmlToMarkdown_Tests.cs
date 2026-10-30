@@ -1527,9 +1527,9 @@ public sealed class MarkdownHtmlToMarkdownTests {
         MarkdownDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
-        Assert.Equal(2, table.ColumnWidthPoints.Count);
-        Assert.Equal(60D, table.ColumnWidthPoints[0]);
-        Assert.Null(table.ColumnWidthPoints[1]);
+        Assert.Equal(2, table.ColumnWidths.Count);
+        Assert.Equal(60D, table.ColumnWidths[0]!.Value.ToPoints());
+        Assert.Null(table.ColumnWidths[1]);
         Assert.Equal(new[] { 1D, 75D }, table.ColumnWidthWeights);
 
         string renderedHtml = ((IMarkdownBlock)table).RenderHtml();
@@ -1551,10 +1551,10 @@ public sealed class MarkdownHtmlToMarkdownTests {
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(new[] { MarkdownColumnAlignment.None, MarkdownColumnAlignment.Center, MarkdownColumnAlignment.Right }, table.Alignments);
-        Assert.Equal(3, table.ColumnWidthPoints.Count);
-        Assert.Null(table.ColumnWidthPoints[0]);
-        Assert.Equal(50D, table.ColumnWidthPoints[1]);
-        Assert.Equal(40D, table.ColumnWidthPoints[2]);
+        Assert.Equal(3, table.ColumnWidths.Count);
+        Assert.Null(table.ColumnWidths[0]);
+        Assert.Equal(50D, table.ColumnWidths[1]!.Value.ToPoints());
+        Assert.Equal(40D, table.ColumnWidths[2]!.Value.ToPoints());
     }
 
     [Fact]

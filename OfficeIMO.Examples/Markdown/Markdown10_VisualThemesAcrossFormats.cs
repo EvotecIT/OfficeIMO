@@ -16,9 +16,9 @@ namespace OfficeIMO.Examples.Markdown {
                 .WithColorScheme(MarkdownColorSchemeKind.Emerald)
                 .WithColors(accent: "SeaGreen", heading: "#064e3b")
                 .WithTable(table => {
-                    table.BorderWidth = 0.9;
-                    table.CellPaddingX = 8;
-                    table.CellPaddingY = 6;
+                    table.BorderWidth = global::OfficeIMO.OfficeLength.Points(0.9);
+                    table.CellPaddingX = global::OfficeIMO.OfficeLength.Points(8);
+                    table.CellPaddingY = global::OfficeIMO.OfficeLength.Points(6);
                     table.UseRowStripes = true;
                 });
 
@@ -49,7 +49,7 @@ namespace OfficeIMO.Examples.Markdown {
 var theme = MarkdownVisualTheme.Report()
     .WithColorScheme(MarkdownColorSchemeKind.Emerald)
     .WithColors(accent: "SeaGreen", heading: "#064e3b")
-    .WithTable(table => table.BorderWidth = 0.9);
+    .WithTable(table => table.BorderWidth = global::OfficeIMO.OfficeLength.Points(0.9));
 
 doc.SaveAsHtml(htmlPath, new HtmlOptions { Theme = theme });
 doc.SaveAsPdf(pdfPath, new MarkdownPdfExportOptions { Theme = theme });

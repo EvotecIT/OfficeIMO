@@ -457,7 +457,7 @@ internal static class HtmlRenderer {
             var palette = theme.PaletteSnapshot;
             var table = theme.TableSnapshot;
             sb.Append(scope).Append(" { color: ").Append(palette.Text.ToCssColor()).Append("; background: ").Append(palette.Background.ToCssColor()).Append("; }\n");
-            sb.Append(Descendant(scope, "table")).Append(" { border-color: ").Append(palette.Border.ToCssColor()).Append("; border-width: ").Append(table.BorderWidth.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("px; }\n");
+            sb.Append(Descendant(scope, "table")).Append(" { border-color: ").Append(palette.Border.ToCssColor()).Append("; border-width: ").Append(table.BorderWidth.ToPixels().ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("px; }\n");
             if (table.EmphasizeHeader) {
                 sb.Append(Descendant(scope, "th")).Append(" { background: ").Append(palette.TableHeaderBackground.ToCssColor()).Append("; color: ").Append(palette.TableHeaderText.ToCssColor()).Append("; }\n");
             } else {
@@ -465,9 +465,9 @@ internal static class HtmlRenderer {
             }
 
             sb.Append(Descendant(scope, "th, ")).Append(Descendant(scope, "td")).Append(" { border-color: ").Append(palette.Border.ToCssColor()).Append("; border-width: ")
-              .Append(table.BorderWidth.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("px; padding: ")
-              .Append(table.CellPaddingY.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("px ")
-              .Append(table.CellPaddingX.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("px; }\n");
+              .Append(table.BorderWidth.ToPixels().ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("px; padding: ")
+              .Append(table.CellPaddingY.ToPixels().ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("px ")
+              .Append(table.CellPaddingX.ToPixels().ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("px; }\n");
             if (table.UseRowStripes) {
                 sb.Append(Descendant(scope, "tbody tr:nth-child(2n)")).Append(" { background-color: ").Append(palette.TableStripeBackground.ToCssColor()).Append("; }\n");
             } else {

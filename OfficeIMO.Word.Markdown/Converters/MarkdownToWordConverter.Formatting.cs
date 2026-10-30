@@ -101,12 +101,12 @@ namespace OfficeIMO.Word.Markdown {
 
             Omd.MarkdownVisualPalette palette = theme.PaletteSnapshot;
             Omd.MarkdownTableVisualStyle tableStyle = theme.TableSnapshot;
-            bool hasVisibleBorder = palette.Border.A > 0 && IsPositiveFinite(tableStyle.BorderWidth);
+            bool hasVisibleBorder = palette.Border.A > 0 && IsPositiveFinite(tableStyle.BorderWidth.ToPoints());
             string? borderHex = hasVisibleBorder ? palette.Border.ToRgbHex() : null;
-            DocumentFormat.OpenXml.UInt32Value borderSize = hasVisibleBorder ? ToWordBorderSize(tableStyle.BorderWidth) : 0U;
+            DocumentFormat.OpenXml.UInt32Value borderSize = hasVisibleBorder ? ToWordBorderSize(tableStyle.BorderWidth.ToPoints()) : 0U;
             WordBorderStyle borderStyle = hasVisibleBorder ? WordBorderStyle.Single : WordBorderStyle.None;
-            short horizontalPadding = ToWordCellMarginWidth(tableStyle.CellPaddingX);
-            short verticalPadding = ToWordCellMarginWidth(tableStyle.CellPaddingY);
+            short horizontalPadding = ToWordCellMarginWidth(tableStyle.CellPaddingX.ToPoints());
+            short verticalPadding = ToWordCellMarginWidth(tableStyle.CellPaddingY.ToPoints());
 
             for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
                 bool header = hasHeaderRow && rowIndex == 0;

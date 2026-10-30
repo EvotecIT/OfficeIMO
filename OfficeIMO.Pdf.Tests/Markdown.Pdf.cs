@@ -185,8 +185,11 @@ Console.WriteLine("OfficeIMO");
         Assert.InRange(Math.Abs(rightQuantity.Right - rightHeader.Right), 0D, 2D);
     }
 
-    [Fact]
-    public void Markdown_SaveAsPdf_UsesTableColumnWidthHints() {
+    [Theory]
+    [InlineData("48pt")]
+    [InlineData("64px")]
+    [InlineData("1.6933333333333333cm")]
+    public void Markdown_SaveAsPdf_UsesTableColumnWidthHints(string width) {
         var defaultTable = new TableBlock();
         defaultTable.Headers.Add("Code");
         defaultTable.Headers.Add("Description");
@@ -196,8 +199,8 @@ Console.WriteLine("OfficeIMO");
         narrowFirstColumnTable.Headers.Add("Code");
         narrowFirstColumnTable.Headers.Add("Description");
         narrowFirstColumnTable.Rows.Add(new[] { "A-100", "Consulting" });
-        narrowFirstColumnTable.ColumnWidthPoints.Add(48D);
-        narrowFirstColumnTable.ColumnWidthPoints.Add(null);
+        narrowFirstColumnTable.ColumnWidths.Add(OfficeLength.Parse(width));
+        narrowFirstColumnTable.ColumnWidths.Add(null);
 
         var options = new MarkdownPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions {
@@ -612,9 +615,9 @@ _Figure 1. Embedded from a relative Markdown path._
                 tableHeaderBackground: "#ffff00",
                 tableHeaderText: "#000000")
             .WithTable(table => {
-                table.BorderWidth = 1.25;
-                table.CellPaddingX = 11;
-                table.CellPaddingY = 7;
+                table.BorderWidth = OfficeLength.Points(1.25);
+                table.CellPaddingX = OfficeLength.Inches(11D / 72D);
+                table.CellPaddingY = OfficeLength.Pixels(28D / 3D);
             });
 
         MarkdownPdfStyle pdfTheme = MarkdownPdfStyle.FromMarkdownTheme(sharedTheme);
@@ -637,7 +640,12 @@ _Figure 1. Embedded from a relative Markdown path._
     [Fact]
     public void Markdown_SaveAsPdf_Renders_With_SharedMarkdownTheme() {
         MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
-            .WithColorScheme(MarkdownColorSchemeKind.Emerald);
+            .WithColorScheme(MarkdownColorSchemeKind.Emerald)
+            .WithTable(table => {
+                table.BorderWidth = OfficeLength.Pixels(5D / 3D);
+                table.CellPaddingX = OfficeLength.Inches(11D / 72D);
+                table.CellPaddingY = OfficeLength.Points(7);
+            });
         string markdown = """
 # Shared Theme
 
@@ -649,7 +657,8 @@ Markdown PDF should accept the same visual theme object as HTML and Word.
 """;
 
         var options = new MarkdownPdfExportOptions {
-            Theme = theme
+            Theme = theme,
+            PdfOptions = new PdfCore.PdfCreateOptions { CompressContentStreams = false }
         };
 
         byte[] pdf = (OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToPdf(options)).ToBytes();
@@ -659,6 +668,8 @@ Markdown PDF should accept the same visual theme object as HTML and Word.
         Assert.Empty(options.Warnings);
         Assert.Contains("Shared Theme", text);
         Assert.Contains("themed", text);
+        string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
+        Assert.Contains("1.25 w", rawPdf, StringComparison.Ordinal);
     }
 
     [Fact]

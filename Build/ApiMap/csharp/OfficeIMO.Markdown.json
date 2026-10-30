@@ -2341,6 +2341,33 @@
         "OfficeIMO.Word.Tests/Markdown.MoreCases.cs"
       ],
       "note": "Word package reader fixture also asserts typed CSS-pixel lengths; its original path, alt-text and size expectations remain unchanged."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "Numeric MarkdownTableVisualStyle border/padding and TableBlock.ColumnWidthPoints.",
+      "new": "Physical OfficeLength border/padding and TableBlock.ColumnWidths nullable physical column hints; relative weights remain numeric.",
+      "reason": "Table physical dimensions share one model across Word, PDF and HTML; CSS explicitly converts physical lengths to pixels.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Examples/Markdown/Markdown10_VisualThemesAcrossFormats.cs",
+        "OfficeIMO.Markdown/Blocks/TableBlock.cs",
+        "OfficeIMO.Markdown/Options/MarkdownTableVisualStyle.cs",
+        "OfficeIMO.Markdown/Options/MarkdownVisualTheme.cs",
+        "OfficeIMO.Markdown/Utilities/HtmlRenderer.cs",
+        "OfficeIMO.Markdown.Html/Converters/HtmlToMarkdownConverter.Blocks.Tables.cs",
+        "OfficeIMO.Markdown.Pdf/MarkdownPdfConverterExtensions.TablesCodeToc.cs",
+        "OfficeIMO.Markdown.Pdf/MarkdownPdfStyle.Markdown.cs",
+        "OfficeIMO.Markdown.Pdf/README.md",
+        "OfficeIMO.Markdown.Tests/Markdown/Markdown_HtmlToMarkdown_Tests.cs",
+        "OfficeIMO.Markdown.Tests/Markdown/Markdown_Html_Render_Tests.cs",
+        "OfficeIMO.Markdown.Tests/Markdown/Markdown_TableBlock_Render_Tests.cs",
+        "OfficeIMO.Markdown.Tests/Markdown/Markdown_VisualTheme_Tests.cs",
+        "OfficeIMO.Markdown.Tests/Markdown.Tables.cs",
+        "OfficeIMO.Pdf.Tests/Markdown.Pdf.cs",
+        "OfficeIMO.Word.Markdown/Converters/MarkdownToWordConverter.Formatting.cs"
+      ],
+      "note": "Null/nonpositive column hints remain unspecified. Numeric weights retain finite-positive fallback. Native MarkdownNativeTableBlock projects the same typed table, without a second width DTO or numeric compatibility property. HTML now applies the same finite-positive relative-weight fallback to numerator and denominator; infinite weights no longer emit Infinity%."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

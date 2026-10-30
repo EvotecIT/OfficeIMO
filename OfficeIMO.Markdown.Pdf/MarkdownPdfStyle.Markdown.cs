@@ -50,9 +50,9 @@ public sealed partial class MarkdownPdfStyle {
         tableStyle.HeaderTextColor = table.EmphasizeHeader ? ToPdfColorOrNull(palette.TableHeaderText) : null;
         tableStyle.TextColor = text;
         tableStyle.RowStripeFill = table.UseRowStripes ? ToPdfColorOrNull(palette.TableStripeBackground) : null;
-        tableStyle.BorderWidth = global::OfficeIMO.OfficeLength.Points(table.BorderWidth);
-        tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(table.CellPaddingX);
-        tableStyle.CellPaddingY = global::OfficeIMO.OfficeLength.Points(table.CellPaddingY);
+        tableStyle.BorderWidth = table.BorderWidth;
+        tableStyle.CellPaddingX = table.CellPaddingX;
+        tableStyle.CellPaddingY = table.CellPaddingY;
         pdfTheme.TableStyle = tableStyle;
 
         PdfCore.PdfTableStyle frontMatterStyle = pdfTheme.FrontMatterTableStyleSnapshot;
@@ -63,12 +63,12 @@ public sealed partial class MarkdownPdfStyle {
         frontMatterStyle.TextColor = text;
         pdfTheme.FrontMatterTableStyle = frontMatterStyle;
 
-        pdfTheme.CodeBlockPanelStyle = PanelFromShared(palette.CodeBackground, palette.Border, table.BorderWidth, 9, 7, 4, 8);
-        pdfTheme.SemanticBlockPanelStyle = PanelFromShared(palette.Surface, palette.Accent, table.BorderWidth, 9, 7, 4, 8);
+        pdfTheme.CodeBlockPanelStyle = PanelFromShared(palette.CodeBackground, palette.Border, table.BorderWidth.ToPoints(), 9, 7, 4, 8);
+        pdfTheme.SemanticBlockPanelStyle = PanelFromShared(palette.Surface, palette.Accent, table.BorderWidth.ToPoints(), 9, 7, 4, 8);
         pdfTheme.QuotePanelStyle = PanelWithLeftRuleFromShared(palette.Background, palette.Border, palette.Accent, 0.0, 3, 10, 8, 2, 9);
-        pdfTheme.CalloutPanelStyle = PanelFromShared(palette.Surface, palette.Accent, Math.Max(0.7, table.BorderWidth), 10, 8, 4, 9);
-        pdfTheme.TocPanelStyle = PanelWithLeftRuleFromShared(palette.Surface, palette.Border, palette.Accent, table.BorderWidth, 3, 11, 8, 4, 10);
-        MarkdownPdfFigureStyle figureStyle = MarkdownPdfFigureStyle.Framed(surface ?? global::OfficeIMO.OfficeColor.White, border ?? global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.9D, 0.9D), accent, muted, table.BorderWidth);
+        pdfTheme.CalloutPanelStyle = PanelFromShared(palette.Surface, palette.Accent, Math.Max(0.7, table.BorderWidth.ToPoints()), 10, 8, 4, 9);
+        pdfTheme.TocPanelStyle = PanelWithLeftRuleFromShared(palette.Surface, palette.Border, palette.Accent, table.BorderWidth.ToPoints(), 3, 11, 8, 4, 10);
+        MarkdownPdfFigureStyle figureStyle = MarkdownPdfFigureStyle.Framed(surface ?? global::OfficeIMO.OfficeColor.White, border ?? global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.9D, 0.9D), accent, muted, table.BorderWidth.ToPoints());
         if (surface == null && figureStyle.PdfPanelStyle != null) {
             PdfCore.PdfPanelStyle panelStyle = figureStyle.PdfPanelStyle;
             panelStyle.Background = null;

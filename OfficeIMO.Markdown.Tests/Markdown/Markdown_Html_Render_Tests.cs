@@ -119,20 +119,25 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
                 .WithColorScheme(MarkdownColorSchemeKind.Emerald)
                 .WithColors(accent: "SeaGreen", heading: "#064e3b", text: "#102030", background: "#f7fbff");
-            theme.Table.BorderWidth = 1.2;
-            theme.Table.CellPaddingX = 11;
+            theme.Table.BorderWidth = OfficeLength.Points(0.9);
+            theme.Table.CellPaddingX = OfficeLength.Pixels(11);
+            theme.Table.CellPaddingY = OfficeLength.Inches(5D / 96D);
             theme.Table.EmphasizeHeader = false;
             theme.Table.UseRowStripes = false;
 
-            string html = MarkdownDocument.Create()
+            using var document = MarkdownDocument.Create()
                 .H1("Theme")
-                .Table(t => t.Headers("Name", "Value").Row("Accent", "Emerald"))
-                .ToHtml(new MarkdownHtmlExportOptions
+                .Table(t => t.Headers("Name", "Value").Row("Accent", "Emerald"));
+            using var saved = new MemoryStream();
+            document.SaveAsHtml(saved, new MarkdownHtmlExportOptions
                 {
                     Title = "Shared Theme",
                     Theme = theme,
                     Kind = MarkdownHtmlKind.Document
                 });
+            saved.Position = 0;
+            using var reader = new StreamReader(saved);
+            string html = reader.ReadToEnd();
 
             Assert.Contains("body { --md-heading: #064e3b", html, StringComparison.Ordinal);
             Assert.Contains("article.markdown-body h1", html, StringComparison.Ordinal);

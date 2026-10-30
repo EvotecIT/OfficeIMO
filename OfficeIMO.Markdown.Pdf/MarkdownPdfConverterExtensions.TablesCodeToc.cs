@@ -50,7 +50,7 @@ public static partial class MarkdownPdfConverterExtensions {
         int rowColumnCount = table.Rows.Count == 0 ? 0 : table.Rows.Max(row => Math.Min(row.Count, TableBlock.MaxEffectiveColumnCount));
         int columnCount = Math.Max(Math.Min(table.Headers.Count, TableBlock.MaxEffectiveColumnCount), rowColumnCount);
         columnCount = Math.Max(columnCount, Math.Min(table.Alignments.Count, TableBlock.MaxEffectiveColumnCount));
-        columnCount = Math.Max(columnCount, Math.Min(table.ColumnWidthPoints.Count, TableBlock.MaxEffectiveColumnCount));
+        columnCount = Math.Max(columnCount, Math.Min(table.ColumnWidths.Count, TableBlock.MaxEffectiveColumnCount));
         columnCount = Math.Max(columnCount, Math.Min(table.ColumnWidthWeights.Count, TableBlock.MaxEffectiveColumnCount));
         columnCount = Math.Max(columnCount, CountLogicalColumns(table.HeaderCells));
 
@@ -156,16 +156,16 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         bool hasFixedWidths = false;
-        if (table.ColumnWidthPoints.Count > 0) {
-            var fixedWidths = new List<double?>(columnCount);
+        if (table.ColumnWidths.Count > 0) {
+            var fixedWidths = new List<OfficeLength?>(columnCount);
             for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                double? width = columnIndex < table.ColumnWidthPoints.Count ? table.ColumnWidthPoints[columnIndex] : null;
-                fixedWidths.Add(width.HasValue && width.Value > 0D && !double.IsNaN(width.Value) && !double.IsInfinity(width.Value) ? width : null);
+                OfficeLength? width = columnIndex < table.ColumnWidths.Count ? table.ColumnWidths[columnIndex] : null;
+                fixedWidths.Add(width.HasValue && width.Value > OfficeLength.Zero ? width : null);
                 hasFixedWidths |= fixedWidths[columnIndex].HasValue;
             }
 
             if (hasFixedWidths) {
-                style.ColumnWidths = (fixedWidths) is { } lengths7091 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths7091, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
+                style.ColumnWidths = fixedWidths;
             }
         }
 
