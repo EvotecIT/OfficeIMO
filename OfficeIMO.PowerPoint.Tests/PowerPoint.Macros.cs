@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (PowerPointDocument presentation =
                        PowerPointDocument.Create(pptm)) {
-                    presentation.AddSlide().AddTitle("Macro-enabled deck");
+                    presentation.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Macro-enabled deck");
                     presentation.SetVbaProject(project);
                     presentation.Save();
                 }

@@ -84,8 +84,10 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetPreset(
                 PowerPointSlideSizePreset.Screen16x9);
 
-            PowerPointSlide first = presentation.AddSlide();
-            first.AddTitle("Binary interoperability " + marker);
+            PowerPointSlide first = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
+            first.AddTextBox("Binary interoperability " + marker,
+                OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(30),
+                OfficeIMO.OfficeLength.Points(600), OfficeIMO.OfficeLength.Points(70));
             first.AddTextBox("OfficeIMO generated " + marker,                global::OfficeIMO.OfficeLength.Emus(800000),global::OfficeIMO.OfficeLength.Emus(1700000),global::OfficeIMO.OfficeLength.Emus(4200000),global::OfficeIMO.OfficeLength.Emus(700000));
             first.AddRectangle(OfficeIMO.OfficeLength.Emus(800000), OfficeIMO.OfficeLength.Emus(2800000), OfficeIMO.OfficeLength.Emus(2200000), OfficeIMO.OfficeLength.Emus(900000),
                     "Interop rectangle")
@@ -98,7 +100,7 @@ namespace OfficeIMO.Tests {
             first.Notes.Text = "LibreOffice round-trip notes " + marker;
             first.Transition = PowerPointSlideTransition.Fade;
 
-            PowerPointSlide second = presentation.AddSlide();
+            PowerPointSlide second = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
             second.AddTextBox("Second slide " + marker,                global::OfficeIMO.OfficeLength.Emus(900000),global::OfficeIMO.OfficeLength.Emus(900000),global::OfficeIMO.OfficeLength.Emus(4200000),global::OfficeIMO.OfficeLength.Emus(800000));
             PowerPointTable table = second.AddTable(2,2,                global::OfficeIMO.OfficeLength.Emus(900000),global::OfficeIMO.OfficeLength.Emus(2200000),global::OfficeIMO.OfficeLength.Emus(5000000),global::OfficeIMO.OfficeLength.Emus(1500000));
             table.HeaderRow = true;

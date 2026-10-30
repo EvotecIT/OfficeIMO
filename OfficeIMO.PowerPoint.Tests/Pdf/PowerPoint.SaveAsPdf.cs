@@ -1450,6 +1450,14 @@ public partial class PowerPointSaveAsPdfTests {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
+
+        // Leave text size unspecified so the PDF table style supplies row defaults.
+        var presentationPart = presentation.OpenXmlDocument.PresentationPart!;
+        foreach (A.DefaultRunProperties defaults in presentationPart.Presentation.DefaultTextStyle!
+                     .Descendants<A.DefaultRunProperties>().Concat(presentationPart.SlideMasterParts.Single()
+                         .SlideMaster!.TextStyles!.OtherStyle!.Descendants<A.DefaultRunProperties>())) {
+            defaults.FontSize = null;
+        }
         PowerPointTable table = presentation.AddSlide().AddTable(2,2,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(70));
         table.FirstRow = true;
         table.BandedRows = false;
@@ -1600,6 +1608,16 @@ public partial class PowerPointSaveAsPdfTests {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
+
+        // Exercise the configured PDF fallback without inherited font choices.
+        var presentationPart = presentation.OpenXmlDocument.PresentationPart!;
+        foreach (A.DefaultRunProperties defaults in presentationPart.Presentation.DefaultTextStyle!
+                     .Descendants<A.DefaultRunProperties>().Concat(presentationPart.SlideMasterParts.Single()
+                         .SlideMaster!.TextStyles!.OtherStyle!.Descendants<A.DefaultRunProperties>())) {
+            defaults.RemoveAllChildren<A.LatinFont>();
+            defaults.RemoveAllChildren<A.EastAsianFont>();
+            defaults.RemoveAllChildren<A.ComplexScriptFont>();
+        }
         PowerPointSlide slide = presentation.AddSlide();
 
         PowerPointTextBox styled = slide.AddTextBox("StyledSerif",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(28));
@@ -1634,6 +1652,16 @@ public partial class PowerPointSaveAsPdfTests {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
+
+        // Exercise the configured PDF fallback without inherited font choices.
+        var presentationPart = presentation.OpenXmlDocument.PresentationPart!;
+        foreach (A.DefaultRunProperties defaults in presentationPart.Presentation.DefaultTextStyle!
+                     .Descendants<A.DefaultRunProperties>().Concat(presentationPart.SlideMasterParts.Single()
+                         .SlideMaster!.TextStyles!.OtherStyle!.Descendants<A.DefaultRunProperties>())) {
+            defaults.RemoveAllChildren<A.LatinFont>();
+            defaults.RemoveAllChildren<A.EastAsianFont>();
+            defaults.RemoveAllChildren<A.ComplexScriptFont>();
+        }
         presentation.AddSlide().AddTextBox("ExplicitSerif",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(36));
 
         byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions {

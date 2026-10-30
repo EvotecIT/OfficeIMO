@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests {
             byte[] bytes;
             using (PowerPointDocument created =
                    PowerPointDocument.Create()) {
-                created.AddSlide().AddTitle("Read-only binary import");
+                created.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Read-only binary import");
                 created.BuiltinDocumentProperties.Title =
                     "Read-only metadata";
                 created.BuiltinDocumentProperties.Created = createdAt;
@@ -239,7 +239,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (PowerPointDocument created =
                    PowerPointDocument.Create()) {
-                created.AddSlide().AddTitle("Property guard");
+                created.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Property guard");
                 sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptDocument source = LegacyPptDocument.Load(

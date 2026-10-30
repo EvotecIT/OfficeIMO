@@ -277,6 +277,8 @@ namespace OfficeIMO.Tests {
             SlideMasterPart masterPart = presentation.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.First();
             P.ShapeTree tree = masterPart.SlideMaster!.CommonSlideData!.ShapeTree!;
+            // This fixture supplies the complete master shape set.
+            tree.RemoveAllChildren<P.Shape>();
             var titleBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(650000),OfficeIMO.OfficeLength.Emus(400000),                OfficeIMO.OfficeLength.Emus(7600000),OfficeIMO.OfficeLength.Emus(900000));
             tree.Append(
                 new P.Shape(
@@ -374,6 +376,8 @@ namespace OfficeIMO.Tests {
                     .PresentationPart!.SlideMasterParts.Single();
                 P.ShapeTree tree = masterPart.SlideMaster!
                     .CommonSlideData!.ShapeTree!;
+                // This fixture supplies the complete master shape set.
+                tree.RemoveAllChildren<P.Shape>();
                 tree.Append(
                     new P.Shape(
                         new P.NonVisualShapeProperties(

@@ -698,7 +698,11 @@ namespace OfficeIMO.Tests {
                 new[] { "A", "B" },
                 new[] { new OfficeSeries("Values", new[] { 1D, 2D }) });
             slide.AddChart(OfficeChartType.ColumnClustered, categoryData);
-            slide.AddChart(OfficeChartType.Line, categoryData);
+            // This chart supplies source XML for the mixed-snapshot rejection, not automatic layout.
+            slide.AddChart(OfficeChartType.Line, categoryData, new PowerPointChartOptions {
+                Left = OfficeLength.Points(20), Top = OfficeLength.Points(20),
+                Width = OfficeLength.Points(300), Height = OfficeLength.Points(200)
+            });
 
             ChartPart[] chartParts = slide.SlidePart.ChartParts.ToArray();
             C.PlotArea bubblePlot = chartParts[0].ChartSpace!

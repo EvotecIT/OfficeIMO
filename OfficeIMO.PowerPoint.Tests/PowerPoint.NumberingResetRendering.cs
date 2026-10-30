@@ -3,6 +3,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests;
 
@@ -84,6 +85,14 @@ public sealed class PowerPointNumberingResetRenderingTests {
     [InlineData(false, true, 14)]
     public void PDF_table_marker_percent_uses_effective_row_font_default(bool header, bool footer, int expectedSize) {
         using var presentation = PowerPointDocument.Create();
+
+        // Leave text size unspecified so the PDF table style supplies row defaults.
+        var presentationPart = presentation.OpenXmlDocument.PresentationPart!;
+        foreach (A.DefaultRunProperties defaults in presentationPart.Presentation.DefaultTextStyle!
+                     .Descendants<A.DefaultRunProperties>().Concat(presentationPart.SlideMasterParts.Single()
+                         .SlideMaster!.TextStyles!.OtherStyle!.Descendants<A.DefaultRunProperties>())) {
+            defaults.FontSize = null;
+        }
         var table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(150));
         table.FirstRow = header;
         table.LastRow = footer;

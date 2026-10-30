@@ -89,6 +89,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void BatchCompiler_DropsMalformedRichTextColorsBeforeJsonGeneration() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
+
+            // Exercise malformed direct color without a valid inherited text fill.
+            var presentationPart = presentation.OpenXmlDocument.PresentationPart!;
+            foreach (A.DefaultRunProperties defaults in presentationPart.Presentation.DefaultTextStyle!
+                         .Descendants<A.DefaultRunProperties>().Concat(presentationPart.SlideMasterParts.Single()
+                             .SlideMaster!.TextStyles!.OtherStyle!.Descendants<A.DefaultRunProperties>())) {
+                defaults.RemoveAllChildren<A.SolidFill>();
+            }
             PowerPointTextRun run = presentation.AddSlide()
                 .AddTextBox("Unsafe color",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(80))
                 .Paragraphs[0].Runs[0];
@@ -100,6 +108,17 @@ namespace OfficeIMO.Tests {
 
             Assert.Null(text.ForegroundColorHex);
             Assert.Null(Assert.Single(text.TextRuns).ForegroundColorHex);
+
+            // A malformed direct fill must still allow a valid inherited theme color.
+            presentation.SetThemeColor(PowerPointThemeColor.Accent1, "2468AC");
+            presentationPart.SlideMasterParts.Single().SlideMaster!.TextStyles!.OtherStyle!
+                .GetFirstChild<A.Level1ParagraphProperties>()!.GetFirstChild<A.DefaultRunProperties>()!
+                .Append(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Accent1 }));
+            GoogleSlidesTextBox inherited = Assert.Single(
+                Assert.Single(presentation.BuildGoogleSlidesBatch().Slides)
+                    .Elements.OfType<GoogleSlidesTextBox>());
+            Assert.Equal("2468AC", inherited.ForegroundColorHex);
+            Assert.Equal("2468AC", Assert.Single(inherited.TextRuns).ForegroundColorHex);
         }
 
         [Fact]

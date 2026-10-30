@@ -134,6 +134,8 @@ public sealed class PowerPointChartLabelProjectionTests {
     [InlineData(OfficeChartType.Scatter)]
     public void SharedSnapshot_ResolvesThemedNonRadialDataLabelText(OfficeChartType kind) {
         using PowerPointDocument presentation = PowerPointDocument.Create();
+        // The chart style applies a 25% luminance offset to Text1.
+        presentation.SetThemeColor(PowerPointThemeColor.Dark1, "000000");
         presentation.SetThemeColor(PowerPointThemeColor.Accent3, "2468AC");
         var series = new OfficeSeries("Values", new[] { 3d, 4d },
             kind == OfficeChartType.Scatter ? new[] { 1d, 2d } : null);

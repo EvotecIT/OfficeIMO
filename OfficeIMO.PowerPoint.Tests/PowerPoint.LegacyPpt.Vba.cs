@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
                 "Sub Fresh()\nEnd Sub");
             byte[] binary;
             using (PowerPointDocument created = PowerPointDocument.Create()) {
-                created.AddSlide().AddTitle("VBA");
+                created.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("VBA");
                 SetVbaProject(created, projectBytes);
 
                 LegacyPptWritePreflightReport preflight = created.AnalyzeLegacyPptWrite();
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             byte[] binary;
             using (PowerPointDocument created =
                    PowerPointDocument.Create()) {
-                created.AddSlide().AddTitle("Macro source");
+                created.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Macro source");
                 SetVbaProject(created, projectBytes);
                 binary = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
             byte[] binary;
             using (PowerPointDocument created =
                    PowerPointDocument.Create()) {
-                created.AddSlide().AddTitle("Macro source");
+                created.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Macro source");
                 SetVbaProject(created, projectBytes);
                 binary = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
@@ -175,7 +175,7 @@ namespace OfficeIMO.Tests {
                 "ReplacementModule", "Sub Replacement()\nEnd Sub");
             byte[] sourceBytes;
             using (PowerPointDocument created = PowerPointDocument.Create()) {
-                created.AddSlide().AddTitle("Replace VBA");
+                created.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Replace VBA");
                 SetVbaProject(created, originalProject);
                 sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
@@ -313,7 +313,7 @@ namespace OfficeIMO.Tests {
                 "Sub Compressed()\nEnd Sub");
             byte[] uncompressedBytes;
             using (PowerPointDocument created = PowerPointDocument.Create()) {
-                created.AddSlide().AddTitle("Compressed VBA");
+                created.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Compressed VBA");
                 SetVbaProject(created, projectBytes);
                 uncompressedBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }

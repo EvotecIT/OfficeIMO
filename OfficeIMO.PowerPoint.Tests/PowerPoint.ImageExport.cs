@@ -623,6 +623,8 @@ namespace OfficeIMO.Tests {
 
             PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.TitleOnly);
             PowerPointTextBox slideTitle = slide.AddTitle("Slide local title",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(32));
+            // Keep this 32-point frame focused on placeholder suppression, not title overflow.
+            slideTitle.FontSize = global::OfficeIMO.OfficeLength.Points(14);
             slideTitle.Color = "1F4E79";
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);

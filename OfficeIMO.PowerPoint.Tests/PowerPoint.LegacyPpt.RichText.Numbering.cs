@@ -141,6 +141,8 @@ namespace OfficeIMO.Tests {
                     .PresentationPart!.SlideMasterParts.Single();
                 P.BodyStyle bodyStyle = masterPart.SlideMaster!.TextStyles!
                     .BodyStyle!;
+                // Author the complete level set used by this numbering fixture.
+                bodyStyle.RemoveAllChildren();
                 bodyStyle.Append(
                     new A.Level1ParagraphProperties(
                         new A.AutoNumberedBullet {
@@ -198,6 +200,8 @@ namespace OfficeIMO.Tests {
                 P.BodyStyle bodyStyle = source.OpenXmlDocument
                     .PresentationPart!.SlideMasterParts.Single().SlideMaster!
                     .TextStyles!.BodyStyle!;
+                // Author the complete level set used by this numbering fixture.
+                bodyStyle.RemoveAllChildren();
                 bodyStyle.Append(
                     new A.Level1ParagraphProperties(
                         new A.AutoNumberedBullet {
@@ -272,7 +276,9 @@ namespace OfficeIMO.Tests {
                            writable: false)) {
                     imagePart.FeedData(imageStream);
                 }
-                masterPart.SlideMaster!.TextStyles!.BodyStyle!.Append(
+                // This fixture supplies a single picture-bullet level.
+                masterPart.SlideMaster!.TextStyles!.BodyStyle!.RemoveAllChildren();
+                masterPart.SlideMaster.TextStyles.BodyStyle.Append(
                     new A.Level1ParagraphProperties(
                         new A.PictureBullet(new A.Blip {
                             Embed = masterPart.GetIdOfPart(imagePart)

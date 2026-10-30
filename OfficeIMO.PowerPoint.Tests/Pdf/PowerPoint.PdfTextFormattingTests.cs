@@ -230,6 +230,9 @@ public sealed class PowerPointPdfTextFormattingTests {
             ?? themeLevel.AppendChild(new A.DefaultRunProperties());
         themeDefaults.Italic = true;
         themeDefaults.FontSize = 1800;
+        // Replace the inherited choices instead of adding duplicate font/fill elements.
+        themeDefaults.RemoveAllChildren<A.LatinFont>();
+        themeDefaults.RemoveAllChildren<A.SolidFill>();
         themeDefaults.Append(new A.LatinFont { Typeface = "+mn-lt" });
         themeDefaults.Append(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Accent1 }));
         if (colorSource == "paragraph") {

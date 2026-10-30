@@ -540,6 +540,8 @@ namespace OfficeIMO.Tests {
                 .PresentationPart!.SlideMasterParts.Single();
             P.ShapeTree tree = masterPart.SlideMaster!.CommonSlideData!
                 .ShapeTree!;
+            // This fixture supplies the complete master shape set.
+            tree.RemoveAllChildren<P.Shape>();
             tree.Append(new P.Shape(
                 new P.NonVisualShapeProperties(
                     new P.NonVisualDrawingProperties {
@@ -579,6 +581,8 @@ namespace OfficeIMO.Tests {
             sourceLayout.SlideLayout!.CommonSlideData!.Name =
                 "Imported editable title-master layout";
             sourceLayout.SlideLayout.Save();
+            // This fixture supplies the complete master shape set.
+            sourceMaster.SlideMaster!.CommonSlideData!.ShapeTree!.RemoveAllChildren<P.Shape>();
             sourceMaster.SlideMaster!.CommonSlideData!.ShapeTree!.Append(
                 new P.Shape(
                     new P.NonVisualShapeProperties(

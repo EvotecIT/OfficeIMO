@@ -120,6 +120,8 @@ namespace OfficeIMO.Tests {
                     PowerPointSlideLayoutType.Blank);
                 SlideMasterPart masterPart = source.OpenXmlDocument
                     .PresentationPart!.SlideMasterParts.Single();
+                // This fixture supplies the complete master shape set.
+                masterPart.SlideMaster!.CommonSlideData!.ShapeTree!.RemoveAllChildren<P.Shape>();
                 masterPart.SlideMaster!.CommonSlideData!.ShapeTree!.Append(
                     new P.Shape(
                         new P.NonVisualShapeProperties(

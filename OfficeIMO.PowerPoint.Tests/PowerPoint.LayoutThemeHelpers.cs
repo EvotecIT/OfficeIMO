@@ -122,10 +122,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void DefaultThemeColors_IncludeSystemColorBackedEntries() {
+        public void ThemeColors_IncludeSystemColorBackedEntries() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
+
+                // Supply system-backed entries explicitly; their resolved values are the contract.
+                A.ColorScheme scheme = presentation.OpenXmlDocument.PresentationPart!
+                    .SlideMasterParts.Single().ThemePart!.Theme!.ThemeElements!.ColorScheme!;
+                scheme.Dark1Color!.RemoveAllChildren();
+                scheme.Dark1Color.Append(new A.SystemColor {
+                    Val = A.SystemColorValues.WindowText, LastColor = "000000"
+                });
+                scheme.Light1Color!.RemoveAllChildren();
+                scheme.Light1Color.Append(new A.SystemColor {
+                    Val = A.SystemColorValues.Window, LastColor = "FFFFFF"
+                });
+                presentation.SetThemeColor(PowerPointThemeColor.Accent1, "156082");
 
                 IReadOnlyDictionary<PowerPointThemeColor, string> colors = presentation.GetThemeColors();
 

@@ -18,6 +18,9 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (PowerPointDocument source =
                    PowerPointDocument.Create()) {
+                // Count only the six authored fields, without a master slide-number field.
+                source.OpenXmlDocument.PresentationPart!.SlideMasterParts.Single()
+                    .SlideMaster!.CommonSlideData!.ShapeTree!.RemoveAllChildren<P.Shape>();
                 PowerPointTextBox textBox = source.AddSlide(
                         PowerPointSlideLayoutType.Blank)
                     .AddTextBox(string.Empty);

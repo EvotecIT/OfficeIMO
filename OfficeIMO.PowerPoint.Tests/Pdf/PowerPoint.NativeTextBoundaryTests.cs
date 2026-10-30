@@ -5,6 +5,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -165,6 +166,16 @@ public sealed class PowerPointNativeTextBoundaryTests {
     [InlineData("paragraph")]
     public void ConfiguredFallbackFontsApplyToUnstyledGlyphsButPreserveAuthoredFonts(string flow) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
+
+        // Exercise the configured PDF fallback without inherited font choices.
+        var presentationPart = presentation.OpenXmlDocument.PresentationPart!;
+        foreach (A.DefaultRunProperties defaults in presentationPart.Presentation.DefaultTextStyle!
+                     .Descendants<A.DefaultRunProperties>().Concat(presentationPart.SlideMasterParts.Single()
+                         .SlideMaster!.TextStyles!.OtherStyle!.Descendants<A.DefaultRunProperties>())) {
+            defaults.RemoveAllChildren<A.LatinFont>();
+            defaults.RemoveAllChildren<A.EastAsianFont>();
+            defaults.RemoveAllChildren<A.ComplexScriptFont>();
+        }
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox box = slide.AddTextBox("DEFAULT",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(80));
         box.FontSize = global::OfficeIMO.OfficeLength.Points(12);

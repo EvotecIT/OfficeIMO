@@ -4778,11 +4778,11 @@
       "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "applied": "phase-b-applied",
+      "note": "The implementation already takes optional typed left/top/width/height while retaining its original frame defaults and validation. No raw compatibility overload remains.",
       "candidate": {
         "status": "scratch-only-unapplied",
         "scope": "remaining-slide-shape-media-placement",
@@ -7266,7 +7266,7 @@
       "old": "OfficeIMO.PowerPoint.PowerPointDeckPreflightFinding.ResolvedFontSizePoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointDeckPreflightFinding.ResolvedFontSize : double (points)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDeckPreflightFinding.ResolvedFontSize : OfficeLength?",
       "reason": "Parameter and property names never carry a unit suffix; font sizes stay numeric points.",
       "file": "OfficeIMO.PowerPoint/PowerPointDeckPreflightReport.cs",
       "category": "units",
@@ -7276,7 +7276,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Still pending implementation. The explicit physical font-size design overrides the map numeric-font placeholder; use OfficeLength without a compatibility twin."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.CollisionTolerancePoints",
@@ -7298,7 +7298,7 @@
       "old": "OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.DefaultFontSizePoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.DefaultFontSize : double (points)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.DefaultFontSize : OfficeLength",
       "reason": "Parameter and property names never carry a unit suffix; font sizes stay numeric points.",
       "file": "OfficeIMO.PowerPoint/PowerPointDeckPreflightOptions.cs",
       "category": "units",
@@ -7308,7 +7308,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Still pending implementation. The explicit physical font-size design overrides the map numeric-font placeholder; use OfficeLength without a compatibility twin."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MaximumDecorativeBleedPoints",
@@ -7330,7 +7330,7 @@
       "old": "OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MinimumReadableFontSizePoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MinimumReadableFontSize : double (points)",
+      "new": "OfficeIMO.PowerPoint.PowerPointDeckPreflightOptions.MinimumReadableFontSize : OfficeLength",
       "reason": "Parameter and property names never carry a unit suffix; font sizes stay numeric points.",
       "file": "OfficeIMO.PowerPoint/PowerPointDeckPreflightOptions.cs",
       "category": "units",
@@ -7340,7 +7340,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Still pending implementation. The explicit physical font-size design overrides the map numeric-font placeholder; use OfficeLength without a compatibility twin."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointGuideInfo.PositionEmus",
@@ -8463,11 +8463,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The surviving Position property and tab-stop constructor already use OfficeLength; the old Points property is removed. Current PowerPoint net8/net10/std2/isolated472 builds qualify the declaration."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingBottomCm",
@@ -10523,6 +10523,35 @@
         "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeSpacing.cs",
         "OfficeIMO.PowerPoint.Tests/PowerPoint.ShapeStack.cs",
         "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointShapeLayoutCommand.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "Native metrics, fallback fonts, inherited styles, theme colors and exact-layout fixtures implicitly rely on the former creation defaults.",
+      "new": "Qualify each measured contract with explicit font, frame, paragraph/list/table style, native placeholder or source theme inputs while retaining Modern public creation defaults.",
+      "reason": "The tests must reach the behavior they measure without pinning superseded authoring defaults or silently discarding assertions.",
+      "note": "39 focused nonperformance cases pass on net10.0, including 35 recorded failing rows and applicable companion cases. Existing assertions and strict loss policies remain; PowerPoint also checks that malformed direct color retains valid inherited appearance. This fixture qualification does not close unrelated product defects, default Modern-table reading coverage, visual baselines or final full-suite gates.",
+      "files": [
+        "OfficeIMO.PowerPoint.Tests/Pdf/PowerPoint.NativeTextBoundaryTests.cs",
+        "OfficeIMO.PowerPoint.Tests/Pdf/PowerPoint.PdfTextFormattingTests.cs",
+        "OfficeIMO.PowerPoint.Tests/Pdf/PowerPoint.SaveAsPdf.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ChartLabelProjection.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.GoogleSlides.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ImageExport.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.LayoutThemeHelpers.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.LegacyPpt.InternalHyperlinks.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.LegacyPpt.InteropArtifacts.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.LegacyPpt.MasterPreservation.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.LegacyPpt.Masters.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.LegacyPpt.Properties.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.LegacyPpt.RichText.Fields.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.LegacyPpt.RichText.Numbering.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.LegacyPpt.Vba.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.Macros.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.NumberingResetRendering.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.SharedBubbleCharts.cs"
       ]
     }
   ],
