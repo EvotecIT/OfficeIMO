@@ -494,6 +494,18 @@
         "PowerShell/PSWriteOffice/Tests/WebsiteArtifactExport.Tests.ps1"
       ],
       "note": "Retain the existing unsigned, no-install website build boundary. Extend the existing tracked/untracked engine checks to the front-door package and an unrelated working directory; all four new cases reproduce the omitted-input bug before the fix."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "change": "Add a bounded front-door NativeAOT smoke host using the shared conversion-batch scenario.",
+      "reason": "The fully rooted production host retains a separate .NET10 qualification. The bounded net8/net10 host exercises the front door, registered workflows, seven option bags, encrypted output, verified reuse and exact geometry/color fingerprint rejection without duplicating scenario logic.",
+      "files": [
+        "OfficeIMO.AotSmoke/OfficeIMO.AotSmoke.csproj",
+        "OfficeIMO.AotSmoke/Program.cs",
+        "OfficeIMO.All.AotSmoke/ConversionBatchScenario.cs"
+      ],
+      "note": "Native .NET10 publish/run passes. The macOS .NET8 profile completes native code generation but Apple Xcode27.1 linking fails with too many large addends, including the size-optimization experiment. This is retained as an explicit qualification limit; target frameworks and trimming/AOT analyzers remain enabled. Unique source stems reflect the adopted extension-replacement batch naming contract."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

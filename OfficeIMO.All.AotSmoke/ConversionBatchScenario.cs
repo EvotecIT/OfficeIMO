@@ -12,16 +12,16 @@ internal static class ConversionBatchScenario {
         string state = Path.Combine(root, "batch-state");
         Directory.CreateDirectory(input);
         File.WriteAllText(Path.Combine(input, "literal.txt"), "Native checkpoint text");
-        File.WriteAllText(Path.Combine(input, "page.html"), "<p>Native checkpoint HTML</p>");
-        File.WriteAllText(Path.Combine(input, "page.md"), "# Native checkpoint Markdown");
-        File.WriteAllText(Path.Combine(input, "page.rtf"), "{\\rtf1\\ansi Native checkpoint RTF}");
-        using (var word = OfficeIMO.Word.WordDocument.Create(Path.Combine(input, "page.docx"))) {
+        File.WriteAllText(Path.Combine(input, "html.html"), "<p>Native checkpoint HTML</p>");
+        File.WriteAllText(Path.Combine(input, "markdown.md"), "# Native checkpoint Markdown");
+        File.WriteAllText(Path.Combine(input, "rtf.rtf"), "{\\rtf1\\ansi Native checkpoint RTF}");
+        using (var word = OfficeIMO.Word.WordDocument.Create(Path.Combine(input, "word.docx"))) {
             word.AddParagraph("Native checkpoint Word"); word.Save();
         }
-        using (var excel = OfficeIMO.Excel.ExcelDocument.Create(Path.Combine(input, "page.xlsx"))) {
+        using (var excel = OfficeIMO.Excel.ExcelDocument.Create(Path.Combine(input, "excel.xlsx"))) {
             excel.AddSheet("Data").Cell(1, 1, "Native checkpoint Excel"); excel.Save();
         }
-        using (var slides = OfficeIMO.PowerPoint.PowerPointDocument.Create(Path.Combine(input, "page.pptx"))) {
+        using (var slides = OfficeIMO.PowerPoint.PowerPointDocument.Create(Path.Combine(input, "slides.pptx"))) {
             slides.AddSlide().AddTextBox("Native checkpoint slide",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(500),global::OfficeIMO.OfficeLength.Points(60)); slides.Save();
         }
         const string password = "Native smoke output password";
@@ -34,7 +34,8 @@ internal static class ConversionBatchScenario {
                 PowerPoint = new() { IncludeHiddenSlides = true },
                 Html = new() { InteractiveFormControls = false },
                 Markdown = new() { Title = "Native Markdown" },
-                RegisteredSettings = new OfficeWorkflowRouteSettings { Rtf = new() { IncludeHiddenText = true, PdfOptions = new PdfCreateOptions { DefaultFontSize = OfficeLength.Points(14) } } }
+                RegisteredSettings = new OfficeWorkflowRouteSettings { Rtf = new() { IncludeHiddenText = true, PdfOptions = new PdfCreateOptions { DefaultFontSize = OfficeLength.Points(14), Theme = OfficeTheme.Modern,
+                    DefaultTextColor = OfficeColor.FromNormalizedRgb(0.123456, 0.3, 0.6) } } }
             }
         };
         OfficeWorkflow.RegisterConversions();
@@ -58,7 +59,13 @@ internal static class ConversionBatchScenario {
         OfficeBatchReport rtfRejected = await OfficeConverter.ConvertAsync(request with { ConversionOptions = changedRtf });
         if (rtfRejected.Summary.Failed != 1 || rtfRejected.Summary.Reused != 6)
             throw new InvalidOperationException("Native checkpoint reused changed registered-route geometry.");
-        Console.WriteLine("PASS | Native conversion batch: seven format option bags, encrypted TXT, verified reuse and exact physical settings rejection.");
+        OfficeConversionOptions changedColor = request.ConversionOptions.Clone();
+        var colored = (OfficeWorkflowRouteSettings)changedColor.RegisteredSettings!;
+        colored.Rtf!.PdfOptions!.DefaultTextColor = OfficeColor.FromNormalizedRgb(0.12345601, 0.3, 0.6);
+        OfficeBatchReport colorRejected = await OfficeConverter.ConvertAsync(request with { ConversionOptions = changedColor });
+        if (colorRejected.Summary.Failed != 1 || colorRejected.Summary.Reused != 6)
+            throw new InvalidOperationException("Native checkpoint reused changed normalized color precision.");
+        Console.WriteLine("PASS | Native conversion batch: seven format option bags, encrypted TXT, verified reuse and exact physical/color settings rejection.");
     }
 
     private sealed class BatchItems : IProgress<OfficeBatchItemReport> {
