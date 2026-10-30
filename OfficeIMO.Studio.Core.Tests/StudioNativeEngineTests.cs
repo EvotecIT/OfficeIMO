@@ -730,6 +730,32 @@ public sealed class StudioNativeEngineTests : IDisposable {
         Assert.Empty((await document.SearchAsync("quarterly", default)).Hits);
     }
 
+    [Fact]
+    public async Task SearchableOcrWaitsForNativeRecognizerAfterCancellation() {
+        string image = await CreateScanImageAsync("pending-recognizer", 300, 400);
+        string scan = Path.Combine(_root, "pending-recognizer.pdf");
+        await PdfScanComposer.ComposeAsync([new PdfScanPage(image, [])], scan, default);
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(scan, null, default);
+        using var entered = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        using var cancellation = new CancellationTokenSource();
+
+        Task<StudioNativeSearchableResult> operation = document.MakeSearchableAsync((_, _, _) => {
+            entered.Set();
+            if (!release.Wait(TimeSpan.FromSeconds(10))) throw new TimeoutException("Recognizer release was not signaled.");
+            return [];
+        }, cancellation.Token);
+        try {
+            Assert.True(entered.Wait(TimeSpan.FromSeconds(10)), "Native recognizer did not start.");
+            cancellation.Cancel();
+            await Task.Delay(150);
+            Assert.False(operation.IsCompleted);
+        } finally {
+            release.Set();
+        }
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation);
+    }
+
     [Theory]
     [InlineData(90)]
     [InlineData(180)]
