@@ -40,7 +40,7 @@ const string standardsHtml = """
 HtmlConversionDocument standardsSource = HtmlConversionDocument.Parse(standardsHtml);
 var standardsOptions = new HtmlRenderOptions {
     Mode = HtmlRenderMode.Paged,
-    PageSize = new OfficePageSize(5D, 4D),
+    PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(5D), global::OfficeIMO.OfficeLength.Inches(4D)),
     Margins = HtmlRenderMargins.All(32D),
     FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
 };
@@ -76,7 +76,7 @@ string advancedHtml = "<style>@page{size:4in 4in;margin:24px;bleed:4px;marks:cro
 HtmlConversionDocument advancedSource = HtmlConversionDocument.Parse(advancedHtml);
 var advancedOptions = new HtmlRenderOptions {
     Mode = HtmlRenderMode.Paged,
-    PageSize = new OfficePageSize(4D, 4D),
+    PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(4D)),
     Margins = HtmlRenderMargins.All(24D),
     FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
 };

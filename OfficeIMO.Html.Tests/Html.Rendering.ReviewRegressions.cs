@@ -40,7 +40,7 @@ public sealed partial class HtmlRenderingTests {
         string html = string.Concat(Enumerable.Range(0, 40).Select(index => "<div style='line-height:20px'>Line" + index + "</div>"));
         HtmlToPdfOptions options = new HtmlToPdfOptions();
         options = new HtmlToPdfOptions {
-            PageSize = new OfficePageSize(2D, 2D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(2D), global::OfficeIMO.OfficeLength.Inches(2D)),
             Margins = HtmlRenderMargins.All(8D)
         };
 
@@ -272,7 +272,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(4D, 4D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(4D)),
             Margins = HtmlRenderMargins.All(20D)
         });
 
@@ -286,7 +286,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(4D, 4D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(4D)),
             Margins = HtmlRenderMargins.All(20D)
         });
 
@@ -300,7 +300,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(4D, 4D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(4D)),
             Margins = HtmlRenderMargins.All(20D)
         });
 
@@ -318,7 +318,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(4D, 4D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(4D)),
             Margins = HtmlRenderMargins.All(20D)
         });
 
@@ -332,7 +332,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(4D, 4D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(4D)),
             Margins = HtmlRenderMargins.All(20D)
         });
 
@@ -346,7 +346,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(4D, 4D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(4D)),
             Margins = HtmlRenderMargins.All(20D)
         });
 

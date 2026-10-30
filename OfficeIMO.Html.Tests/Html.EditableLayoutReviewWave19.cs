@@ -80,7 +80,7 @@ public sealed class HtmlEditableLayoutReviewWave19Tests {
             + "<span style='height:32px'>Only visible fragment</span></div>";
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(4D, 3D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)),
             Margins = HtmlRenderMargins.All(12D)
         };
 

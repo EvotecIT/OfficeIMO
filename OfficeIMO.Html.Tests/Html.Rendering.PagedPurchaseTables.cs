@@ -71,7 +71,7 @@ public sealed partial class HtmlRenderingTests {
             .Replace("TAX", tax.ToString("N2", System.Globalization.CultureInfo.InvariantCulture))
             .Replace("GRAND_TOTAL", grandTotal.ToString("N2", System.Globalization.CultureInfo.InvariantCulture));
         var options = new HtmlToPdfOptions {
-            PageSize = new OfficePageSize(5D, 4D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(5D), global::OfficeIMO.OfficeLength.Inches(4D)),
             Margins = HtmlRenderMargins.All(16D),
             PdfOptions = new PdfCore.PdfCreateOptions {
                 FileVersion = PdfCore.PdfFileVersion.Pdf17,

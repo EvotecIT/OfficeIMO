@@ -202,7 +202,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             OfficePageSize officePageSize = ExcelPageSetupGeometry.ResolvePageSize(pageSetup, OfficePageSizes.Letter);
-            return new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(officePageSize.ToPointWidth()),OfficeIMO.OfficeLength.Points(officePageSize.ToPointHeight()));
+            return new PdfCore.PdfPageSize(officePageSize.Width,officePageSize.Height);
         }
 
         private static PdfCore.PdfPageMargins GetEffectiveMargins(ExcelPdfExportOptions options, ExcelSheetPageSetup? pageSetup) {

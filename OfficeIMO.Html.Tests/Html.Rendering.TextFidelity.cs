@@ -75,8 +75,8 @@ public sealed partial class HtmlRenderingTests {
         // serialized PDF owns its selected fallback program and glyphs.
         byte[] savedPdf = (document.ToPdf(new HtmlToPdfOptions(options) {
             Mode = options.Mode,
-            PageSize = new OfficePageSize(rendered.Pages[0].Width / HtmlRenderOptions.CssPixelsPerInch,
-                rendered.Pages[0].Height / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(rendered.Pages[0].Width / HtmlRenderOptions.CssPixelsPerInch),
+                global::OfficeIMO.OfficeLength.Inches(rendered.Pages[0].Height / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false
         })).ToBytes();
         var savedPage = OfficeIMO.Pdf.PdfReadDocument.Open(savedPdf).Pages[0];

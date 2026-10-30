@@ -20,7 +20,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.InRange(result.RenderResult.Document.Pages[0].Width, 1199.99D, 1200.01D);
         (double width, _) = PdfCore.PdfReadDocument.Open(result.ToBytes()).Pages[0].GetPageSize();
-        Assert.Equal(OfficePageSizes.A4.WidthInches * 72D, width, 2);
+        Assert.Equal(OfficePageSizes.A4.Width.ToInches() * 72D, width, 2);
         Assert.All(result.RenderResult.Document.Pages[0].Visuals.Where(visual => visual.Kind == HtmlRenderVisualKind.Shape),
             visual => Assert.IsType<HtmlRenderShape>(visual));
     }

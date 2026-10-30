@@ -19,7 +19,7 @@ public sealed partial class HtmlRenderingTests {
             + "<main style='padding-top:80px'>MainFlowMarker</main>";
         var options = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(400D / HtmlRenderOptions.CssPixelsPerInch, 400D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(400D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(400D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(60D)
         };
@@ -44,7 +44,7 @@ public sealed partial class HtmlRenderingTests {
             + "<main style='padding-top:80px'>MainFlowMarker</main>";
         var options = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(400D / HtmlRenderOptions.CssPixelsPerInch, 400D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(400D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(400D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(60D)
         };

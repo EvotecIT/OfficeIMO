@@ -1112,7 +1112,7 @@ public sealed class HtmlPdfTests {
             + "<tfoot><tr><td><input name='summary' value='Totals'></td></tr></tfoot></table>";
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch, 180D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(320D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(180D / HtmlRenderOptions.CssPixelsPerInch)),
             Margins = HtmlRenderMargins.All(16D)
         };
 
@@ -1133,7 +1133,7 @@ public sealed class HtmlPdfTests {
         string html = "<input name='fixed-search' value='Search' style='position:fixed;top:4px;left:4px'>" + body;
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch, 180D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(320D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(180D / HtmlRenderOptions.CssPixelsPerInch)),
             Margins = HtmlRenderMargins.All(16D)
         };
 

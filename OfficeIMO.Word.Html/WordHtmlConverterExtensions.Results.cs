@@ -112,7 +112,7 @@ public static partial class WordHtmlConverterExtensions {
         if (options.DefaultOrientation == OfficePageOrientation.Landscape) {
             (widthInches, heightInches) = (heightInches, widthInches);
         }
-        return new OfficeIMO.Drawing.OfficePageSize(widthInches, heightInches);
+        return new OfficeIMO.Drawing.OfficePageSize(global::OfficeIMO.OfficeLength.Inches(widthInches), global::OfficeIMO.OfficeLength.Inches(heightInches));
     }
 
     private static WordPageSizeDefinition ResolveWordPageSizeDefinition(WordPageSize? pageSize) =>

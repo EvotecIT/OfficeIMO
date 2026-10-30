@@ -17,7 +17,7 @@ public sealed partial class HtmlRenderingTests {
             + ".clip span{position:relative;top:-150px;font:200px/200px Courier}</style>"
             + "<div class='clip'><span>A</span></div>";
         var options = new HtmlToPdfOptions {
-            PageSize = new OfficePageSize(300D / 96D, 100D / 96D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(300D / 96D), global::OfficeIMO.OfficeLength.Inches(100D / 96D)),
             Margins = HtmlRenderMargins.All(0), ViewportWidth = 300, ViewportHeight = 300,
             HonorCssPageRules = false, AllowSystemFontFallback = false
         };
@@ -35,7 +35,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("<div style='transform:translateY(50px);transform-origin:0 0'><div style='transform:translateY(100px);transform-origin:0 0'>MovedMarker</div></div>", 1)]
     public void SnapshotProjectionPreservesTranslatedText(string content, int expectedPage) {
         string html = "<style>html,body{margin:0;height:300px}div{font:16px/20px Courier}</style>" + content;
-        var options = new HtmlToPdfOptions {PageSize=new OfficePageSize(300d/96d,100d/96d), Margins=HtmlRenderMargins.All(0),
+        var options = new HtmlToPdfOptions {PageSize=new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(300d/96d),global::OfficeIMO.OfficeLength.Inches(100d/96d)), Margins=HtmlRenderMargins.All(0),
             ViewportWidth=300, ViewportHeight=300, HonorCssPageRules=false, AllowSystemFontFallback=false};
         byte[] pdf = HtmlConversionDocument.Parse(html).RenderToPdfBytes(
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderEncoder.Pdf, options));
@@ -53,7 +53,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>html,body{margin:0;height:300px}div{font:16px/20px Courier}</style>"+
             "<div style='height:20px;overflow:hidden;"+(moveClip?transform:"")+"'><div style='"+
             (moveClip?"":transform)+"'>ClippedMarker</div></div>";
-        var options = new HtmlToPdfOptions { PageSize=new OfficePageSize(300d/96d,100d/96d), Margins=HtmlRenderMargins.All(0),
+        var options = new HtmlToPdfOptions { PageSize=new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(300d/96d),global::OfficeIMO.OfficeLength.Inches(100d/96d)), Margins=HtmlRenderMargins.All(0),
             ViewportWidth=300, ViewportHeight=300, HonorCssPageRules=false, AllowSystemFontFallback=false };
         byte[] pdf = HtmlConversionDocument.Parse(html).RenderToPdfBytes(
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderEncoder.Pdf, options));

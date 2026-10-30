@@ -127,7 +127,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>html,body{margin:0;height:250px}</style><div style='height:250px'></div>"
             + "<div style='position:absolute;left:10px;top:10px;width:100px;height:100px;clip:"
             + (empty ? "rect(0,0,0,0)" : "rect(10px,50px,40px,20px)") + "'>" + FixedClipLink() + "</div>";
-        var options = new HtmlToPdfOptions { PageSize = new OfficePageSize(120D / 96D, 100D / 96D),
+        var options = new HtmlToPdfOptions { PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(120D / 96D), global::OfficeIMO.OfficeLength.Inches(100D / 96D)),
             ViewportWidth = 120, ViewportHeight = 250, Margins = HtmlRenderMargins.All(0), AutoFitWidePrintContent = false };
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
         HtmlRenderRequest request = HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf, options);

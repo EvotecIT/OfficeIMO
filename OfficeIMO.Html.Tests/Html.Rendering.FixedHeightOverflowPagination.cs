@@ -243,7 +243,7 @@ public sealed partial class HtmlRenderingTests {
     private static HtmlRenderOptions FixedHeightOverflowOptions() {
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(700D / HtmlRenderOptions.CssPixelsPerInch, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(700D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(100D / HtmlRenderOptions.CssPixelsPerInch)),
             ViewportWidth = 800D,
             ViewportHeight = 1000D,
             Margins = HtmlRenderMargins.All(0D),

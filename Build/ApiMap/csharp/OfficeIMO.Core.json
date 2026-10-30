@@ -1402,6 +1402,19 @@
         "OfficeIMO.Word.Tests/Word.SharedChartAppearance.cs"
       ],
       "note": "Core retains positive sizes without a native upper cap, null and exact EMUs through copies. Native writers preserve their existing format minimum/72-point maximum and round whole points away from zero. Contextual drawing font sizes stay numeric; no earlier font proposal or compatibility wrapper is restored."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "OfficePageSize(double widthInches, double heightInches), WidthInches/HeightInches and unit-specific conversion factories/helpers.",
+      "new": "OfficePageSize(OfficeLength width, OfficeLength height), typed Width/Height; read units through OfficeLength.",
+      "reason": "A physical page size carries explicit units consistently with document and image export geometry.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Core/OfficePageSize.cs",
+        "OfficeIMO.Core/OfficePageSizes.cs"
+      ],
+      "note": "Remove FromMillimeters and ToPointWidth/ToPointHeight convenience helpers; consumers construct Millimeters/Inches lengths and read Width.ToPoints or Height.ToPoints. Portrait/landscape use typed lengths. Raster DPI/scale stay numeric with existing ceiling/minimum-pixel behavior. Preserve native artifact assertions, relative geometry and contextual font sizes; no aliases or golden changes."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

@@ -614,8 +614,8 @@ public static partial class HtmlComputedStyleEngine {
             if (context == HtmlCssMediaContext.Print) {
                 return new MediaEnvironment(
                     context,
-                    OfficePageSizes.A4.WidthInches * HtmlRenderOptions.CssPixelsPerInch,
-                    OfficePageSizes.A4.HeightInches * HtmlRenderOptions.CssPixelsPerInch,
+                    OfficePageSizes.A4.Width.ToInches() * HtmlRenderOptions.CssPixelsPerInch,
+                    OfficePageSizes.A4.Height.ToInches() * HtmlRenderOptions.CssPixelsPerInch,
                     features);
             }
 

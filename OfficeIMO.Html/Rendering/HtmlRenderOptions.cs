@@ -261,10 +261,10 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
         (Mode == HtmlRenderMode.Paged ? HtmlCssMediaContext.Print : HtmlCssMediaContext.Screen);
 
     /// <summary>Gets the paged surface width in CSS pixels.</summary>
-    public double PageWidth => PageSize.WidthInches * CssPixelsPerInch;
+    public double PageWidth => PageSize.Width.ToInches() * CssPixelsPerInch;
 
     /// <summary>Gets the paged surface height in CSS pixels.</summary>
-    public double PageHeight => PageSize.HeightInches * CssPixelsPerInch;
+    public double PageHeight => PageSize.Height.ToInches() * CssPixelsPerInch;
 
     /// <summary>Creates an independent options snapshot.</summary>
     public virtual HtmlRenderOptions Clone() => CopyTo(new HtmlRenderOptions());

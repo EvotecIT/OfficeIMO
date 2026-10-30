@@ -124,7 +124,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("style='margin-top:140px'", 1D)]
     public void HtmlMathMlSource_PaintTransformsAndPaginationKeepRecoverableSource(string attributes, double pageHeight) {
         string html = "<html lang='en'><body style='margin:0'><div " + attributes + ">BEFORE " + SourceMath + " AFTER</div></body></html>";
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions { PageSize = new OfficeIMO.Drawing.OfficePageSize(3D, pageHeight), HonorCssPageRules = false, Margins = HtmlRenderMargins.All(0D) })).ToBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions { PageSize = new OfficeIMO.Drawing.OfficePageSize(global::OfficeIMO.OfficeLength.Inches(3D), global::OfficeIMO.OfficeLength.Inches(pageHeight)), HonorCssPageRules = false, Margins = HtmlRenderMargins.All(0D) })).ToBytes();
         Assert.Equal(SourceMath, Encoding.UTF8.GetString(Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments(pdf)).Bytes));
         PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(PdfCore.PdfInspector.Inspect(pdf).TaggedContent);
         Assert.Equal("x squared", Assert.Single(tagged.StructureElements, item => item.StructureType == "Formula").AlternateText);

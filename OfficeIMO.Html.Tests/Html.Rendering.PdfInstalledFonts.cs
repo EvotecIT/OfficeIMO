@@ -126,7 +126,7 @@ public sealed partial class HtmlRenderingTests {
             + "</style><ul><li><a href='https://www.w3.org/WAI/'>Home</a></li>"
             + "<li><a href='https://www.w3.org/WAI/design-develop/'>Design &amp; Develop</a></li></ul>";
         var options = new HtmlToPdfOptions {
-            PageSize = new OfficeIMO.Drawing.OfficePageSize(816D / HtmlRenderOptions.CssPixelsPerInch, 900D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficeIMO.Drawing.OfficePageSize(global::OfficeIMO.OfficeLength.Inches(816D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(900D / HtmlRenderOptions.CssPixelsPerInch)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false
         };

@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
                 Mode = pagedReflow ? HtmlRenderMode.Paged : HtmlRenderMode.Continuous,
                 UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser,
                 ViewportWidth = 600D, ViewportHeight = 300D,
-                PageSize = new OfficePageSize(600D / HtmlRenderOptions.CssPixelsPerInch, 300D / HtmlRenderOptions.CssPixelsPerInch),
+                PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(600D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(300D / HtmlRenderOptions.CssPixelsPerInch)),
                 HonorCssPageRules = false, Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false,
                 FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
             });

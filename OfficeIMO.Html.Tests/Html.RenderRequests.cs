@@ -157,7 +157,7 @@ public sealed class HtmlRenderRequestTests {
     public void PrintPagedClipsHorizontalBodyOverflowToThePageCanvas() {
         const string html = "<style>html,body{margin:0}</style><div style='width:500px;height:20px;background:#336699'>Wide PDF</div>";
         var options = new HtmlToPdfOptions {
-            PageSize = new OfficePageSize(3D, 2D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(3D), global::OfficeIMO.OfficeLength.Inches(2D)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false
         };
@@ -175,7 +175,7 @@ public sealed class HtmlRenderRequestTests {
     public void CssMediaIsIndependentFromPagedReflow() {
         const string html = "<style>.target{color:#0000ff}@media screen{.target{color:#ff0000}}@media print{.target{color:#008000}}</style><p class='target'>Media</p>";
         var options = new HtmlRenderOptions {
-            PageSize = new OfficePageSize(4D, 3D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false
         };
@@ -239,7 +239,7 @@ public sealed class HtmlRenderRequestTests {
     public void ScreenSnapshotPagedSlicesOneCompletedScreenLayout() {
         var options = new HtmlRenderOptions {
             ViewportWidth = 384D,
-            PageSize = new OfficePageSize(4D, 3D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false
         };
@@ -263,7 +263,7 @@ public sealed class HtmlRenderRequestTests {
             + "<p>First marker</p><p>Second marker</p><p>Third marker</p>";
         var options = new HtmlRenderOptions {
             ViewportWidth = 384D,
-            PageSize = new OfficePageSize(4D, 3D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false
         };
@@ -291,7 +291,7 @@ public sealed class HtmlRenderRequestTests {
             + "<p>First</p><p>Second</p><p>Third</p>";
         var options = new HtmlRenderOptions {
             ViewportWidth = 384D,
-            PageSize = new OfficePageSize(4D, 3D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false,
             MaxProjectedVisuals = 20
@@ -312,7 +312,7 @@ public sealed class HtmlRenderRequestTests {
     public void ProjectionWorkAndStitchedSurfaceBoundsFailClosed() {
         var projectionOptions = new HtmlRenderOptions {
             ViewportWidth = 384D,
-            PageSize = new OfficePageSize(4D, 3D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false,
             MaxProjectedVisuals = 1
@@ -323,7 +323,7 @@ public sealed class HtmlRenderRequestTests {
         Assert.Throws<InvalidOperationException>(() => HtmlRenderEngine.Execute(source, snapshot));
 
         var surfaceOptions = new HtmlRenderOptions {
-            PageSize = new OfficePageSize(4D, 3D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false,
             MaxSurfaceHeight = 500
@@ -337,7 +337,7 @@ public sealed class HtmlRenderRequestTests {
     [Fact]
     public void PageSelectionAndStitchingAreResolvedBeforeEncoding() {
         var options = new HtmlRenderOptions {
-            PageSize = new OfficePageSize(4D, 3D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false
         };
@@ -387,7 +387,7 @@ public sealed class HtmlRenderRequestTests {
     public void ExplicitPdfRequestCanSelectScreenMediaOrFrozenScreenSlicing() {
         const string html = "<style>html,body{margin:0}.content{height:700px}@media print{.content{height:100px}}</style><div class='content'>PDF</div>";
         var options = new HtmlToPdfOptions {
-            PageSize = new OfficePageSize(4D, 3D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)),
             ViewportWidth = 384D,
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false

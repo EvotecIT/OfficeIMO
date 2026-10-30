@@ -178,8 +178,8 @@ internal static class HtmlMhtmlEvidenceRunner {
         options.ResourcePolicy.AllowDocumentFontEmbedding = allowDocumentFontEmbedding;
         if (profile == HtmlRenderIntentProfile.ScreenSnapshotPaged) {
             options.PageSize = new OfficePageSize(
-                ViewportWidth / HtmlRenderOptions.CssPixelsPerInch,
-                ViewportHeight / HtmlRenderOptions.CssPixelsPerInch);
+                global::OfficeIMO.OfficeLength.Inches(ViewportWidth / HtmlRenderOptions.CssPixelsPerInch),
+                global::OfficeIMO.OfficeLength.Inches(ViewportHeight / HtmlRenderOptions.CssPixelsPerInch));
         }
         HtmlRenderRequest request = HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf, options);
         return document.RenderToPdfDocumentResultAsync(request);

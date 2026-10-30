@@ -2050,16 +2050,14 @@ OfficeIMO.Drawing.OfficeMathRenderOptions.UseFontMathMetrics.get -> bool
 OfficeIMO.Drawing.OfficeMathRenderOptions.UseFontMathMetrics.set -> void
 OfficeIMO.Drawing.OfficeMathRenderer
 OfficeIMO.Drawing.OfficePageSize
-OfficeIMO.Drawing.OfficePageSize.HeightInches.get -> double
+OfficeIMO.Drawing.OfficePageSize.Height.get -> OfficeIMO.OfficeLength
 OfficeIMO.Drawing.OfficePageSize.Landscape() -> OfficeIMO.Drawing.OfficePageSize
 OfficeIMO.Drawing.OfficePageSize.OfficePageSize() -> void
-OfficeIMO.Drawing.OfficePageSize.OfficePageSize(double widthInches, double heightInches) -> void
+OfficeIMO.Drawing.OfficePageSize.OfficePageSize(OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> void
 OfficeIMO.Drawing.OfficePageSize.Portrait() -> OfficeIMO.Drawing.OfficePageSize
 OfficeIMO.Drawing.OfficePageSize.ToPixelHeight(double dpi, double scale = 1) -> int
 OfficeIMO.Drawing.OfficePageSize.ToPixelWidth(double dpi, double scale = 1) -> int
-OfficeIMO.Drawing.OfficePageSize.ToPointHeight() -> double
-OfficeIMO.Drawing.OfficePageSize.ToPointWidth() -> double
-OfficeIMO.Drawing.OfficePageSize.WidthInches.get -> double
+OfficeIMO.Drawing.OfficePageSize.Width.get -> OfficeIMO.OfficeLength
 OfficeIMO.Drawing.OfficePageSizes
 OfficeIMO.Drawing.OfficePathCommand
 OfficeIMO.Drawing.OfficePathCommand.ControlPoint1.get -> OfficeIMO.Drawing.OfficePoint
@@ -7185,7 +7183,6 @@ static OfficeIMO.Drawing.OfficeMathRenderer.Measure(OfficeIMO.Drawing.OfficeMath
 static OfficeIMO.Drawing.OfficeMathRenderer.Measure(OfficeIMO.Drawing.OfficeMathExpression! expression, OfficeIMO.Drawing.OfficeMathRenderOptions? options, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Drawing.OfficeMathLayoutMetrics
 static OfficeIMO.Drawing.OfficeMathRenderer.Render(OfficeIMO.Drawing.OfficeMathExpression! expression, OfficeIMO.Drawing.OfficeMathRenderOptions? options = null) -> OfficeIMO.Drawing.OfficeDrawing!
 static OfficeIMO.Drawing.OfficeMathRenderer.Render(OfficeIMO.Drawing.OfficeMathExpression! expression, OfficeIMO.Drawing.OfficeMathRenderOptions? options, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Drawing.OfficeDrawing!
-static OfficeIMO.Drawing.OfficePageSize.FromMillimeters(double widthMillimeters, double heightMillimeters) -> OfficeIMO.Drawing.OfficePageSize
 static OfficeIMO.Drawing.OfficePageSizes.A3.get -> OfficeIMO.Drawing.OfficePageSize
 static OfficeIMO.Drawing.OfficePageSizes.A4.get -> OfficeIMO.Drawing.OfficePageSize
 static OfficeIMO.Drawing.OfficePageSizes.A5.get -> OfficeIMO.Drawing.OfficePageSize

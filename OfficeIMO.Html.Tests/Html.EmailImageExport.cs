@@ -445,8 +445,8 @@ public sealed class HtmlEmailImageExportTests {
         try {
             var imageOptions2 = new EmailImageExportOptions {
                     PageSize = new OfficePageSize(
-                        360D / HtmlRenderOptions.CssPixelsPerInch,
-                        260D / HtmlRenderOptions.CssPixelsPerInch)
+                        global::OfficeIMO.OfficeLength.Inches(360D / HtmlRenderOptions.CssPixelsPerInch),
+                        global::OfficeIMO.OfficeLength.Inches(260D / HtmlRenderOptions.CssPixelsPerInch))
                 };
             imageOptions2.Mode = HtmlRenderMode.Paged;
             imageOptions2.Format = OfficeImageExportFormat.Png;

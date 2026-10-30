@@ -35,7 +35,7 @@ public sealed partial class HtmlRenderingTests {
             "<style>html,body{margin:0}svg,img{display:block;width:96px;height:96px}</style>" + content);
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(1D, 1D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(1D), global::OfficeIMO.OfficeLength.Inches(1D)),
             ViewportWidth = 96D,
             ViewportHeight = 96D,
             HonorCssPageRules = false,
