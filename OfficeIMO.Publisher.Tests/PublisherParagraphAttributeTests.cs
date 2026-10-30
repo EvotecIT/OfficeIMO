@@ -4,6 +4,22 @@ namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherParagraphAttributeTests {
     [Fact]
+    public void Native_tab_lines_follow_paragraph_center_and_right_alignment() {
+        PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/TextAlignedTabs/native-textalignedtabs.pub"));
+        Assert.Single(document.Pages); Assert.Equal(3, document.TextStories.Count);
+        var alignments = new[] { OfficeTextAlignment.Left, OfficeTextAlignment.Center, OfficeTextAlignment.Right };
+        for (int index = 0; index < alignments.Length; index++) {
+            PublisherTextStory story = document.TextStories[index];
+            Assert.EndsWith("Left\tMiddle\tRight\n", story.Text);
+            Assert.All(story.Paragraphs, paragraph => {
+                Assert.Equal(alignments[index], paragraph.Alignment);
+                Assert.Equal(index != 0, paragraph.TabStops!.AlignWithParagraph);
+                Assert.Equal(new[] { 72D, 144D }, paragraph.TabStops.Stops.Select(stop => stop.Position));
+            });
+        }
+    }
+
+    [Fact]
     public void Native_paragraph_controls_retain_spacing_indents_alignment_and_multiple_indexed_tabs() {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/TextParagraphAttributes/native-textparagraphattributes.pub"));
         Assert.Equal(4, document.Pages.Count); Assert.Equal(14, document.TextStories.Count);

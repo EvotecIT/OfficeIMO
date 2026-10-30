@@ -22,7 +22,12 @@ internal sealed class PublisherParagraphStyle {
     internal OfficeTextPadding Margins => new(Math.Max(0, (Left ?? 0) + Math.Min(0, FirstLine ?? 0)),
         Before ?? 0, Math.Max(0, Right ?? 0), After ?? 0);
     internal OfficeTextParagraphIndent Indent => new(Math.Max(0, FirstLine ?? 0), Math.Max(0, -(FirstLine ?? 0)));
-    internal OfficeTextTabStops TabStops => new(Tabs ?? Array.Empty<OfficeTextTabStop>(), origin: -Margins.Left);
+    internal OfficeTextTabStops TabStops {
+        get {
+            var tabs = new OfficeTextTabStops(Tabs ?? Array.Empty<OfficeTextTabStop>(), origin: -Margins.Left);
+            return Alignment is OfficeTextAlignment.Center or OfficeTextAlignment.Right ? tabs.WithParagraphAlignment() : tabs;
+        }
+    }
 
     internal PublisherParagraphStyle Inherit(PublisherParagraphStyle fallback) => new() {
         DefaultStyleIndex = DefaultStyleIndex ?? fallback.DefaultStyleIndex,

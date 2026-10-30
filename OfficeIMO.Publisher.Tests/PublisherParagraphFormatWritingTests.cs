@@ -23,12 +23,15 @@ public sealed class PublisherParagraphFormatWritingTests {
     [InlineData("chained-reset")]
     [InlineData("allocation")]
     [InlineData("fractional-spacing")]
+    [InlineData("aligned-center")]
+    [InlineData("aligned-right")]
     public void Public_native_saves_retain_requested_paragraph_layout_and_unrelated_storage(string variant) {
-        string fixture = variant is "single" or "clear-tabs" or "chained-reset" ? "TextParagraphAttributes/native-textparagraphattributes.pub"
+        string fixture = variant is "aligned-center" or "aligned-right" ? "TextAlignedTabs/native-textalignedtabs.pub"
+            : variant is "single" or "clear-tabs" or "chained-reset" ? "TextParagraphAttributes/native-textparagraphattributes.pub"
             : variant == "linked" ? "Newsletter/native-newsletter.pub" : variant == "per-paragraph" ? "TextParagraphs/native-textparagraphs.pub" : "Text/native-text.pub";
         byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/" + fixture));
         PublisherDocument document = PublisherDocument.Load(source);
-        uint id = variant == "single" ? 10U : variant == "clear-tabs" ? 14U : variant == "chained-reset" ? 15U : variant == "linked" ? 3U : 2U;
+        uint id = variant == "aligned-center" ? 3U : variant == "aligned-right" ? 4U : variant == "single" ? 10U : variant == "clear-tabs" ? 14U : variant == "chained-reset" ? 15U : variant == "linked" ? 3U : 2U;
         PublisherTextStory story = document.TextStories.Single(item => item.Id == id);
         int count = variant == "topology" ? 4 : variant == "allocation" ? 240 : story.Paragraphs.Count;
         var requested = Enumerable.Range(0, count).Select(index => Format(story.Paragraphs[variant is "topology" or "allocation" ? 0 : index],
@@ -60,12 +63,14 @@ public sealed class PublisherParagraphFormatWritingTests {
     [InlineData("tab-origin")]
     [InlineData("two-indents")]
     [InlineData("non-native-unit")]
+    [InlineData("tab-paragraph-alignment")]
     public void Native_unrepresentable_paragraph_settings_refuse_output_even_when_loss_is_allowed(string variant) {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/Text/native-text.pub"));
         var source = document.TextStories[0].Paragraphs[0];
         var stops = new OfficeTextTabStops(new[] { variant == "tab-leader" ? new OfficeTextTabStop(72).WithLeader(".") : new OfficeTextTabStop(72) },
             origin: variant == "tab-origin" ? 10 : 0);
-        var paragraph = new OfficeRichTextParagraph(source.Runs, source.Alignment, source.LineHeight,
+        var runs = variant == "tab-paragraph-alignment" ? new[] { new OfficeRichTextRun("Left\tMiddle\tRight", 12, OfficeColor.Black, fontFamily: "Arial") } : source.Runs;
+        var paragraph = new OfficeRichTextParagraph(runs, variant == "tab-paragraph-alignment" ? OfficeTextAlignment.Center : source.Alignment, source.LineHeight,
             variant == "non-native-unit" ? new OfficeTextPadding(0, 1D / 3, 0, 0) : source.Margins,
             variant == "two-indents" ? new OfficeTextParagraphIndent(12, 18) : source.Indent, source.LineHeightFactor).WithTabStops(stops);
         document.ReplaceStoryParagraphs(2, new[] { paragraph });
@@ -81,7 +86,8 @@ public sealed class PublisherParagraphFormatWritingTests {
             : variant == "hanging" ? new OfficeTextPadding(18, source.Margins.Top, source.Margins.Right, source.Margins.Bottom)
             : variant == "chained-reset" ? OfficeTextPadding.Empty
             : variant == "allocation" ? new OfficeTextPadding(source.Margins.Left, ordinal + 1, source.Margins.Right, source.Margins.Bottom)
-            : variant == "fractional-spacing" ? new OfficeTextPadding(source.Margins.Left, 1.21, source.Margins.Right, 2.42) : source.Margins;
+            : variant == "fractional-spacing" ? new OfficeTextPadding(source.Margins.Left, 1.21, source.Margins.Right, 2.42)
+            : variant is "aligned-center" or "aligned-right" ? new OfficeTextPadding(source.Margins.Left, source.Margins.Top, source.Margins.Right, 12) : source.Margins;
         OfficeTextParagraphIndent indent = variant is "first" or "combined" ? OfficeTextParagraphIndent.FirstLine(18)
             : variant == "hanging" ? OfficeTextParagraphIndent.Hanging(18) : variant == "chained-reset" ? OfficeTextParagraphIndent.Empty : source.Indent;
         double? height = variant == "exact" ? 18 : variant is "factor" or "single" or "combined" or "linked" or "chained-reset" ? null : source.LineHeight;
@@ -89,6 +95,7 @@ public sealed class PublisherParagraphFormatWritingTests {
         var tabs = new OfficeTextTabStops(variant is "tabs" or "combined" ? new[] { new OfficeTextTabStop(72), new OfficeTextTabStop(144) }
             : variant is "clear-tabs" or "chained-reset" ? Array.Empty<OfficeTextTabStop>() : source.TabStops!.Stops, origin: -margins.Left);
         if (variant == "chained-reset") alignment = OfficeTextAlignment.Left;
-        return new OfficeRichTextParagraph(source.Runs, alignment, height, margins, indent, factor).WithTabStops(tabs);
+        return new OfficeRichTextParagraph(source.Runs, alignment, height, margins, indent, factor)
+            .WithTabStops(tabs.WithParagraphAlignment(alignment is OfficeTextAlignment.Center or OfficeTextAlignment.Right));
     }
 }

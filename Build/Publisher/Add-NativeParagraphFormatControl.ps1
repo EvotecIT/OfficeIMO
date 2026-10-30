@@ -1,6 +1,6 @@
 # Synthetic whole-frame controls; no selection or character-range probing.
 function Add-NativeParagraphFormatControl {
-    param($Publication, $FirstPage)
+    param($Publication, $FirstPage, [switch] $AlignedTabs)
     $profiles = @(
         @{ Name = 'Default' },
         @{ Name = 'Center'; Alignment = 1 },
@@ -17,6 +17,13 @@ function Add-NativeParagraphFormatControl {
         @{ Name = 'Tabs'; Tabs = @(72, 144) },
         @{ Name = 'Combined'; Alignment = 1; LeftIndent = 36; RightIndent = 18; FirstLineIndent = 12; SpaceBefore = 6; SpaceAfter = 9; Rule = 5; Spacing = 1.25; Tabs = @(72, 144) }
     )
+    if ($AlignedTabs) {
+        $profiles = @(
+            @{ Name = 'LeftTabs'; Alignment = 0; Tabs = @(72, 144) },
+            @{ Name = 'CenterTabs'; Alignment = 1; Tabs = @(72, 144) },
+            @{ Name = 'RightTabs'; Alignment = 2; Tabs = @(72, 144) }
+        )
+    }
     $owner = $FirstPage
     $pages = 1
     for ($index = 0; $index -lt $profiles.Count; $index++) {

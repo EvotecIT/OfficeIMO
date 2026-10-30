@@ -15,7 +15,8 @@ internal static class PublisherQuillParagraphStyleWriter {
             var copy = new byte[span.Length]; Buffer.BlockCopy(source.Bytes, span.Offset, copy, 0, span.Length); return copy;
         }
         OfficeTextTabStops? tabs = after.TabStops;
-        if (tabs == null || tabs.DefaultInterval != 36 || tabs.Origin != -after.Margins.Left || tabs.AlignWithParagraph
+        bool aligned = after.Alignment is OfficeTextAlignment.Center or OfficeTextAlignment.Right;
+        if (tabs == null || tabs.DefaultInterval != 36 || tabs.Origin != -after.Margins.Left || tabs.AlignWithParagraph != aligned
             || tabs.Stops.Any(stop => stop.Alignment != OfficeTextTabAlignment.Left || stop.Character != "."
                 || stop.LeaderText != null || stop.LineLeader != null || stop.LeaderStyle != null)) return null;
         var blocks = new PublisherBlockReader(source, context);
@@ -98,9 +99,9 @@ internal static class PublisherQuillParagraphStyleWriter {
     }
 
     internal static bool TabsEqual(OfficeTextTabStops? a, OfficeTextTabStops? b) => ReferenceEquals(a, b)
-        || a != null && b != null && a.Origin == b.Origin && TabContentEqual(a, b);
+        || a != null && b != null && a.Origin == b.Origin && a.AlignWithParagraph == b.AlignWithParagraph && TabContentEqual(a, b);
     private static bool TabContentEqual(OfficeTextTabStops? a, OfficeTextTabStops? b) => ReferenceEquals(a, b)
-        || a != null && b != null && a.DefaultInterval == b.DefaultInterval && a.AlignWithParagraph == b.AlignWithParagraph
+        || a != null && b != null && a.DefaultInterval == b.DefaultInterval
         && a.Stops.Count == b.Stops.Count && a.Stops.Zip(b.Stops, (x, y) => x.Position == y.Position && x.Alignment == y.Alignment
             && x.Character == y.Character && x.LeaderText == y.LeaderText && Equals(x.LineLeader, y.LineLeader) && Equals(x.LeaderStyle, y.LeaderStyle)).All(value => value);
 }
