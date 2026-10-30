@@ -3533,7 +3533,7 @@
     },
     {
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied-with-standalone-benchmark-exclusion",
       "change": "Corpus tools load owned byte snapshots through the public stream API. Direct-destination and stage benchmarks migrate toward the public disposable PdfDocument reading model. Optional PDF benchmark compilation still exposes earlier API migration gaps, which remain for the consumer pass; no timings are run.",
       "reason": "Mechanical consumer closure and shared-owner preservation for the approved API change.",
       "files": [
@@ -3545,7 +3545,8 @@
         "OfficeIMO.Pdf.Benchmarks.Comparisons/PdfDirectDestinationScalingBenchmarks.cs",
         "OfficeIMO.Pdf.Benchmarks/PdfRenderStageWorkload.cs",
         "OfficeIMO.Pdf.Benchmarks/PdfRenderStageWorkload.Validation.cs"
-      ]
+      ],
+      "note": "Corpus tool compiles on net8.0/net10.0 and the optional comparison benchmark compiles on net10.0, without timings. The standalone stage benchmark is outside the normal solution and the required benchmark gate; its remaining44compile diagnostics (18native-kernel accessibility,22argument migrations,2root-color namespace references,2void-save result assignments) remain explicitly unqualified. No public reader visibility or compatibility wrapper is restored."
     },
     {
       "old": "OfficeIMO.Pdf.PdfPageImageExportBuilder; OfficeIMO.Pdf.PdfDocumentImageExportBuilder",
@@ -5934,6 +5935,67 @@
       "files": [
         "OfficeIMO.Pdf/Reading/Model/PdfPageInfo.cs",
         "OfficeIMO.Pdf.Tests/Pdf/PdfInspectorBasicTests.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Native font and overlay documentation used a generic page-unit label.",
+      "new": "Document Tf/local font space, native page units, top-left selection space, bottom-left physical-point overlay space and displayed-edge crop distances separately.",
+      "reason": "Retaining numeric native read/edit contracts requires accurate units for each API. Physical authoring/stamps/output layout remain OfficeLength.",
+      "note": "Documentation only; CSharp tokens and runtime behavior are unchanged. The physical-point visual edit contracts are listed explicitly under the coordinate exception.",
+      "files": [
+        "OfficeIMO.Pdf/Reading/Core/PdfReadPage.AnnotationGeometry.cs",
+        "OfficeIMO.Pdf/Reading/Layout/ContentStructureExtractor.cs",
+        "OfficeIMO.Pdf/Reading/Understanding/PdfUnderstandingTableCandidate.cs",
+        "OfficeIMO.Pdf/Reading/Understanding/PdfUnderstandingContracts.cs",
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTextElements.cs",
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTableDiagnostics.cs",
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalPage.Reconstruction.cs",
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalTableElements.cs",
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalReadingOrder.cs",
+        "OfficeIMO.Pdf/Reading/Logical/PdfLogicalMediaAnnotations.cs",
+        "OfficeIMO.Pdf/Reading/Model/PdfPagePoint.cs",
+        "OfficeIMO.Pdf/Reading/Model/PdfOutlineItem.cs",
+        "OfficeIMO.Pdf/Reading/Model/PdfLinkAnnotation.cs",
+        "OfficeIMO.Pdf/Reading/Model/PdfImagePlacement.cs",
+        "OfficeIMO.Pdf/Reading/Model/PdfDocumentOpenAction.cs",
+        "OfficeIMO.Pdf/Reading/Model/PdfFormField.cs",
+        "OfficeIMO.Pdf/Reading/Model/PdfPageInfo.cs",
+        "OfficeIMO.Pdf/Reading/Model/PdfNamedDestination.cs",
+        "OfficeIMO.Pdf/Reading/Model/PdfPageBox.cs",
+        "OfficeIMO.Pdf/Reading/Model/PdfPageGeometry.cs",
+        "OfficeIMO.Pdf/Reading/Model/PdfImageClipInfo.cs",
+        "OfficeIMO.Pdf/Reading/Model/PdfAnnotation.cs",
+        "OfficeIMO.Pdf/Reading/Model/PdfPageRectangle.cs",
+        "OfficeIMO.Pdf/Reading/Text/PdfTextGlyph.cs",
+        "OfficeIMO.Pdf/Reading/Text/PdfTextSpan.Glyphs.cs",
+        "OfficeIMO.Pdf/Core/PdfDocumentImageEditor.cs",
+        "OfficeIMO.Pdf/Core/PdfDocumentPages.Mapping.cs",
+        "OfficeIMO.Pdf/Core/PdfDocumentTextEditor.cs",
+        "OfficeIMO.Pdf/Core/PdfDocumentAnnotations.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfAcroFormEditModels.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfPageAttributeEdit.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfAcroFormEditSession.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfAnnotationCreateOptions.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfStaticFormRecognitionModels.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfRedactionMatch.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfRedactionAnnotationOptions.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfAnnotationUpdateOptions.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfPageOverlayOptions.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfRedactionArea.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfRedactionApplyOptions.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfStampAnnotationOptions.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfBookmarkEditSession.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfAnnotationReviewWorkflow.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfRedactionRegion.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfTextEditingContracts.cs",
+        "OfficeIMO.Pdf/Signatures/PdfVisibleSignatureAppearanceOptions.cs",
+        "OfficeIMO.Pdf/Model/PdfConversionProofOptions.cs",
+        "OfficeIMO.Pdf/Model/PdfOpenActionOptions.cs",
+        "OfficeIMO.Pdf/README.md",
+        "Docs/officeimo.api-design.md"
       ]
     }
   ],

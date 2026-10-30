@@ -548,6 +548,18 @@
       "files": [
         "OfficeIMO.Studio.Tests/RedactionReviewTests.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Remaining consumer fixtures depend on appended diagram/iWork output extensions or unrelated body-text snapping/dense line geometry.",
+      "new": "Expect drawing.pdf/layers.pdf/source.xlsx; keep group-move text outside horizontal snap guides and use explicit disjoint-line leading in selection fixtures.",
+      "reason": "Preserve publication/checkpoint assertions, original group translation tolerance, exact group offset/undo and strict interline gap assertions under current defaults. No production behavior or typography default is changed.",
+      "files": [
+        "OfficeIMO.Studio.Tests/StudioAnnotationSelectionTests.cs",
+        "OfficeIMO.Studio.Tests/PdfEditorCommandTests.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

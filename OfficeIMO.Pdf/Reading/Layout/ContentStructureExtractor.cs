@@ -51,7 +51,7 @@ public sealed class PdfStructuredPage {
 }
 
 /// <summary>Represents a horizontal band grouping multiple lines.</summary>
-/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfStructuredBand {
     /// <summary>Top Y (points) of the band (higher value is nearer top of page).</summary>
     public double YTop { get; set; }
@@ -74,7 +74,7 @@ public sealed class PdfStructuredListItem {
 }
 
 /// <summary>Table model with column geometry and extracted rows.</summary>
-/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfStructuredTable {
     /// <summary>Top Y (points) of the band that produced this table.</summary>
     public double YTop { get; set; }
@@ -93,7 +93,7 @@ public sealed class PdfStructuredTable {
 }
 
 /// <summary>Column geometry for a detected table.</summary>
-/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfStructuredTableColumn {
     /// <summary>Left X coordinate (points).</summary>
     public double From { get; set; }
@@ -179,7 +179,7 @@ public sealed class PdfStructuredListItemPage {
 }
 
 /// <summary>Heuristic heading line inferred from font size and geometry.</summary>
-/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfStructuredHeading {
     /// <summary>Best-effort heading level, where 1 is the largest heading tier.</summary>
     public int Level { get; set; }
@@ -192,7 +192,7 @@ public sealed class PdfStructuredHeading {
 }
 
 /// <summary>Heuristic paragraph group built from nearby non-list, non-table lines.</summary>
-/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfStructuredParagraph {
     /// <summary>Paragraph text with grouped lines joined by spaces.</summary>
     public string Text { get; set; } = string.Empty;
@@ -209,7 +209,7 @@ public sealed class PdfStructuredParagraph {
 }
 
 /// <summary>Geometry detail for a single emitted line.</summary>
-/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfStructuredLine {
     /// <summary>Baseline Y coordinate for the line (points from bottom).</summary>
     public double Y { get; set; }

@@ -922,8 +922,8 @@
     },
     {
       "phase": "B",
-      "applied": "analysis-generated-review-pending",
-      "note": "The public surface inventory now reads compiled metadata, documentation and examples across the seven Tier 1 packages. It follows cross-package model signatures and preserves interfaces, overrides, operators and model data, with separate constructor evidence. Accessibility decisions and shipped analyzer baselines remain pending review. The baseline generator uses compiler SARIF RS0016 declarations and tracks nullable signatures; its five-declaration compiler fixture rebuilds without warnings."
+      "applied": "phase-b-applied",
+      "note": "The generated public-surface candidate list is applied. Undocumented native/parser plumbing is internal; documented options, results, interfaces and model data remain public. The seven Tier1 packages ship compiler-generated nullable PublicAPI baselines and pass API/XML analysis on the declared host targets."
     },
     {
       "phase": "B",

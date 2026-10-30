@@ -10979,7 +10979,7 @@
     {
       "phase": "B",
       "applied": "implemented-streaming-writer-qualified",
-      "note": "ExcelDocument.CreateWriter returns ExcelWorkbookWriter. Multiple typed synchronous/asynchronous tables, explicit row callbacks, DataTable and IDataReader reuse the native XLSX row encoder with inline strings and deferred package metadata. OfficeTheme is emitted as native theme/font data. File output uses the existing atomic file commit owner, and failed row sources discard the staging file. Native package, cancellation and non-seekable ownership checks pass on net8.0/net10.0; legacy static entry-point consumer migration remains part of Phase B."
+      "note": "ExcelDocument.CreateWriter returns ExcelWorkbookWriter. Multiple typed synchronous/asynchronous tables, explicit row callbacks, DataTable and IDataReader reuse the native XLSX row encoder with inline strings and deferred package metadata. OfficeTheme is emitted as native theme/font data. File output uses the existing atomic file commit owner, and failed row sources discard the staging file. Native package, cancellation and non-seekable ownership checks pass on net8.0/net10.0; the three superseded static row/reader writer entry points and their normal-solution consumers are migrated."
     },
     {
       "phase": "B",
@@ -11662,8 +11662,8 @@
         "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelTableCommand.cs",
         "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelCommand.cs"
       ],
-      "applied": "phase-b-pending",
-      "note": "Six source-reviewed findings remediated in the primary worktree. New regression source and two expanded native cases are prepared; no remediation build, restore, test or review confirmation has run. Prior 38 green cases predate these fixes."
+      "applied": "phase-b-applied",
+      "note": "Typed tables fit columns by default. Internal positional-name wiring preserves PowerShell behavior; cancellation fixtures use the existing unfitted/deferred insertion owner. Saved-data, cancellation, record/schema and chart-after-table controls pass in both complete modern Excel suites; Modern defaults remain enabled."
     },
     {
       "phase": "B",

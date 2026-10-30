@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>An immutable page-attribute edit for an atomic, ordered batch.</summary>
 /// <remarks>A null selection means every page. Edits never remove content from source streams.</remarks>
-/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
+/// <remarks>SetBox uses native page user-space coordinates; one unit is /UserUnit physical points (1/72 inch), defaulting to 1. CropMargins uses physical-point distances from the displayed edges after crop, rotation and /UserUnit mapping.</remarks>
 public sealed class PdfPageAttributeEdit {
     private PdfPageAttributeEdit(Kind kind, PdfPageSelection? selection, int rotation = 0,
         PdfPageBoundaryBox box = PdfPageBoundaryBox.CropBox,

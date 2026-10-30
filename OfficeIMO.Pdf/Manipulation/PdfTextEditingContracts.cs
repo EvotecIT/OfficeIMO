@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 namespace OfficeIMO.Pdf;
 
 /// <summary>A rectangular page region in PDF user space, measured from the page bottom-left.</summary>
-/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfPageRegion {
     /// <summary>Creates a page region.</summary>
     public PdfPageRegion(int pageNumber, double x, double y, double width, double height) {
@@ -56,7 +56,7 @@ public enum PdfTextRegionWidthPolicy {
 }
 
 /// <summary>Style and bounded-layout overrides for existing-page text editing. Null style values preserve detected style when possible.</summary>
-/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfTextEditOptions {
     private PdfStandardFont? _font;
     private double? _fontSize;
@@ -137,7 +137,7 @@ public sealed class PdfTextEditOptions {
 }
 
 /// <summary>Text and dominant style detected inside a page region.</summary>
-/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfRegionText {
     internal PdfRegionText(string text, IReadOnlyList<PdfTextSpan> spans, PdfStandardFont suggestedFont, string? sourceFont, double fontSize, global::OfficeIMO.OfficeColor color, double rotationDegrees, double baselineX, double baselineY) {
         Text = text;
@@ -195,7 +195,7 @@ public sealed class PdfTextSearchOptions {
 }
 
 /// <summary>One located text occurrence in PDF user space.</summary>
-/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfTextMatch {
     internal PdfTextMatch(int pageNumber, string text, double x, double y, double width, double height, double fontSize, PdfStandardFont suggestedFont, string? sourceFont, global::OfficeIMO.OfficeColor color, double rotationDegrees, PdfSelectionQuad visualBounds, bool usesTextRenderingMode3 = false, IReadOnlyList<PdfSelectionQuad>? visualLineBounds = null) {
         PageNumber = pageNumber; Text = text; X = x; Y = y; Width = width; Height = height; FontSize = fontSize; SuggestedFont = suggestedFont; SourceFont = sourceFont; Color = color; RotationDegrees = rotationDegrees;

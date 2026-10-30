@@ -1712,6 +1712,8 @@ the structure tree. The appended cross-reference section follows the final sourc
 section's format and links to it through `/Prev`. The operation result exposes
 the selected route, reasons, and blockers.
 
+Native read/edit geometry preserves the PDF coordinate spaces. Page boxes and source text/image positions use page user-space units: one unit is `/UserUnit` physical points (1/72 inch each), defaulting to one point. Font and matrix operands retain their local spaces. Visual selection bounds use top-left physical-point coordinates after crop, rotation and `/UserUnit` mapping; imported-page overlays use a normalized bottom-left frame. `CropMargins` takes physical-point distances from the displayed edges. Authoring styles, stamps and output-sheet dimensions use `OfficeLength`.
+
 `SetPageBox` supports `MediaBox`, `CropBox`, `TrimBox`, `BleedBox`, and
 `ArtBox`; convenience methods include `SetCropBox` and `SetMediaBox`. Coordinates
 are in PDF page space. Setting a box leaves source content in the file.
@@ -2542,7 +2544,7 @@ PdfDocument document = PdfDocument.Load("contract.pdf");
 var region = new PdfPageRegion(pageNumber: 1, x: 72, y: 640, width: 260, height: 28);
 
 PdfRegionText current = document.Text.Inspect(region);
-Console.WriteLine($"{current.Text} ({current.SourceFont}, {current.FontSize} pt)");
+Console.WriteLine($"{current.Text} ({current.SourceFont}, {current.FontSize} native font units)");
 
 PdfTextEditResult edited = document.Text.Replace(region, "Approved", new PdfTextEditOptions {
     Color = OfficeColor.FromRgb(25, 110, 55),

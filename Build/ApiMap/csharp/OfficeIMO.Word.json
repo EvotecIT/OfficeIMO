@@ -6777,7 +6777,7 @@
     },
     {
       "phase": "B",
-      "applied": "phase-b-implemented-validation-pending",
+      "applied": "phase-b-applied",
       "note": "WordImageOptions adds Vml. Header and section AddImage delegate to the paragraph owner; paragraph, document, header and section VML entry points merge into AddImage options. Async insertion snapshots image metadata before awaiting the shared bounded HTTP loader. The async overload also accepts image metadata options in addition to the shared network policy, preserving the capabilities of the removed image builder."
     },
     {

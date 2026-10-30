@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Line-level text block extracted from a PDF page.
 /// </summary>
-/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
     internal PdfLogicalTextBlock(
         int pageNumber,
@@ -198,7 +198,7 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
 /// <summary>
 /// Semantic text fragment aligned with one positioned PDF text span.
 /// </summary>
-/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLogicalTextRun {
     internal PdfLogicalTextRun(string text, PdfTextSpan? sourceSpan) {
         Text = text ?? string.Empty;
@@ -236,7 +236,7 @@ public sealed class PdfLogicalTextRun {
 /// <summary>
 /// Heuristic heading line inferred from text size and geometry.
 /// </summary>
-/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLogicalHeading {
     internal PdfLogicalHeading(
         int pageNumber,
@@ -410,7 +410,7 @@ public sealed class PdfLogicalListItem {
 /// <summary>
 /// Heuristic paragraph group built from nearby line-level text blocks.
 /// </summary>
-/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLogicalParagraph {
     private PdfLogicalParagraph(
         int pageNumber,

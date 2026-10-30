@@ -34,7 +34,7 @@ public enum PdfRedactionUnsupportedImagePolicy {
 /// <summary>
 /// Options controlling how planned PDF redaction areas are applied.
 /// </summary>
-/// <remarks>Geometry uses the source page's default user-space units: one unit is /UserUnit physical points (1/72 inch each), with /UserUnit defaulting to 1. Coordinates are not automatically normalized to physical points. Explicitly named visual bounds use their documented visual coordinate system.</remarks>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfRedactionApplyOptions {
     /// <summary>Cooperative cancellation checked between destructive rewrite stages and pages.</summary>
     public CancellationToken CancellationToken { get; set; }
