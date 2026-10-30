@@ -23,6 +23,10 @@ internal sealed partial class PublisherPublicationState {
         NextObjectId = nextObjectId;
     }
     internal IReadOnlyList<PublisherPageState> Pages { get; }
+    // All supported publications use one physical size. Page definitions retain
+    // their imported registration; topology edits never resize that basis.
+    internal double Width => Pages.First(page => !page.IsMaster).Width;
+    internal double Height => Pages.First(page => !page.IsMaster).Height;
     internal IReadOnlyDictionary<uint, uint?> ObjectOwners { get; }
     internal IReadOnlyDictionary<uint, PublisherPicture> Pictures { get; }
     internal IReadOnlyDictionary<int, PublisherImage> Images { get; }
@@ -95,15 +99,17 @@ internal sealed partial class PublisherPublicationState {
 internal sealed class PublisherPageState {
     internal PublisherPageState(uint id, string name, bool isMaster, double width, double height, uint? masterPageId,
         double registrationX, double registrationY, bool supportsPlacementEditing, bool hasUnassessedBackground,
-        IReadOnlyList<uint> objectIds, PublisherFrameEditRange frameEditRange) {
+        IReadOnlyList<uint> objectIds, PublisherFrameEditRange frameEditRange, bool hasNativeOrigin = true) {
         Id = id; Name = name; IsMaster = isMaster; Width = width; Height = height; MasterPageId = masterPageId;
         RegistrationX = registrationX; RegistrationY = registrationY; SupportsPlacementEditing = supportsPlacementEditing;
         HasUnassessedBackground = hasUnassessedBackground; ObjectIds = Array.AsReadOnly(objectIds.ToArray());
         FrameEditRange = frameEditRange;
+        HasNativeOrigin = hasNativeOrigin;
     }
     internal uint Id { get; }
     internal string Name { get; }
     internal bool IsMaster { get; }
+    internal bool HasNativeOrigin { get; }
     internal double Width { get; }
     internal double Height { get; }
     internal uint? MasterPageId { get; }
@@ -115,5 +121,7 @@ internal sealed class PublisherPageState {
     internal PublisherFrameEditRange FrameEditRange { get; }
     internal PublisherPageState WithObject(uint id) => new(Id, Name, IsMaster, Width, Height, MasterPageId,
         RegistrationX, RegistrationY, SupportsPlacementEditing, HasUnassessedBackground,
-        ObjectIds.Concat(new[] { id }).ToArray(), FrameEditRange);
+        ObjectIds.Concat(new[] { id }).ToArray(), FrameEditRange, HasNativeOrigin);
+    internal PublisherPageState WithMaster(uint? masterId) => new(Id, Name, IsMaster, Width, Height, masterId,
+        RegistrationX, RegistrationY, SupportsPlacementEditing, HasUnassessedBackground, ObjectIds, FrameEditRange, HasNativeOrigin);
 }

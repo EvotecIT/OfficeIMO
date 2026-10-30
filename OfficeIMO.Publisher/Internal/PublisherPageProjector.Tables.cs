@@ -43,8 +43,10 @@ internal sealed partial class PublisherPageProjector {
         foreach (PublisherTableCell cell in table.Cells)
             if (cell.Paragraphs.Count != 0) ProjectText(cell.Paragraphs, drawing, id, state.Padding, cell.X, cell.Y, cell.Width, cell.Height);
         _usedStories.Add(table.StoryId!.Value);
-        _context.Add("PUB_TEXT_LAYOUT_APPROXIMATED", "Native text stories use the shared drawing paragraph layout. Font availability, line breaking, fitting, and overflow may differ from Publisher.",
-            OfficeConversionLossKind.Approximation, "Quill");
+        _context.Add("PUB_TEXT_LAYOUT_APPROXIMATED", state.IsAuthored
+                ? "Publication text uses shared drawing paragraph layout. Font availability, line breaking, fitting and overflow can differ from Publisher."
+                : "Native text stories use the shared drawing paragraph layout. Font availability, line breaking, fitting, and overflow may differ from Publisher.",
+            OfficeConversionLossKind.Approximation, state.IsAuthored ? "publication/story/" + table.StoryId : "Quill");
     }
 
     private void ProjectSemanticTable(PublisherTableState table, OfficeDrawing page) {

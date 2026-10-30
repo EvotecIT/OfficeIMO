@@ -10,7 +10,7 @@ internal sealed partial class PublisherPageProjector {
             if (HasFill(current) || current.StrokeColor.HasValue) drawing.AddShape(current, 0, 0);
             return;
         }
-        OfficeShape shape = new PublisherNativeShapeMapper(_source.Palette, _context).Map(source,
+        OfficeShape shape = new PublisherNativeShapeMapper(NativeContents.Palette, _context).Map(source,
             geometryWidth, geometryHeight, drawing.Width, drawing.Height, out OfficeShape? clipShape);
         OfficeArtProperty? pictureReference = source.Properties.LastOrDefault(property => property.PropertyId == 0x0104);
         if (pictureReference == null || pictureReference.Value == 0 || pictureReference.IsComplex || !pictureReference.IsBlipId) {

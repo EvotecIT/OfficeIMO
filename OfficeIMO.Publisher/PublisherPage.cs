@@ -2,24 +2,27 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher;
 
-/// <summary>A recovered publication page. Coordinates and dimensions are points, with a local top-left origin.</summary>
+/// <summary>An immutable current document or master page. Coordinates and dimensions are points, with a local top-left origin.</summary>
 public sealed class PublisherPage {
     private readonly OfficeDrawing _drawing;
     internal PublisherPage(uint id, string name, uint? masterPageId, double width, double height, OfficeDrawing drawing,
         IReadOnlyList<PublisherTextFrame> textFrames, IReadOnlyList<PublisherTable> tables, IReadOnlyList<PublisherPicture> pictures,
-        IReadOnlyList<PublisherShape> shapes) {
+        IReadOnlyList<PublisherShape> shapes, bool hasNativeOrigin = true) {
         Id = id; Name = name; MasterPageId = masterPageId; _drawing = drawing;
         Width = width; Height = height;
+        HasNativeOrigin = hasNativeOrigin;
         TextFrames = Array.AsReadOnly(textFrames.ToArray());
         Tables = Array.AsReadOnly(tables.ToArray());
         Pictures = Array.AsReadOnly(pictures.ToArray());
         Shapes = Array.AsReadOnly(shapes.ToArray());
     }
-    /// <summary>Native page identifier.</summary>
+    /// <summary>Stable publication page identifier, shared with the publication's object and story identity space.</summary>
     public uint Id { get; }
-    /// <summary>Native page or master name; empty when unnamed.</summary>
+    /// <summary>Whether this page definition was recovered from the native source. Adding content or changing its applied master retains this provenance.</summary>
+    public bool HasNativeOrigin { get; }
+    /// <summary>Page or master name; empty when unnamed.</summary>
     public string Name { get; }
-    /// <summary>Applied master page identifier, when declared in the source.</summary>
+    /// <summary>Current applied master page identifier, or null when no master is assigned.</summary>
     public uint? MasterPageId { get; }
     /// <summary>Creates a detached drawing snapshot, including the applied master. Changes to this copy do not edit the publication.</summary>
     public OfficeDrawing CreateDrawing() => _drawing.Clone();

@@ -7,7 +7,7 @@ internal sealed partial class PublisherPageProjector {
     private (double X, double Y) PageOrigin(PublisherEscherShape shape) {
         uint? owner = Owner(shape.Id, 0);
         return owner.HasValue && _pages.TryGetValue(owner.Value, out PublisherPageState? page)
-            ? PageOrigin(page) : (_source.Width / 2, _source.Height / 2);
+            ? PageOrigin(page) : (NativeContents.Width / 2, NativeContents.Height / 2);
     }
 
     private static (double X, double Y) PageOrigin(PublisherPageState page) => (page.RegistrationX, page.RegistrationY);

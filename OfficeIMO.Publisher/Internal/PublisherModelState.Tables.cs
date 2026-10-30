@@ -13,7 +13,7 @@ internal sealed partial class PublisherModelState {
     internal PublisherModelState AddTable(uint pageId, double x, double y, IReadOnlyList<double> columns, IReadOnlyList<double> rows,
         CancellationToken token, out uint tableId) {
         token.ThrowIfCancellationRequested();
-        if ((long)_contents.Shapes.Count + _publication.AuthoredObjectCount >= _decoded.Options.Limits.MaxItems)
+        if ((long)SourceObjectCount + _publication.AuthoredObjectCount >= _decoded.Options.Limits.MaxItems)
             throw new InvalidDataException("Publisher current object limit exceeded.");
         if (columns.Count > _decoded.Options.Limits.MaxItems || rows.Count > _decoded.Options.Limits.MaxItems)
             throw new InvalidDataException("Publisher table track limit exceeded.");

@@ -13,7 +13,7 @@ internal sealed partial class PublisherModelState {
     internal PublisherModelState AddShape(uint pageId, OfficeShape shape, double x, double y,
         CancellationToken token, out uint shapeId) {
         token.ThrowIfCancellationRequested();
-        if ((long)_contents.Shapes.Count + _publication.AuthoredObjectCount >= _decoded.Options.Limits.MaxItems)
+        if ((long)SourceObjectCount + _publication.AuthoredObjectCount >= _decoded.Options.Limits.MaxItems)
             throw new InvalidDataException("Publisher current object limit exceeded.");
         return WithPublication(_publication.AddShape(pageId, shape, x, y, out shapeId));
     }

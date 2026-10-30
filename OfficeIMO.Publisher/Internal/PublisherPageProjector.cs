@@ -4,18 +4,17 @@ using OfficeIMO.Drawing.Binary;
 namespace OfficeIMO.Publisher.Internal;
 
 internal sealed partial class PublisherPageProjector {
-    private readonly PublisherContents _source;
-    private readonly PublisherEscherData _escher;
+    private readonly PublisherImportedResidue? _imported;
+    // Native-only adapters are reached only for retained imported artwork.
+    private PublisherContents NativeContents => _imported?.Contents ?? throw new InvalidOperationException("This publication has no imported artwork.");
     private readonly PublisherParseContext _context;
     private readonly HashSet<uint> _projected = new();
     private readonly HashSet<uint> _usedStories = new();
     private readonly Dictionary<uint, PublisherTable> _tables = new();
     private readonly PublisherPublicationState _publication;
     private readonly Dictionary<uint, PublisherPageState> _pages;
-    internal PublisherPageProjector(PublisherContents source, PublisherQuillText text, PublisherEscherData escher, PublisherParseContext context,
-        PublisherPublicationState? publication = null) {
-        _source = source; _escher = escher; _context = context;
-        _publication = publication ?? PublisherModelImporter.Import(source, text, escher, context);
+    internal PublisherPageProjector(PublisherPublicationState publication, PublisherImportedResidue? imported, PublisherParseContext context) {
+        _imported = imported; _context = context; _publication = publication;
         _pages = _publication.Pages.ToDictionary(page => page.Id);
         foreach (PublisherPageState page in _publication.Pages.Where(page => !page.SupportsPlacementEditing))
             _context.Add("PUB_MASTER_COORDINATE_ORIGIN_UNASSESSED", "An unassessed master-page layout uses the centered page coordinate origin.",
@@ -29,7 +28,7 @@ internal sealed partial class PublisherPageProjector {
     }
     internal PublisherDocument Project() {
         var scenes = new Dictionary<uint, OfficeDrawing>();
-        var artwork = _escher.Shapes.ToDictionary(shape => shape.Id);
+        var artwork = _imported?.Artwork.Shapes.ToDictionary(shape => shape.Id) ?? new Dictionary<uint, PublisherEscherShape>();
         PrepareTables();
         PrepareTextFrames();
         var pageFrames = new Dictionary<uint, List<PublisherTextFrame>>();
@@ -89,11 +88,11 @@ internal sealed partial class PublisherPageProjector {
                 pageFrames.TryGetValue(page.Id, out List<PublisherTextFrame>? frames) ? frames : Array.Empty<PublisherTextFrame>(),
                 pageTables.TryGetValue(page.Id, out PublisherTable[]? tables) ? tables : Array.Empty<PublisherTable>(),
                 page.ObjectIds.Where(id => _publication.Pictures.ContainsKey(id)).Select(CurrentPictureSnapshot).ToArray(),
-                page.ObjectIds.Where(id => _publication.Shapes.ContainsKey(id)).Select(_publication.CurrentShape).ToArray());
+                page.ObjectIds.Where(id => _publication.Shapes.ContainsKey(id)).Select(_publication.CurrentShape).ToArray(), page.HasNativeOrigin);
             if (page.IsMaster) masters.Add(projectedPage); else pages.Add(projectedPage);
         }
         if (pages.Count == 0) throw new InvalidDataException("Publisher publication has no printable document pages.");
-        foreach (PublisherSourceShape shape in _source.Shapes.Values) {
+        foreach (PublisherSourceShape shape in _imported?.Contents.Shapes.Values.AsEnumerable() ?? Enumerable.Empty<PublisherSourceShape>()) {
             if (!_projected.Contains(shape.Chunk.Id)) _context.Add("PUB_OBJECT_NOT_PROJECTED",
                 "A native publication object was not reconstructed on a document or master page.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Chunk.Id));
         }
@@ -101,10 +100,12 @@ internal sealed partial class PublisherPageProjector {
             if (!_usedStories.Contains(story.Id)) _context.Add("PUB_STORY_NOT_PLACED", "Recovered story text is available in TextStories, but was not placed on a publication page.",
                 OfficeConversionLossKind.Omission, "Quill/story/" + story.Id);
         }
-        var report = new PublisherReadReport(_context.Diagnostics, _source.Shapes.Count, _projected.Count,
+        int sourceObjectCount = _imported?.Contents.Shapes.Count ?? 0;
+        var report = new PublisherReadReport(_context.Diagnostics, sourceObjectCount, _projected.Count,
             _publication.Text.Stories.Count, _publication.Images.Count, _context.Records,
-            _source.Shapes.Count + _publication.AuthoredObjectCount);
-        return new PublisherDocument(pages, masters, _publication.Text.Stories.Values.ToArray(), _publication.Images.Values.ToArray(), report);
+            sourceObjectCount + _publication.AuthoredObjectCount);
+        return new PublisherDocument(pages, masters, _publication.Text.Stories.Values.ToArray(), _publication.Images.Values.ToArray(), report,
+            _imported?.NativeSource != null);
     }
     private uint? Owner(uint id, int depth) {
         _context.CheckDepth(depth);
@@ -120,7 +121,7 @@ internal sealed partial class PublisherPageProjector {
     }
     private void ProjectShape(PublisherEscherShape shape, OfficeDrawing page, uint pageId) {
         _context.Token.ThrowIfCancellationRequested();
-        if (!_source.Shapes.TryGetValue(shape.Id, out PublisherSourceShape? native)) {
+        if (!NativeContents.Shapes.TryGetValue(shape.Id, out PublisherSourceShape? native)) {
             _context.Add("PUB_DRAWING_REFERENCE_UNRESOLVED", "An OfficeArt object has no publication descriptor.", OfficeConversionLossKind.Unassessed, PublisherEscherReader.ShapeLocation(shape.Id));
             return;
         }

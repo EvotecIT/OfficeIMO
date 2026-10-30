@@ -22,8 +22,8 @@ public sealed class PublisherCustomStrokePlacementTests {
             new OfficeArtProperty(1, 0x8146, (uint)segments.Length, segments.Length, complexData: segments),
             new OfficeArtProperty(2, 0x01C0, 0xFF)
         }) { Bounds = new PublisherNativeRectangle(0, 0, horizontal ? 127000 : 0, horizontal ? 0 : 127000) });
-        PublisherDocument document = new PublisherPageProjector(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherReadOptions(), default)).Project();
+        PublisherDocument document = PublisherProjectionFixture.Project(source, new PublisherQuillText(), escher,
+            new PublisherParseContext(new PublisherReadOptions(), default));
         OfficeShape path = Assert.Single(PublisherNativeTests.Elements(document.Pages[0].CreateDrawing()).OfType<OfficeDrawingShape>(),
             item => item.Shape.Kind == OfficeShapeKind.Path).Shape;
         Assert.Equal(new OfficePoint(horizontal ? 10 : 0, horizontal ? 0 : 10), path.PathCommands[1].Point);
@@ -61,8 +61,8 @@ public sealed class PublisherCustomStrokePlacementTests {
             new OfficeArtProperty(4, 0x0181, 0xFF),
             new OfficeArtProperty(5, 0x0183, 0xFF0000)
         }) { Bounds = new PublisherNativeRectangle(0, 0, horizontal ? 127000 : 0, horizontal ? 0 : 127000) });
-        PublisherDocument document = new PublisherPageProjector(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherReadOptions(), default)).Project();
+        PublisherDocument document = PublisherProjectionFixture.Project(source, new PublisherQuillText(), escher,
+            new PublisherParseContext(new PublisherReadOptions(), default));
         Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_COMMAND_UNSUPPORTED");
         OfficeShape fallback = Assert.Single(PublisherNativeTests.Elements(document.Pages[0].CreateDrawing()).OfType<OfficeDrawingShape>(),
             item => item.Shape.StrokeColor == OfficeColor.FromRgb(255, 0, 0)).Shape;

@@ -17,7 +17,7 @@ internal sealed partial class PublisherPageProjector {
             _context.AccountProjection(local);
             page.AddDrawingForClippedRendering(local, definition.X, definition.Y, null);
             _context.Add("PUB_TEXT_LAYOUT_APPROXIMATED", "Publication text uses shared drawing paragraph layout. Font availability, line breaking, fitting and overflow can differ from Publisher.",
-                OfficeConversionLossKind.Approximation, "Quill");
+                OfficeConversionLossKind.Approximation, "publication/story/" + definition.StoryId);
         }
         _projected.Add(definition.Id);
     }

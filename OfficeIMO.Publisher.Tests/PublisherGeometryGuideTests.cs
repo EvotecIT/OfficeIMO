@@ -123,8 +123,8 @@ public sealed class PublisherGeometryGuideTests {
             new OfficeArtProperty(6, 0x8156, (uint)guides.Length, guides.Length, complexData: guides),
             new OfficeArtProperty(7, 0x181, 0x000000FF), new OfficeArtProperty(8, 0x1BF, 0x00100010)
         }) { Bounds = new PublisherNativeRectangle(0, 0, nativeWidth, nativeHeight) });
-        PublisherDocument publication = new PublisherPageProjector(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Project();
+        PublisherDocument publication = PublisherProjectionFixture.Project(source, new PublisherQuillText(), escher,
+            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None));
         OfficeShape shape = PublisherNativeTests.Elements(publication.Pages[0].CreateDrawing()).OfType<OfficeDrawingShape>()
             .Single(item => item.SourceElementIds?.Contains("publisher-object-2") == true).Shape;
         Assert.Equal(OfficeShapeKind.Path, shape.Kind);

@@ -68,6 +68,19 @@ internal sealed class PublisherTextState {
         return new PublisherTextState(this, frames: frames, chains: chains);
     }
 
+    internal PublisherTextState AddFrame(PublisherTextStory story, PublisherPageState page,
+        double x, double y, double width, double height, uint frameId) {
+        page.FrameEditRange.Validate(x, y, width, height);
+        var frame = new PublisherFrameState(frameId, story.Id, page.Id, x, y, width, height,
+            OfficeTransform.Translate(x, y), true, true, false, true, true, true, 1, 0,
+            OfficeTextPadding.Empty, OfficeTextVerticalAlignment.Top, Array.Empty<uint>(), page.FrameEditRange, true);
+        var stories = Stories.ToDictionary(item => item.Key, item => item.Value); stories.Add(story.Id, story);
+        var frames = Frames.ToDictionary(item => item.Key, item => item.Value); frames.Add(frameId, frame);
+        var chains = Chains.ToDictionary(item => item.Key, item => item.Value);
+        chains.Add(story.Id, Array.AsReadOnly(new[] { frameId }));
+        return new PublisherTextState(this, stories: stories, frames: frames, chains: chains);
+    }
+
     private static IReadOnlyDictionary<TKey, TValue> ReadOnly<TKey, TValue>(IReadOnlyDictionary<TKey, TValue> values) where TKey : notnull =>
         new System.Collections.ObjectModel.ReadOnlyDictionary<TKey, TValue>(values.ToDictionary(item => item.Key, item => item.Value));
 }

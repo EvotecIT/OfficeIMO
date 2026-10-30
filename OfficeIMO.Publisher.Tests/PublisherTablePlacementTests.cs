@@ -38,8 +38,8 @@ public sealed class PublisherTablePlacementTests {
             LayoutTransform = geometry == 1 ? OfficeTransform.Scale(0, 1) : OfficeTransform.Identity
         };
         var escher = new PublisherEscherData(); if (geometry != 3) escher.Shapes.Add(shape);
-        PublisherDocument document = new PublisherPageProjector(source, text, escher,
-            new PublisherParseContext(new PublisherReadOptions(), default)).Project();
+        PublisherDocument document = PublisherProjectionFixture.Project(source, text, escher,
+            new PublisherParseContext(new PublisherReadOptions(), default));
         PublisherTable table = Assert.Single(document.Pages[0].Tables);
         Assert.False(table.HasPlacement);
         Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TABLE_PLACEMENT_UNRESOLVED");

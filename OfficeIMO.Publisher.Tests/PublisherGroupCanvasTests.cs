@@ -25,8 +25,8 @@ public sealed class PublisherGroupCanvasTests {
                 GroupTransform = OfficeTransform.Translate(12700, 12700)
             });
         }
-        PublisherDocument document = new PublisherPageProjector(source, text, escher,
-            new PublisherParseContext(new PublisherReadOptions(), default)).Project();
+        PublisherDocument document = PublisherProjectionFixture.Project(source, text, escher,
+            new PublisherParseContext(new PublisherReadOptions(), default));
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(document.Pages[0].CreateDrawing());
         Assert.Equal(OfficeColor.White, raster.GetPixel(300, 300));
         Assert.DoesNotContain(PublisherNativeTests.Elements(document.Pages[0].CreateDrawing()), item => item is OfficeDrawingEffectGroup);
@@ -79,8 +79,8 @@ public sealed class PublisherGroupCanvasTests {
             new OfficeArtProperty(0, 0x01C0, 0x000000FF), new OfficeArtProperty(1, 0x01CB, 12700)
         }) { Bounds = new PublisherNativeRectangle(0, 0, 12700, 12700),
             GroupTransform = OfficeTransform.Scale(0, 1), LayoutTransform = OfficeTransform.Scale(0, 1) });
-        PublisherDocument document = new PublisherPageProjector(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherReadOptions(), default)).Project();
+        PublisherDocument document = PublisherProjectionFixture.Project(source, new PublisherQuillText(), escher,
+            new PublisherParseContext(new PublisherReadOptions(), default));
         Assert.DoesNotContain(PublisherNativeTests.Elements(document.Pages[0].CreateDrawing()), item => item is OfficeDrawingShape drawing && drawing.Shape.Kind == OfficeShapeKind.Line);
         Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_DEGENERATE_OBJECT_OMITTED");
     }
@@ -117,8 +117,8 @@ public sealed class PublisherGroupCanvasTests {
                 GroupTransform = OfficeTransform.Scale(0, 1), LayoutTransform = OfficeTransform.Scale(0, 1)
             });
         }
-        return new PublisherPageProjector(source, text, escher,
-            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Project();
+        return PublisherProjectionFixture.Project(source, text, escher,
+            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None));
     }
 
     [Theory]
@@ -161,8 +161,8 @@ public sealed class PublisherGroupCanvasTests {
                 (x + width - 306) * 12700, (y + 100 - 396) * 12700),
             GroupTransform = grouped ? OfficeTransform.Translate(12700, 12700) : OfficeTransform.Identity
         });
-        return new PublisherPageProjector(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Project();
+        return PublisherProjectionFixture.Project(source, new PublisherQuillText(), escher,
+            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None));
     }
 
     [Theory]
@@ -213,7 +213,7 @@ public sealed class PublisherGroupCanvasTests {
                 GroupTransform = OfficeTransform.Translate(12700, 12700)
             });
         }
-        return new PublisherPageProjector(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Project();
+        return PublisherProjectionFixture.Project(source, new PublisherQuillText(), escher,
+            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None));
     }
 }

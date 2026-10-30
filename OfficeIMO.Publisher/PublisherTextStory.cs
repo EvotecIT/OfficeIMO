@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher;
 
-/// <summary>A native text story. Linked text frames can reference the same story; page layout is reported separately.</summary>
+/// <summary>A complete current text story. Linked text frames can reference the same story; page layout is reported separately.</summary>
 public sealed class PublisherTextStory {
     internal PublisherTextStory(uint id, string text, IReadOnlyList<OfficeRichTextParagraph> paragraphs,
         bool? hasFinalParagraphTerminator = null) {
@@ -12,9 +12,9 @@ public sealed class PublisherTextStory {
     // This source convention survives clearing the content. Inferring it from
     // the current empty text would change subsequent story/frame character ranges.
     internal bool HasFinalParagraphTerminator { get; }
-    /// <summary>Native story identifier used by publication text frames.</summary>
+    /// <summary>Stable publication story identifier used by text frames or tables.</summary>
     public uint Id { get; }
-    /// <summary>Complete current story text, with native carriage returns normalized to newlines.</summary>
+    /// <summary>Complete current story text, with carriage returns normalized to newlines and paragraphs separated by newlines. Authored ordinary stories have no implicit final terminator; imported stories retain their source convention. List labels remain separate from this text.</summary>
     public string Text { get; }
     /// <summary>Current paragraphs and styled runs, initially recovered from the native text stream.</summary>
     public IReadOnlyList<OfficeRichTextParagraph> Paragraphs { get; }

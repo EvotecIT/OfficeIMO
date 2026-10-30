@@ -33,7 +33,7 @@ internal sealed partial class PublisherReadProjection {
         }
         _diagnostics.Add(new OfficeDocumentDiagnostic {
             Code = "PUB_READER_LAYOUT_OMITTED", Source = "OfficeIMO.Reader.Publisher",
-            Message = "Reader retains complete stories once in native story order and exposes mapped native table grids. Page artwork, frame flow and typography remain in the Publisher model and are not reconstructed in this semantic projection.",
+            Message = "Reader retains complete stories once in publication story order and exposes mapped table grids. Page artwork, frame flow and typography remain in the Publisher model and are not reconstructed in this semantic projection.",
             Category = OfficeDocumentDiagnosticCategory.Content, Location = Location(),
             Attributes = new Dictionary<string, string> { ["lossKind"] = OfficeConversionLossKind.Omission.ToString() }
         });
@@ -59,14 +59,19 @@ internal sealed partial class PublisherReadProjection {
         _chunks[0].Warnings = warnings;
         return new OfficeDocumentReadResult {
             Kind = ReaderInputKind.Publisher, Source = new OfficeDocumentSource { Path = _path },
-            CapabilitiesUsed = new[] { "officeimo.reader.publisher", "officeimo.publisher.native-recovery" },
+            CapabilitiesUsed = _source.HasNativeSource
+                ? new[] { "officeimo.reader.publisher", "officeimo.publisher.native-recovery" }
+                : new[] { "officeimo.reader.publisher" },
             Blocks = _blocks.ToArray(), Chunks = _chunks.ToArray(), Tables = _tables.ToArray(), Assets = _assets.ToArray(), Diagnostics = _diagnostics.ToArray(),
             Markdown = string.Concat(_chunks.Select(chunk => chunk.Markdown)),
             Pages = _source.Pages.Select((page, index) => new OfficeDocumentPage {
                 Number = index + 1, Name = page.Name, Width = page.Width, Height = page.Height,
                 Tables = _pageTables.TryGetValue(page.Id, out var tables) ? tables.ToArray() : Array.Empty<ReaderTable>(),
                 Blocks = _pageTableBlocks.TryGetValue(page.Id, out var blocks) ? blocks.ToArray() : Array.Empty<OfficeDocumentBlock>(),
-                Location = new ReaderLocation { Path = _path, Page = index + 1, SourceBlockKind = "publisher-page" }
+                Location = new ReaderLocation {
+                    Path = _path, Page = index + 1,
+                    SourceBlockKind = page.HasNativeOrigin ? "publisher-page" : "publisher-authored-page"
+                }
             }).ToArray()
         };
     }

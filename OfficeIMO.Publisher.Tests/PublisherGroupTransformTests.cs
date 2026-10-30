@@ -54,8 +54,8 @@ public sealed class PublisherGroupTransformTests {
         source.ObjectPages.Add(1, 10); source.ObjectPages.Add(3, 10);
         var text = new PublisherQuillText();
         text.Stories.Add(4, new PublisherTextStory(4, "", Array.Empty<OfficeRichTextParagraph>()));
-        return new PublisherPageProjector(source, text, escher,
-            new PublisherParseContext(new PublisherReadOptions(), default)).Project();
+        return PublisherProjectionFixture.Project(source, text, escher,
+            new PublisherParseContext(new PublisherReadOptions(), default));
     }
 
     [Theory]

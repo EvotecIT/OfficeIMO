@@ -2,8 +2,9 @@
 
 Read Microsoft Publisher publications into positioned pages, styled text
 stories and embedded image assets, edit supported stories, frames, tables, pictures and
-vector artwork, append tables, continuation frames and primitive shapes, and
-render the current model. The managed reader handles the Publisher
+vector artwork, or create an in-memory publication with pages, masters, styled
+text, tables and primitive shapes. Render the same current model to SVG or PDF.
+The managed reader handles the Publisher
 2002-and-later compound-document generation without installing Publisher.
 [The support contract](SUPPORT.md) identifies the qualified fixtures and rendering
 limits.
@@ -36,6 +37,65 @@ also applied to referring pages. Coordinates use points and a top-left origin.
 the applied master. Adding artwork to that copy affects exports of the copy;
 document exports use the publication model. Use the document's typed edit
 operations to change its stories and text frames.
+
+## Create pages, masters and styled text
+
+```csharp
+using OfficeIMO.Drawing;
+using OfficeIMO.Publisher;
+
+var newsletter = PublisherDocument.Create(792, 612);
+var firstPage = newsletter.Pages[0];
+var header = newsletter.AddMasterPage("Newsletter header");
+newsletter.AddTextFrame(header.Id, 36, 18, 600, 30, new[] {
+    new OfficeRichTextParagraph(new[] {
+        new OfficeRichTextRun("Weekly publication", 16, OfficeColor.Black,
+            bold: true, fontFamily: "Arial")
+    })
+});
+newsletter.SetPageMaster(firstPage.Id, header.Id);
+var body = newsletter.AddTextFrame(firstPage.Id, 36, 84, 300, 160, new[] {
+    new OfficeRichTextParagraph(new[] {
+        new OfficeRichTextRun("A complete styled story follows its linked frames.",
+            12, OfficeColor.Black, fontFamily: "Arial")
+    })
+});
+var secondPage = newsletter.AddPage(header.Id);
+newsletter.AddLinkedTextFrame(body.Id, secondPage.Id, 36, 84, 720, 420);
+File.WriteAllText("newsletter-page.svg", newsletter.ToSvg());
+```
+
+`Create` takes a positive finite width and height in points and creates one empty
+document page without a master or native source. Its optional `PublisherReadOptions`
+is copied and bounds authoring and projection as well as native reading.
+`AddPage` appends at the existing publication size; omitting its master ID creates
+a page without a master. `AddMasterPage` creates a centered single-page definition
+with a nonempty name. `SetPageMaster(pageId, null)` clears an assignment. Direct
+qualified imported masters, including separately recovered left and right members,
+retain their exact registration. Master content remains owned once in `MasterPages`
+and renders on each assigned physical page. Nested masters, unassessed backgrounds
+and unsupported registrations reject assignment. Page resizing, deletion, reordering,
+object moves and paired-master creation are not provided.
+
+`AddTextFrame` creates a complete independent ordinary story and a frame on a
+qualified document or master page. It uses one column, zero gap and padding, top
+alignment, no fill or outline, and no transform or wrap references. Supplied
+paragraphs retain their Core formatting, labels and tabs. Empty paragraph
+collections are allowed. Carriage returns normalize to newlines; paragraph
+boundaries add newlines, with no implicit final terminator for authored ordinary
+stories. `AddLinkedTextFrame` continues an ordinary document-page story; master
+stories cannot be linked across physical pages. All story content remains available
+in `TextStories`, including overflow.
+
+Pages, masters, objects and stories share one publication identifier allocator;
+creating a frame/story pair reserves both IDs atomically. Assets retain their own
+image IDs. Failed validation, limits, cancellation or projection leave the document
+and allocator unchanged. Returned objects are immutable snapshots; fetch current
+objects after later edits. `HasNativeSource` distinguishes a loaded document from
+source-free creation. `PublisherPage.HasNativeOrigin` identifies imported page
+definitions even after content or master-assignment edits; added pages and masters
+have no native origin. A source-free document has zero native source/record counts.
+This is in-memory authoring and rendering; native PUB saving is not provided.
 
 ## Edit publication content
 
@@ -395,5 +455,5 @@ pixel and encoded-byte limits. No external decoder is installed or invoked by
 the package.
 
 Publisher 97/98 and 2000 profiles are recognized and rejected. Native `.pub`
-writing, editable Publisher reconstruction, macro execution, external-resource
+writing, macro execution, external-resource
 refresh, and embedded-object activation are outside this package's contract.

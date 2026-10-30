@@ -43,9 +43,11 @@ references do not report missing images.
 | Picture controls | Source-RGB transparency keys, encoded-RGB brightness/contrast, preserve-grays tone handling, BT.709 grayscale and a 50-percent two-color threshold; original assets remain available | Color space, effect ordering and native Publisher pixels remain unqualified; recoloring and extended color controls are unassessed; invalid tone values or unresolved keys report omission |
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
 | Editable vector artwork | `PublisherPage.Shapes` records owner, stable ID, point bounds and placement availability; bounds and solid-paint edits for supported basic geometry; shared text-frame placement and current wrap obstacles | Grouped, transformed, hidden, custom-path, gradient, effected and unresolved artwork is inspection-only; detached editable descriptors do not establish native writable support |
-| Primitive creation | Rectangle, rounded rectangle, ellipse and nondegenerate line descriptors append to existing document/master pages; shared publication allocator and current SVG/PDF scenes | No new publication, page/master topology or native records; unsupported geometry/effects are rejected; new shapes have no story or wrap references |
-| In-memory edits | Document-owned replacement of complete non-table story paragraphs and mapped table-cell paragraphs, bounds changes for qualified frames/tables, and image replacement/bounds changes for supported rectangular PNG/JPEG picture placements; stable IDs, ownership and order, fresh scenes, text ranges and overflow | Picture and table bounds edits reject unsupported graphic placement. Cell edits reject conflicting grids, unsafe partitions and stories also used by ordinary frames; no table topology/styling changes, arbitrary relinking, page/master topology edits or native save-back; old references remain snapshots |
-| Table creation | Empty unmerged borderless grids on existing qualified document/master pages; copied positive finite tracks, one new complete story, shared table/story identifier allocation and current SVG/PDF/Reader projection | No new publication/page creation, merged-cell authoring, cell decoration or native PUB records; text/model/projection limits and transactional failure behavior apply |
+| Primitive creation | Rectangle, rounded rectangle, ellipse and nondegenerate line descriptors append to qualified document/master pages; shared publication allocator and current SVG/PDF scenes | No native records; unsupported geometry/effects are rejected; new shapes have no story or wrap references |
+| In-memory edits | Document-owned replacement of complete non-table story paragraphs and mapped table-cell paragraphs, bounds changes for qualified frames/tables, and image replacement/bounds changes for supported rectangular PNG/JPEG picture placements; stable IDs, ownership and order, fresh scenes, text ranges and overflow | Picture and table bounds edits reject unsupported graphic placement. Cell edits reject conflicting grids, unsafe partitions and stories also used by ordinary frames; no table topology/styling changes, arbitrary relinking or native save-back; old references remain snapshots |
+| Table creation | Empty unmerged borderless grids on qualified document/master pages; copied positive finite tracks, one new complete story, shared table/story identifier allocation and current SVG/PDF/Reader projection | No merged-cell authoring, cell decoration or native PUB records; text/model/projection limits and transactional failure behavior apply |
+| Page/master authoring | Source-free `Create` with one empty physical page; appended same-size physical pages and centered single-page masters; explicit qualified direct master assignment or clearing; immutable native-source/page provenance | No resize, deletion, reorder, object moves, paired-master creation or master inheritance; unassessed backgrounds and registrations reject assignment; native PUB saving remains unavailable |
+| Ordinary text creation | `AddTextFrame` creates a complete independent styled story and resolved one-frame chain on a qualified document/master page; one column, zero gap/insets, top alignment, no paint/transform/wrap; existing continuation API handles document-page chains | Authored ordinary stories have no implicit final terminator; full overflow is retained. Frame/story IDs reserve atomically; master-owned stories cannot continue across physical pages; no native text records are authored |
 | Continuation-frame creation | Append an ordinary untransformed text frame to a resolved non-table story's tail on an existing document page; one complete styled story, current links/ranges/overflow, copied columns/padding/alignment, no fill/outline, and shared SVG/PDF/Reader projection | The source chain must contain ordinary visible untransformed document-page frames; master chains, ambiguous links and non-tail insertion are rejected; this is in-memory model creation, not native PUB creation |
 | Output | SVG per document page and multi-page PDF through shared engines | No native save-back or editable publication writer |
 
@@ -93,6 +95,22 @@ tables, physical pages and assets without serializing or reopening it.
 Page/master dimensions, registration and object ownership, picture placement,
 complete text stories, table grids/placement, frame definitions/chains, supported shape geometry/paint and embedded asset state are
 retained independently of the derived drawing.
+Source-free publications start directly from that semantic state. One optional
+read-only import-residue owner retains native graphics, bindings and original
+storage for loaded documents; creation does not manufacture empty native
+Contents, Quill or OfficeArt objects. `HasNativeSource` describes document byte
+provenance and `PublisherPage.HasNativeOrigin` describes each definition.
+Imported definitions keep their provenance after editing; appended definitions
+are authored. Source-free source counts and inspected native records are zero.
+Pages and masters share the object/story allocator, but do not inflate
+`CurrentObjectCount` or `ProjectedObjectCount`; their counts come from the page
+collections. `MaximumPages` applies to document and master pages together.
+All supported pages have one publication size. Topology changes preserve the
+exact imported registration and coordinate edit envelopes; new loaded-document
+pages use the physical page's centered envelope. Source-free geometry requires
+finite point coordinates and extents and has no native-generation storage range
+claim. Frame/story creation preserves table-story references and shares the
+existing semantic text validation, complete-story owner and Core layout.
 Modern native bindings and coordinate interpretation are mapped at import;
 supported picture edits and rendering consume the typed placement directly.
 Text-frame story bindings, link/catalog order, columns, spacing, padding,

@@ -18,7 +18,7 @@ public sealed class PublisherTextFrame {
     }
     /// <summary>Stable publication object identifier, scoped to this document.</summary>
     public uint Id { get; }
-    /// <summary>Identifier of the complete source story in <see cref="PublisherDocument.TextStories"/>.</summary>
+    /// <summary>Identifier of the complete current story in <see cref="PublisherDocument.TextStories"/>.</summary>
     public uint StoryId { get; }
     /// <summary>Owning document or master page identifier.</summary>
     public uint PageId { get; }

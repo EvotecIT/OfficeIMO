@@ -57,9 +57,13 @@ internal sealed partial class PublisherPageProjector {
                 _textFrames.Add(frame.Id, new PreparedTextFrame(model, content));
                 if (!unavailable) _usedStories.Add(story.Id);
             }
-            if (chain.Value.Count > 1) _context.Add("PUB_LINKED_TEXT_LAYOUT_APPROXIMATED",
-                "Text follows the recovered native story-frame chain using shared managed measurement. Source paragraph styles survive continuation; native font metrics, column balancing and frame break positions can differ.",
-                OfficeConversionLossKind.Approximation, "Quill/story/" + story.Id);
+            if (chain.Value.Count > 1) {
+                bool imported = chain.Value.Any(id => !_publication.Text.Frames[id].IsAuthored);
+                _context.Add("PUB_LINKED_TEXT_LAYOUT_APPROXIMATED",
+                    imported ? "Text follows the recovered native story-frame chain using shared managed measurement. Source paragraph styles survive continuation; native font metrics, column balancing and frame break positions can differ."
+                        : "Text follows the current story-frame chain using shared managed measurement. Paragraph styles survive continuation; font metrics and frame break positions can differ from Publisher.",
+                    OfficeConversionLossKind.Approximation, (imported ? "Quill/story/" : "publication/story/") + story.Id);
+            }
         }
     }
 

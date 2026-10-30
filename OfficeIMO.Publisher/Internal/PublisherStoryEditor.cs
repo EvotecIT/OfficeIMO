@@ -6,6 +6,11 @@ namespace OfficeIMO.Publisher.Internal;
 internal static class PublisherStoryEditor {
     private static readonly Encoding StrictUtf16 = new UnicodeEncoding(false, false, true);
 
+    /// <summary>Creates an independent authored story without a native-only final terminator.</summary>
+    internal static PublisherTextStory Create(uint storyId, IReadOnlyList<OfficeRichTextParagraph> paragraphs,
+        PublisherReadOptions options, CancellationToken token) =>
+        Replace(new PublisherTextStory(storyId, string.Empty, Array.Empty<OfficeRichTextParagraph>(), false), paragraphs, options, token);
+
     internal static PublisherTextStory Replace(PublisherTextStory original, IReadOnlyList<OfficeRichTextParagraph> paragraphs,
         PublisherReadOptions options, CancellationToken token) {
         if (paragraphs.Count > 4096) throw new ArgumentException("The story exceeds the paragraph limit.", nameof(paragraphs));
@@ -52,11 +57,21 @@ internal static class PublisherStoryEditor {
     internal static long CharacterCount(PublisherTextStory story) => story.Text.Length
         + story.Paragraphs.Sum(paragraph => (long)(paragraph.Label?.Run.Text.Length ?? 0));
 
+    internal static void ValidatePageName(string name, PublisherReadOptions options) {
+        if (name.Length > options.Limits.MaxTextCharacters)
+            throw new ArgumentException("The page name exceeds the configured character limit.", nameof(name));
+        ValidateText(name, nameof(name));
+    }
+
     private static void ValidateRun(OfficeRichTextRun run, string text) {
-        try { StrictUtf16.GetByteCount(text); }
-        catch (EncoderFallbackException exception) { throw new ArgumentException("Story text must contain well-formed UTF-16.", "paragraphs", exception); }
-        if (text.IndexOf('\0') >= 0) throw new ArgumentException("Story text cannot contain null characters.", "paragraphs");
+        ValidateText(text, "paragraphs");
         if (run.FontSize <= 0 || double.IsNaN(run.FontSize) || double.IsInfinity(run.FontSize))
             throw new ArgumentException("Story font sizes must be positive finite values.", "paragraphs");
+    }
+
+    private static void ValidateText(string text, string parameterName) {
+        try { StrictUtf16.GetByteCount(text); }
+        catch (EncoderFallbackException exception) { throw new ArgumentException("Publication text must contain well-formed UTF-16.", parameterName, exception); }
+        if (text.IndexOf('\0') >= 0) throw new ArgumentException("Publication text cannot contain null characters.", parameterName);
     }
 }

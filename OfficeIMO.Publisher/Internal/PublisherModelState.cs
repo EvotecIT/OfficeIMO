@@ -6,27 +6,35 @@ namespace OfficeIMO.Publisher.Internal;
 // Current semantic pages, pictures, tables, stories and frame chains feed projection.
 // Unsupported imported graphics and native provenance stay separate and inert.
 internal sealed partial class PublisherModelState {
-    private readonly PublisherContents _contents;
-    private readonly PublisherQuillText _importedText;
-    private readonly PublisherEscherData _artwork;
+    private readonly PublisherImportedResidue? _imported;
     private readonly PublisherParseContext _decoded;
-    private readonly PublisherNativeSource _nativeSource;
     private readonly PublisherReadReport _sourceReport;
     private readonly PublisherPublicationState _publication;
 
     internal PublisherModelState(PublisherContents contents, PublisherQuillText text, PublisherEscherData artwork,
         PublisherParseContext decoded, PublisherNativeSource nativeSource, PublisherReadReport? sourceReport = null,
         PublisherPublicationState? publication = null) {
-        _contents = contents; _importedText = text; _artwork = artwork; _decoded = decoded; _nativeSource = nativeSource;
+        _imported = new PublisherImportedResidue(contents, artwork, nativeSource); _decoded = decoded;
         _publication = publication ?? PublisherModelImporter.Import(contents, text, artwork, decoded);
         _sourceReport = sourceReport ?? new PublisherReadReport(decoded.Diagnostics, contents.Shapes.Count, 0,
             text.Stories.Count, artwork.Images.Count, decoded.Records);
     }
 
+    private PublisherModelState(PublisherPublicationState publication, PublisherParseContext context,
+        PublisherReadReport sourceReport, PublisherImportedResidue? imported = null) {
+        _publication = publication; _decoded = context; _sourceReport = sourceReport; _imported = imported;
+    }
+
+    internal static PublisherModelState Create(double width, double height, PublisherReadOptions options, CancellationToken token) =>
+        new(PublisherPublicationState.Create(width, height), new PublisherParseContext(options, token),
+            new PublisherReadReport(Array.Empty<OfficeConversionFidelityDiagnostic>(), 0, 0, 0, 0, 0));
+
+    private int SourceObjectCount => _imported?.Contents.Shapes.Count ?? 0;
+
     internal PublisherDocument Project(CancellationToken token) {
         token.ThrowIfCancellationRequested();
-        PublisherDocument document = new PublisherPageProjector(_contents, _importedText, _artwork,
-            _decoded.ForProjection(token, _publication.AdditionalImageBytes, _publication.AdditionalImageCount), _publication).Project();
+        PublisherDocument document = new PublisherPageProjector(_publication, _imported,
+            _decoded.ForProjection(token, _publication.AdditionalImageBytes, _publication.AdditionalImageCount)).Project();
         token.ThrowIfCancellationRequested();
         document.AttachModel(this, _sourceReport);
         return document;
@@ -50,7 +58,7 @@ internal sealed partial class PublisherModelState {
     internal PublisherModelState AddLinkedTextFrame(uint previousFrameId, uint pageId, double x, double y, double width, double height,
         CancellationToken token, out uint frameId) {
         token.ThrowIfCancellationRequested();
-        if ((long)_contents.Shapes.Count + _publication.AuthoredObjectCount >= _decoded.Options.Limits.MaxItems)
+        if ((long)SourceObjectCount + _publication.AuthoredObjectCount >= _decoded.Options.Limits.MaxItems)
             throw new InvalidDataException("Publisher current object limit exceeded.");
         return WithPublication(_publication.AddLinkedTextFrame(previousFrameId, pageId, x, y, width, height, out frameId));
     }
@@ -86,7 +94,7 @@ internal sealed partial class PublisherModelState {
     }
 
     private PublisherModelState WithPublication(PublisherPublicationState publication) =>
-        new(_contents, _importedText, _artwork, _decoded, _nativeSource, _sourceReport, publication);
+        new(publication, _decoded, _sourceReport, _imported);
 }
 
 // Owned source storage is private to the model. Retention is not a native-save

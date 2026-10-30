@@ -23,8 +23,8 @@ public sealed class PublisherPropertyOverrideTests {
             new OfficeArtProperty(1, complex ? (ushort)0x8104 : blip ? (ushort)0x4104 : (ushort)0x0104, value,
                 complex ? (int)value : null, complexData: complex ? new byte[value] : null)
         }) { Bounds = new PublisherNativeRectangle(-100 * 12700, -100 * 12700, 100 * 12700, 100 * 12700) });
-        PublisherDocument publication = new PublisherPageProjector(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherReadOptions(), default)).Project();
+        PublisherDocument publication = PublisherProjectionFixture.Project(source, new PublisherQuillText(), escher,
+            new PublisherParseContext(new PublisherReadOptions(), default));
         Assert.DoesNotContain(PublisherNativeTests.Elements(publication.Pages[0].CreateDrawing()), item => item is OfficeDrawingImage);
         Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_IMAGE_REFERENCE_UNRESOLVED");
         Assert.Equal(unsupported, publication.ReadReport.FidelityDiagnostics.Any(item => item.Code == "PUB_IMAGE_DATA_UNSUPPORTED"
