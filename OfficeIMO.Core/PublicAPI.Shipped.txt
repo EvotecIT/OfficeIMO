@@ -239,180 +239,6 @@ OfficeIMO.DocumentLoadOptions.PackageSecurity.set -> void
 OfficeIMO.DocumentPersistenceMode
 OfficeIMO.DocumentPersistenceMode.Explicit = 0 -> OfficeIMO.DocumentPersistenceMode
 OfficeIMO.DocumentPersistenceMode.SaveOnDispose = 1 -> OfficeIMO.DocumentPersistenceMode
-OfficeIMO.Drawing.Binary.OfficeArtBlipStorage
-OfficeIMO.Drawing.Binary.OfficeArtBlipStorage.Delayed = 2 -> OfficeIMO.Drawing.Binary.OfficeArtBlipStorage
-OfficeIMO.Drawing.Binary.OfficeArtBlipStorage.Embedded = 1 -> OfficeIMO.Drawing.Binary.OfficeArtBlipStorage
-OfficeIMO.Drawing.Binary.OfficeArtBlipStorage.None = 0 -> OfficeIMO.Drawing.Binary.OfficeArtBlipStorage
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.BlipPayloadAvailableLength.get -> int?
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.BlipPayloadLength.get -> uint?
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.BlipPayloadSha256.get -> string?
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.BlipRecordInstance.get -> ushort?
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.BlipRecordType.get -> ushort?
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.BlipRecordTypeName.get -> string?
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.BlipRecordVersion.get -> byte?
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.ContentType.get -> string?
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.DelayedStreamOffset.get -> uint
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.HasImportableImage.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.ImageByteCount.get -> int
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.ImageBytes.get -> byte[]!
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.IsPayloadTruncated.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.MacOsBlipType.get -> byte
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.MacOsBlipTypeKind.get -> OfficeIMO.Drawing.Binary.OfficeArtBlipType?
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.MacOsBlipTypeName.get -> string!
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.Name.get -> string?
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.NameByteCount.get -> byte
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.RecordInstance.get -> ushort
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.RecordInstanceBlipType.get -> OfficeIMO.Drawing.Binary.OfficeArtBlipType?
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.RecordInstanceBlipTypeName.get -> string!
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.ReferenceCount.get -> uint
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.SizeBytes.get -> uint
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.Storage.get -> OfficeIMO.Drawing.Binary.OfficeArtBlipStorage
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.Tag.get -> ushort
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.UidHex.get -> string!
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.Win32BlipType.get -> byte
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.Win32BlipTypeKind.get -> OfficeIMO.Drawing.Binary.OfficeArtBlipType?
-OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry.Win32BlipTypeName.get -> string!
-OfficeIMO.Drawing.Binary.OfficeArtBlipType
-OfficeIMO.Drawing.Binary.OfficeArtBlipType.CmykJpeg = 18 -> OfficeIMO.Drawing.Binary.OfficeArtBlipType
-OfficeIMO.Drawing.Binary.OfficeArtBlipType.Dib = 7 -> OfficeIMO.Drawing.Binary.OfficeArtBlipType
-OfficeIMO.Drawing.Binary.OfficeArtBlipType.Emf = 2 -> OfficeIMO.Drawing.Binary.OfficeArtBlipType
-OfficeIMO.Drawing.Binary.OfficeArtBlipType.Error = 0 -> OfficeIMO.Drawing.Binary.OfficeArtBlipType
-OfficeIMO.Drawing.Binary.OfficeArtBlipType.Jpeg = 5 -> OfficeIMO.Drawing.Binary.OfficeArtBlipType
-OfficeIMO.Drawing.Binary.OfficeArtBlipType.Pict = 4 -> OfficeIMO.Drawing.Binary.OfficeArtBlipType
-OfficeIMO.Drawing.Binary.OfficeArtBlipType.Png = 6 -> OfficeIMO.Drawing.Binary.OfficeArtBlipType
-OfficeIMO.Drawing.Binary.OfficeArtBlipType.Tiff = 17 -> OfficeIMO.Drawing.Binary.OfficeArtBlipType
-OfficeIMO.Drawing.Binary.OfficeArtBlipType.Unknown = 1 -> OfficeIMO.Drawing.Binary.OfficeArtBlipType
-OfficeIMO.Drawing.Binary.OfficeArtBlipType.Wmf = 3 -> OfficeIMO.Drawing.Binary.OfficeArtBlipType
-OfficeIMO.Drawing.Binary.OfficeArtColorReference
-OfficeIMO.Drawing.Binary.OfficeArtColorReference.Blue.get -> byte
-OfficeIMO.Drawing.Binary.OfficeArtColorReference.Equals(OfficeIMO.Drawing.Binary.OfficeArtColorReference other) -> bool
-OfficeIMO.Drawing.Binary.OfficeArtColorReference.Flags.get -> byte
-OfficeIMO.Drawing.Binary.OfficeArtColorReference.Green.get -> byte
-OfficeIMO.Drawing.Binary.OfficeArtColorReference.IsIgnored.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtColorReference.IsPaletteIndex.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtColorReference.IsSchemeIndex.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtColorReference.IsSystemIndex.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtColorReference.OfficeArtColorReference() -> void
-OfficeIMO.Drawing.Binary.OfficeArtColorReference.OfficeArtColorReference(uint value) -> void
-OfficeIMO.Drawing.Binary.OfficeArtColorReference.Red.get -> byte
-OfficeIMO.Drawing.Binary.OfficeArtColorReference.SchemeIndex.get -> byte?
-OfficeIMO.Drawing.Binary.OfficeArtColorReference.TryResolve(System.Func<byte, OfficeIMO.OfficeColor?>? schemeColorResolver, out OfficeIMO.OfficeColor color) -> bool
-OfficeIMO.Drawing.Binary.OfficeArtColorReference.Value.get -> uint
-OfficeIMO.Drawing.Binary.OfficeArtGradientStop
-OfficeIMO.Drawing.Binary.OfficeArtGradientStop.Color.get -> OfficeIMO.Drawing.Binary.OfficeArtColorReference
-OfficeIMO.Drawing.Binary.OfficeArtGradientStop.Position.get -> double
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.BiLevel.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.BrightnessAdjustment.get -> double?
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.BrightnessRaw.get -> int?
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.ContrastAdjustment.get -> double?
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.ContrastRaw.get -> int?
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.CropFromBottom.get -> double?
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.CropFromBottomRaw.get -> int?
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.CropFromLeft.get -> double?
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.CropFromLeftRaw.get -> int?
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.CropFromRight.get -> double?
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.CropFromRightRaw.get -> int?
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.CropFromTop.get -> double?
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.CropFromTopRaw.get -> int?
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.Grayscale.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.HasCrop.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.HasExplicitCrop.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.HasPictureEffect.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.PreserveGrays.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.Properties.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.Binary.OfficeArtProperty!>!
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.RecolorColor.get -> OfficeIMO.Drawing.Binary.OfficeArtColorReference?
-OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.TransparentColor.get -> OfficeIMO.Drawing.Binary.OfficeArtColorReference?
-OfficeIMO.Drawing.Binary.OfficeArtProperty
-OfficeIMO.Drawing.Binary.OfficeArtProperty.AvailableComplexDataLength.get -> int?
-OfficeIMO.Drawing.Binary.OfficeArtProperty.ComplexText.get -> string?
-OfficeIMO.Drawing.Binary.OfficeArtProperty.CopyComplexData() -> byte[]?
-OfficeIMO.Drawing.Binary.OfficeArtProperty.DeclaredComplexDataLength.get -> uint?
-OfficeIMO.Drawing.Binary.OfficeArtProperty.Index.get -> int
-OfficeIMO.Drawing.Binary.OfficeArtProperty.IsBlipId.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtProperty.IsComplex.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtProperty.OfficeArtProperty(int index, ushort rawOperationId, uint value, int? availableComplexDataLength = null, string? complexText = null, byte[]? complexData = null) -> void
-OfficeIMO.Drawing.Binary.OfficeArtProperty.PropertyGroupName.get -> string!
-OfficeIMO.Drawing.Binary.OfficeArtProperty.PropertyId.get -> ushort
-OfficeIMO.Drawing.Binary.OfficeArtProperty.PropertyIdKey.get -> string!
-OfficeIMO.Drawing.Binary.OfficeArtProperty.PropertyName.get -> string!
-OfficeIMO.Drawing.Binary.OfficeArtProperty.RawOperationId.get -> ushort
-OfficeIMO.Drawing.Binary.OfficeArtProperty.Value.get -> uint
-OfficeIMO.Drawing.Binary.OfficeArtShapeGeometry
-OfficeIMO.Drawing.Binary.OfficeArtShapeGeometry.AdjustmentValues.get -> System.Collections.Generic.IReadOnlyList<int?>!
-OfficeIMO.Drawing.Binary.OfficeArtShapeGeometry.HasAdjustments.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtShapeMetadata
-OfficeIMO.Drawing.Binary.OfficeArtShapeMetadata.CanRewrite.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtShapeMetadata.Description.get -> string?
-OfficeIMO.Drawing.Binary.OfficeArtShapeMetadata.HasMetadata.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtShapeMetadata.Name.get -> string?
-OfficeIMO.Drawing.Binary.OfficeArtShapeMetadata.Properties.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.Binary.OfficeArtProperty!>!
-OfficeIMO.Drawing.Binary.OfficeArtShapeProtection
-OfficeIMO.Drawing.Binary.OfficeArtShapeProtection.LockAdjustHandles.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtShapeProtection.LockAgainstGrouping.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtShapeProtection.LockAgainstSelect.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtShapeProtection.LockAgainstUngrouping.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtShapeProtection.LockAspectRatio.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtShapeProtection.LockCropping.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtShapeProtection.LockPosition.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtShapeProtection.LockRotation.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtShapeProtection.LockText.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtShapeProtection.LockVertices.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtShapeProtection.Properties.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.Binary.OfficeArtProperty!>!
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.CanRewriteHiddenState.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.CanRewriteProjectedVisualStyle.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.FillAlignedWithShape.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.FillAngleDegrees.get -> double?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.FillBackColor.get -> OfficeIMO.Drawing.Binary.OfficeArtColorReference?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.FillBackOpacity.get -> double?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.FillBlipStoreIndex.get -> int?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.FillColor.get -> OfficeIMO.Drawing.Binary.OfficeArtColorReference?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.FillEnabled.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.FillFocusPercent.get -> int?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.FillGradientStops.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.Binary.OfficeArtGradientStop!>!
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.FillOpacity.get -> double?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.FillRotatesWithShape.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.FillShadeType.get -> uint?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.FillType.get -> uint?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.FillUsesCustomRectangle.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.HasProjectableShadow.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.HasProjectableStyle.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.HasUnprojectedVisualStyle.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.Hidden.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.IsFillGradientStopTableTruncated.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.LineColor.get -> OfficeIMO.Drawing.Binary.OfficeArtColorReference?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.LineDashing.get -> uint?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.LineEnabled.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.LineEndArrowLength.get -> uint?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.LineEndArrowWidth.get -> uint?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.LineEndArrowhead.get -> uint?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.LineEndCapStyle.get -> uint?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.LineJoinStyle.get -> uint?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.LineMiterLimit.get -> double?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.LineOpacity.get -> double?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.LineStartArrowLength.get -> uint?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.LineStartArrowWidth.get -> uint?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.LineStartArrowhead.get -> uint?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.LineStyle.get -> uint?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.LineType.get -> uint?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.LineWidthEmus.get -> int?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.LockShapeType.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.PreferRelativeResize.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.Properties.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.Binary.OfficeArtProperty!>!
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.ShadowColor.get -> OfficeIMO.Drawing.Binary.OfficeArtColorReference?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.ShadowEnabled.get -> bool?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.ShadowOffsetXEmus.get -> int?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.ShadowOffsetYEmus.get -> int?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.ShadowOpacity.get -> double?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.ShadowSoftnessEmus.get -> int?
-OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.ShadowType.get -> uint?
-OfficeIMO.Drawing.Binary.OfficeArtShapeTransform
-OfficeIMO.Drawing.Binary.OfficeArtShapeTransform.FlipHorizontal.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtShapeTransform.FlipVertical.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtShapeTransform.HasTransform.get -> bool
-OfficeIMO.Drawing.Binary.OfficeArtShapeTransform.RotationDegrees.get -> double?
 OfficeIMO.Drawing.IOfficeBoundedFontProgram
 OfficeIMO.Drawing.IOfficeBoundedFontProgram.GetShapedTextContoursBounded(string! text, OfficeIMO.Drawing.OfficeTextShapingResult! result, double x, double y, double fontSize, int maximumPointCount, System.Threading.CancellationToken cancellationToken) -> System.Collections.Generic.List<System.Collections.Generic.List<OfficeIMO.Drawing.OfficePoint>!>!
 OfficeIMO.Drawing.IOfficeBoundedFontProgram.GetTextContoursBounded(string! text, double x, double y, double fontSize, int maximumPointCount, System.Threading.CancellationToken cancellationToken) -> System.Collections.Generic.List<System.Collections.Generic.List<OfficeIMO.Drawing.OfficePoint>!>!
@@ -7214,9 +7040,6 @@ const OfficeIMO.OfficeDiagnosticCodes.XlsbStyleGradientPreserved = "xlsb-style-g
 const OfficeIMO.OfficeDiagnosticCodes.XlsbUnprojectedRecord = "xlsb-unprojected-record" -> string!
 const OfficeIMO.OfficeSeries.MaximumPointExplosionPercent = 400 -> int
 const OfficeIMO.OfficeVbaProjectInfo.DefaultMaximumProjectBytes = 67108864 -> long
-override OfficeIMO.Drawing.Binary.OfficeArtColorReference.Equals(object? obj) -> bool
-override OfficeIMO.Drawing.Binary.OfficeArtColorReference.GetHashCode() -> int
-override OfficeIMO.Drawing.Binary.OfficeArtColorReference.ToString() -> string!
 override OfficeIMO.Drawing.OfficeBorderSide.Equals(object? obj) -> bool
 override OfficeIMO.Drawing.OfficeBorderSide.GetHashCode() -> int
 override OfficeIMO.Drawing.OfficeDrawingQualityIssue.ToString() -> string!
@@ -7279,14 +7102,6 @@ static OfficeIMO.Data.DataReaderUtf8TextExtensions.TryGetUtf8Text(this System.Da
 static OfficeIMO.Data.ParallelRowMappingExtensions.RowsAsParallel<T>(this System.Data.Common.DbDataReader! reader, OfficeIMO.Data.ParallelRowMappingOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<T>!
 static OfficeIMO.Data.ParallelRowMappingExtensions.RowsAsParallel<T>(this System.Data.Common.DbDataReader! reader, System.Action<OfficeIMO.Data.RowMapper<T>!>! configure, OfficeIMO.Data.ParallelRowMappingOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<T>!
 static OfficeIMO.Data.ParallelRowMappingExtensions.RowsAsParallel<T>(this System.Data.Common.DbDataReader! reader, System.Func<System.Data.IDataRecord!, T>! factory, OfficeIMO.Data.ParallelRowMappingOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<T>!
-static OfficeIMO.Drawing.Binary.OfficeArtColorReference.operator !=(OfficeIMO.Drawing.Binary.OfficeArtColorReference left, OfficeIMO.Drawing.Binary.OfficeArtColorReference right) -> bool
-static OfficeIMO.Drawing.Binary.OfficeArtColorReference.operator ==(OfficeIMO.Drawing.Binary.OfficeArtColorReference left, OfficeIMO.Drawing.Binary.OfficeArtColorReference right) -> bool
-static OfficeIMO.Drawing.Binary.OfficeArtPictureProperties.Decode(System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.Binary.OfficeArtProperty!>? properties) -> OfficeIMO.Drawing.Binary.OfficeArtPictureProperties!
-static OfficeIMO.Drawing.Binary.OfficeArtShapeGeometry.Decode(System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.Binary.OfficeArtProperty!>? properties) -> OfficeIMO.Drawing.Binary.OfficeArtShapeGeometry!
-static OfficeIMO.Drawing.Binary.OfficeArtShapeMetadata.Decode(System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.Binary.OfficeArtProperty!>? properties) -> OfficeIMO.Drawing.Binary.OfficeArtShapeMetadata!
-static OfficeIMO.Drawing.Binary.OfficeArtShapeProtection.Decode(System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.Binary.OfficeArtProperty!>? properties) -> OfficeIMO.Drawing.Binary.OfficeArtShapeProtection!
-static OfficeIMO.Drawing.Binary.OfficeArtShapeStyle.Decode(System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.Binary.OfficeArtProperty!>? properties) -> OfficeIMO.Drawing.Binary.OfficeArtShapeStyle!
-static OfficeIMO.Drawing.Binary.OfficeArtShapeTransform.Decode(uint fspFlags, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.Binary.OfficeArtProperty!>? properties = null) -> OfficeIMO.Drawing.Binary.OfficeArtShapeTransform!
 static OfficeIMO.Drawing.OfficeBidiTextResolver.ResolveRuns(string? text, OfficeIMO.Drawing.OfficeTextDirection baseDirection = OfficeIMO.Drawing.OfficeTextDirection.Auto) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeBidiTextRun!>!
 static OfficeIMO.Drawing.OfficeBidiTextResolver.ResolveRuns(string? text, OfficeIMO.Drawing.OfficeTextDirection baseDirection, System.Threading.CancellationToken cancellationToken) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeBidiTextRun!>!
 static OfficeIMO.Drawing.OfficeBidiTextResolver.ResolveVisualRuns(string? text, OfficeIMO.Drawing.OfficeTextDirection baseDirection = OfficeIMO.Drawing.OfficeTextDirection.Auto) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeBidiTextRun!>!

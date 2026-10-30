@@ -8,7 +8,7 @@ namespace OfficeIMO.Drawing.Binary;
 /// Decodes common fill, line, and shadow state from an OfficeArt property table.
 /// Numeric enum values remain available so application-specific projectors can map them without loss.
 /// </summary>
-public sealed class OfficeArtShapeStyle {
+internal sealed class OfficeArtShapeStyle {
     private const int MaximumGradientStops = 256;
 
     private OfficeArtShapeStyle(IReadOnlyList<OfficeArtProperty> properties) {

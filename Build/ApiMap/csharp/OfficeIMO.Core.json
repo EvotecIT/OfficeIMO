@@ -1585,6 +1585,174 @@
       "reason": "Generated surface analysis identifies undocumented implementation plumbing. Documented table projection options, conversion reports and diagnostic models stay public. All real assembly consumers already have existing friend access.",
       "phase": "B",
       "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.Drawing.Binary.OfficeArtBlipStorage",
+      "file": [
+        "OfficeIMO.Core/Binary/OfficeArtBlipStoreEntry.cs",
+        "OfficeIMO.Core/Binary/OfficeArtBlipType.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.Drawing.Binary.OfficeArtBlipStorage",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "membersHiddenWithType": 3
+      },
+      "why": "Unrooted native OfficeArt record decoder or codec metadata. Documented document, renderer, image and extension contracts remain public; actual format and test consumers already have friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry",
+      "file": [
+        "OfficeIMO.Core/Binary/OfficeArtBlipStoreEntry.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "membersHiddenWithType": 29
+      },
+      "why": "Unrooted native OfficeArt record decoder or codec metadata. Documented document, renderer, image and extension contracts remain public; actual format and test consumers already have friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.Drawing.Binary.OfficeArtBlipType",
+      "file": [
+        "OfficeIMO.Core/Binary/OfficeArtBlipStoreEntry.cs",
+        "OfficeIMO.Core/Binary/OfficeArtBlipType.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.Drawing.Binary.OfficeArtBlipType",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "membersHiddenWithType": 10
+      },
+      "why": "Unrooted native OfficeArt record decoder or codec metadata. Documented document, renderer, image and extension contracts remain public; actual format and test consumers already have friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.Drawing.Binary.OfficeArtColorReference",
+      "file": [
+        "OfficeIMO.Core/Binary/OfficeArtColorReference.cs",
+        "OfficeIMO.Core/Binary/OfficeArtGradientStop.cs",
+        "OfficeIMO.Core/Binary/OfficeArtPictureProperties.cs",
+        "OfficeIMO.Core/Binary/OfficeArtShapeStyle.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.Drawing.Binary.OfficeArtColorReference",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "membersHiddenWithType": 18
+      },
+      "why": "Unrooted native OfficeArt record decoder or codec metadata. Documented document, renderer, image and extension contracts remain public; actual format and test consumers already have friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.Drawing.Binary.OfficeArtGradientStop",
+      "file": [
+        "OfficeIMO.Core/Binary/OfficeArtGradientStop.cs",
+        "OfficeIMO.Core/Binary/OfficeArtShapeStyle.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.Drawing.Binary.OfficeArtGradientStop",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "membersHiddenWithType": 2
+      },
+      "why": "Unrooted native OfficeArt record decoder or codec metadata. Documented document, renderer, image and extension contracts remain public; actual format and test consumers already have friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.Drawing.Binary.OfficeArtPictureProperties",
+      "file": [
+        "OfficeIMO.Core/Binary/OfficeArtPictureProperties.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.Drawing.Binary.OfficeArtPictureProperties",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "membersHiddenWithType": 22
+      },
+      "why": "Unrooted native OfficeArt record decoder or codec metadata. Documented document, renderer, image and extension contracts remain public; actual format and test consumers already have friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.Drawing.Binary.OfficeArtProperty",
+      "file": [
+        "OfficeIMO.Core/Binary/OfficeArtPictureProperties.cs",
+        "OfficeIMO.Core/Binary/OfficeArtProperty.cs",
+        "OfficeIMO.Core/Binary/OfficeArtShapeGeometry.cs",
+        "OfficeIMO.Core/Binary/OfficeArtShapeMetadata.cs",
+        "OfficeIMO.Core/Binary/OfficeArtShapeProtection.cs",
+        "OfficeIMO.Core/Binary/OfficeArtShapeStyle.cs",
+        "OfficeIMO.Core/Binary/OfficeArtShapeTransform.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.Drawing.Binary.OfficeArtProperty",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "membersHiddenWithType": 14
+      },
+      "why": "Unrooted native OfficeArt record decoder or codec metadata. Documented document, renderer, image and extension contracts remain public; actual format and test consumers already have friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.Drawing.Binary.OfficeArtShapeGeometry",
+      "file": [
+        "OfficeIMO.Core/Binary/OfficeArtShapeGeometry.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.Drawing.Binary.OfficeArtShapeGeometry",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "membersHiddenWithType": 3
+      },
+      "why": "Unrooted native OfficeArt record decoder or codec metadata. Documented document, renderer, image and extension contracts remain public; actual format and test consumers already have friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.Drawing.Binary.OfficeArtShapeMetadata",
+      "file": [
+        "OfficeIMO.Core/Binary/OfficeArtShapeMetadata.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.Drawing.Binary.OfficeArtShapeMetadata",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "membersHiddenWithType": 6
+      },
+      "why": "Unrooted native OfficeArt record decoder or codec metadata. Documented document, renderer, image and extension contracts remain public; actual format and test consumers already have friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.Drawing.Binary.OfficeArtShapeProtection",
+      "file": [
+        "OfficeIMO.Core/Binary/OfficeArtShapeProtection.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.Drawing.Binary.OfficeArtShapeProtection",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "membersHiddenWithType": 12
+      },
+      "why": "Unrooted native OfficeArt record decoder or codec metadata. Documented document, renderer, image and extension contracts remain public; actual format and test consumers already have friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.Drawing.Binary.OfficeArtShapeStyle",
+      "file": [
+        "OfficeIMO.Core/Binary/OfficeArtShapeStyle.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.Drawing.Binary.OfficeArtShapeStyle",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "membersHiddenWithType": 48
+      },
+      "why": "Unrooted native OfficeArt record decoder or codec metadata. Documented document, renderer, image and extension contracts remain public; actual format and test consumers already have friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.Drawing.Binary.OfficeArtShapeTransform",
+      "file": [
+        "OfficeIMO.Core/Binary/OfficeArtShapeTransform.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.Drawing.Binary.OfficeArtShapeTransform",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "membersHiddenWithType": 5
+      },
+      "why": "Unrooted native OfficeArt record decoder or codec metadata. Documented document, renderer, image and extension contracts remain public; actual format and test consumers already have friend access.",
+      "applied": "phase-b-applied"
     }
   ]
 }
