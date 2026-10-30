@@ -16,6 +16,7 @@ Targets `netstandard2.0`, `net8.0` and `net10.0`, plus `net472` on Windows.
 
 ## A table and a chart from your data
 
+<!-- powerforge:code source="Build/DocumentationExamples/Excel/Program.cs" region="QuickStart" -->
 ```csharp
 using OfficeIMO;
 using OfficeIMO.Excel;
@@ -68,6 +69,7 @@ sheet.AutoFitColumns();
 
 book.Save();
 ```
+<!-- /powerforge:code -->
 
 Rows and columns are 1-based, as in Excel.
 
