@@ -96,7 +96,7 @@ at index `N-4`. The non-master pages reference the generated master. Optional
 auxiliary page records remain absent; the inspected validator permits their zero
 references, and this does not establish that the ordinary native loader needs no
 others. Document field `0x20` points to a generated Quill document (`0x5B`), with
-references to `0x61` and `0x65` children and its observed options field. Text
+references to `0x61` and `0x65` children and its observed options field. Text-bearing
 candidates give each catalog one generated row: the frame row binds story key 1
 to the shape, and the story row binds that same key with observed `IdLayout`
 (field 7) value 1. This field is separate from the frame reference count. Other
@@ -145,11 +145,13 @@ image record in `EscherDelayStm` and preserving picture shape type 75. This
 matches the independently observed native storage layout and the independent
 reader's delayed image path. The common blank publication bytes are unchanged.
 
-The text candidate adds a calculated `F00D` ClientTextbox OPL with story key 1
-in field 1/type `0x20`. Its record header follows the native Text, Rectangle and
-Newsletter controls. Shape type 1 and the existing Quill and Contents data are
-unchanged for this binding discriminator. A usable native frame text range,
-save/reopen and export remain separate qualification checks.
+Text-bearing candidates add a calculated `F00D` ClientTextbox OPL with story
+key 1 in field 1/type `0x20`. Its record header follows the native Text,
+Rectangle and Newsletter controls. Text boxes use native FSP type 202. The
+standalone rectangle retains type 1 and owns a one-CR story, with matching
+Contents bindings, frame/story catalog rows and ordinary Quill formatting
+carriers. A usable native frame text range, save/reopen and export remain
+separate qualification checks.
 
 The earlier named hypothesis commands and their exact source are retained in
 commit `a69b7b8b56`. Retained raw candidates and their native rejection records

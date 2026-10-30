@@ -42,6 +42,7 @@ internal static class CandidateOfficeArt {
         image.Length >= 8 && image[0] == 0x89 && image[1] == 0x50 ? "image/png" : "image/jpeg";
 
     private static byte[] Leaf(string kind, bool hasImage, uint nativeShapeId, uint shapeId, uint width, uint height) {
+        bool hasStory = kind is "text" or "shape";
         var properties = new List<(ushort Id, uint Value)> {
             (0x181, 0x0000FF), // Solid red in the common OfficeArt RGB encoding.
             (0x1BF, 0x00100010),
@@ -60,7 +61,7 @@ internal static class CandidateOfficeArt {
         });
         uint Coord(double points, uint pageSize) => unchecked((uint)(int)(points * 12700 - pageSize / 2D));
         return Art(15, 0xF004,
-            Art((ushort)(((kind == "image" ? 75 : 1) << 4) | 2), 0xF00A,
+            Art((ushort)(((kind == "image" ? 75 : kind == "text" ? 202 : 1) << 4) | 2), 0xF00A,
                 Bytes(writer => { writer.Write(shapeId); writer.Write(0xA00U); })),
             Art((ushort)((properties.Count << 4) | 3), 0xF00B, fopt),
             Art(0, 0xF010, Client((0x2001, Coord(72, width)), (0x2002, Coord(72, height)),
@@ -68,6 +69,6 @@ internal static class CandidateOfficeArt {
             Art(0, 0xF011, Client((0x6801, nativeShapeId))),
             // Publisher's native text-bearing shapes carry this ClientTextbox
             // OPL with their story key and the observed client record header.
-            kind == "text" ? Art(0x01AA, 0xF00D, Client((0x2001, NativePublicationGraph.TextStoryKey))) : Array.Empty<byte>());
+            hasStory ? Art(0x01AA, 0xF00D, Client((0x2001, NativePublicationGraph.TextStoryKey))) : Array.Empty<byte>());
     }
 }

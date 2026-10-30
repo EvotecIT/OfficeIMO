@@ -20,6 +20,7 @@ internal static class NativePublicationGraph {
         uint physicalId = firstPageId + PhysicalPageIndex;
         uint shapeId = firstPageId + OrderedPageCount;
         bool hasShape = kind != "blank";
+        bool hasStory = kind is "text" or "shape";
         uint quillDocumentId = shapeId + (hasShape ? 1U : 0U);
         uint printBlockId = quillDocumentId + 3;
         uint masterGeometryId = printBlockId + 1;
@@ -49,20 +50,20 @@ internal static class NativePublicationGraph {
             chunks.Add(new NativeRecord(0x43, documentId, Chunk(fields.ToArray())));
         }
         if (hasShape) chunks.Add(new NativeRecord(kind == "image" ? 0x20U : 1U, physicalId,
-            kind == "text" ? Chunk(Scalar(0x27, 0x20, TextStoryKey), Scalar(0x28, 0x20, 0)) : Chunk()));
+            hasStory ? Chunk(Scalar(0x27, 0x20, TextStoryKey), Scalar(0x28, 0x20, 0)) : Chunk()));
         // The ordinary native loader obtains its Quill document through field
         // 0x20 and kind 0x5B. Its frame/story catalogs use generated rows for the
-        // text object; the other profiles retain the blank control's empty catalogs.
+        // text-bearing object; blank and image retain empty catalogs.
         chunks.Add(new NativeRecord(0x5B, documentId, Chunk(
             Scalar(1, 0x70, quillDocumentId + 1), Scalar(2, 0x70, quillDocumentId + 2),
             Variable(10, 0x98, Scalar(1, 0x20, 0x08000000)))));
-        chunks.Add(new NativeRecord(0x61, quillDocumentId, kind == "text"
+        chunks.Add(new NativeRecord(0x61, quillDocumentId, hasStory
             ? Chunk(Scalar(1, 0x20, 1), Variable(2, 0xA0, Variable(0, 0x88,
                 Scalar(1, 0x20, TextStoryKey), Scalar(3, 0x68, shapeId))))
             : Chunk()));
         // IdLayout (field 7) uses 1, following the independently authored
         // one-story controls. It is separate from the frame reference count.
-        chunks.Add(new NativeRecord(0x65, quillDocumentId, kind == "text"
+        chunks.Add(new NativeRecord(0x65, quillDocumentId, hasStory
             ? Chunk(Scalar(1, 0x20, 1), Variable(2, 0xA0, Variable(0, 0x88,
                 Scalar(1, 0x20, TextStoryKey), Scalar(7, 0x20, 1))))
             : Chunk()));

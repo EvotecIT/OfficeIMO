@@ -16,7 +16,11 @@ internal static class CandidateWriter {
 
     internal static byte[] Create(string kind, string? value) {
         if (kind is not ("blank" or "text" or "shape" or "image")) throw new ArgumentException("Unknown candidate kind.");
-        string? text = kind == "text" ? value ?? "Template-free Publisher writer probe\r" : null;
+        string? text = kind switch {
+            "text" => value ?? "Template-free Publisher writer probe\r",
+            "shape" => "\r",
+            _ => null
+        };
         if (text != null && !text.EndsWith('\r')) text += '\r';
         if (text?.Length > 4096) throw new ArgumentException("Probe text is limited to 4,096 characters.");
         byte[]? image = null;
