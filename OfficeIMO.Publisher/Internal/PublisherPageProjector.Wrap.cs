@@ -25,7 +25,7 @@ internal sealed partial class PublisherPageProjector {
                 .TransformRectangleBounds(objectBounds.X - left, objectBounds.Y - top,
                     objectBounds.Width + left + right, objectBounds.Height + top + bottom);
             result.Add(new OfficeTextFlowRegion(local.Left, local.Top, local.Right - local.Left, local.Bottom - local.Top));
-            if (obstacle.Properties.Any(property => property.PropertyId == 0x383))
+            if (obstacle.HasProperty(0x383))
                 _context.Add("PUB_TIGHT_TEXT_WRAP_APPROXIMATED", "A native wrap polygon uses its transformed bounding rectangle. Tight and through-outline text paths are not reproduced.",
                     OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(id));
         }

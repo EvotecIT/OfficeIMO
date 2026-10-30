@@ -39,4 +39,19 @@ public sealed partial class HtmlRenderingTests {
         options.MaxLayoutOperations = 100_000;
         Assert.Single(HtmlPdfRenderedConverter.Convert(document, options).RenderResult!.Document.Pages);
     }
+
+    [Fact]
+    public void HtmlPdf_RunningStringFontHashingSharesTheLayoutOperationLimit() {
+        string family = new string('F', 5000);
+        string html = "<style>@page{@top-center{content:string(h);font-family:'" + family +
+            "'}}span{string-set:h 'A'}</style><div>" +
+            string.Concat(Enumerable.Repeat("<span>Text</span>", 50)) + "</div>";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        var options = new HtmlToPdfOptions { MaxLayoutOperations = 100_000 };
+
+        HtmlDomLimitException error = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlPdfRenderedConverter.Convert(document, options));
+        Assert.Equal(HtmlRenderDiagnosticCodes.LayoutOperationLimitExceeded, error.Code);
+        Assert.Contains("page-margin font family hashing", error.Message, StringComparison.Ordinal);
+    }
 }

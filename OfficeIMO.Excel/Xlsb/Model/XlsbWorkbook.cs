@@ -2,6 +2,8 @@ namespace OfficeIMO.Excel.Xlsb.Model {
     internal sealed class XlsbWorkbook {
         private readonly List<XlsbSheet> _worksheets = new List<XlsbSheet>();
         private readonly List<XlsbDefinedName> _definedNames = new List<XlsbDefinedName>();
+        private Dictionary<uint, HashSet<string>>? _localNamesBySheet;
+        private HashSet<string>? _allLocalNames;
         private readonly List<XlsbExternalSheetReference> _externalSheetReferences = new List<XlsbExternalSheetReference>();
         private readonly List<bool> _selfSupportingLinks = new List<bool>();
         private readonly List<XlsbImportDiagnostic> _diagnostics = new List<XlsbImportDiagnostic>();
@@ -57,7 +59,31 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal void AddWorksheet(XlsbSheet worksheet) => _worksheets.Add(worksheet);
 
-        internal void AddDefinedName(XlsbDefinedName definedName) => _definedNames.Add(definedName);
+        internal void AddDefinedName(XlsbDefinedName definedName) {
+            _definedNames.Add(definedName);
+            _localNamesBySheet = null;
+            _allLocalNames = null;
+        }
+
+        internal bool HasLocalNameShadow(string name, int sheetIndex) {
+            if (_localNamesBySheet == null) {
+                var bySheet = new Dictionary<uint, HashSet<string>>();
+                var all = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (XlsbDefinedName candidate in _definedNames) {
+                    if (candidate.LocalSheetIndex == uint.MaxValue) continue;
+                    all.Add(candidate.Name);
+                    if (!bySheet.TryGetValue(candidate.LocalSheetIndex, out HashSet<string>? names)) {
+                        names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        bySheet.Add(candidate.LocalSheetIndex, names);
+                    }
+                    names.Add(candidate.Name);
+                }
+                _allLocalNames = all;
+                _localNamesBySheet = bySheet;
+            }
+            return sheetIndex < 0 ? _allLocalNames!.Contains(name)
+                : _localNamesBySheet.TryGetValue((uint)sheetIndex, out HashSet<string>? sheetNames) && sheetNames.Contains(name);
+        }
 
         internal void AddExternalSheetReference(XlsbExternalSheetReference reference) => _externalSheetReferences.Add(reference);
 

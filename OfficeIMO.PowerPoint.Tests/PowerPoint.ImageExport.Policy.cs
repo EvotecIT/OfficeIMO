@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
@@ -7,6 +8,19 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
+        [Fact]
+        public void PowerPointSlide_RejectsOversizedTableBeforeImageExport() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTable table = slide.AddTablePoints(1, 1, 10, 10, 80, 40);
+            A.TableRow row = table.TableElement.Elements<A.TableRow>().Single();
+            for (int index = 1; index <= 4096; index++) table.TableElement.Append(row.CloneNode(true));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                slide.ExportImage(OfficeImageExportFormat.Svg));
+            Assert.Contains("PowerPoint table export exceeds", exception.Message);
+        }
+
         [Fact]
         public void PowerPointSlide_StrictOmissionPolicyRejectsSkippedGroupContent() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();

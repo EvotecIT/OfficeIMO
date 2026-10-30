@@ -193,6 +193,32 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void PaddedRowTableRepeatedHeaderDoesNotCountAsBodyProgress() {
+        var first = new[] { PdfTextRun.Normal("First") };
+        var kept = new[] { PdfTextRun.Normal("Kept1\nKept2\nKept3\nKept4") };
+        var body = new PdfTableCell(first.Concat(kept), new[] {
+            new PdfTableCellParagraph(first, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(15), widowControl: false),
+            new PdfTableCellParagraph(kept, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(15), widowControl: false, keepTogether: true)
+        });
+        var tableStyle = new PdfTableStyle {
+            HeaderRowCount = 1, RepeatHeaderRowCount = 1,
+            MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0,
+            CellPaddingX = 0, CellPaddingY = 0, BorderWidth = 0,
+            FontSize = 12, LineHeight = 1.25, SpacingBefore = 0, SpacingAfter = 0
+        };
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
+            PageWidth = 220, PageHeight = 120, MarginLeft = 20, MarginRight = 20,
+            MarginTop = 20, MarginBottom = 20, DefaultFontSize = 12, MaxGeneratedPages = 3
+        }).Compose(root => root.Page(page => page.Content(content => content.Row(row =>
+            row.PercentColumn(100, column => column.Panel(panel => panel.Table(new[] {
+                new[] { new PdfTableCell("Header") }, new[] { body }
+            }, style: tableStyle), new PdfPanelStyle { PaddingX = 0, PaddingY = 6, KeepTogether = false }))))));
+
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => document.ToBytes());
+        Assert.Contains("progress", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void OversizedPaddedTableLineCannotOverflowThePage() {
         var options = new PdfCreateOptions { PageWidth = 400, PageHeight = 150, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
         PdfDocument document = PdfDocument.Create(options).Panel(panel => panel

@@ -7,6 +7,35 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LegacyDoc_RejectsDeepNoteParagraphStyleChains(bool endnote) {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph body = document.AddParagraph("Note marker");
+        if (endnote) body.AddEndNote("Note body"); else body.AddFootNote("Note body");
+        Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        Style note = styles.Elements<Style>().Single(style => style.StyleId == (endnote ? "EndnoteText" : "FootnoteText"));
+        note.BasedOn = new BasedOn { Val = "DeepParagraph255" };
+        note.StyleParagraphProperties?.SpacingBetweenLines = null;
+        var noteRoot = endnote
+            ? (OpenXmlCompositeElement)document._wordprocessingDocument.MainDocumentPart!.EndnotesPart!.Endnotes!.Elements<Endnote>().Single(item => item.Id?.Value > 0)
+            : document._wordprocessingDocument.MainDocumentPart!.FootnotesPart!.Footnotes!.Elements<Footnote>().Single(item => item.Id?.Value > 0);
+        foreach (Paragraph paragraph in noteRoot.Descendants<Paragraph>()) {
+            paragraph.ParagraphProperties ??= new ParagraphProperties();
+            paragraph.ParagraphProperties.SpacingBetweenLines = null;
+            paragraph.ParagraphProperties.ParagraphStyleId = new ParagraphStyleId { Val = note.StyleId!.Value };
+        }
+        for (int index = 0; index < 256; index++) {
+            var style = new Style { Type = StyleValues.Paragraph, StyleId = "DeepParagraph" + index };
+            if (index > 0) style.BasedOn = new BasedOn { Val = "DeepParagraph" + (index - 1) };
+            styles.Append(style);
+        }
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.ToBytes(WordFileFormat.Doc));
+        Assert.Contains("note paragraph style chains", exception.Message);
+    }
+
+    [Theory]
     [InlineData(false, false, false)]
     [InlineData(false, true, false)]
     [InlineData(true, false, false)]

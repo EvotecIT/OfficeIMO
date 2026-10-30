@@ -762,7 +762,11 @@ public static partial class OfficeChartDrawingRenderer {
         if (!hasDate && !hasHours) return false;
         // Excel counts 1900-02-29, so serials from 61 on are one day ahead of the calendar.
         DateTime date = new DateTime(1899, 12, serial >= 61D ? 30 : 31).AddDays(serial);
-        formatted = date.ToString(pattern.ToString(), CultureInfo.InvariantCulture);
+        string datePattern = pattern.ToString();
+        // A single DateTime format character is interpreted as a standard format.
+        // Excel's one-letter date tokens are custom formats instead.
+        if (datePattern.Length == 1) datePattern = "%" + datePattern;
+        formatted = date.ToString(datePattern, CultureInfo.InvariantCulture);
         return true;
     }
 

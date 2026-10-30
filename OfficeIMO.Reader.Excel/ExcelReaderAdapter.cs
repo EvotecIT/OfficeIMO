@@ -189,6 +189,10 @@ internal static partial class ExcelReaderAdapter {
             : new[] { options.SheetName!.Trim() };
         int tableIndex = 0;
         bool firstChunk = true;
+        var chunking = new ExcelExtractChunkingOptions {
+            MaxChars = readerOptions.MaxChars,
+            MaxTableRows = readerOptions.MaxTableRows
+        };
         foreach (string sheet in sheets) {
             foreach (ExcelExtractChunk source in reader.ExtractChunks(
                          sheet,
@@ -198,10 +202,7 @@ internal static partial class ExcelReaderAdapter {
                              ChunkRows = options.ChunkRows,
                              EmitMarkdownTable = readerOptions.Projection == ReaderProjection.Full
                          },
-                         new ExcelExtractChunkingOptions {
-                             MaxChars = readerOptions.MaxChars,
-                             MaxTableRows = readerOptions.MaxTableRows
-                         },
+                         chunking,
                          sourceName,
                          cancellationToken)) {
                 ReaderTable[] tables = source.Tables.Select(table => new ReaderTable {

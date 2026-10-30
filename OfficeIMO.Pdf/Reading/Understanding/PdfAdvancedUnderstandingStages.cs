@@ -268,7 +268,7 @@ public static partial class PdfAdvancedUnderstandingStages {
                     string wordText = PdfTextDirectionAnalysis.RestoreLogicalOrderFromGlyphPaintSequence(
                         text.Substring(start, cursor - start),
                         run.GlyphSequenceProgressesLeftToRight);
-                    if (start == 0 && TryJoinKernedFragment(result, runs, runIndex, run, wordText, startX, startY, endX, endDistance - startDistance)) continue;
+                    if (start == 0 && TryJoinKernedFragment(context, result, runs, runIndex, run, wordText, startX, startY, endX, endDistance - startDistance)) continue;
                     result.Add(new PdfUnderstandingWord(
                         wordText,
                         Math.Min(startX, endX),
@@ -297,7 +297,7 @@ public static partial class PdfAdvancedUnderstandingStages {
         // Kerning and glyph positioning split one TJ array into several spans. A fragment that
         // continues the previous span's last word on the same baseline, with no whitespace and a
         // gap well below a word space, belongs to that word.
-        private static bool TryJoinKernedFragment(List<PdfUnderstandingWord> result, IReadOnlyList<PdfTextSpan> runs, int runIndex,
+        private static bool TryJoinKernedFragment(PdfUnderstandingPageContext context, List<PdfUnderstandingWord> result, IReadOnlyList<PdfTextSpan> runs, int runIndex,
             PdfTextSpan run, string wordText, double startX, double startY, double endX, double advance) {
             if (result.Count == 0 || runIndex == 0) return false;
             PdfTextSpan previousRun = runs[runIndex - 1];
@@ -313,6 +313,10 @@ public static partial class PdfAdvancedUnderstandingStages {
             double gap = Math.Min(startX, endX) - previous.XEnd;
             double em = Math.Max(run.FontSize, 0.01D);
             if (gap < -0.3D * em || gap > 0.1D * em) return false;
+            // Joining copies the growing text and source list, then copies evidence twice.
+            // Charge that work before allocating so one word cannot hide quadratic cost.
+            context.ConsumeWork((long)previous.Text.Length + wordText.Length + previous.SourceRuns.Count +
+                (long)previous.Evidence.Count * 2L + 3L);
             var sources = new List<PdfTextSpan>(previous.SourceRuns) { run };
             var evidence = new List<PdfInferenceEvidence>(previous.Evidence) {
                 new PdfInferenceEvidence("word-kerned-fragment-join",

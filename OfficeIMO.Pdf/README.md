@@ -44,6 +44,8 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 
 Page margins follow the `Modern` theme unless `PdfCreateOptions.Theme` names another. `PdfCreateOptions` also sets the page size, fonts, tagging and compliance profile.
 
+A single flow spacer is limited to 1,000 page or column traversal steps and cannot exceed 1,000 configured page heights. Larger spacing fails with `InvalidDataException`. Set `MaxGeneratedPages` when the total output page count also needs a limit.
+
 ## Read text and tables
 
 ```csharp

@@ -101,6 +101,47 @@ public sealed class LaterSpreadsheetImportTests {
     }
 
     [Fact]
+    public void LotusDenseCommentsSurviveImportAndXlsxSave() {
+        byte[] header = new byte[26]; header[0] = 5; header[1] = 0x10;
+        var records = new List<byte[]> { Record(0, header) };
+        for (int row = 0; row < 400; row++)
+            records.Add(Record(0x26, Join(BitConverter.GetBytes((ushort)row), new byte[] { 0, 0 }, Encoding.ASCII.GetBytes("'Note\0"))));
+        records.Add(Record(1));
+
+        using var result = Import(Join(records.ToArray()));
+        Assert.Equal(400, result.Cells.Count(cell => cell.Comment == "Note"));
+        using var xlsx = new MemoryStream();
+        result.Value.Save(xlsx);
+        xlsx.Position = 0;
+        using var loaded = ExcelDocument.Load(xlsx);
+        Assert.Equal(400, loaded.Sheets[0].GetComments().Count);
+        Assert.True(loaded.Sheets[0].HasComment(400, 1));
+    }
+
+    [Fact]
+    public void ImportedCommentBatchObservesCancellationBetweenComments() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Report");
+        using var cancellation = new CancellationTokenSource();
+        Assert.Throws<OperationCanceledException>(() => sheet.AddImportedComments(
+            new CancelingComments(cancellation), "Legacy source", cancellation.Token));
+    }
+
+    private sealed class CancelingComments : IReadOnlyList<(int Row, int Column, string Text)> {
+        private readonly CancellationTokenSource _cancellation;
+        public CancelingComments(CancellationTokenSource cancellation) => _cancellation = cancellation;
+        public int Count => 20;
+        public (int Row, int Column, string Text) this[int index] => (index + 1, 1, "Note");
+        public IEnumerator<(int Row, int Column, string Text)> GetEnumerator() {
+            for (int index = 0; index < Count; index++) {
+                if (index == 5) _cancellation.Cancel();
+                yield return this[index];
+            }
+        }
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
+    [Fact]
     public void RejectsBrokenRecordsMissingEofDuplicatesAndResourceLimits() {
         byte[] label = Record(0xf, Join(new byte[] { 0, 0, 0, 0, 0, 0 }, Encoding.ASCII.GetBytes("Hello\0")));
         byte[] bof = Record(0xff, new byte[] { 4, 4 });

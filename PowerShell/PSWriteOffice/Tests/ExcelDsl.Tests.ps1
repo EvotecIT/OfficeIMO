@@ -1925,7 +1925,7 @@ Describe 'Excel DSL surface' {
         $sparseRows[0].Revenue | Should -Be 300
     }
 
-    It 'matches the lowest suffixed DataSet sheet independent of workbook order' {
+    It 'does not append a lone DataSet table to an unrelated suffixed worksheet' {
         $path = Join-Path $TestDrive 'ExportOfficeExcelDataSetLowestSuffix.xlsx'
 
         New-OfficeExcel -Path $path {
@@ -1952,14 +1952,47 @@ Describe 'Excel DSL surface' {
 
         Export-OfficeExcel -Path $path -InputObject $dataSet -Append
 
-        $lowestRows = @(Import-OfficeExcel -Path $path -WorksheetName 'Data (2)' -Range 'A1:B3')
+        $newRows = @(Import-OfficeExcel -Path $path -WorksheetName 'Data' -Range 'A1:B2')
+        $lowestRows = @(Import-OfficeExcel -Path $path -WorksheetName 'Data (2)' -Range 'A1:B2')
         $higherRows = @(Import-OfficeExcel -Path $path -WorksheetName 'Data (3)' -Range 'A1:B2')
 
-        $lowestRows.Count | Should -Be 2
-        $lowestRows[1].Region | Should -Be 'NA'
-        $lowestRows[1].Revenue | Should -Be 100
+        $newRows.Count | Should -Be 1
+        $newRows[0].Region | Should -Be 'NA'
+        $newRows[0].Revenue | Should -Be 100
+        $lowestRows.Count | Should -Be 1
+        $lowestRows[0].Revenue | Should -Be 200
         $higherRows.Count | Should -Be 1
         $higherRows[0].Revenue | Should -Be 300
+    }
+
+    It 'does not clear an unrelated suffixed worksheet for a lone DataSet table' {
+        $path = Join-Path $TestDrive 'ExportOfficeExcelDataSetUnrelatedSuffixClear.xlsx'
+        New-OfficeExcel -Path $path {
+            Add-OfficeExcelSheet -Name 'Budget (2)' -Content {
+                Set-OfficeExcelCell -Address 'A1' -Value 'Original'
+                Set-OfficeExcelCell -Address 'A2' -Value 'Keep'
+            }
+        }
+
+        $dataSet = [System.Data.DataSet]::new('Report')
+        $table = [System.Data.DataTable]::new('Budget')
+        [void] $table.Columns.Add('Status', [string])
+        [void] $table.Rows.Add('New')
+        [void] $dataSet.Tables.Add($table)
+
+        Export-OfficeExcel -Path $path -InputObject $dataSet -ClearSheet
+
+        $newRows = @(Import-OfficeExcel -Path $path -WorksheetName 'Budget' -Range 'A1:A2')
+        $newRows.Count | Should -Be 1
+        $newRows[0].Status | Should -Be 'New'
+        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        try {
+            $original = $null
+            $doc['Budget (2)'].TryGetCellText(2, 1, [ref] $original) | Should -BeTrue
+            $original | Should -Be 'Keep'
+        } finally {
+            Close-OfficeExcel -Document $doc
+        }
     }
 
     It 'preserves symbol-only DataSet sheet names and sanitizes control characters' {
@@ -4372,10 +4405,9 @@ namespace PSWriteOffice.Tests {
         $cleared.Exists | Should -BeFalse
     }
 
-    It 'supports url images and smart hyperlink helpers' {
+    It 'supports local images and smart hyperlink helpers' {
         $path = Join-Path $TestDrive 'DslExcelLinksAndImages.xlsx'
         $imagePath = New-TestOfficeImageFile -Directory $TestDrive
-        $imageUrl = [System.Uri]::new($imagePath).AbsoluteUri
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
@@ -4383,8 +4415,8 @@ namespace PSWriteOffice.Tests {
                 Set-OfficeExcelCell -Address 'B1' -Value 'Host'
                 Set-OfficeExcelSmartHyperlink -Address 'A2' -Url 'https://datatracker.ietf.org/doc/html/rfc7208'
                 Set-OfficeExcelHostHyperlink -Address 'B2' -Url 'https://learn.microsoft.com/office/open-xml/'
-                Add-OfficeExcelImageFromUrl -Address 'D2' -Url $imageUrl -WidthPixels 32 -HeightPixels 32
-                Add-OfficeExcelImage -Address 'E2' -Url $imageUrl -WidthPixels 24 -HeightPixels 24
+                Add-OfficeExcelImage -Address 'D2' -Path $imagePath -WidthPixels 32 -HeightPixels 32
+                Add-OfficeExcelImage -Address 'E2' -Path $imagePath -WidthPixels 24 -HeightPixels 24
             }
         } | Out-Null
 
@@ -4406,6 +4438,22 @@ namespace PSWriteOffice.Tests {
         $sheetXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/worksheets/sheet1.xml'
         $hyperlinks = $sheetXml.SelectNodes("/*[local-name()='worksheet']/*[local-name()='hyperlinks']/*[local-name()='hyperlink']")
         $hyperlinks.Count | Should -Be 2
+    }
+
+    It 'rejects local file URLs in both Excel image URL commands' {
+        $path = Join-Path $TestDrive 'DslExcelFileUrlRejected.xlsx'
+        $imagePath = New-TestOfficeImageFile -Directory $TestDrive
+        $imageUrl = [System.Uri]::new($imagePath).AbsoluteUri
+        New-OfficeExcel -Path $path { Add-OfficeExcelSheet -Name 'Data' } | Out-Null
+
+        $document = Get-OfficeExcel -Path $path
+        try {
+            { Add-OfficeExcelImageFromUrl -Document $document -Sheet 'Data' -Address 'A1' -Url $imageUrl } | Should -Throw '*HTTP or HTTPS*'
+            { Add-OfficeExcelImage -Document $document -Sheet 'Data' -Address 'B1' -Url $imageUrl } | Should -Throw '*HTTP or HTTPS*'
+            $document['Data'].Images.Count | Should -Be 0
+        } finally {
+            $document | Close-OfficeExcel
+        }
     }
 
     It 'supports scaled and range-anchored worksheet images' {

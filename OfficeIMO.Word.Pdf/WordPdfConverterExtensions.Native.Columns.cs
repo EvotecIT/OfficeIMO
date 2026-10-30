@@ -51,10 +51,11 @@ public static partial class WordPdfConverterExtensions {
             : (sectionContentWidth - totalGap) / count;
         page.Content(content => content.Columns(column => {
             INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(page, column, pageSize));
+            int rejectedJoinUntil = -1;
             for (int index = 0; index < elements.Count; index++) {
                 WordElement element = elements[index];
                 if (element is WordFootNote) continue;
-                if (TryRenderNativeJoinedParagraphs(flow, elements, ref index,
+                if (TryRenderNativeJoinedParagraphs(flow, elements, ref index, ref rejectedJoinUntil,
                     paragraph => listMarkers.TryGetValue(paragraph, out var joinMarker) ? joinMarker : null,
                     footnoteNumbersById, options, nativeDefaults, nativeFontMap)) continue;
                 if (TryRenderNativeList(flow, elements, ref index, listMarkers, listIndices, footnoteNumbersById, nativeDefaults, nativeFontMap, headingDestinations)) continue;

@@ -13,6 +13,20 @@ public static partial class WordPdfConverterExtensions {
         IReadOnlyDictionary<W.Paragraph, string> headingDestinations,
         NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap,
         WordParagraph? nextParagraph) {
+        // Each split clones the remaining suffix. Bound the number of visible boundaries
+        // before the first clone so one authored paragraph cannot amplify that work.
+        const int maximumFlowBreaks = 256;
+        int flowBreaks = 0;
+        foreach (WordParagraph run in GetNativeRuns(paragraph)) {
+            options?.CancellationToken.ThrowIfCancellationRequested();
+            if (IsNativeHiddenTextRun(run, paragraph)) continue;
+            IEnumerable<DocumentFormat.OpenXml.OpenXmlElement> children = run._visibleRunSourceChildren ?? run._run!.ChildElements;
+            foreach (W.Break boundary in children.OfType<W.Break>()) {
+                if ((boundary.Type?.Value == W.BreakValues.Page || boundary.Type?.Value == W.BreakValues.Column)
+                    && ++flowBreaks > maximumFlowBreaks)
+                    throw new NotSupportedException("A paragraph has more visible page or column breaks than PDF conversion supports.");
+            }
+        }
         if (!TrySplitNativeParagraphAtVisibleFlowBreak(paragraph, out W.BreakValues breakType, out WordParagraph? before, out WordParagraph? after)) return false;
 
         // Splitting can leave no renderable fragment. Diagnose the authored frame
@@ -26,6 +40,7 @@ public static partial class WordPdfConverterExtensions {
         if (paragraph._paragraph != null && !GetNativeParagraphBookmarkNames(paragraph).Any() &&
             headingDestinations.TryGetValue(paragraph._paragraph, out string? generatedDestination)) pdf.Bookmark(generatedDestination);
         while (true) {
+            options?.CancellationToken.ThrowIfCancellationRequested();
             if (before != null) {
                 if (before._paragraph != null) {
                     options?.DiagnosedFrameParagraphs.Add(before._paragraph);

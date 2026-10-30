@@ -21,7 +21,8 @@ internal static partial class PdfWriter {
             double width = Math.Max(1D, frame.Height - left - right);
             double height = Math.Max(0D, frame.Width - top - bottom);
             var layout = CreateTableCellTextLayout(cell, width, font, fontSize, leading, currentOpts,
-                runFontSizeScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum);
+                runFontSizeScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum,
+                cancellationToken: cancellationToken);
             // Exact line spacing may be smaller than the glyphs. Retain every
             // column whose ink intersects the physical cell, preserving advances
             // even when an intervening column is wholly outside the clip.
@@ -70,7 +71,7 @@ internal static partial class PdfWriter {
                         lineAlignments: alignments,
                         lineXOffsets: offsets,
                         lineWidths: widths, baselineFont: font,
-                        barClipFrame: new TableCellContentFrame(clipX, clipBottom + inkClip.Width, inkClip.Height, inkClip.Width));
+                        barClipFrame: new TableCellContentFrame(clipX, clipBottom + inkClip.Width, inkClip.Height, inkClip.Width), suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
                     if (includeCellObjects && objectsHeight > 0D)
                         RenderTableCellObjects(currentPage!, cell, MapCellAlignment(paragraph.Align), left, width,
                             frame.Width - top - offset - (string.IsNullOrEmpty(cell.Text) ? 0D : textHeight + TableCellCheckBoxGap),

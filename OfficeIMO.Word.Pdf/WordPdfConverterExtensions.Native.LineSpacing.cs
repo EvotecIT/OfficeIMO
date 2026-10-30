@@ -67,7 +67,8 @@ namespace OfficeIMO.Word.Pdf {
 
         private static NativeLineSpacing ResolveNativeParagraphLineSpacing(
             WordParagraph paragraph, NativeParagraphStyleDefaults styleDefaults,
-            NativeDocumentDefaults documentDefaults, NativeTableStyleDefaults table = default) {
+            NativeDocumentDefaults documentDefaults, NativeTableStyleDefaults? table = null) {
+            table ??= NativeTableStyleDefaults.Empty;
             NativeLineSpacing spacing = ReadNativeLineSpacing(paragraph._paragraph.ParagraphProperties?.SpacingBetweenLines,
                 paragraph._paragraph.ParagraphProperties?.TextAlignment)
                 .Inherit(styleDefaults.LineSpacing.Inherit(table.LineSpacing.Inherit(documentDefaults.LineSpacing)));

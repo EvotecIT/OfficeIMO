@@ -25,7 +25,7 @@ internal static partial class PdfWriter {
                     double leading = GetHeadingLeading(headingStyle, size);
                     PdfColor? headingColor = hb2.Color ?? headingStyle?.Color;
                     System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(hb2, headingStyle, headingColor);
-                    var wrap = WrapRichHeadingRuns(headingRuns, columnWidth, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle, hb2.Align);
+                    var wrap = WrapRichHeadingRuns(headingRuns, columnWidth, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle, hb2.Align, cancellationToken: cancellationToken);
                     items.Add(new ColHead {
                         Block = hb2,
                         Runs = headingRuns,
@@ -45,7 +45,7 @@ internal static partial class PdfWriter {
                     double size = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize;
                     double leading = GetParagraphLeading(paragraphStyle, size);
                     var textFrame = GetParagraphTextFrame(paragraphStyle, 0, columnWidth);
-                    var wrap = WrapRichRunsCoreWithFirstLineOrigin(rpb2.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb2.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
+                    var wrap = WrapRichRunsCoreWithFirstLineOrigin(rpb2.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb2.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null, cancellationToken: cancellationToken);
                     items.Add(new ColPar { Block = rpb2, Lines = wrap.Lines, Heights = wrap.LineHeights, Leading = leading, Size = size, XOffset = textFrame.X, TextWidth = textFrame.Width, FirstLineXOffset = textFrame.FirstLineX, FirstLineTextWidth = textFrame.FirstLineWidth });
                 } else if (cb is PdfListBlock list) {
                     PreparedListLayout prepared = PrepareListLayout(
@@ -57,6 +57,7 @@ internal static partial class PdfWriter {
                     var listItems = new System.Collections.Generic.List<ColListItem>(prepared.Items.Count);
                     PdfColor? listColor = list.Color ?? prepared.Style?.Color;
                     for (int itemIndex = 0; itemIndex < prepared.Items.Count; itemIndex++) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         PreparedListItem preparedItem = prepared.Items[itemIndex];
                         PdfListItem item = preparedItem.Item;
                         TableCellTextLayout layout = preparedItem.TextLayout;
@@ -173,7 +174,7 @@ internal static partial class PdfWriter {
                         captionLeading = captionSize * 1.25;
                         var captionFont = ChooseNormal(currentOpts.DefaultFont);
                         captionRuns = new[] { PdfTextRun.Normal(style.Caption!, style.CaptionColor, captionSize) };
-                        var captionWrap = WrapRichRunsCore(captionRuns, tableWidth, captionSize, captionFont, captionLeading, null, DefaultParagraphTabStopWidth, currentOpts);
+                        var captionWrap = WrapRichRunsCore(captionRuns, tableWidth, captionSize, captionFont, captionLeading, null, DefaultParagraphTabStopWidth, currentOpts, cancellationToken: cancellationToken);
                         captionLines = captionWrap.Lines;
                         captionLineHeights = captionWrap.LineHeights;
                         captionHeight = MeasureRichLinesHeight(captionLineHeights, captionLines.Count, captionLeading) + style.CaptionSpacingAfter;

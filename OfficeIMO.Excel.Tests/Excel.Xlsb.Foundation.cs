@@ -152,6 +152,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Xlsb_FormulaEncoder_HandlesNestedReferenceUnions() {
+            string formula = "(A1)";
+            for (int index = 0; index < 32; index++) formula = "(" + formula + ",B1)";
+
+            Assert.True(XlsbFormulaEncoder.TryEncode(formula, out byte[] payload, out string? reason), reason);
+            Assert.NotEmpty(payload);
+        }
+
+        [Fact]
         public void Xlsb_FormulaEncoder_RejectsDeepLegacyParserNesting() {
             string formula = new string('(', 65) + "1" + new string(')', 65);
 

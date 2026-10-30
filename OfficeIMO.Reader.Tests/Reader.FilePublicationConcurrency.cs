@@ -14,6 +14,30 @@ namespace OfficeIMO.Reader.Tests;
 
 public sealed class ReaderFilePublicationConcurrencyTests {
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ForeignClaimNamedFileIsPreservedWhenPublicationFails(bool corePublisher) {
+        string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-reader-foreign-file-" + Guid.NewGuid().ToString("N"));
+        string destination = Path.Combine(folder, "report.txt");
+        string claimPath = ReaderCommitClaim.CreatePath(destination);
+        byte[] original = Encoding.UTF8.GetBytes("Existing user content");
+        try {
+            Directory.CreateDirectory(folder);
+            File.WriteAllBytes(claimPath, original);
+
+            Assert.Throws<IOException>(() => {
+                if (corePublisher) OfficeFileCommit.WriteAllBytes(destination, new byte[] { 1 }, OfficeFileCommit.ConflictPolicy.FailIfExists);
+                else ReaderFileCommit.WriteAllBytes(destination, new byte[] { 1 }, overwrite: false);
+            });
+
+            Assert.Equal(original, File.ReadAllBytes(claimPath));
+            Assert.False(File.Exists(destination));
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Theory]
     [InlineData("asset", ".bin")]
     [InlineData("table", ".csv")]
     [InlineData("visual", ".mmd")]

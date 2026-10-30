@@ -40,20 +40,29 @@ internal static partial class PdfWriter {
         bool allowFinalOverflow = false,
         Func<string, double>? measureFirstChunk = null,
         bool appendHyphen = false,
-        bool allowSingleChunk = false) {
+        bool allowSingleChunk = false,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (breakpoints.Length == 0) {
             return null;
         }
 
         var chunks = new System.Collections.Generic.List<PdfTextTokenChunk>();
+        long remainingMeasurementWork = Math.Max(4096L, 64L * token.Length);
         int position = 0;
         while (position < token.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             int selectedBreak = -1;
             string selectedText = string.Empty;
             double selectedWidth = 0D;
             double currentMaxWidth = Math.Max(0D, chunks.Count == 0 ? firstMaxWidth : subsequentMaxWidth);
 
             foreach (int candidate in EnumerateTokenBreakCandidates(breakpoints, position, token.Length)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                long length = candidate - position + (appendHyphen && candidate < token.Length ? 1 : 0);
+                long cost = length * (chunks.Count == 0 && measureFirstChunk != null ? 2 : 1);
+                if (cost > remainingMeasurementWork) return null;
+                remainingMeasurementWork -= cost;
                 string chunkText = token.Substring(position, candidate - position);
                 if (appendHyphen && candidate < token.Length) chunkText += "-";
                 if (chunkText.Length == 0) {
@@ -119,22 +128,29 @@ internal static partial class PdfWriter {
     // Largest prefix ending at a UAX #14 opportunity (or a hyphenation point, which adds a hyphen)
     // that fits the space left on the line.
     private static bool TrySplitTokenAtLineEnd(string token, double available, PdfCreateOptions? options, Func<string, double> measure,
-        out string head, out double headWidth, out int consumed) {
+        out string head, out double headWidth, out int consumed,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         head = string.Empty;
         headWidth = 0D;
         consumed = 0;
         if (available <= 0D) return false;
         var candidates = new SortedDictionary<int, bool>();
-        foreach (int position in OfficeTextLineBreaks.GetBreakPositions(token)) candidates[position] = false;
+        foreach (int position in OfficeTextLineBreaks.GetBreakPositions(token, allowCjkBreaks: true, cancellationToken)) candidates[position] = false;
         foreach (int position in GetValidHyphenationBreakpoints(token, options)) {
             if (!candidates.ContainsKey(position)) candidates[position] = true;
         }
         bool identifier = IsHyphenatedIdentifier(token);
-        foreach (KeyValuePair<int, bool> candidate in candidates.Reverse()) {
+        // Try short prefixes first. On long CJK or zero-width tokens, measuring every
+        // overlapping prefix would make one line's layout quadratic in token length.
+        long remainingMeasurementWork = Math.Max(4096L, 32L * token.Length);
+        foreach (KeyValuePair<int, bool> candidate in candidates) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (candidate.Key <= 0 || candidate.Key >= token.Length) continue;
-            // Identifiers such as invoice numbers, dates and part codes move to the next line whole
-            // instead of splitting at a hyphen; a token wider than a line still breaks later.
             if (identifier && !candidate.Value && IsHyphenCharacter(token[candidate.Key - 1])) continue;
+            int length = candidate.Key + (candidate.Value ? 1 : 0);
+            if (length > remainingMeasurementWork) break;
+            remainingMeasurementWork -= length;
             string text = token.Substring(0, candidate.Key);
             if (candidate.Value) text += "-";
             double width = measure(text);
@@ -142,9 +158,8 @@ internal static partial class PdfWriter {
             head = text;
             headWidth = width;
             consumed = candidate.Key;
-            return true;
         }
-        return false;
+        return consumed > 0;
     }
 
     private static bool IsHyphenatedIdentifier(string token) {

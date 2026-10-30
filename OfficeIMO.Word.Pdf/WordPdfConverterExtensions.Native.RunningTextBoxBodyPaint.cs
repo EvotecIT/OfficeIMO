@@ -40,8 +40,24 @@ public static partial class WordPdfConverterExtensions {
             // A page fragment can start with any run. Measure each at the
             // canonical baseline for its effective spacing and font size.
             // Short proportional lines can paint above the frame too.
-            foreach (PdfCore.PdfTextRun run in CreateNativeCellParagraphRuns(paragraph, null,
-                    NativeTableStyleDefaults.Empty, defaults, fontMap)) {
+            IEnumerable<PdfCore.PdfTextRun> textRuns;
+            if (source.Elements<W.Run>().Skip(128).Any()) {
+                // Ordinary body text is measured one source run at a time. The cell
+                // helper joins equal styles and repeatedly copies the whole prefix.
+                foreach (var child in source.ChildElements) {
+                    options?.CancellationToken.ThrowIfCancellationRequested();
+                    if (child is W.ParagraphProperties) continue;
+                    if (child is not W.Run plainRun || plainRun.ChildElements.Any(part => part is not W.RunProperties && part is not W.Text))
+                        return null;
+                }
+                textRuns = GetNativeRuns(paragraph)
+                    .Where(run => !IsNativeHiddenTextRun(run, paragraph))
+                    .Select(run => CreateNativeCellTextRun(run.Text, run, NativeTableStyleDefaults.Empty, defaults, fontMap));
+            } else {
+                textRuns = CreateNativeCellParagraphRuns(paragraph, null,
+                    NativeTableStyleDefaults.Empty, defaults, fontMap);
+            }
+            foreach (PdfCore.PdfTextRun run in textRuns) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
                 if (run.Text.Length == 0) continue;
                 if (run.BackgroundColor.HasValue || run.Underline || run.Strike) return null;

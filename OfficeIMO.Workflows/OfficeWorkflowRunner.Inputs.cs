@@ -170,6 +170,13 @@ public sealed partial class OfficeWorkflowRunner {
             throw new ArgumentException("Protection workflows support only the Faithful output profile.", nameof(request));
         var conversionEncryption = request.Operation == OfficeWorkflowOperation.Convert && route?.TargetExtension == ".pdf"
             ? conversionOptions?.GetOutputPdfOptions()?.Encryption : null;
+        if (request.InputPdfLoadOptions is not null &&
+            (request.Operation != OfficeWorkflowOperation.Convert || route?.SourceExtensions.Contains(".pdf", StringComparer.OrdinalIgnoreCase) != true))
+            throw new ArgumentException("Primary PDF read settings require a PDF conversion input.", nameof(request));
+        OfficeIMO.Pdf.PdfLoadOptions inputPdfLoadOptions = request.InputPdfLoadOptions?.Clone()
+            ?? CreatePdfLoadOptions(securityOutput ? request.PdfOwnerPassword ?? request.PdfPassword : request.PdfPassword, limits.MaximumInputBytes);
+        if (request.InputPdfLoadOptions is not null && request.PdfPassword is not null)
+            throw new ArgumentException("Specify the PDF password in either the primary read settings or PdfPassword.", nameof(request));
         string? outputPassword = securityOutput ? encryption?.OwnerPassword ?? encryption?.UserPassword
             : conversionEncryption?.OwnerPassword ?? conversionEncryption?.UserPassword ?? request.PdfPassword;
         var outputOptions = CreatePdfLoadOptions(outputPassword, limits.MaximumOutputBytes);
@@ -200,7 +207,7 @@ public sealed partial class OfficeWorkflowRunner {
             request.ConflictPolicy,
             request.OutputProfile,
             limits,
-            CreatePdfLoadOptions(securityOutput ? request.PdfOwnerPassword ?? request.PdfPassword : request.PdfPassword, limits.MaximumInputBytes),
+            inputPdfLoadOptions,
             CreatePdfLoadOptions(request.ComparisonPdfPassword ?? request.PdfPassword, limits.MaximumInputBytes),
             outputOptions,
             request.PublicationGuard,

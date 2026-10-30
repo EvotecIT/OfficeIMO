@@ -19,14 +19,15 @@ internal static partial class PdfWriter {
             .ToArray();
     }
 
-    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCore(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfCreateOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null) {
-        return WrapRichRunsCoreWithFirstLineOrigin(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, null, tabStopWidth, options, tabStops);
+    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCore(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfCreateOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null, System.Threading.CancellationToken cancellationToken = default) {
+        return WrapRichRunsCoreWithFirstLineOrigin(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, null, tabStopWidth, options, tabStops, cancellationToken: cancellationToken);
     }
 
-    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsWithSpacing(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfCreateOptions? options, PdfLineSpacing? lineSpacing, PdfJustificationMode? wordJustificationMode = null, IReadOnlyList<PdfTabStop>? tabStops = null) =>
-        WrapRichRunsCoreWithFirstLineOrigin(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, null, tabStopWidth, options, tabStops, lineSpacing: lineSpacing, wordJustificationMode: wordJustificationMode);
+    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsWithSpacing(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfCreateOptions? options, PdfLineSpacing? lineSpacing, PdfJustificationMode? wordJustificationMode = null, IReadOnlyList<PdfTabStop>? tabStops = null, System.Threading.CancellationToken cancellationToken = default) =>
+        WrapRichRunsCoreWithFirstLineOrigin(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, null, tabStopWidth, options, tabStops, lineSpacing: lineSpacing, wordJustificationMode: wordJustificationMode, cancellationToken: cancellationToken);
 
-    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCoreWithFirstLineOrigin(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double? firstLineOriginOffsetPts, double tabStopWidth, PdfCreateOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null, Func<int, double, double, double, (double Width, double Origin, double Gap)>? lineLayout = null, double? minimumLineHeight = null, PdfLineSpacing? lineSpacing = null, PdfTextWhitespaceMode? textWhitespaceMode = null, RichWrapPurpose purpose = RichWrapPurpose.Layout, double? inlineRuleWidth = null, double? firstLineInlineRuleWidth = null, PdfJustificationMode? wordJustificationMode = null, Func<int, double, double, double, RichTextRowFrame>? rowLayout = null) {
+    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCoreWithFirstLineOrigin(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double? firstLineOriginOffsetPts, double tabStopWidth, PdfCreateOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null, Func<int, double, double, double, (double Width, double Origin, double Gap)>? lineLayout = null, double? minimumLineHeight = null, PdfLineSpacing? lineSpacing = null, PdfTextWhitespaceMode? textWhitespaceMode = null, RichWrapPurpose purpose = RichWrapPurpose.Layout, double? inlineRuleWidth = null, double? firstLineInlineRuleWidth = null, PdfJustificationMode? wordJustificationMode = null, Func<int, double, double, double, RichTextRowFrame>? rowLayout = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfTextWhitespaceMode whitespaceMode = textWhitespaceMode ?? options?.TextWhitespaceMode ?? PdfTextWhitespaceMode.Collapse;
         bool compressWordSpaces = wordJustificationMode.HasValue && purpose == RichWrapPurpose.Layout;
         var rowComposition = rowLayout == null ? null : new RichRowComposition(rowLayout);
@@ -53,7 +54,7 @@ internal static partial class PdfWriter {
         double lineWidth = 0;
         double pendingLeadingAdvance = 0;
         int pendingLeadingSpaceCount = 0;
-        var pendingSpaceFragments = new List<PendingSpaceFragment>();
+        var pendingSpaceFragments = new PendingSpaceFragments();
         List<(List<RichSeg> Line, RichSeg Anchor, RichSeg? SpaceStyle)>? invisibleFootnoteAnchors = null;
         RichSeg? currentSpaceStyle = null;
         RichSeg? pendingTabSourceStyle = null;
@@ -160,11 +161,11 @@ internal static partial class PdfWriter {
         void AppendRetainedSpaceFragments(ref double advance, bool clipped = false) {
             if (pendingSpaceFragments.Count > 0 && pendingSpaceFragments[0].Style.LeadingIsTab) {
                 PendingSpaceFragment first = pendingSpaceFragments[0];
-                bool consumeAll = Math.Abs(advance - pendingSpaceFragments.Sum(fragment => fragment.Advance)) <= 0.001D;
+                bool consumeAll = Math.Abs(advance - pendingSpaceFragments.TotalAdvance) <= 0.001D;
                 double prefix = consumeAll ? first.Advance : Math.Min(first.Advance, advance);
                 // A preserved tab can be clipped at the line edge. Admit the
                 // source font only for the prefix that will actually paint here.
-                double followingSpaces = pendingSpaceFragments.Skip(1).Sum(fragment => fragment.Advance);
+                double followingSpaces = pendingSpaceFragments.TotalAdvance - first.Advance;
                 RichSeg prepared = PrepareRetainedTabFrame(first.Style.WithLeadingAdvance(prefix),
                     pendingBufferedTabFollowingWidth, pendingBufferedTabSpaceWidth,
                     field: pendingBufferedTabField, followingSpaces: followingSpaces,
@@ -501,7 +502,7 @@ internal static partial class PdfWriter {
                 pendingLeadingSpaceCount = preserveWhitespace ? pendingLeadingSpaceCount + 1 : 1;
                 if (preserveWhitespace && currentSpaceStyle != null) {
                     if (pendingSpaceFragments.Count > 0 && ReferenceEquals(pendingSpaceFragments[pendingSpaceFragments.Count - 1].Style, currentSpaceStyle))
-                        pendingSpaceFragments[pendingSpaceFragments.Count - 1].AddSpace();
+                        pendingSpaceFragments.AddSpaceToLast();
                     else pendingSpaceFragments.Add(new PendingSpaceFragment(currentSpaceStyle));
                 }
                 pendingLeadingUnderlineStyle = currentRunUnderlineStyle;
@@ -952,22 +953,37 @@ internal static partial class PdfWriter {
                     }
 
                     int pos = 0;
-                    bool measureKernedChunks = currentRunFeatureSettings.TryGetValue("kern", out int chunkKerning) && chunkKerning > 0
-                        && (options?.TextShapingProviderSnapshot == null || ReferenceEquals(options.TextShapingProviderSnapshot, OfficeManagedTextShapingProvider.Instance))
-                        && !OfficeManagedTextShaper.RequiresComplexLayout(token);
+                    bool mayMeasureBoundary = currentRunFeatureSettings.TryGetValue("kern", out int chunkKerning) && chunkKerning > 0
+                        && (options?.TextShapingProviderSnapshot == null || ReferenceEquals(options.TextShapingProviderSnapshot, OfficeManagedTextShapingProvider.Instance));
+                    bool measureKernedChunks = mayMeasureBoundary && !OfficeManagedTextShaper.RequiresComplexLayout(token);
+                    long remainingKernedChunkWork = Math.Max(4096L, 64L * token.Length);
                     while (pos < token.Length) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         int take = 0;
                         double chunkW = 0;
                         PrepareLineFrame(RunLineHeight(runFontSize));
                         currentMaxWidth = CurrentMaxWidth();
                         double availableChunkWidth = currentMaxWidth - lineWidth;
                         while (pos + take < token.Length) {
+                            if (((pos + take) & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
                             int scalarLength = GetScalarUtf16Length(token, pos + take);
+                            if (measureKernedChunks || lastLine.Count > 0 && mayMeasureBoundary) {
+                                int prefixLength = take + scalarLength;
+                                long cost = prefixLength * ((measureKernedChunks ? 1L : 0L) +
+                                    (lastLine.Count > 0 && mayMeasureBoundary ? 1L : 0L));
+                                if (cost > remainingKernedChunkWork)
+                                    throw new System.IO.InvalidDataException("PDF text layout exceeds the kerned token work limit.");
+                                remainingKernedChunkWork -= cost;
+                            }
                             double candidateWidth = measureKernedChunks
                                 ? MeasureRichText(token.Substring(pos, take + scalarLength), fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing)
                                 : chunkW + MeasureRichText(token.Substring(pos + take, scalarLength), fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
-                            candidateWidth += runKerning.MeasureBoundary(lastLine,
-                                CreateRunKerningProbe(token.Substring(pos, take + scalarLength), run, baseFont, fontSize, options));
+                            // A new line has no cross-run boundary. Avoid copying a growing
+                            // prefix for every scalar in the common non-kerned case.
+                            if (lastLine.Count > 0 && mayMeasureBoundary) {
+                                candidateWidth += runKerning.MeasureBoundary(lastLine,
+                                    CreateRunKerningProbe(token.Substring(pos, take + scalarLength), run, baseFont, fontSize, options));
+                            }
                             if ((take > 0 || lastLine.Count > 0) && candidateWidth > availableChunkWidth + RichTextWidthTolerance) {
                                 break;
                             }
@@ -1028,7 +1044,7 @@ internal static partial class PdfWriter {
                     && TrySplitTokenAtLineEnd(token, currentMaxWidth + RichTextWidthTolerance - lineWidth - boundaryAdvance -
                             (pendingLeadingSeparator ? pendingLeadingAdvance : 0D), options,
                         part => MeasureRichText(part, fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing),
-                        out string splitHead, out double splitHeadWidth, out int splitConsumed)) {
+                        out string splitHead, out double splitHeadWidth, out int splitConsumed, cancellationToken)) {
                     bool splitLeadingSpace = pendingLeadingSeparator && lineWidth != 0D;
                     double splitLeadingAdvance = splitLeadingSpace ? pendingLeadingAdvance : 0D;
                     lastLine.Add(new RichSeg(splitHead, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, splitHeadWidth, splitLeadingSpace, splitLeadingAdvance, pendingLeadingIsExpandable, PdfTabLeaderStyle.None, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing, contributesLineBoxDescent: currentRunContributesDescent, formField: currentTextRun?.FormField, footnoteReference: currentTextRun?.FootnoteReference, leadingUnderlineStyle: splitLeadingSpace ? pendingLeadingUnderlineStyle : OfficeIMO.Drawing.OfficeTextDecorationStyle.None, leadingDecorationColor: pendingLeadingDecorationColor, leadingDecorationFontSize: pendingLeadingDecorationFontSize, leadingDecorationTextRise: pendingLeadingDecorationTextRise, leadingSpaceCount: pendingLeadingSpaceCount, leadingIsOrdinarySpace: splitLeadingSpace && pendingLeadingIsOrdinarySpace));
@@ -1141,10 +1157,12 @@ internal static partial class PdfWriter {
             double? firstChunkWidth = null) {
             double available = firstChunkWidth ?? Math.Max(0D, CurrentMaxWidth() - lineWidth);
             var chunks = TryBuildTokenChunks(token, breakpoints, measure, available, maxWidthPts,
-                allowFinalOverflow, part => measure(part) + MeasureLongTokenBoundary(part), appendHyphen, allowSingleChunk: true);
+                allowFinalOverflow, part => measure(part) + MeasureLongTokenBoundary(part), appendHyphen, allowSingleChunk: true,
+                cancellationToken: cancellationToken);
             if (chunks == null && lines[lines.Count - 1].Count > 0) {
                 chunks = TryBuildTokenChunks(token, breakpoints, measure, maxWidthPts, maxWidthPts,
-                    allowFinalOverflow, appendHyphen: appendHyphen, allowSingleChunk: true);
+                    allowFinalOverflow, appendHyphen: appendHyphen, allowSingleChunk: true,
+                    cancellationToken: cancellationToken);
                 if (chunks != null) StartNewLine();
             }
             return chunks;

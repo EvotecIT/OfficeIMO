@@ -10,16 +10,18 @@ internal static partial class PdfWriter {
         private const int MaximumEntries = 64;
         private const int MaximumTextLength = 256;
         private readonly PdfCreateOptions options;
+        private readonly System.Threading.CancellationToken cancellationToken;
         private readonly Dictionary<(string Text, double Width, bool NoWrap, PdfStandardFont Font, double Size, double Leading, bool WrapOversizedNoWrap), LinkedListNode<Entry>> entries = new();
         private readonly LinkedList<Entry> recent = new();
 
-        public TableTextLayoutReuse(PdfCreateOptions options) {
+        public TableTextLayoutReuse(PdfCreateOptions options, System.Threading.CancellationToken cancellationToken) {
             this.options = options;
+            this.cancellationToken = cancellationToken;
         }
 
         public TableCellTextLayout Create(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, double runFontSizeScale, double minimumShrinkFontSize, bool wrapOversizedNoWrap = false) {
             if (!CanReuse(cell, runFontSizeScale)) {
-                return CreateTableCellTextLayout(cell, innerWidth, baseFont, fontSize, leading, options, runFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap);
+                return CreateTableCellTextLayout(cell, innerWidth, baseFont, fontSize, leading, options, runFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap, cancellationToken: cancellationToken);
             }
 
             var key = (cell.Runs[0].Text, innerWidth, cell.NoWrap, baseFont, fontSize, leading, wrapOversizedNoWrap);
@@ -29,7 +31,7 @@ internal static partial class PdfWriter {
                 return node.Value.Layout;
             }
 
-            TableCellTextLayout layout = CreateTableCellTextLayout(cell, innerWidth, baseFont, fontSize, leading, options, runFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap);
+            TableCellTextLayout layout = CreateTableCellTextLayout(cell, innerWidth, baseFont, fontSize, leading, options, runFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap, cancellationToken: cancellationToken);
             node = recent.AddFirst(new Entry(key, layout));
             entries.Add(key, node);
             if (entries.Count > MaximumEntries) {

@@ -7,6 +7,7 @@ internal sealed partial class HtmlCssPageRuleSet {
     // metric preparation and repeated pages share computed cascades, while used
     // typography, geometry, counters and running content remain per-call work.
     private readonly Dictionary<MarginStyleContextKey, IReadOnlyList<MarginStyleContext>> _marginStyleContexts = new();
+    internal int CachedMarginContextCount => _marginStyleContexts.Count;
 
     private readonly struct MarginStyleContext {
         internal MarginStyleContext(HtmlComputedStyle page, HtmlComputedStyle margin,

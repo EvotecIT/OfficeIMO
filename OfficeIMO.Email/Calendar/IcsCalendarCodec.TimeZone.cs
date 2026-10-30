@@ -139,8 +139,10 @@ internal static partial class IcsCalendarCodec {
                      string.Equals(component.GetFirstProperty("UID")?.Value, uid, StringComparison.Ordinal))) {
             foreach (string name in new[] { "DTSTART", "DTEND", "DUE", "RECURRENCE-ID", "EXDATE", "RDATE" }) {
                 foreach (ContentLineProperty property in component.GetProperties(name)) {
+                    if (!IcsTemporalValue.TryGetTemporalParameters(property, out string? valueType,
+                        out string? timeZoneId)) continue;
                     foreach (string raw in property.Value.Split(',')) {
-                        if (IcsTemporalValue.TryParse(CloneTemporalProperty(property, raw), out IcsTemporalValue value))
+                        if (IcsTemporalValue.TryParseValue(raw, valueType, timeZoneId, out IcsTemporalValue value))
                             year = Math.Min(year, value.Value.Year);
                     }
                 }

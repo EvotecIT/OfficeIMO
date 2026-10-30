@@ -124,10 +124,23 @@ public static partial class WordPdfConverterExtensions {
             foreach (var source in sources) ReportNativeFootnoteFallbackContent(source.Source, options);
             return false;
         }
+        var pendingSources = sources.Where(item => !notes.TryGetPageFootnote(item.Key, out _) &&
+            notes.TryGetValue(item.Key, out _)).ToList();
+        if (pendingSources.Count == 0) return true;
         var stories = ResolveNativePageFootnoteStories(section._document);
         W.Footnote separator = stories.Separator;
         W.Footnote continuation = stories.ContinuationSeparator;
         W.Footnote? notice = stories.ContinuationNotice;
+        const int maximumComposedNoteParagraphs = 100000;
+        int composedParagraphs = 0;
+        foreach (W.FootnoteEndnoteType story in pendingSources.Select(item => (W.FootnoteEndnoteType)item.Source)
+            .Concat(new W.FootnoteEndnoteType?[] { separator, continuation, notice }.OfType<W.FootnoteEndnoteType>())) {
+            foreach (W.Paragraph _ in story.Descendants<W.Paragraph>()) {
+                options?.CancellationToken.ThrowIfCancellationRequested();
+                if (++composedParagraphs > maximumComposedNoteParagraphs)
+                    throw new InvalidDataException($"Footnote composition exceeds {maximumComposedNoteParagraphs} paragraphs.");
+            }
+        }
         if (!CanProjectNativePageNote(separator, section, defaults, fonts, options) ||
             !CanProjectNativePageNote(continuation, section, defaults, fonts, options) ||
             notice != null && !CanProjectNativePageNote(notice, section, defaults, fonts, options)) {
@@ -149,8 +162,7 @@ public static partial class WordPdfConverterExtensions {
         };
         if (notice != null) noteOptions.ContinuationNotice = content => RenderNativeNoteStory(content,
             notice, section, notes, options, defaults, fonts, label: null);
-        foreach (var item in sources) {
-            if (notes.TryGetPageFootnote(item.Key, out _)) continue;
+        foreach (var item in pendingSources) {
             if (!notes.TryGetValue(item.Key, out int token)) continue;
             string label = notes.GetLabel(token);
             IReadOnlyList<WordParagraph> paragraphs = item.Source.Descendants<W.Paragraph>()
@@ -159,6 +171,7 @@ public static partial class WordPdfConverterExtensions {
                 content.Bookmark(GetNativePageNoteDestination(item.Key));
                 RenderNativeNoteStory(content, item.Source, section, notes, options, defaults, fonts, label);
             }, noteOptions);
+            if (noteOptions.SharedDecorationOwner == null) noteOptions.ReuseDecorations(definition);
             notes.SetPageFootnote(new NativePageFootnoteSource(item.Key, section, paragraphs, definition));
         }
         return true;

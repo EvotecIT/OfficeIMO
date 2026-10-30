@@ -405,7 +405,12 @@ internal static partial class PdfWriter {
         }
 
         double remaining = availableWidth;
+        int passes = 0;
         while (activeCount > 0) {
+            // Each pass scans all columns. Bound adversarial alternating constraints
+            // even when no direction can safely be fixed together.
+            if (++passes > 128)
+                throw new InvalidOperationException("Table column width allocation exceeded the constraint-pass budget.");
             double weightSum = 0;
             for (int i = 0; i < weights.Length; i++) {
                 if (active[i]) {
@@ -426,28 +431,29 @@ internal static partial class PdfWriter {
             bool needsGrowth = boundedTotal < remaining - 0.0000001D;
             bool needsReduction = boundedTotal > remaining + 0.0000001D;
             bool constrained = false;
+            int constraintDirection = 0;
+            double proposedWidthTotal = remaining;
+            int proposedActiveCount = activeCount;
             for (int i = 0; i < widths.Length; i++) {
                 if (!active[i]) {
                     continue;
                 }
 
-                double proposed = weightSum > 0 ? remaining * (weights[i] / weightSum) : remaining / activeCount;
-                if (!needsGrowth && minWidths[i].HasValue && proposed < minWidths[i]!.Value) {
+                double proposed = weightSum > 0 ? proposedWidthTotal * (weights[i] / weightSum) : proposedWidthTotal / proposedActiveCount;
+                if (constraintDirection != -1 && !needsGrowth && minWidths[i].HasValue && proposed < minWidths[i]!.Value) {
                     widths[i] = minWidths[i]!.Value;
                     remaining -= widths[i];
                     active[i] = false;
                     activeCount--;
                     constrained = true;
-                    // Recompute the active weight sum before constraining a
-                    // neighbor against the reduced remaining width.
-                    break;
-                } else if (!needsReduction && maxWidths[i].HasValue && proposed > maxWidths[i]!.Value) {
+                    constraintDirection = 1;
+                } else if (constraintDirection != 1 && !needsReduction && maxWidths[i].HasValue && proposed > maxWidths[i]!.Value) {
                     widths[i] = maxWidths[i]!.Value;
                     remaining -= widths[i];
                     active[i] = false;
                     activeCount--;
                     constrained = true;
-                    break;
+                    constraintDirection = -1;
                 }
             }
 

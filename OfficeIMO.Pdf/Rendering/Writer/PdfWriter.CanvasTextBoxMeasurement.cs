@@ -81,13 +81,13 @@ internal static partial class PdfWriter {
     private static (double FontSize, double Leading, PdfStandardFont BaseFont, double TextWidth,
         List<List<RichSeg>> Lines, List<double> LineHeights, double ContentHeight)
         PrepareCanvasTextBoxText(IReadOnlyList<PdfTextRun> runs, double width,
-            PdfCanvasTextBoxStyle style, PdfCreateOptions options) {
+            PdfCanvasTextBoxStyle style, PdfCreateOptions options, System.Threading.CancellationToken cancellationToken = default) {
         double textWidth = width - style.EffectivePaddingLeft - style.EffectivePaddingRight;
         double size = style.FontSize ?? options.DefaultFontSize;
         double leading = style.LineHeight ?? size * 1.2D;
         PdfStandardFont baseFont = ChooseNormal(style.Font ?? options.DefaultFont);
         var wrap = WrapRichRunsWithSpacing(runs, textWidth, size, baseFont, leading,
-            null, DefaultParagraphTabStopWidth, options, style.LineSpacing);
+            null, DefaultParagraphTabStopWidth, options, style.LineSpacing, cancellationToken: cancellationToken);
         return (size, leading, baseFont, textWidth, wrap.Lines, wrap.LineHeights,
             MeasureRichLinesHeight(wrap.LineHeights, wrap.Lines.Count, leading));
     }

@@ -1331,6 +1331,14 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
             return directMatch;
         }
 
+        // A lone table named "Budget" does not identify an existing "Budget (2)"
+        // sheet. Reuse a suffix only when an earlier table in this DataSet has
+        // already claimed the normalized base name.
+        if (!usedNames.Contains(normalizedName))
+        {
+            return null;
+        }
+
         return existing
             .Select(name => (Name: name, Suffix: GetWorksheetNameSuffix(name, normalizedName)))
             .Where(match => match.Suffix.HasValue)

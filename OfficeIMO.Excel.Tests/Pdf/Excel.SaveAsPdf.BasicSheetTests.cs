@@ -15,6 +15,25 @@ namespace OfficeIMO.Tests;
 public partial class Excel {
 
     [Fact]
+    public void SaveAsPdf_BoundsAggregateDenseWorksheetPositionsBeforePlanningTheNextSheet() {
+        using var document = ExcelDocument.Create();
+        ExcelSheet first = document.AddWorksheet("First");
+        first.CellValue(1, 1, "A");
+        first.CellValue(2, 2, "B");
+        ExcelSheet second = document.AddWorksheet("Second");
+        second.CellValue(1, 1, "C");
+        second.CellValue(2, 2, "D");
+
+        var options = new ExcelPdfExportOptions { MaxMaterializedWorksheetCells = 7 };
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => document.ConvertToPdfWithEvidence(options));
+        Assert.Contains("MaxMaterializedWorksheetCells", error.Message, StringComparison.Ordinal);
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.MaxMaterializedWorksheetCells = 0);
+
+        options.MaxMaterializedWorksheetCells = 8;
+        Assert.Equal(2, PdfCore.PdfInspector.Inspect(document.ToPdf(options).ToBytes(new PdfCore.PdfSaveOptions { AllowLoss = true })).Pages.Count);
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_ExportsUsedRangeWithoutInjectingSheetHeading() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfWorkbook.xlsx");
         string pdfPath = Path.Combine(_directoryWithFiles, "ExcelPdfWorkbook.pdf");

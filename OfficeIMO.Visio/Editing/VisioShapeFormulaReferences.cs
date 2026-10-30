@@ -33,7 +33,11 @@ internal static class VisioShapeFormulaReferences {
         Elements(shape.PreservedShapeChildren.Where(entry => entry.RawElement != null).Select(entry => entry.RawElement!));
         if (shape.TextStyle?.NativeBackgroundColorCell is XElement shapeBackground) Elements(new[] { shapeBackground });
         if (shape.TextStyle?.NativeBackgroundTransparencyCell is XElement shapeTransparency) Elements(new[] { shapeTransparency });
-        if (shape.PreservedTextElement != null) Elements(new[] { shape.PreservedTextElement });
+        if (shape.PreservedTextElement != null && ids.Count != 0) {
+            // Master instances share preserved text until an editing operation mutates it.
+            shape.PreservedTextElement = new XElement(shape.PreservedTextElement);
+            Elements(new[] { shape.PreservedTextElement });
+        }
         if (shape.CharacterSectionSource != null) Elements(new[] { shape.CharacterSectionSource.Source });
         if (shape.ParagraphSectionSource != null) Elements(new[] { shape.ParagraphSectionSource.Source });
         foreach (VisioUserCell row in shape.UserCells) {

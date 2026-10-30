@@ -23,10 +23,15 @@ namespace OfficeIMO.PowerPoint {
         private static string ResolveTextBoxFallbackFont(PowerPointTextBox textBox, string? defaultFontFamily) =>
             defaultFontFamily ?? PowerPointTextDefaults.ResolveBodyLatinFont(textBox.OwnerSlide) ?? "Calibri";
 
-        private static void ReportCharacterSpacing(PowerPointTextBox textBox, List<OfficeImageExportDiagnostic> diagnostics) {
-            if (!textBox.Paragraphs.Any(paragraph => paragraph.InlineNodes.Any(node => node.Run is { } run
-                && !string.IsNullOrEmpty(run.Text)
-                && PowerPointEffectiveRunStyleResolver.ResolveCharacterSpacingPoints(run, paragraph, textBox).GetValueOrDefault() != 0))) return;
+        private static void ReportCharacterSpacing(PowerPointTextBox textBox, List<OfficeImageExportDiagnostic> diagnostics,
+            CancellationToken cancellationToken) {
+            var inheritedSpacingByLevel = new Dictionary<int, int?>();
+            if (!textBox.Paragraphs.Any(paragraph => paragraph.InlineNodes.Any(node => {
+                cancellationToken.ThrowIfCancellationRequested();
+                return node.Run is { } run && !string.IsNullOrEmpty(run.Text)
+                    && PowerPointEffectiveRunStyleResolver.ResolveCharacterSpacingPoints(run, paragraph, textBox,
+                        inheritedSpacingByLevel).GetValueOrDefault() != 0;
+            }))) return;
             diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
                 "powerpoint-character-spacing-approximated",
                 "Shared text rendering uses default character spacing; authored spacing is retained in the presentation.",

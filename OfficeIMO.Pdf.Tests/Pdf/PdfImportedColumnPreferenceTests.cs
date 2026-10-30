@@ -5,6 +5,25 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfImportedColumnPreferenceTests {
+    [Fact]
+    public void ImportedContentMinimumHandlesManyBreaksAcrossFormattedRuns() {
+        PdfTextRun[] runs = Enumerable.Range(0, 256)
+            .Select(index => index % 2 == 0 ? PdfTextRun.Normal("a-") : PdfTextRun.Bolded("a-"))
+            .ToArray();
+        var style = new PdfTableStyle {
+            HeaderRowCount = 0, AutoFitColumns = true, AutoFitWidthUsesContentMinimum = true,
+            PreserveWidth = true, PreferredWidth = 160D, CellPaddingX = 2D, CellPaddingY = 2D
+        };
+        var options = new PdfCreateOptions {
+            PageWidth = 220D, PageHeight = 400D,
+            MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
+        };
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
+            .Table(new[] { new[] { new PdfTableCell(runs) } }, style: style).ToBytes());
+        Assert.Equal(string.Concat(Enumerable.Repeat("a-", runs.Length)),
+            string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value)));
+    }
+
     [Theory]
     [InlineData(0, false, 60D)]
     [InlineData(1, false, 60D)]

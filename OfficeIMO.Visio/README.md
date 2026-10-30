@@ -42,6 +42,7 @@ var incoming = VisioDocument.Load("upload.vsdx", VisioLoadOptions.UntrustedDefau
 ```
 
 It rejects macros, embedded payloads, ActiveX, and external relationships before parsing. Ordinary load options retain compatibility with drawings containing those parts; set `PackageSecurity` explicitly for another policy.
+`VisioLoadOptions.MaxPackageXmlCharacters` limits each VSDX document, page, master and theme XML part before it is materialized (30 million characters by default). Lower it for smaller ingestion budgets; the same option's legacy XML limit applies to VDX/VTX input.
 
 ## Legacy binary Visio
 

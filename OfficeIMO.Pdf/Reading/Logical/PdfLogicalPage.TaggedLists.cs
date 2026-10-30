@@ -101,10 +101,10 @@ public sealed partial class PdfLogicalPage {
 
         internal void Append(string line, int start, int end, PdfTextSpan source) {
             if (_lastEnd >= 0 && start > _lastEnd) {
-                string gap = line.Substring(_lastEnd, start - _lastEnd);
-                gap = string.IsNullOrWhiteSpace(gap) ? gap : " ";
-                _text.Append(gap);
-                _runs.Add(new PdfLogicalTextRun(gap, sourceSpan: null));
+                // The gap can contain another list item's text. Its length is
+                // unrelated to this owner, so represent it as one separator.
+                _text.Append(' ');
+                _runs.Add(new PdfLogicalTextRun(" ", sourceSpan: null));
             }
             _text.Append(line, start, end - start);
             _runs.Add(new PdfLogicalTextRun(line.Substring(start, end - start), source));

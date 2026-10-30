@@ -14,6 +14,20 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
+    public void WavyUnderlineRejectsExcessiveSegmentsFromNegativeTrackingAndJustification() {
+        PdfDocument document = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph
+                .CharacterSpacing(-100_000)
+                .Underline(OfficeTextDecorationStyle.Wavy)
+                .Text("A A")
+                .CharacterSpacing(0)
+                .Underline(false)
+                .Text(new string('B', 120)), PdfAlign.Justify);
+
+        Assert.Throws<NotSupportedException>(() => document.ToBytes());
+    }
+
+    [Fact]
     public void RichParagraph_ResetColor_ReturnsToDefaultTextColor() {
         byte[] bytes = PdfDocument.Create()
             .Paragraph(p => p

@@ -38,12 +38,12 @@ public static partial class WordPdfConverterExtensions {
     }
 
     private static NativeParagraphSpacing ResolveNativeParagraphSpacing(WordParagraph paragraph,
-        NativeParagraphStyleDefaults styles, NativeDocumentDefaults defaults, NativeTableStyleDefaults table = default) =>
-        styles.ParagraphSpacing.Inherit(table.ParagraphSpacing.Inherit(defaults.ParagraphSpacing))
+        NativeParagraphStyleDefaults styles, NativeDocumentDefaults defaults, NativeTableStyleDefaults? table = null) =>
+        styles.ParagraphSpacing.Inherit((table ?? NativeTableStyleDefaults.Empty).ParagraphSpacing.Inherit(defaults.ParagraphSpacing))
             .Merge(paragraph._paragraph.ParagraphProperties);
 
     private static (double? Before, double? After) ResolveNativeParagraphSpacingInLines(WordParagraph paragraph,
-        NativeParagraphStyleDefaults styles, NativeDocumentDefaults defaults, NativeTableStyleDefaults table = default) {
+        NativeParagraphStyleDefaults styles, NativeDocumentDefaults defaults, NativeTableStyleDefaults? table = null) {
         NativeParagraphSpacing spacing = ResolveNativeParagraphSpacing(paragraph, styles, defaults, table);
         // Word uses the section's line-grid pitch even when this paragraph
         // disables snapping. Without an active grid one line unit is 12pt.
@@ -61,6 +61,11 @@ public static partial class WordPdfConverterExtensions {
     private static bool RenderNativeDocumentStartSpacing(INativePdfFlow pdf, WordParagraph paragraph, double spacingBefore) {
         if (spacingBefore <= 0D || !ReferenceEquals(paragraph._paragraph, paragraph._document
             ._wordprocessingDocument.MainDocumentPart?.Document?.Body?.Descendants<W.Paragraph>().FirstOrDefault())) return false;
+        // Word spacing values can combine with the section line grid into an
+        // effectively unbounded number of empty column frames. Reject such
+        // geometry before the PDF writer begins advancing through them.
+        if (double.IsNaN(spacingBefore) || double.IsInfinity(spacingBefore) || spacingBefore > 1_000_000D)
+            throw new InvalidDataException("Initial paragraph spacing exceeds the supported PDF layout range.");
         // Initial document spacing is authored content. Reserve it explicitly
         // so normal page/column breaks continue to suppress spacing at the top.
         pdf.Spacer(spacingBefore);

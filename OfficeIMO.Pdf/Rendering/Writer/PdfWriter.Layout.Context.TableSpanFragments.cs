@@ -88,7 +88,7 @@ internal static partial class PdfWriter {
                 bool hasBorderOverride = style.CellBorders?.TryGetValue((row, cell.Column), out border) == true;
                 if (hasBorderOverride && HasCellBorderPaintOrConflict(border, collapsedBorders)) {
                     border = PrepareTableSpanFragmentBorder(border!, span, continuation, continues);
-                    StringBuilder output = HasPairedCellBorder(border) || flow.HasDeferredFills(style)
+                    StringBuilder output = HasPairedCellBorder(border) || flow.HasDeferredFills
                         ? pairedBorders ??= new StringBuilder() : sb;
                     if (rounded && !border.HasHiddenSegments)
                         DrawRoundedCellBorder(output, border, x, bottom, width, span.Height, cornerRadius,

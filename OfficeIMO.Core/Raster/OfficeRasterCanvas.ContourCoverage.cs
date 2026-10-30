@@ -60,6 +60,7 @@ public sealed partial class OfficeRasterCanvas {
         int top = (int)Math.Max(0D, Math.Floor(minY));
         int bottom = (int)Math.Min(Height - 1D, Math.Ceiling(maxY) - 1D);
         if (right < left || bottom < top) return;
+        _transformedTextBudget.ChargePaintPixels((long)(right - left + 1) * (bottom - top + 1));
         int tileLength = Math.Min(right - left + 1, MaximumContourCoverageTileWidth);
         bool singleTile = right - left + 1 == tileLength;
 #if NET8_0_OR_GREATER
@@ -90,6 +91,7 @@ public sealed partial class OfficeRasterCanvas {
                     throw new InvalidOperationException("Contour coverage work exceeds the rasterization limit.");
                 }
                 crossingWork += rowWork;
+                _transformedTextBudget.ChargePaintCrossings(rowWork);
                 // Select edges once per pixel row. Sub-scanlines retain their original
                 // half-open crossing test and arithmetic, without revisiting every
                 // interface-backed contour for each sample and vertex split.

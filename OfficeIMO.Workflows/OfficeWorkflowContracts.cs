@@ -195,6 +195,9 @@ public sealed class OfficeWorkflowRequest {
     /// <summary>Optional PDF password. It is used only while executing and is never copied to results or reports.</summary>
     public string? PdfPassword { get; set; }
 
+    /// <summary>Optional primary PDF read settings, including resource limits, for PDF conversion. Independently copied before execution.</summary>
+    public OfficeIMO.Pdf.PdfLoadOptions? InputPdfLoadOptions { get; set; }
+
     /// <summary>
     /// Optional password for the comparison PDF. When omitted, <see cref="PdfPassword"/> is reused.
     /// It is used only while executing and is never copied to results or reports.

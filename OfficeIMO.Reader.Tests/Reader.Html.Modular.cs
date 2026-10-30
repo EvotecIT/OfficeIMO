@@ -1,6 +1,7 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Html;
 using OfficeIMO.Markdown.Html;
+using OfficeIMO.Html;
 using System.Text;
 using Xunit;
 
@@ -275,6 +276,25 @@ public sealed class ReaderHtmlModularTests {
         Assert.DoesNotContain("Delegate private", result.Html, StringComparison.Ordinal);
         Assert.Contains(result.Blocks, block => block.Text.Contains("Public text", StringComparison.Ordinal));
         Assert.Equal(1, delegateMatchCount);
+    }
+
+    [Theory]
+    [InlineData("blocked.example", false)]
+    [InlineData("allowed.example", true)]
+    public void PreparedNoscriptImageRespectsDocumentResourceHostPolicy(string host, bool allowed) {
+        var projection = HtmlToMarkdownOptions.CreateOfficeIMOProfile();
+        projection.ExcludeSelectors.Add(".remove");
+        var conversion = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+        HtmlUrlPolicy resourcePolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
+        resourcePolicy.ResolvedUrlTransform = url => new Uri(url).Host == "allowed.example" ? url : null;
+        conversion.ResourceUrlPolicy = resourcePolicy;
+        var options = new ReaderHtmlOptions { ConversionOptions = conversion, HtmlToMarkdownOptions = projection };
+        string html = "<div><img alt='fallback'><noscript>&lt;img src='https://" + host +
+            "/image.png' alt='fallback'&gt;</noscript></div>";
+
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(html, "noscript.html", htmlOptions: options);
+
+        Assert.Equal(allowed, (result.Markdown ?? string.Empty).Contains("https://" + host + "/image.png", StringComparison.Ordinal));
     }
 
     [Fact]

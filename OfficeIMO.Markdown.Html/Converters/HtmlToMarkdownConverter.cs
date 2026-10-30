@@ -11,19 +11,30 @@ namespace OfficeIMO.Markdown.Html;
 internal sealed partial class HtmlToMarkdownConverter {
     private readonly List<HtmlDiagnostic> _diagnostics = new();
     private readonly System.Threading.CancellationToken _cancellationToken;
+    private readonly HtmlUrlPolicy? _newlyParsedResourcePolicy;
 
-    internal HtmlToMarkdownConverter(System.Threading.CancellationToken cancellationToken = default) => _cancellationToken = cancellationToken;
+    internal HtmlToMarkdownConverter(System.Threading.CancellationToken cancellationToken = default,
+        HtmlUrlPolicy? newlyParsedResourcePolicy = null) {
+        _cancellationToken = cancellationToken;
+        _newlyParsedResourcePolicy = newlyParsedResourcePolicy;
+    }
 
     internal IReadOnlyList<HtmlDiagnostic> Diagnostics => _diagnostics;
 
     internal sealed class ConversionContext {
-        public ConversionContext(MarkdownHtmlImportOptions options, System.Threading.CancellationToken cancellationToken = default) {
+        public ConversionContext(MarkdownHtmlImportOptions options, System.Threading.CancellationToken cancellationToken = default,
+            HtmlUrlPolicy? newlyParsedResourcePolicy = null) {
             Options = options ?? throw new ArgumentNullException(nameof(options));
             CancellationToken = cancellationToken;
+            NewlyParsedResourcePolicy = newlyParsedResourcePolicy;
         }
 
         public MarkdownHtmlImportOptions Options { get; }
         public System.Threading.CancellationToken CancellationToken { get; }
+        public HtmlUrlPolicy? NewlyParsedResourcePolicy { get; }
+        public bool ProcessingNewlyParsedMedia { get; set; }
+        public HtmlUrlPolicy EffectiveResourcePolicy => ProcessingNewlyParsedMedia && NewlyParsedResourcePolicy != null
+            ? NewlyParsedResourcePolicy : Options.ResourceUrlPolicy ?? Options.UrlPolicy;
         public List<HtmlDiagnostic> Diagnostics { get; } = new();
         public int SavedBase64ImageCount { get; set; }
         public int DefinitionListEntryExpansionCount { get; set; }
@@ -117,7 +128,7 @@ internal sealed partial class HtmlToMarkdownConverter {
                 retainOriginalCellElement: false);
         }
         effectiveOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, effectiveOptions.BaseUri);
-        var context = new ConversionContext(effectiveOptions, _cancellationToken);
+        var context = new ConversionContext(effectiveOptions, _cancellationToken, _newlyParsedResourcePolicy);
 
         INode root = HtmlDocumentParser.GetConversionRoot(document, effectiveOptions.UseBodyContentsOnly);
         context.Footnotes = HtmlFootnoteConversionState.Create(root, _cancellationToken);
@@ -303,7 +314,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         return HtmlUrlPolicyEvaluator.ResolveUrl(
             candidate,
             context.Options.BaseUri,
-            context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy);
+            context.EffectiveResourcePolicy);
     }
 
     private static string NormalizeRawElement(IElement element, ConversionContext? context) {

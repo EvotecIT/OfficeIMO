@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
@@ -11,6 +12,25 @@ using static OfficeIMO.Xps.Tests.XpsLogicalStructureTests;
 namespace OfficeIMO.Xps.Tests;
 
 public sealed class XpsAccessibilityTests {
+    [Fact]
+    public void GraphicObjectNamesConsumeTheProjectionTextBudget() {
+        var doc = Described(XpsFormat.OpenXps, false);
+        var page = doc.Pages[0];
+        var xml = page.GetMarkup();
+        XElement original = xml.Elements().Single();
+        string largeName = new('n', 900_000);
+        for (int index = 0; index < 18; index++) {
+            var element = new XElement(original);
+            element.SetAttributeValue("Name", largeName);
+            element.SetAttributeValue("AutomationProperties.Name", "x");
+            element.Attribute("AutomationProperties.HelpText")?.Remove();
+            xml.Add(element);
+        }
+        page.ReplaceMarkup(xml);
+
+        Assert.Throws<InvalidDataException>(() => doc.ToOfficeDocumentModel());
+    }
+
     private const string Short = "A dog & its bowl";
     private const string Long = "A brown dog beside a <blue> bowl. 犬";
     private const string Alternative = Short + "\n" + Long;

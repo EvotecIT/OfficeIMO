@@ -18,8 +18,8 @@ public static partial class WordPdfConverterExtensions {
             _ => PdfCore.PdfTabLeaderStyle.None
         };
         double left, right;
-        if (tableDefaults.HasValue) {
-            var indentation = ResolveNativeTableCellParagraphIndentation(paragraph, tableDefaults.Value,
+        if (tableDefaults != null) {
+            var indentation = ResolveNativeTableCellParagraphIndentation(paragraph, tableDefaults,
                 WordDocumentTraversal.GetListInfo(paragraph)?.MarkerVisible == true);
             left = indentation.Left;
             right = indentation.Right;

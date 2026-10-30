@@ -49,7 +49,7 @@ public sealed partial class EpubPublication {
         }
     }
 
-    private static void ApplyMergeIdentifierMap(XElement root, IReadOnlyDictionary<string, string> map, CancellationToken token) {
+    private void ApplyMergeIdentifierMap(XElement root, IReadOnlyDictionary<string, string> map, CancellationToken token) {
         if (map.Count == 0) return;
         var mapNames = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (XElement element in root.DescendantsAndSelf()) {
@@ -68,6 +68,6 @@ public sealed partial class EpubPublication {
             if (element.Attribute("usemap") is XAttribute usemap && usemap.Value.StartsWith("#", StringComparison.Ordinal) &&
                 mapNames.TryGetValue(usemap.Value.Substring(1), out string? replacement)) usemap.Value = "#" + replacement;
         }
-        EpubContentIdentifiers.RewriteReferences(root, map, token);
+        EpubContentIdentifiers.RewriteReferences(root, map, _maximumEntryBytes, token);
     }
 }

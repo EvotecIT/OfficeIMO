@@ -12,6 +12,59 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfOpenTypeCffCompactEmbeddingTests {
     [Fact]
+    public void CidSubsetIgnoresUnusedFontDictionaryPrivateRanges() {
+        static byte[] Index(params byte[][] objects) {
+            if (objects.Length == 0) return new byte[] { 0, 0 };
+            var bytes = new List<byte> { (byte)(objects.Length >> 8), (byte)objects.Length, 1 };
+            int offset = 1;
+            foreach (byte[] value in objects) {
+                bytes.Add(checked((byte)offset));
+                offset += value.Length;
+            }
+            bytes.Add(checked((byte)offset));
+            foreach (byte[] value in objects) bytes.AddRange(value);
+            return bytes.ToArray();
+        }
+
+        static byte[] TopDictionary(int charStrings, int fdArray, int fdSelect) {
+            var bytes = new List<byte> { 139, 139, 139, 12, 30 };
+            void AddOffset(int value, params byte[] op) {
+                bytes.Add(29);
+                bytes.Add((byte)(value >> 24));
+                bytes.Add((byte)(value >> 16));
+                bytes.Add((byte)(value >> 8));
+                bytes.Add((byte)value);
+                bytes.AddRange(op);
+            }
+            AddOffset(charStrings, 17);
+            AddOffset(fdArray, 12, 36);
+            AddOffset(fdSelect, 12, 37);
+            return bytes.ToArray();
+        }
+
+        byte[] names = Index(Encoding.ASCII.GetBytes("CID proof"));
+        byte[] strings = Index();
+        byte[] globalSubrs = Index();
+        byte[] charStrings = Index(new byte[] { 14 }, new byte[] { 14 }, new byte[] { 14 });
+        byte[] fdSelect = { 0, 0, 0, 1 }; // glyphs 0 and 1 use FD 0; glyph 2 uses FD 1.
+        byte[] fdArray = Index(Array.Empty<byte>(), new byte[] { 139, 29, 0x7f, 0xff, 0xff, 0xff, 18 });
+        byte[] topPlaceholder = Index(TopDictionary(0, 0, 0));
+        int charStringsOffset = 4 + names.Length + topPlaceholder.Length + strings.Length + globalSubrs.Length;
+        int fdSelectOffset = charStringsOffset + charStrings.Length;
+        int fdArrayOffset = fdSelectOffset + fdSelect.Length;
+        byte[] top = Index(TopDictionary(charStringsOffset, fdArrayOffset, fdSelectOffset));
+        Assert.Equal(topPlaceholder.Length, top.Length);
+        byte[] cff = new byte[] { 1, 0, 4, 4 }
+            .Concat(names).Concat(top).Concat(strings).Concat(globalSubrs)
+            .Concat(charStrings).Concat(fdSelect).Concat(fdArray).ToArray();
+
+        PdfCffCharStringSubset? subset = PdfCffCidSubsetter.TryCreate(cff, new[] { 1 }, 3);
+        Assert.NotNull(subset);
+        Assert.True(subset!.IsSubset);
+        Assert.Equal(2, subset.RetainedGlyphCount);
+    }
+
+    [Fact]
     public void PdfOpenTypeCffFontProgram_BuildsCompactOpenTypeFontFileWithoutLayoutTables() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);

@@ -82,6 +82,16 @@ public sealed class PdfColumnFrameRegressionTests {
         Assert.InRange(word.BoundingBox.Left, 19.9, 20.1);
     }
 
+    [Fact]
+    public void Columns_ExtremeSpacerFailsBeforeUnboundedPagination() {
+        var options = Options();
+        options.MaxGeneratedPages = null;
+        var document = PdfDocument.Create(options).Columns(content => content.Spacer(1e30),
+            new PdfMultiColumnOptions { Gap = 20, BalanceLastPage = false });
+
+        Assert.Throws<InvalidDataException>(() => document.ToBytes());
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

@@ -4,7 +4,8 @@ using System.Security.Cryptography;
 
 namespace OfficeIMO.Core.Internal {
     internal static partial class OfficeEncryption {
-        private static byte[] GetIntegrityKey(AgileDescriptor descriptor, byte[] paddedKey) {
+        private static byte[] GetIntegrityKey(AgileDescriptor descriptor, byte[] paddedKey,
+            out bool hasValidPadding) {
             int keyLength;
             // MS-OFFCRYPTO 2.3.4.14 specifies a saltSize-byte HMAC key. Some
             // producers use a hashSize-byte key instead. The encrypted length
@@ -17,15 +18,15 @@ namespace OfficeIMO.Core.Internal {
                 using HashAlgorithm algorithm = CreateHash(descriptor.KeyDataHashAlgorithm);
                 keyLength = algorithm.HashSize / 8;
                 if (RoundUp(keyLength, BlockSize) != paddedKey.Length) {
-                    throw new CryptographicException("The encrypted integrity key has an unsupported length.");
+                    throw new CryptographicException("The encrypted package integrity check failed.");
                 }
             }
 
+            int paddingMismatch = 0;
             for (int index = keyLength; index < paddedKey.Length; index++) {
-                if (paddedKey[index] != 0) {
-                    throw new CryptographicException("The encrypted integrity key has invalid padding.");
-                }
+                paddingMismatch |= paddedKey[index];
             }
+            hasValidPadding = paddingMismatch == 0;
 
             var key = new byte[keyLength];
             Buffer.BlockCopy(paddedKey, 0, key, 0, keyLength);

@@ -145,6 +145,24 @@ public partial class Word {
         Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-hidden-paragraph-join-unsupported");
     }
 
+    [Fact]
+    public void SaveAsPdf_UnsupportedHiddenMarkChainStillJoinsValidSuffix() {
+        using WordDocument document = CreateJoinedParagraphDocument();
+        for (int index = 0; index < 3; index++) HideJoinMark(document.AddParagraph("P" + index), true);
+        WordParagraph decorated = document.AddParagraph("DECORATED");
+        HideJoinMark(decorated, true);
+        decorated._paragraph.ParagraphProperties!.AddChild(new W.Shading { Fill = "FFCC00", Val = W.ShadingPatternValues.Clear }, true);
+        WordParagraph suffix = document.AddParagraph("SUFFIX");
+        HideJoinMark(suffix, true);
+        document.AddParagraph("END");
+
+        using var pdf = OpenJoinedParagraphPdf(document);
+        var letters = pdf.GetPage(1).Letters;
+        Assert.Contains("SUFFIXEND", pdf.GetPage(1).Text);
+        Assert.Equal(letters.First(letter => letter.Value == "S").StartBaseLine.Y,
+            letters.Last(letter => letter.Value == "D").StartBaseLine.Y, 3);
+    }
+
     private static void HideJoinMark(WordParagraph paragraph, bool hidden) {
         paragraph._paragraph.ParagraphProperties ??= new W.ParagraphProperties();
         paragraph._paragraph.ParagraphProperties.ParagraphMarkRunProperties = new W.ParagraphMarkRunProperties(new W.Vanish { Val = hidden });

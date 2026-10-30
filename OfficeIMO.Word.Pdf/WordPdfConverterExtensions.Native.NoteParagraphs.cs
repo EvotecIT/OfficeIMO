@@ -21,9 +21,10 @@ public static partial class WordPdfConverterExtensions {
         var destinations = new Dictionary<W.Paragraph, string>();
         double? contentWidth = (section.ColumnCount ?? 1) == 1
             ? GetNativeFootnoteSectionWidth(section, options) : null;
+        int rejectedJoinUntil = -1;
         for (int index = 0; index < elements.Count; index++) {
             options?.CancellationToken.ThrowIfCancellationRequested();
-            if (TryRenderNativeJoinedParagraphs(flow, elements, ref index, GetMarker,
+            if (TryRenderNativeJoinedParagraphs(flow, elements, ref index, ref rejectedJoinUntil, GetMarker,
                 notes, options, defaults, fonts)) continue;
             RenderNativeElement(flow, elements[index], section, GetMarker, Array.Empty<int>(), notes, options,
                 Array.Empty<NativeTableOfContentsEntry>(), destinations, contentWidth, defaults, fonts,

@@ -295,6 +295,20 @@ namespace OfficeIMO.Tests {
                 }).Value.ToBytes());
         }
 
+        [Fact]
+        public void SaveAsPdf_RejectsPathologicalInitialParagraphSpacingBeforePagination() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("Body text");
+            paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
+            paragraph._paragraph.ParagraphProperties.Append(new SpacingBetweenLines { BeforeLines = int.MaxValue });
+            paragraph._paragraph.ParagraphProperties.Append(new SnapToGrid { Val = false });
+            document.Sections[0]._sectionProperties.Append(new DocGrid { Type = DocGridValues.Lines, LinePitch = int.MaxValue });
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false }));
+            Assert.Contains("Initial paragraph spacing", exception.Message);
+        }
+
 
         [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_Justified_Paragraphs() {

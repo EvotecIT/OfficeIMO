@@ -10,6 +10,35 @@ using Xunit;
 namespace OfficeIMO.Xps.Tests;
 
 public sealed class XpsPdfNavigationTests {
+    [Fact]
+    public void NamedTargetLookupTracksPageMarkupReplacement() {
+        var doc = XpsDocument.Create();
+        var source = doc.AddPage(100, 100).AddPath("M10,10H30V30H10Z");
+        var target = doc.AddPage(100, 100).AddPath("M40,40H60V60H40Z");
+        var targetMarkup = target.GetMarkup();
+        targetMarkup.Elements().Single().SetAttributeValue("Name", "first");
+        target.ReplaceMarkup(targetMarkup);
+        var sourceMarkup = source.GetMarkup();
+        sourceMarkup.Elements().Single().SetAttributeValue("FixedPage.NavigateUri", "/" + target.PartName + "#first");
+        source.ReplaceMarkup(sourceMarkup);
+
+        var first = PdfReadDocument.Open(doc.ToPdf());
+        string firstDestination = Assert.Single(first.Pages[0].GetLinkAnnotations()).DestinationName!;
+        Assert.Contains(first.NamedDestinations, destination => destination.Name == firstDestination && destination.PageNumber == 2);
+
+        targetMarkup = target.GetMarkup();
+        targetMarkup.Elements().Single().SetAttributeValue("Name", "second");
+        target.ReplaceMarkup(targetMarkup);
+        sourceMarkup = source.GetMarkup();
+        sourceMarkup.Elements().Single().SetAttributeValue("FixedPage.NavigateUri", "/" + target.PartName + "#second");
+        source.ReplaceMarkup(sourceMarkup);
+
+        var second = PdfReadDocument.Open(doc.ToPdf());
+        string secondDestination = Assert.Single(second.Pages[0].GetLinkAnnotations()).DestinationName!;
+        Assert.NotEqual(firstDestination, secondDestination);
+        Assert.Contains(second.NamedDestinations, destination => destination.Name == secondDestination && destination.PageNumber == 2);
+    }
+
     [Theory]
     [InlineData("https://example.com/report", "https://example.com/report")]
     [InlineData("https://example.com/ż?q=é", "https://example.com/%C5%BC?q=%C3%A9")]

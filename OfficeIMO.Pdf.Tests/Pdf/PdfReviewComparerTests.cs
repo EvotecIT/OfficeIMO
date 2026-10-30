@@ -42,7 +42,7 @@ public sealed class PdfReviewComparerTests {
     }
 
     [Fact]
-    public void RepeatedLongDashComparisonsRespectReviewWorkLimit() {
+    public void UnusedDashPatternsDoNotConsumeReviewComparisonWork() {
         string sharedDashPrefix = string.Join(" ", Enumerable.Repeat("1", 9_999));
         string rectangles = string.Concat(Enumerable.Repeat("-1000 -1000 10 10 re f\n", 120));
         static string Content(string text, string dashPrefix, string lastDash, string rectangles) =>
@@ -53,10 +53,10 @@ public sealed class PdfReviewComparerTests {
         PdfDocument actual = PdfDocument.Load(InvisibleTextOperationsPdf(
             Content("DEF", sharedDashPrefix, "3", rectangles)));
 
-        PdfReadLimitException failure = Assert.Throws<PdfReadLimitException>(() =>
-            expected.Proof.CompareReview(actual));
+        PdfReviewComparisonReport report = expected.Proof.CompareReview(actual);
 
-        Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, failure.Kind);
+        Assert.False(report.IsMatch);
+        Assert.Contains(Assert.Single(report.Pages).Changes, change => change.Kind == PdfReviewChangeKind.TextChanged);
     }
 
     [Fact]

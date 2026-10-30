@@ -54,6 +54,19 @@ public partial class Word {
         Assert.True(words["SecondColumn"].BoundingBox.Left < words["ThirdColumn"].BoundingBox.Left);
     }
 
+    [Fact]
+    public void SaveAsPdf_RejectsExcessiveColumnBreakSplittingBeforeCloningSuffixes() {
+        using WordDocument document = WordDocument.Create();
+        document.Sections[0].ColumnCount = 2;
+        W.Paragraph paragraph = document.AddParagraph("Start")._paragraph;
+        paragraph.Append(new W.Run(Enumerable.Range(0, 257).Select(_ =>
+            (OpenXmlElement)new W.Break { Type = W.BreakValues.Column })));
+
+        NotSupportedException failure = Assert.Throws<NotSupportedException>(() =>
+            document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes());
+        Assert.Contains("visible page or column breaks", failure.Message, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]

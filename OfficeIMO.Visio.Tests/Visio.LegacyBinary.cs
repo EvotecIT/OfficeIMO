@@ -7,6 +7,15 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public class VisioLegacyBinaryTests {
+        [Fact]
+        public void CachedFieldExpansionChecksRemainingTextBudgetBeforeAppending() {
+            var fields = new Dictionary<uint, string> { [0] = new string('A', 1_024), [1] = new string('B', 1_024) };
+            Assert.Throws<InvalidDataException>(() => VisioLegacyBinaryCodec.ExpandCachedTextFields(
+                "\ufffc\ufffc", fields, 1_500, CancellationToken.None));
+            Assert.Equal("A!", VisioLegacyBinaryCodec.ExpandCachedTextFields(
+                "\ufffc!", new Dictionary<uint, string> { [0] = "A" }, 2, CancellationToken.None));
+        }
+
         private static string Fixture(string extension) => Path.Combine(AppContext.BaseDirectory, "Fixtures", "LegacyBinary", "pronom-visio2003." + extension);
         private static IEnumerable<VisioShape> Flatten(IEnumerable<VisioShape> shapes) => shapes.SelectMany(shape => new[] { shape }.Concat(Flatten(shape.Children)));
 

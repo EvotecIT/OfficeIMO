@@ -161,6 +161,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NativeSaveCannotRestoreExternalLinksFilteredDuringImport() {
+            byte[] workbook = LegacyXlsTestWorkbookBuilder.CreateFormulaExternalWorkbookReferenceWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbook);
+            using var document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound));
+
+            Assert.Throws<NotSupportedException>(() => document.ToBytes(ExcelFileFormat.Xls));
+            byte[] permittedLoss = document.ToBytes(ExcelFileFormat.Xls, new ExcelSaveOptions {
+                LossPolicy = OfficeConversionLossPolicy.Allow
+            });
+            LegacyXlsWorkbook saved = LegacyXlsWorkbook.Load(permittedLoss);
+            Assert.DoesNotContain(saved.ExternalReferences, reference =>
+                reference.Kind == LegacyXlsExternalReferenceKind.ExternalWorkbook);
+
+            using var optedIn = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
+                PreserveExternalWorkbookLinks = true
+            });
+            LegacyXlsWorkbook preserved = LegacyXlsWorkbook.Load(optedIn.ToBytes(ExcelFileFormat.Xls));
+            Assert.Contains(preserved.ExternalReferences, reference =>
+                reference.Kind == LegacyXlsExternalReferenceKind.ExternalWorkbook);
+        }
+
+        [Fact]
         public void LegacyXls_Load_DropsExternalFormulaWhenWorkbookNameContainsApostrophe() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaExternalWorkbookReferenceWorkbookStream("C:\\Data\\O'Brien.xls");
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);

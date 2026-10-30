@@ -40,7 +40,8 @@ internal sealed partial class StudioNativeDocument {
                 : crypto.MathematicalSignatureStatus == PdfCryptographicValidationStatus.Valid && crypto.MessageDigestStatus == PdfCryptographicValidationStatus.Valid
                     ? (crypto.CertificateChainStatus == PdfCryptographicValidationStatus.Valid ? "valid" : "intact")
                 : "unknown";
-            return new StudioNativeSignature(result.Signature.SignerName ?? Subject(crypto?.SignerSubject), result.Signature.FieldName,
+            // PDF /Name is authored metadata, not the identity from the CMS certificate.
+            return new StudioNativeSignature(Subject(crypto?.SignerSubject), result.Signature.FieldName,
                 (crypto?.SigningTime)?.ToString("o", CultureInfo.InvariantCulture) ?? result.Signature.SigningTimeRaw,
                 result.Signature.Reason, result.Signature.Location, status, result.ByteRangeCoversEndOfFile,
                 crypto is null ? null : Status(crypto.CertificateChainStatus), crypto is null ? null : Status(crypto.TimestampStatus),

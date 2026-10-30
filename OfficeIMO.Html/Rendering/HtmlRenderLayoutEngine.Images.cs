@@ -7,6 +7,8 @@ using System.Xml.Linq;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    private readonly Dictionary<IElement, string> _imageAnchorNames = new();
+
     private HtmlRenderFlowBlock LayoutImage(IElement element, double containingWidth, HtmlRenderBoxStyle style, string? inheritedLink = null) {
         if (IsInlineFrameElement(element)) return LayoutFrame(element, containingWidth, style);
         string? editableImageKey = HtmlEditableLayoutProjector.GetImageSourceKey(element);
@@ -152,10 +154,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     /// <summary>Names a decorative image's separate link interaction from its enclosing anchor.</summary>
-    private static string ResolveImageLinkDescription(IElement element, string fallback) {
+    private string ResolveImageLinkDescription(IElement element, string fallback) {
         for (IElement? current = element; current != null; current = current.ParentElement) {
             if (!current.LocalName.Equals("a", StringComparison.OrdinalIgnoreCase)) continue;
-            string name = HtmlAccessibilitySemantics.GetAccessibleName(current, includeTextFallback: true);
+            if (!_imageAnchorNames.TryGetValue(current, out string? name)) {
+                name = HtmlAccessibilitySemantics.GetAccessibleName(current, includeTextFallback: true);
+                _imageAnchorNames.Add(current, name);
+            }
             return string.IsNullOrWhiteSpace(name) ? fallback : name;
         }
         return fallback;

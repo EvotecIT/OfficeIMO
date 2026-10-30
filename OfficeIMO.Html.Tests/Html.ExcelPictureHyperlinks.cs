@@ -51,6 +51,27 @@ public sealed class HtmlExcelPictureHyperlinkTests {
         Assert.Equal(32, image.WidthPixels);
         Assert.Equal(16, image.HeightPixels);
     }
+
+    [Fact]
+    public void UntrustedSemanticPictureMetadataObeysNavigationPolicy() {
+        using var source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Pictures");
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
+        sheet.AddImage(1, 1, png, "image/png", 32, 16).HyperlinkUri = new Uri("file://server/private");
+
+        var result = HtmlConversionDocument.Parse(source.ToHtml()).ToExcelDocumentResult();
+        using ExcelDocument restored = result.RequireValue();
+        using var artifact = restored.ToStream();
+        using var reopened = ExcelDocument.Load(new MemoryStream(artifact.ToArray()));
+
+        Assert.Null(reopened.Sheets.Single().Images.Single().HyperlinkUri);
+        Assert.Contains(result.Report.Diagnostics, item => item.Code == HtmlConversionDiagnosticCodes.ContentOmitted
+            && item.Message.Contains("URL policy", StringComparison.Ordinal));
+        using var native = SpreadsheetDocument.Open(new MemoryStream(artifact.ToArray()), false);
+        Assert.Empty(native.WorkbookPart!.WorksheetParts.SelectMany(part => part.HyperlinkRelationships));
+        Assert.Empty(native.WorkbookPart.WorksheetParts.SelectMany(part =>
+            part.DrawingsPart?.HyperlinkRelationships ?? Enumerable.Empty<HyperlinkRelationship>()));
+    }
     [Theory]
     [InlineData("https://example.org/photo?item=1&view=full", true)]
     [InlineData("../photo.html", true)]

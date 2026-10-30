@@ -233,9 +233,10 @@ public static partial class WordPdfConverterExtensions {
                 ?? new NativeNoteNumbering(section._document, options);
             notes.BeginSection(section);
             var destinations = new Dictionary<W.Paragraph, string>();
+            int rejectedJoinUntil = -1;
             for (int index = 0; index < elements.Count; index++) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
-                if (TryRenderNativeJoinedParagraphs(flow, elements, ref index,
+                if (TryRenderNativeJoinedParagraphs(flow, elements, ref index, ref rejectedJoinUntil,
                     paragraph => listMarkers.TryGetValue(paragraph, out var joinedMarker) ? joinedMarker : null,
                     notes, options, runningDefaults, fontMap)) continue;
                 RenderNativeElement(flow, elements[index], section,
@@ -290,13 +291,14 @@ public static partial class WordPdfConverterExtensions {
                     NativeTableStyleDefaults cellStyle = GetNativeTableCellStyleDefaults(table, tableStyle,
                         rowIndex, column, span, columnCount, headerRows, footerStart);
                     List<WordElement> elements = EnumerateNativeTableCellElements(cell).ToList();
+                    int rejectedCellJoinUntil = -1;
                     for (int index = 0; index < elements.Count; index++) {
                         if (elements[index] is WordTable nested) {
                             RecordNativeRunningTableJoinDiagnostics(nested, listMarkers, defaults, fontMap, options, depth + 1);
                         } else if (elements[index] is WordParagraph) {
                             // Use the renderer's eligibility, including effective
                             // conditional styles and caller-configured typography.
-                            index = GetNativeJoinedCellParagraphEnd(elements, index,
+                            index = GetNativeJoinedCellParagraphEnd(elements, index, ref rejectedCellJoinUntil,
                                 paragraph => listMarkers.TryGetValue(paragraph, out var marker) ? marker : null,
                                 defaults, cellStyle, fontMap, options);
                         }

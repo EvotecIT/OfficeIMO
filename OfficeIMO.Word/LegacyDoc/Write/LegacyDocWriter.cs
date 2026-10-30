@@ -163,6 +163,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var runs = new List<LegacyDocWritableRun>();
             var paragraphFormats = new List<LegacyDocWritableParagraph>();
             var bookmarks = new LegacyDocWritableBookmarksBuilder();
+            var bodyBoundaries = new BodyBlockBoundaryCache();
             var pictures = new LegacyDocWritablePictures(document);
             LegacyDocWritableStyleSheet styleSheet = CreateWritableStyleSheet(mainPart!, body);
             LegacyDocWritableFootnotes footnotes = ReadSupportedFootnotes(mainPart!, pictures, styleSheet.StyleIndexes);
@@ -178,6 +179,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     runs,
                     paragraphFormats,
                     bookmarks,
+                    bodyBoundaries,
                     child,
                     mainPart!,
                     pictures,
@@ -423,6 +425,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             List<LegacyDocWritableRun> runs,
             List<LegacyDocWritableParagraph> paragraphFormats,
             LegacyDocWritableBookmarksBuilder bookmarks,
+            BodyBlockBoundaryCache bodyBoundaries,
             OpenXmlElement child,
             MainDocumentPart mainPart,
             LegacyDocWritablePictures pictures,
@@ -435,7 +438,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             ref int bodyContentCount,
             string containerDescription) {
             if (child is BookmarkStart && text.Length > 0 && text[text.Length - 1] == '\a' &&
-                FindFollowingBodyBlock(child) is Table) {
+                bodyBoundaries.FindFollowing(child) is Table) {
                 // A range starting at the next table excludes its required separator.
                 // Ends closing the preceding table keep their original position.
                 text.Append('\r');
@@ -465,6 +468,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         runs,
                         paragraphFormats,
                         bookmarks,
+                        bodyBoundaries,
                         sdtBlock,
                         mainPart,
                         pictures,
@@ -481,7 +485,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     break;
                 case BookmarkEnd bookmarkEnd:
                     int? precedingTableEnd = text.Length > 1 && text[text.Length - 1] == '\r' && text[text.Length - 2] == '\a' &&
-                        FindPrecedingBodyBlock(child) is Table && FindFollowingBodyBlock(child) is Table
+                        bodyBoundaries.FindPreceding(child) is Table && bodyBoundaries.FindFollowing(child) is Table
                         ? text.Length - 1
                         : null;
                     bookmarks.AddEnd(bookmarkEnd, text.Length, precedingTableEnd);
@@ -499,6 +503,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             List<LegacyDocWritableRun> runs,
             List<LegacyDocWritableParagraph> paragraphFormats,
             LegacyDocWritableBookmarksBuilder bookmarks,
+            BodyBlockBoundaryCache bodyBoundaries,
             SdtBlock sdtBlock,
             MainDocumentPart mainPart,
             LegacyDocWritablePictures pictures,
@@ -520,6 +525,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     runs,
                     paragraphFormats,
                     bookmarks,
+                    bodyBoundaries,
                     child,
                     mainPart,
                     pictures,

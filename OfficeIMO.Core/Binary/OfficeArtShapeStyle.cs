@@ -11,7 +11,7 @@ namespace OfficeIMO.Drawing.Binary;
 public sealed class OfficeArtShapeStyle {
     private const int MaximumGradientStops = 256;
 
-    private OfficeArtShapeStyle(IReadOnlyList<OfficeArtProperty> properties) {
+    private OfficeArtShapeStyle(IReadOnlyList<OfficeArtProperty> properties, Action<int>? accountGradientStops = null) {
         Properties = properties?.ToArray() ?? Array.Empty<OfficeArtProperty>();
         FillType = GetUInt32(0x0180);
         FillColor = GetColor(0x0181);
@@ -22,7 +22,7 @@ public sealed class OfficeArtShapeStyle {
         FillAngleDegrees = GetSignedFixedPoint(0x018B);
         FillFocusPercent = GetInt32(0x018C);
         FillShadeType = GetUInt32(0x019C);
-        FillGradientStops = ReadGradientStops(out bool gradientStopsTruncated);
+        FillGradientStops = ReadGradientStops(accountGradientStops, out bool gradientStopsTruncated);
         IsFillGradientStopTableTruncated = gradientStopsTruncated;
         FillEnabled = GetBoolean(0x01BF, 0x00100000U, 0x00000010U);
         FillRotatesWithShape = GetBoolean(0x01BF, 0x00200000U, 0x00000020U);
@@ -62,6 +62,10 @@ public sealed class OfficeArtShapeStyle {
     /// <summary>Decodes a shape style from OfficeArt properties.</summary>
     public static OfficeArtShapeStyle Decode(IReadOnlyList<OfficeArtProperty>? properties) =>
         new OfficeArtShapeStyle(properties ?? Array.Empty<OfficeArtProperty>());
+
+    /// <summary>Charges the owning import operation before allocating decoded gradient stops.</summary>
+    internal static OfficeArtShapeStyle Decode(IReadOnlyList<OfficeArtProperty>? properties, Action<int>? accountGradientStops) =>
+        new OfficeArtShapeStyle(properties ?? Array.Empty<OfficeArtProperty>(), accountGradientStops);
 
     /// <summary>Gets the source property entries.</summary>
     public IReadOnlyList<OfficeArtProperty> Properties { get; }
@@ -277,7 +281,7 @@ public sealed class OfficeArtShapeStyle {
             : unchecked((int)property.Value);
     }
 
-    private IReadOnlyList<OfficeArtGradientStop> ReadGradientStops(out bool truncated) {
+    private IReadOnlyList<OfficeArtGradientStop> ReadGradientStops(Action<int>? accountGradientStops, out bool truncated) {
         truncated = false;
         OfficeArtProperty? property = Properties.LastOrDefault(candidate =>
             candidate.PropertyId == 0x0197);
@@ -298,6 +302,7 @@ public sealed class OfficeArtShapeStyle {
             return Array.Empty<OfficeArtGradientStop>();
         }
 
+        accountGradientStops?.Invoke(count);
         var result = new List<OfficeArtGradientStop>(count);
         double previous = -1D;
         for (int index = 0; index < count; index++) {

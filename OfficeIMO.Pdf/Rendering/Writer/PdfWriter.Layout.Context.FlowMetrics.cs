@@ -131,7 +131,7 @@ internal static partial class PdfWriter {
             var wrap = HasParagraphPictures(paragraphStyle) || HasPictureExclusions
                 ? WrapPictureParagraph(paragraph, frameX, frameWidth, fontSize,
                     y - (suppressSpacingBefore ? 0D : ResolveTopLevelSpacingBefore(spacingBefore)))
-                : WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
+                : WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null, cancellationToken: cancellationToken);
             if (wrap.LineHeights.Count == 0) {
                 return (spacingBefore, PdfKeepTogetherOverflowBehavior.Reject);
             }
@@ -342,7 +342,7 @@ internal static partial class PdfWriter {
             double spacingBefore = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(paragraphStyle));
             double spacingAfter = GetParagraphSpacingAfter(paragraphStyle, leading);
             var textFrame = GetParagraphTextFrame(paragraphStyle, frameX, frameWidth);
-            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
+            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null, cancellationToken: cancellationToken);
             return spacingBefore + wrap.LineHeights.Sum() + spacingAfter;
         }
 
@@ -694,7 +694,7 @@ internal static partial class PdfWriter {
                 double captionSize = style.CaptionFontSize ?? fontSize;
                 double captionLeading = captionSize * 1.25D;
                 var captionRuns = new[] { PdfTextRun.Normal(style.Caption!, style.CaptionColor, captionSize) };
-                var captionWrap = WrapRichRunsCore(captionRuns, columnLayout.Width, captionSize, ChooseNormal(currentOpts.DefaultFont), captionLeading, null, DefaultParagraphTabStopWidth, currentOpts);
+                var captionWrap = WrapRichRunsCore(captionRuns, columnLayout.Width, captionSize, ChooseNormal(currentOpts.DefaultFont), captionLeading, null, DefaultParagraphTabStopWidth, currentOpts, cancellationToken: cancellationToken);
                 captionHeight = MeasureRichLinesHeight(captionWrap.LineHeights, captionWrap.Lines.Count, captionLeading) + style.CaptionSpacingAfter;
             }
 
@@ -707,12 +707,19 @@ internal static partial class PdfWriter {
         }
 
         private void ConsumeSpacer(double height) {
+            // A single imported dimension must not request an effectively unbounded
+            // number of page or column transitions when no page limit was configured.
+            if (height / currentOpts.PageHeight > 1000D)
+                throw new InvalidDataException("PDF spacer exceeds the page traversal bound.");
             double remaining = height;
+            int traversals = 0;
             while (remaining > 0.001D) {
+                if (++traversals > 1000)
+                    throw new InvalidDataException("PDF spacer exceeds the page traversal bound.");
                 double available = y - FootnoteBodyBottom;
                 double closingPadding = GetClosingContainerPadding();
                 if (remaining <= available && remaining + closingPadding > available) available -= closingPadding;
-                if (available <= 0.5D) {
+                if (available <= 0.001D) {
                     NewPage();
                     continue;
                 }
@@ -742,7 +749,10 @@ internal static partial class PdfWriter {
                 double consumed = Math.Min(remaining, available);
                 if (consumed > 0D) RecordRunningContentSection();
                 y -= consumed;
-                remaining -= consumed;
+                double nextRemaining = remaining - consumed;
+                if (nextRemaining >= remaining)
+                    throw new InvalidDataException("PDF spacer could not make numerical progress.");
+                remaining = nextRemaining;
                 if (remaining > 0.001D) {
                     NewPage();
                 }

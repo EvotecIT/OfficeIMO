@@ -358,17 +358,15 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static void RegisterPresentationTableFonts(PptCore.PowerPointTable table, int slideNumber, PdfCore.PdfCreateOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointPdfExportOptions options) {
-        for (int row = 0; row < table.Rows; row++) {
-            for (int column = 0; column < table.Columns; column++) {
-                PptCore.PowerPointTableCell cell = table.GetCell(row, column);
-                if (!cell.IsMergedCell) {
-                    RegisterPresentationFontCandidate(PptCore.PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
-                        cell.FontName, cell.SlidePart ?? cell.OwnerPart), pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
-                    IReadOnlyList<A.TextCharacterPropertiesType> defaults = options.PdfOptions?.HasExplicitDefaultTableStyle == true
-                        ? Array.Empty<A.TextCharacterPropertiesType>() : CreateTableTextDefaults(table, row, column);
-                    RegisterPresentationTableCellRunFonts(cell, slideNumber, pdfOptions, registeredFamilies, registeredFontSlots, options, defaults);
-                }
-            }
+        EnsureTableExportSize(table);
+        foreach (var anchor in table.EnumerateAnchorCells()) {
+            options.CancellationToken.ThrowIfCancellationRequested();
+            PptCore.PowerPointTableCell cell = anchor.Cell;
+            RegisterPresentationFontCandidate(PptCore.PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
+                cell.FontName, cell.SlidePart ?? cell.OwnerPart), pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
+            IReadOnlyList<A.TextCharacterPropertiesType> defaults = options.PdfOptions?.HasExplicitDefaultTableStyle == true
+                ? Array.Empty<A.TextCharacterPropertiesType>() : CreateTableTextDefaults(table, anchor.Row, anchor.Column);
+            RegisterPresentationTableCellRunFonts(cell, slideNumber, pdfOptions, registeredFamilies, registeredFontSlots, options, defaults);
         }
     }
 

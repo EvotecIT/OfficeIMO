@@ -157,14 +157,8 @@ public sealed class AddOfficeExcelImageCommand : AsyncPSCmdlet
         }
         else
         {
-            if (TryGetLocalFilePath(Url, out var localPath))
-            {
-                AddLocalImage(sheet, localPath);
-            }
-            else
-            {
-                await AddRemoteImageAsync(sheet, Url).ConfigureAwait(false);
-            }
+            ExcelImageUrlPolicy.RequireWebUrl(Url);
+            await AddRemoteImageAsync(sheet, Url).ConfigureAwait(false);
         }
 
         if (PassThru.IsPresent)
@@ -297,17 +291,5 @@ public sealed class AddOfficeExcelImageCommand : AsyncPSCmdlet
         }
 
         return !MyInvocation.BoundParameters.ContainsKey(nameof(LockAspectRatio)) || LockAspectRatio.IsPresent;
-    }
-
-    private static bool TryGetLocalFilePath(string url, out string path)
-    {
-        path = string.Empty;
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || !uri.IsFile)
-        {
-            return false;
-        }
-
-        path = uri.LocalPath;
-        return !string.IsNullOrWhiteSpace(path);
     }
 }

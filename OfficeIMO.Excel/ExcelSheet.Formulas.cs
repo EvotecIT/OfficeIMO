@@ -584,7 +584,7 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        internal void SetLegacyArrayFormula(string a1Range, string formula) {
+        internal void SetLegacyArrayFormula(string a1Range, string formula, System.Threading.CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(formula)) throw new ArgumentNullException(nameof(formula));
             string safeFormula = Utilities.ExcelSanitizer.SanitizeFormula(formula);
             int r2;
@@ -601,6 +601,7 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 for (int row = r1; row <= r2; row++) {
                     for (int column = c1; column <= c2; column++) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         var member = GetCell(row, column);
                         ClearCellValueMetadata(member);
                         if (row != r1 || column != c1) member.CellFormula = null;

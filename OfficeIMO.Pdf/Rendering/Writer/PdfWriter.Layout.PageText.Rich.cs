@@ -225,7 +225,10 @@ internal static partial class PdfWriter {
             content.MoveTo(x1, y);
             double cursor = x1;
             bool raised = true;
+            int segmentCount = 0;
             while (cursor < x2) {
+                if (++segmentCount > 65536 || cursor + step <= cursor)
+                    throw new NotSupportedException("Wavy text decoration exceeds its bounded segment limit.");
                 double next = Math.Min(x2, cursor + step);
                 content.LineTo(next, y + (raised ? amplitude : -amplitude));
                 cursor = next;

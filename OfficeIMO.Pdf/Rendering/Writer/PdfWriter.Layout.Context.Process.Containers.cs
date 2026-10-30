@@ -160,7 +160,8 @@ internal static partial class PdfWriter {
             // options and the positive finite content frame remain validated.
             nestedOptions.Validate(allowDerivedHorizontalOverflow: true);
 
-            var scope = new ContainerRenderScope(style, outerX, outerWidth, pageOptions, parentOptions, nestedOptions, container);
+            var scope = new ContainerRenderScope(style, outerX, outerWidth, pageOptions, parentOptions, nestedOptions,
+                currentOpts.MarginLeft, parentWidth, container);
             activeContainerScopes.Add(scope);
             currentOpts = nestedOptions;
             width = contentWidth;
@@ -235,9 +236,16 @@ internal static partial class PdfWriter {
                 ContainerRenderScope scope = activeContainerScopes[index];
                 scope.PageOptions = currentPage.Options;
                 scope.ParentOptions = currentOpts;
-                var frame = ResolveContainerFrame(scope.Container, scope.Style, currentOpts.MarginLeft, width);
-                scope.OuterX = frame.X;
-                scope.OuterWidth = frame.Width;
+                if (!scope.TryGetTableFrame(currentOpts, currentOpts.MarginLeft, width,
+                    out double cachedX, out double cachedWidth)) {
+                    var frame = ResolveContainerFrame(scope.Container, scope.Style, currentOpts.MarginLeft, width);
+                    scope.OuterX = frame.X;
+                    scope.OuterWidth = frame.Width;
+                    scope.RememberTableFrame(currentOpts, currentOpts.MarginLeft, width, frame.X, frame.Width);
+                } else {
+                    scope.OuterX = cachedX;
+                    scope.OuterWidth = cachedWidth;
+                }
                 // Only the frame changes during continuation. Reuse child options
                 // and their accumulated font usage instead of copying assets per page.
                 scope.NestedOptions.MarginLeft = scope.OuterX + scope.Style.PaddingX;
@@ -294,11 +302,13 @@ internal static partial class PdfWriter {
         }
 
         private sealed class ContainerRenderScope {
+            private readonly List<(PdfCreateOptions Options, double Left, double Width, double FontSize, double X, double OuterWidth)>? tableFrames;
             public double? TableContentBottom;
             public double ConsumedClosingPadding { get; set; }
             public bool MoveTrailingSeparatorToNextFrame { get; set; }
             public ContainerRenderScope(PdfPanelStyle style, double outerX, double outerWidth, PdfCreateOptions pageOptions,
-                PdfCreateOptions parentOptions, PdfCreateOptions nestedOptions, ContainerBlock? container = null) {
+                PdfCreateOptions parentOptions, PdfCreateOptions nestedOptions, double frameParentLeft, double frameParentWidth,
+                ContainerBlock? container = null) {
                 Style = style;
                 Container = container;
                 OuterX = outerX;
@@ -306,6 +316,32 @@ internal static partial class PdfWriter {
                 PageOptions = pageOptions;
                 ParentOptions = parentOptions;
                 NestedOptions = nestedOptions;
+                if (container?.FrameTable != null) {
+                    tableFrames = new() { (parentOptions, frameParentLeft, frameParentWidth,
+                        parentOptions.DefaultFontSize, outerX, outerWidth) };
+                }
+            }
+
+            public bool TryGetTableFrame(PdfCreateOptions options, double left, double width,
+                out double x, out double outerWidth) {
+                if (tableFrames != null) {
+                    foreach (var frame in tableFrames) {
+                        if (ReferenceEquals(frame.Options, options) && frame.Left == left &&
+                            frame.Width == width && frame.FontSize == options.DefaultFontSize) {
+                            x = frame.X;
+                            outerWidth = frame.OuterWidth;
+                            return true;
+                        }
+                    }
+                }
+                x = outerWidth = 0D;
+                return false;
+            }
+
+            public void RememberTableFrame(PdfCreateOptions options, double left, double width, double x, double outerWidth) {
+                if (tableFrames == null) return;
+                if (tableFrames.Count == 8) tableFrames.RemoveAt(0);
+                tableFrames.Add((options, left, width, options.DefaultFontSize, x, outerWidth));
             }
 
             public PdfPanelStyle Style { get; }

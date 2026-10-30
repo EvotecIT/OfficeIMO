@@ -44,7 +44,8 @@ public static partial class HtmlExcelConverterExtensions {
         IEnumerable<HtmlDiagnostic> diagnostics = editableLayout == null
             ? document.Diagnostics
             : document.Diagnostics.Concat(editableLayout.Diagnostics);
-        return ImportDocument(adapterDocument, semanticDocument, document.Trust, resolved, budget, diagnostics, editableLayout);
+        return ImportDocument(adapterDocument, semanticDocument, document.Trust, resolved, budget, diagnostics, editableLayout,
+            document.HyperlinkUrlPolicy, document.BaseUri ?? document.FallbackBaseUri);
     }
 
     private static HtmlToExcelResult ImportDocument(
@@ -54,7 +55,9 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlToExcelOptions options,
         HtmlImportBudget budget,
         IEnumerable<HtmlDiagnostic>? initialDiagnostics = null,
-        HtmlEditableLayoutProjection? editableLayout = null) {
+        HtmlEditableLayoutProjection? editableLayout = null,
+        HtmlUrlPolicy? hyperlinkPolicy = null,
+        Uri? baseUri = null) {
         options.Limits.Validate();
         if (!Enum.IsDefined(typeof(HtmlImportMode), options.Mode)) throw new ArgumentOutOfRangeException(nameof(options.Mode));
         ExcelDocument workbook = ExcelDocument.Create();
@@ -127,7 +130,7 @@ public static partial class HtmlExcelConverterExtensions {
             }
 
             if (options.ImportImages || options.ImportChartInventory) {
-                ImportDrawings(section, sheet, options, result, budget);
+                ImportDrawings(section, sheet, options, result, budget, hyperlinkPolicy, baseUri);
             }
 
             ApplySheetVisibility(section, sheet);
@@ -295,7 +298,7 @@ public static partial class HtmlExcelConverterExtensions {
         }
     }
 
-    private static void ImportDrawings(IElement section, ExcelSheet sheet, HtmlToExcelOptions options, HtmlToExcelResult result, HtmlImportBudget budget) {
+    private static void ImportDrawings(IElement section, ExcelSheet sheet, HtmlToExcelOptions options, HtmlToExcelResult result, HtmlImportBudget budget, HtmlUrlPolicy? hyperlinkPolicy, Uri? baseUri) {
         var drawings = new List<ExcelDrawingImportItem>();
         int fallbackOrder = 0;
         if (options.ImportImages) {
@@ -314,14 +317,14 @@ public static partial class HtmlExcelConverterExtensions {
         int chartIndex = 0;
         foreach (ExcelDrawingImportItem drawing in drawings.OrderBy(item => item.LayerIndex ?? item.FallbackOrder).ThenBy(item => item.FallbackOrder)) {
             if (drawing.Kind == ExcelDrawingImportKind.Image) {
-                ImportImage(drawing.Element, sheet, result, budget);
+                ImportImage(drawing.Element, sheet, result, budget, hyperlinkPolicy, baseUri);
             } else {
                 ImportChart(drawing.Element, sheet, result, budget, range, ref chartIndex);
             }
         }
     }
 
-    private static void ImportImage(IElement item, ExcelSheet sheet, HtmlToExcelResult result, HtmlImportBudget budget) {
+    private static void ImportImage(IElement item, ExcelSheet sheet, HtmlToExcelResult result, HtmlImportBudget budget, HtmlUrlPolicy? hyperlinkPolicy, Uri? baseUri) {
         IElement? image = item.QuerySelector("img[src]");
         if (image == null || !HtmlImageDataUri.TryParse(image.GetAttribute("src"), out HtmlImageDataUri dataUri)) {
             return;
@@ -354,7 +357,17 @@ public static partial class HtmlExcelConverterExtensions {
         }
 
         ApplyImageTransforms(item, importedImage, budget, result);
-        ApplyImageHyperlink(importedImage, item.GetAttribute("data-officeimo-image-hyperlink"), result);
+        string? metadataTarget = item.GetAttribute("data-officeimo-image-hyperlink");
+        if (!string.IsNullOrWhiteSpace(metadataTarget)) {
+            string resolvedTarget = HtmlUrlPolicyEvaluator.ResolveUrl(metadataTarget, baseUri, hyperlinkPolicy);
+            if (resolvedTarget.Length > 0) {
+                ApplyImageHyperlink(importedImage, resolvedTarget, result);
+            } else {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+                    "A worksheet image hyperlink was omitted because its target was rejected by the URL policy.",
+                    lossKind: OfficeConversionLossKind.Omission, source: metadataTarget);
+            }
+        }
         for (IElement? parent = image.ParentElement; parent != null; parent = parent.ParentElement) {
             if (!IsElement(parent, "a")) continue;
             ApplyImageHyperlink(importedImage, parent.GetAttribute("href"), result);

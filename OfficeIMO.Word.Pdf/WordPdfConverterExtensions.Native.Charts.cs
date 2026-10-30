@@ -265,6 +265,7 @@ namespace OfficeIMO.Word.Pdf {
             bool isScatter = chartKind == OfficeChartKind.Scatter;
             bool varyColorsByPoint = !isScatter && !IsNativeWordPieLikeChart(chartKind) && IsNativeWordChartVaryColorsEnabled(chartElement);
             HashSet<uint> hiddenLegendIndexes = GetNativeWordHiddenLegendIndexes(chart);
+            var automaticColors = new OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.SeriesResolutionContext();
 
             int seriesIndex = 0;
             foreach ((OpenXmlElement seriesElement, int originalSeriesIndex) in GetNativeWordOrderedSeriesElements(chartElement)) {
@@ -325,7 +326,7 @@ namespace OfficeIMO.Word.Pdf {
                 bool connectLine = !IsNativeWordLineLikeChart(chartKind) || !HasNativeDrawingOutlineNoFill(seriesElement.GetFirstChild<ChartShapeProperties>());
                 var seriesPaint = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.ReadSeriesStyle(seriesElement, pointColorScheme);
                 if (seriesElement.Parent is Line3DChart) {
-                    var ribbon = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.ReadRibbonPaint(seriesElement, pointColorScheme);
+                    var ribbon = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.ReadRibbonPaint(seriesElement, pointColorScheme, automaticColors);
                     seriesPaint = ribbon.Paint;
                     seriesColor = ribbon.Color;
                     showMarkers = false;
@@ -628,9 +629,11 @@ namespace OfficeIMO.Word.Pdf {
             OpenXmlCompositeElement[] automaticSeries = GetNativeWordOrderedSeriesElements(chartElement)
                 .Where(item => IsNativeWordChartSeriesRenderable(item.SeriesElement, chartKind))
                 .Select(item => item.SeriesElement).OfType<OpenXmlCompositeElement>().ToArray();
+            var automaticColors = new OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.SeriesResolutionContext();
             for (int index = 0; index < paletteCount; index++) {
                 OfficeColor? automatic = automaticPoints?[index] ?? (index < automaticSeries.Length && !IsNativeWordPieLikeChart(chartKind)
-                    ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ResolveSeries(automaticSeries[index], scheme)
+                    ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ResolveSeries(
+                        automaticSeries[index], scheme, automaticColors)
                     : null);
                 palette.Add(automatic ?? OfficeChartStyle.Default.GetSeriesColor(index));
             }

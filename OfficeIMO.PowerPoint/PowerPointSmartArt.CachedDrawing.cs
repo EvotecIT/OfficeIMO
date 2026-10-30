@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Xml;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -11,6 +12,8 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSmartArt {
         private const int MaximumCachedDrawingShapes = 4096;
+        private const int MaximumCachedDrawingElements = 500_000;
+        private const int MaximumCachedDrawingDepth = 128;
 
         /// <summary>
         /// Projects the SmartArt drawing Office caches beside the diagram data (<c>dsp:drawing</c>) into
@@ -32,6 +35,7 @@ namespace OfficeIMO.PowerPoint {
                     failureReason = "The SmartArt diagram has no cached drawing from its producer.";
                     return false;
                 }
+                ValidateCachedDrawing(drawingPart);
                 OpenXmlCompositeElement? tree = drawingPart.Drawing?.ChildElements.OfType<OpenXmlCompositeElement>()
                     .FirstOrDefault(element => element.LocalName == "spTree");
                 if (tree == null) {
@@ -70,6 +74,28 @@ namespace OfficeIMO.PowerPoint {
                 FormatException or System.Xml.XmlException or OpenXmlPackageException) {
                 failureReason = "The SmartArt cached drawing could not be read: " + exception.Message;
                 return false;
+            }
+        }
+
+        private static void ValidateCachedDrawing(DiagramPersistLayoutPart part) {
+            using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+            using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null,
+                MaxCharactersInDocument = PowerPointXmlReader.MaximumPackageXmlCharacters
+            });
+            int elements = 0;
+            int shapes = 0;
+            try {
+                while (reader.Read()) {
+                    if (reader.NodeType != XmlNodeType.Element) continue;
+                    if (++elements > MaximumCachedDrawingElements || reader.Depth + 1 > MaximumCachedDrawingDepth)
+                        throw new InvalidDataException("The SmartArt cached drawing exceeds the supported XML structure limits.");
+                    if ((reader.LocalName is "sp" or "grpSp") && ++shapes > MaximumCachedDrawingShapes)
+                        throw new InvalidDataException("The SmartArt cached drawing exceeds the supported shape count.");
+                }
+            } catch (XmlException exception) {
+                throw new InvalidDataException("The SmartArt cached drawing failed XML admission limits or parsing.", exception);
             }
         }
 

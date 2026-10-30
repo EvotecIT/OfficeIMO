@@ -317,8 +317,7 @@ public sealed class GetOfficeExcelSummaryCommand : PSCmdlet {
     }
 
     private static int CountChartParts(OpenXmlPartContainer container) {
-        return container.Parts.Sum(part =>
-            (part.OpenXmlPart is ChartPart ? 1 : 0) + CountChartParts(part.OpenXmlPart));
+        return EnumeratePackageParts(container).Count(part => part is ChartPart);
     }
 
     private static int CountPackagePartsByContentType(OpenXmlPartContainer container, string marker) {
@@ -326,11 +325,27 @@ public sealed class GetOfficeExcelSummaryCommand : PSCmdlet {
             return 0;
         }
 
-        return container.Parts.Sum(part => {
-            var openXmlPart = part.OpenXmlPart;
-            var count = openXmlPart.ContentType.IndexOf(marker, StringComparison.OrdinalIgnoreCase) >= 0 ? 1 : 0;
-            return count + CountPackagePartsByContentType(openXmlPart, marker);
-        });
+        return EnumeratePackageParts(container).Count(part =>
+            part.ContentType.IndexOf(marker, StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    private static IEnumerable<OpenXmlPart> EnumeratePackageParts(OpenXmlPartContainer root) {
+        const int maxRelationships = 100_000;
+        var pending = new Stack<OpenXmlPartContainer>();
+        var visited = new HashSet<Uri>();
+        int relationships = 0;
+        pending.Push(root);
+        while (pending.Count != 0) {
+            foreach (IdPartPair pair in pending.Pop().Parts) {
+                if (++relationships > maxRelationships) {
+                    throw new InvalidDataException("Workbook summary exceeded the package relationship traversal limit.");
+                }
+                OpenXmlPart part = pair.OpenXmlPart;
+                if (!visited.Add(part.Uri)) continue;
+                yield return part;
+                pending.Push(part);
+            }
+        }
     }
 
     private static int CountPivotInteractionParts(

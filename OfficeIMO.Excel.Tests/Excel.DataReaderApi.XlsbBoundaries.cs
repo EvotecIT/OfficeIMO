@@ -10,6 +10,32 @@ namespace OfficeIMO.Excel.Tests;
 
 public partial class Excel {
     [Fact]
+    public void XlsbLoadRejectsOversizedWorksheetNameBeforeFormulaExpansion() {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.LongXlsbName.{Guid.NewGuid():N}.xlsb");
+        File.Copy(GetDataReaderXlsbFixture("basic-values-formula.xlsb"), path);
+        try {
+            byte[] bytes = ReadZipEntry(path, "xl/workbook.bin");
+            var reader = new XlsbRecordSliceReader(bytes, int.MaxValue, new XlsbRecordReadBudget(int.MaxValue));
+            bool changed = false;
+            while (reader.TryRead(out XlsbRecordSlice record)) {
+                if (record.Type != 156) continue;
+                int relationshipLength = checked((int)ReadUInt32LittleEndian(bytes, record.PayloadOffset + 8));
+                int nameLengthOffset = checked(record.PayloadOffset + 12 + relationshipLength * 2);
+                BitConverter.GetBytes(32).CopyTo(bytes, nameLengthOffset);
+                changed = true;
+                break;
+            }
+            Assert.True(changed);
+            ReplaceZipEntry(path, "xl/workbook.bin", bytes);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ExcelDocument.Load(path));
+            Assert.Contains("limit of 31 characters", exception.Message);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void OpenDataReader_XlsbRejectsMissingWorkbookEndBoundary() {
         string path = Path.Combine(
             Path.GetTempPath(),

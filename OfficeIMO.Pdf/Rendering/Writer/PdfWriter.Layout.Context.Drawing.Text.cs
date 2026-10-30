@@ -232,7 +232,7 @@ internal static partial class PdfWriter {
                     foregroundGraphicsState: foregroundState, decorationGraphicsState: decorationState,
                     clipToFrame: clipToFrame, fontPage: currentPage,
                     foregroundGroup: groupWeight ? paint => RenderEffectGroup(OfficeTransform.Identity,
-                        foregroundColor.A / 255D, paint) : null);
+                        foregroundColor.A / 255D, paint) : null, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
             }
             if (Math.Abs(scale - 1D) > 0.000001D) {
                 RenderOpaqueEffectGroupInline(new OfficeTransform(scale, 0D, 0D, 1D, x * (1D - scale), 0D), Paint);

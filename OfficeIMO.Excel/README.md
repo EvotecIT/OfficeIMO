@@ -86,6 +86,8 @@ record Order(string Customer, string Region, decimal Total, double Margin);
 
 Columns map to properties or constructor parameters by header name. `RowsAs` also accepts a factory or an explicit column mapping. For files from outside your organization, load with `ExcelLoadOptions.UntrustedDefaults`.
 
+XML Spreadsheet import also limits defined names (10,000 by default). Set `ExcelSpreadsheetXmlOptions.MaxNames` for a larger trusted workbook.
+
 ## Large exports
 
 The object model keeps the whole workbook editable until `Save()`. For hundreds of thousands of rows, the streaming writer writes each row as it arrives and keeps memory flat:

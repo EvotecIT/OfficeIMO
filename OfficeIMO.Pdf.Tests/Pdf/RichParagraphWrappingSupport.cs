@@ -19,13 +19,13 @@ namespace OfficeIMO.Tests.Pdf {
 
             var method = typeof(PdfWriter).GetMethod("WrapRichRunsCore", BindingFlags.NonPublic | BindingFlags.Static);
             Assert.NotNull(method);
-            return method!.Invoke(null, new object?[] { runs, maxWidthPts, fontSize, baseFont, fontSize * 1.4, null, tabStopWidth ?? 36.0, null, tabStops })!;
+            return method!.Invoke(null, new object?[] { runs, maxWidthPts, fontSize, baseFont, fontSize * 1.4, null, tabStopWidth ?? 36.0, null, tabStops, System.Threading.CancellationToken.None })!;
         }
 
         private static object InvokeWrapRichRunsWithOptions(IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, PdfCreateOptions options) {
             var method = typeof(PdfWriter).GetMethod("WrapRichRunsCore", BindingFlags.NonPublic | BindingFlags.Static);
             Assert.NotNull(method);
-            return method!.Invoke(null, new object?[] { runs, maxWidthPts, fontSize, baseFont, fontSize * 1.4, null, 36.0, options, null })!;
+            return method!.Invoke(null, new object?[] { runs, maxWidthPts, fontSize, baseFont, fontSize * 1.4, null, 36.0, options, null, System.Threading.CancellationToken.None })!;
         }
 
         private static T InvokePrivateFontMethod<T>(string methodName, params object[] parameters) {

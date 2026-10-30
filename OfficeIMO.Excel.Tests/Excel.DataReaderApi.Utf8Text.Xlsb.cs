@@ -197,6 +197,36 @@ public sealed class XlsbUtf8TextTests {
         }
     }
 
+    [Fact]
+    public void BorrowedXlsbText_DeclinesWhenActiveRowEncodingWouldExceedTheBudget() {
+        const int columns = 80;
+        string large = new string('界', 32767);
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        for (int column = 1; column <= columns; column++) {
+            sheet.CellValue(1, column, "Column" + column);
+            for (int row = 2; row <= 4; row++) sheet.CellValue(row, column, "Seed" + row + "-" + column);
+            sheet.CellValue(5, column, large);
+        }
+        sheet.CellValue(6, 1, "After reset");
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(Save(document, sharedStrings: true));
+        for (int row = 2; row <= 5; row++) Assert.True(reader.Read());
+
+        int borrowedCount = 0;
+        Assert.True(reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> first));
+        borrowedCount++;
+        for (int ordinal = 1; ordinal < columns; ordinal++) {
+            if (reader.TryGetUtf8Text(ordinal, out _)) borrowedCount++;
+        }
+        Assert.InRange(borrowedCount, 1, columns - 1);
+        Assert.False(reader.TryGetUtf8Text(columns - 1, out _));
+        Assert.Equal(Encoding.UTF8.GetByteCount(large), reader.GetUtf8Bytes(columns - 1, 0, null, 0, 0));
+        Assert.Equal(large, Encoding.UTF8.GetString(first));
+
+        Assert.True(reader.Read());
+        AssertBorrowed(reader, 0, "After reset");
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

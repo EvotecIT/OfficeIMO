@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private PdfListNumbering ResolveListNumbering(PdfListBlock block) {
-            bool custom = block.RichItems.Any(item => item.Marker != null);
+            bool custom = block.HasCustomMarkers;
             if (!custom) return block.IsNumbered ? PdfListNumbering.DecimalNumbers : PdfListNumbering.Disc;
             if (currentOpts.FileVersion < PdfFileVersion.Pdf20) return PdfListNumbering.None;
             return block.IsNumbered ? PdfListNumbering.Ordered : PdfListNumbering.Unordered;
@@ -63,7 +63,7 @@ internal static partial class PdfWriter {
                     textWidth = width - textOffset - rightInset;
                     var remainingRuns = firstSegment ? runs : BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
                     (lines, lineHeights) = WrapRichRunsWithSpacing(remainingRuns, textWidth, size, listFont, leading, null,
-                        DefaultParagraphTabStopWidth, currentOpts, lineSpacing);
+                        DefaultParagraphTabStopWidth, currentOpts, lineSpacing, cancellationToken: cancellationToken);
                     lineIndex = 0;
                     wrappedWidth = width;
                 }
@@ -115,6 +115,8 @@ internal static partial class PdfWriter {
                 if (!noteSliceFits && !HasCurrentPageBodyContent())
                     throw new ArgumentException("The list reference and first footnote fragment exceed the available page body height.");
                 if (!noteSliceFits) { NewListFrame(); continue; }
+                if (take == 0 && !ShouldAdvanceForBlockHeight(firstLineHeight))
+                    throw new ArgumentException("List line height exceeds the available page content height.");
                 ReserveBalancedKeepNextTail(lineHeights, lineIndex, lines.Count, spacingAfter, available, blockList, blockIndex,
                     itemIndex == prepared.Items.Count - 1 && prepared.Style?.KeepWithNext == true, 1, ref take, ref heightSum);
                 if (take == 0) {
@@ -181,7 +183,7 @@ internal static partial class PdfWriter {
                     ? RegisterTextStructureElement("LBody", listItemElementIndex)
                     : RegisterTextStructureElement("LBody", listItemElement);
                 WriteRichParagraph(sb, new RichParagraphBlock(runs, textAlign, color), segmentLines, segmentHeights, currentOpts, baselineY, size, leading, currentPage!.Annotations, currentOpts.MarginLeft + textOffset, textWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage,
-                    hasFollowingParagraphLines: lineIndex + take < lines.Count);
+                    hasFollowingParagraphLines: lineIndex + take < lines.Count, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
                 MarkRichFonts(runs);
                 y -= heightSum;
                 lineIndex += take;

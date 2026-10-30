@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using OfficeIMO.Core;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
@@ -10,8 +11,10 @@ public static partial class WordPdfConverterExtensions {
     private readonly record struct NativeNoteKey(NativeNoteKind Kind, long Id);
 
     private sealed class NativeNoteNumbering {
+        private const int MaximumGeneratedLabelCharacters = 100_000;
         private readonly Dictionary<NativeNoteKey, int> tokensById = new();
         private readonly Dictionary<int, string> labelsByToken = new();
+        private int generatedLabelCharacters;
         private readonly WordDocument document;
         private readonly W.Settings? settings;
         private readonly WordPdfExportOptions? options;
@@ -51,6 +54,7 @@ public static partial class WordPdfConverterExtensions {
             snapshot.BeginSection(section);
             foreach (var pair in tokensById) snapshot.tokensById.Add(pair.Key, pair.Value);
             foreach (var pair in labelsByToken) snapshot.labelsByToken.Add(pair.Key, pair.Value);
+            snapshot.generatedLabelCharacters = generatedLabelCharacters;
             return snapshot;
         }
 
@@ -124,9 +128,12 @@ public static partial class WordPdfConverterExtensions {
             // Keep the shared formatter's positive page-number contract intact.
             string label = number == 0 ? (style == OfficeNumberStyle.Decimal ? "0" : string.Empty) :
                 OfficeNumberFormatter.Format(number, style);
+            if (label.Length > MaximumGeneratedLabelCharacters - generatedLabelCharacters)
+                throw new InvalidDataException("The document's note labels exceed the cumulative character limit.");
             int token = tokensById.Count + 1;
             tokensById.Add(key, token);
             labelsByToken.Add(token, label);
+            generatedLabelCharacters += label.Length;
             return label;
         }
     }

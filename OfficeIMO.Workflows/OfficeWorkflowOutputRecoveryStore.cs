@@ -140,26 +140,29 @@ public sealed partial class OfficeWorkflowOutputRecoveryStore {
                 // Recheck under the lease before deleting anything, including an empty directory.
                 entries = Directory.EnumerateFileSystemEntries(directory).Take(17).ToArray();
                 if (entries.Length > 16 || entries.Any(path => !IsIncompleteFile(path))) continue;
-                var claims = new List<OfficeFileCommitClaim>();
+                var closedClaims = new List<FileStream>();
                 try {
                     bool acquired = true;
                     foreach (string target in GetCommitTargets(directory)) {
-                        if (!entries.Contains(OfficeFileCommitClaim.CreatePath(target), StringComparer.Ordinal)) continue;
-                        try { claims.Add(OfficeFileCommitClaim.Acquire(target)); }
+                        string claimPath = OfficeFileCommitClaim.CreatePath(target);
+                        if (!entries.Contains(claimPath, StringComparer.Ordinal)) continue;
+                        try {
+                            closedClaims.Add(new FileStream(claimPath, FileMode.Open, FileAccess.Read, FileShare.Delete));
+                        }
                         catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
                             acquired = false;
                             break;
                         }
                     }
                     if (!acquired) continue;
-                    // Keep the canonical claims through deletion. On Unix their owner
-                    // unlinks the same locked inode before releasing it; do not delete
-                    // a claim separately or race a successor's acquisition.
+                    // The private recovery directory is under its exclusive lease.
+                    // Keep every known claim open while deleting: an active writer's
+                    // exclusive handle prevents admission, on Windows and Unix alike.
                     foreach (string path in entries) {
-                        if (Path.GetFileName(path) != ".lease" && !IsCommitClaim(path)) File.Delete(path);
+                        if (Path.GetFileName(path) != ".lease") File.Delete(path);
                     }
                 } finally {
-                    foreach (OfficeFileCommitClaim claim in claims) claim.Dispose();
+                    foreach (FileStream claim in closedClaims) claim.Dispose();
                 }
             }
             File.Delete(Path.Combine(directory, ".lease"));

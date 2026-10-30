@@ -37,6 +37,8 @@ namespace OfficeIMO.Excel.Pdf {
             public bool ClipToExportRange { get; }
             public WorksheetTextMeasurer? TextMeasurer { get; set; }
             public Dictionary<WorksheetChartExportData, OfficeChartRenderingResult> ChartRenderings { get; } = new();
+            public double[]? RowHeightPrefix { get; set; }
+            public double[]? ColumnWidthPrefix { get; set; }
         }
 
         private sealed class SheetExportData {
@@ -55,6 +57,7 @@ namespace OfficeIMO.Excel.Pdf {
                 PrintTitleColumnIndexes = printTitleColumnIndexes ?? Array.Empty<int>();
                 RepeatingRowIndexes = Enumerable.Range(0, Math.Min(Math.Max(0, headerRowCount), values.GetLength(0)))
                     .Concat(printTitleRowIndexes ?? Array.Empty<int>()).Distinct().OrderBy(row => row).ToArray();
+                RepeatingRowSet = new HashSet<int>(RepeatingRowIndexes);
             }
 
             public object?[,] Values { get; }
@@ -70,6 +73,7 @@ namespace OfficeIMO.Excel.Pdf {
             public ConditionalFillData? ConditionalFills { get; }
             public IReadOnlyList<int> PrintTitleColumnIndexes { get; }
             public IReadOnlyList<int> RepeatingRowIndexes { get; }
+            public HashSet<int> RepeatingRowSet { get; }
         }
 
         private sealed class ConditionalFillData {
@@ -160,6 +164,8 @@ namespace OfficeIMO.Excel.Pdf {
                 DefaultRowHeight = defaultRowHeight;
                 Columns = columns;
                 Rows = rows;
+                RowsByIndex = new Dictionary<int, ExcelRowInfo>();
+                foreach (ExcelRowInfo row in rows) RowsByIndex[row.Index] = row;
                 UseWorksheetColumnWidths = useWorksheetColumnWidths;
                 UseWorksheetRowHeights = useWorksheetRowHeights;
                 RespectHiddenRowsAndColumns = respectHiddenRowsAndColumns;
@@ -178,6 +184,7 @@ namespace OfficeIMO.Excel.Pdf {
             public double DefaultRowHeight { get; }
             public IReadOnlyList<ExcelColumnInfo> Columns { get; }
             public IReadOnlyList<ExcelRowInfo> Rows { get; }
+            public Dictionary<int, ExcelRowInfo> RowsByIndex { get; }
             public bool UseWorksheetColumnWidths { get; }
             public bool UseWorksheetRowHeights { get; }
             public bool RespectHiddenRowsAndColumns { get; }

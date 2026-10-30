@@ -311,6 +311,7 @@ namespace OfficeIMO.Word.Pdf {
                             continue;
                         }
 
+                        int rejectedJoinUntil = -1;
                         for (int i = 0; i < elements.Count; i++) {
                             cancellationToken.ThrowIfCancellationRequested();
                             WordElement element = elements[i];
@@ -318,7 +319,7 @@ namespace OfficeIMO.Word.Pdf {
                                 continue;
                             }
 
-                            if (TryRenderNativeJoinedParagraphs(flow, elements, ref i,
+                            if (TryRenderNativeJoinedParagraphs(flow, elements, ref i, ref rejectedJoinUntil,
                                 paragraph => listMarkers.TryGetValue(paragraph, out var joinMarker) ? joinMarker : null,
                                 footnoteNumbersById, options, nativeDefaults, nativeFontMap)) continue;
 

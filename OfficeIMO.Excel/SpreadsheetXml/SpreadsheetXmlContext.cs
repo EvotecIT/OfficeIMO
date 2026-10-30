@@ -9,6 +9,8 @@ internal sealed class SpreadsheetXmlContext {
     internal readonly ExcelSpreadsheetXmlOptions Options;
     private readonly Dictionary<string, OfficeConversionFidelityDiagnostic> _diagnostics = new(StringComparer.Ordinal);
     private int _cells;
+    private int _names;
+    private readonly Dictionary<string, HashSet<uint?>> _definedNameScopes = new(StringComparer.OrdinalIgnoreCase);
     internal readonly Dictionary<uint, uint> DateStyles = new();
 
     internal SpreadsheetXmlContext(ExcelSpreadsheetXmlOptions options) => Options = options;
@@ -16,6 +18,14 @@ internal sealed class SpreadsheetXmlContext {
         Options.CancellationToken.ThrowIfCancellationRequested();
         if (_cells >= Options.MaxCells) throw new InvalidDataException("XML Spreadsheet exceeds MaxCells.");
         _cells++;
+    }
+    internal void DefinedName(string name, uint? scope) {
+        Options.CancellationToken.ThrowIfCancellationRequested();
+        if (_names >= Options.MaxNames) throw new InvalidDataException("XML Spreadsheet exceeds MaxNames.");
+        if (!_definedNameScopes.TryGetValue(name, out HashSet<uint?>? scopes))
+            _definedNameScopes[name] = scopes = new HashSet<uint?>();
+        if (!scopes.Add(scope)) throw new InvalidDataException("Duplicate XML Spreadsheet defined name.");
+        _names++;
     }
     internal void Omitted(string feature) {
         if (_diagnostics.ContainsKey(feature)) return;

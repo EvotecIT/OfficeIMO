@@ -24,6 +24,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (document == null) throw new ArgumentNullException(nameof(document));
 
             ThrowIfUnsupportedLegacyDocImportState(document, options);
+            var fieldStyles = document._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
+            if (fieldStyles != null) FieldComparisonStyles.Remove(fieldStyles);
 
             LegacyDocWritableBody body = BuildBody(document);
             byte[] wordDocumentStream = PadToRegularOleStream(CreateWordDocumentStream(body, isTemplate));

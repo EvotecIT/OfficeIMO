@@ -214,6 +214,7 @@ namespace OfficeIMO.Word.Pdf {
                 tableStyleDefaults,
                 nativeDefaults,
                 nativeFontMap, inlineImages);
+            int rejectedJoinUntil = -1;
             for (int i = 0; i < cellElements.Count; i++) {
                 if (cellElements[i] is WordTable nestedTable) {
                     options?.CancellationToken.ThrowIfCancellationRequested();
@@ -246,7 +247,7 @@ namespace OfficeIMO.Word.Pdf {
                     continue;
                 }
 
-                int lastIndex = GetNativeJoinedCellParagraphEnd(cellElements, i, getMarker, nativeDefaults, tableStyleDefaults, nativeFontMap, options);
+                int lastIndex = GetNativeJoinedCellParagraphEnd(cellElements, i, ref rejectedJoinUntil, getMarker, nativeDefaults, tableStyleDefaults, nativeFontMap, options);
                 WordParagraph finalParagraph = (WordParagraph)cellElements[lastIndex];
                 List<PdfCore.PdfTextRun> paragraphRuns = paragraphRunsByElement == null
                     ? CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, tableStyleDefaults, nativeDefaults, nativeFontMap, inlineImages)
@@ -725,7 +726,8 @@ namespace OfficeIMO.Word.Pdf {
             Equals(left.Color, right.Color) &&
             Equals(left.BackgroundColor, right.BackgroundColor);
 
-        private static PdfCore.PdfTextRun CreateNativeCellTextRun(string text, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null, NativeResolvedTextStyle? resolvedStyle = null) {
+        private static PdfCore.PdfTextRun CreateNativeCellTextRun(string text, WordParagraph paragraph, NativeTableStyleDefaults? tableStyleDefaults = null, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null, NativeResolvedTextStyle? resolvedStyle = null) {
+            tableStyleDefaults ??= NativeTableStyleDefaults.Empty;
             NativeResolvedTextStyle style = resolvedStyle ?? ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             return style.ApplyTo(new PdfCore.PdfTextRun(
                 ApplyNativeTextTransform(text, paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap),
@@ -744,7 +746,8 @@ namespace OfficeIMO.Word.Pdf {
                 strikeStyle: style.StrikeStyle));
         }
 
-        private static PdfCore.PdfTextRun CreateNativeCellLinkRun(string text, WordParagraph paragraph, WordHyperLink hyperlink, NativeTableStyleDefaults tableStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null, NativeResolvedTextStyle? resolvedStyle = null) {
+        private static PdfCore.PdfTextRun CreateNativeCellLinkRun(string text, WordParagraph paragraph, WordHyperLink hyperlink, NativeTableStyleDefaults? tableStyleDefaults = null, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null, NativeResolvedTextStyle? resolvedStyle = null) {
+            tableStyleDefaults ??= NativeTableStyleDefaults.Empty;
             Uri? uri = hyperlink.Uri;
             string? linkUri = uri != null && uri.IsAbsoluteUri ? uri.AbsoluteUri : null;
             string? sourceBookmark = linkUri != null || string.IsNullOrWhiteSpace(hyperlink.Anchor) ? null : hyperlink.Anchor;

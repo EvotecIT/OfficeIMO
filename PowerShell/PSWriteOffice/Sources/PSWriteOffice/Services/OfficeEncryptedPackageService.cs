@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
@@ -40,7 +41,8 @@ internal static class OfficeEncryptedPackageService
         {
             Password = password,
             AccessMode = readOnly ? DocumentAccessMode.ReadOnly : DocumentAccessMode.ReadWrite,
-            PersistenceMode = DocumentPersistenceMode.Explicit
+            PersistenceMode = DocumentPersistenceMode.Explicit,
+            PackageSecurity = OfficePackageSecurityOptions.SecureDefaults
         });
     }
 

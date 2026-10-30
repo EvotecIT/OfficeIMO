@@ -1753,6 +1753,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_SkipsLongEmptyTextBoxStories() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithReadableTextBoxStories(
+                bodyText: "Body story",
+                bodyTextBoxText: new string('\r', 4096),
+                headerTextBoxText: new string('\r', 4096));
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.Empty(result.Document.TextBoxes);
+            Assert.Contains(result.Document.Paragraphs, paragraph => paragraph.Text == "Body story");
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsReadableTextBoxStoryBookmarks() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithReadableTextBoxStoryBookmark(
                 bodyText: "Body story",

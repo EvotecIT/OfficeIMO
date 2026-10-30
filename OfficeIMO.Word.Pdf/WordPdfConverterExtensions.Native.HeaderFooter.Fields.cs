@@ -104,7 +104,8 @@ namespace OfficeIMO.Word.Pdf {
                         state.FieldCode.Clear();
                     } else if (fieldCharType == W.FieldCharValues.Separate) {
                         if (TryGetNativeHeaderFooterFieldToken(state.FieldCode.ToString(), out string? token, out PdfCore.PdfPageNumberStyle? style)) {
-                            bool visibleResult = TryGetVisibleNativeHeaderFooterFieldResult(fieldChar, state.Paragraph, out W.Run? resultRun);
+                            bool visibleResult = TryGetVisibleNativeHeaderFooterFieldResult(fieldChar, state.Paragraph,
+                                ref state.FieldScanWork, out W.Run? resultRun);
                             if (visibleResult) {
                                 builder.Append(token);
                                 MergeNativeHeaderFooterPageNumberStyle(ref pageNumberStyle, ref hasConflictingStyles, style);
@@ -314,6 +315,7 @@ namespace OfficeIMO.Word.Pdf {
             public WordParagraph Paragraph { get; set; } = null!;
             public bool CollectingFieldCode { get; set; }
             public bool SkippingFieldResult { get; set; }
+            public int FieldScanWork;
             public List<(W.Run Run, string Text, bool IsField, DocumentFormat.OpenXml.OpenXmlElement? SourceChild, PdfCore.PdfPageNumberStyle? FieldStyle)>? SerializedRuns { get; set; }
             public StringBuilder FieldCode { get; } = new StringBuilder();
         }

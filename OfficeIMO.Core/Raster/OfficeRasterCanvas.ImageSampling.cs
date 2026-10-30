@@ -30,6 +30,7 @@ public sealed partial class OfficeRasterCanvas {
             SnapSpan(minY, maxY, out double top, out double bottom);
             int x0 = (int)Math.Max(0D, left), x1 = (int)Math.Min(Width, right);
             int y0 = (int)Math.Max(0D, top), y1 = (int)Math.Min(Height, bottom);
+            _transformedTextBudget.ChargePaintPixels((long)Math.Max(0, x1 - x0) * Math.Max(0, y1 - y0));
             bool flipX = imageTransform.M11 < 0D, flipY = imageTransform.M22 < 0D;
             for (int py = y0; py < y1; py++) {
                 _cancellationToken.ThrowIfCancellationRequested();
@@ -47,6 +48,7 @@ public sealed partial class OfficeRasterCanvas {
         int pixelTop = Clamp((int)Math.Floor(minY), 0, Height - 1);
         int pixelRight = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
         int pixelBottom = Clamp((int)Math.Ceiling(maxY), 0, Height - 1);
+        _transformedTextBudget.ChargePaintPixels((long)(pixelRight - pixelLeft + 1) * (pixelBottom - pixelTop + 1));
         var boundary = new ImageBoundaryCoverage(inverse, 1D, 1D);
         for (int py = pixelTop; py <= pixelBottom; py++) {
             _cancellationToken.ThrowIfCancellationRequested();

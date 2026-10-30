@@ -9,10 +9,13 @@ using static OfficeIMO.Excel.SpreadsheetXml.SpreadsheetXmlContext;
 namespace OfficeIMO.Excel.SpreadsheetXml;
 
 internal static class SpreadsheetXmlWriter {
-    internal static OfficeConversionResult<byte[], ExcelSpreadsheetXmlReport> Write(byte[] input, ExcelSpreadsheetXmlOptions options) {
+    internal static OfficeConversionResult<byte[], ExcelSpreadsheetXmlReport> Write(byte[] input, ExcelSpreadsheetXmlOptions options, long sourceMaxCharactersInPart) {
         if (input.Length > options.MaxInputBytes) throw new InvalidDataException("Workbook snapshot exceeds MaxInputBytes.");
+        SpreadsheetXmlSnapshotPreflight.Validate(input, options, sourceMaxCharactersInPart);
         using var source = new MemoryStream(input, writable: false);
-        using var package = SpreadsheetDocument.Open(source, false);
+        using var package = SpreadsheetDocument.Open(source, false, new OpenSettings {
+            MaxCharactersInPart = sourceMaxCharactersInPart
+        });
         WorkbookPart workbook = package.WorkbookPart!;
         var context = new SpreadsheetXmlContext(options);
         var styles = SpreadsheetXmlStyles.Export(workbook, context);

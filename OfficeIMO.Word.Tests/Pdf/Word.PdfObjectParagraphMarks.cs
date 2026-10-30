@@ -129,6 +129,23 @@ public partial class Word {
         Assert.InRange(Math.Abs(edge.B - OfficeColor.Green.B), 0, 8);
     }
 
+    [Fact]
+    public void SaveAsPdf_ExtremeHiddenShapeInColumnsFailsWithoutUnboundedPagination() {
+        using WordDocument document = WordDocument.Create();
+        var section = document._wordprocessingDocument.MainDocumentPart!.Document!.Body!.GetFirstChild<W.SectionProperties>()!;
+        section.RemoveAllChildren<W.Columns>();
+        section.Append(new W.Columns { ColumnCount = 2, EqualWidth = true, Space = "720" });
+        WordShape shape = document.AddParagraph().AddShape(48, 36, "#00A060");
+        shape.Hidden = true;
+        shape.Height = 1e30;
+
+        var error = Assert.Throws<OfficeConversionException>(() => document.ToPdf(new WordPdfExportOptions {
+            IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+        }).ToBytes());
+        Assert.IsType<ArgumentException>(error.InnerException);
+        Assert.Contains("cannot fit", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

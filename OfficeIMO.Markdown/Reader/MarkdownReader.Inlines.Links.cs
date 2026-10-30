@@ -285,10 +285,26 @@ internal static partial class MarkdownReader {
         InlineHtmlWrapperMatchIndex matches) {
         // Inspect wrapper contents without recursively rescanning nested wrappers. Code, escapes,
         // HTML attributes and image alternatives are literal contexts rather than nested links.
+        // Index the next equal-length backtick run once: probing every possible opener
+        // separately rescans unmatched suffixes quadratically.
+        var nextBacktickRun = new Dictionary<int, int>();
+        var codeSpanEnds = new Dictionary<int, int>();
+        for (int runEnd = end; runEnd > start;) {
+            int runStart = runEnd - 1;
+            if (text[runStart] != '`') { runEnd--; continue; }
+            while (runStart > start && text[runStart - 1] == '`') runStart--;
+            int length = runEnd - runStart;
+            if (nextBacktickRun.TryGetValue(length, out int closer))
+                codeSpanEnds[runStart] = closer + length;
+            nextBacktickRun[length] = runStart;
+            runEnd = runStart;
+        }
         for (int i = start; i < end; i++) {
             if (text[i] == '\\' && i + 1 < end && IsBackslashEscapable(text[i + 1])) { i++; continue; }
-            if (text[i] == '`' && TryConsumeMatchedBacktickSpan(text, i, out int codeLength) && i + codeLength <= end) {
-                i += codeLength - 1;
+            if (text[i] == '`') {
+                int runStart = i;
+                while (i + 1 < end && text[i + 1] == '`') i++;
+                if (codeSpanEnds.TryGetValue(runStart, out int codeSpanEnd)) i = codeSpanEnd - 1;
                 continue;
             }
             if (text[i] == '!' && TrySkipLinkLabelImage(text, i, state, matches, out int imageLength) && i + imageLength <= end) {

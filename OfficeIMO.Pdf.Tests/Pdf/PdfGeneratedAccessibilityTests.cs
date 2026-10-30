@@ -21,6 +21,22 @@ public sealed class PdfGeneratedAccessibilityTests {
         Assert.Equal("Decimal", list.Value.Entries["A"].Entries["ListNumbering"].Text);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NativeCustomMarkersDeclareOrderedNumberingInFlowAndColumns(bool columns) {
+        PdfDocument document = PdfDocument.Create(TaggedOptions());
+        PdfListItem[] items = { new("First", marker: "i."), new("Second", marker: "ii.") };
+        if (columns) document.Compose(compose => compose.Page(page => page.Content(content => content.Row(row =>
+            row.PercentColumn(100, column => column.RichNumbered(items))))));
+        else document.RichNumbered(items);
+
+        PdfRawDocumentView raw = PdfReadDocument.Open(document.ToBytes()).RawStructure();
+        PdfRawObjectView list = Assert.Single(raw.Objects, item => IsStructure(item, "L"));
+
+        Assert.Equal("Ordered", list.Value.Entries["A"].Entries["ListNumbering"].Text);
+    }
+
     [Fact]
     public void CanvasListLabelsContainInlineTextAndRetainNumberingOptions() {
         var options = new PdfCanvasStructureOptions { ListNumbering = PdfListNumbering.UpperRoman };

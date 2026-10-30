@@ -340,6 +340,7 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static IReadOnlyList<WorksheetPdfExportPlan> BuildWorksheetExportPlans(ExcelDocument document, ExcelDocumentReader reader, IReadOnlyList<string> sheetNames, ExcelPdfExportOptions options, bool hasExplicitSheetSelection, PdfCore.PdfStandardFont defaultFontFamily) {
             var plans = new List<WorksheetPdfExportPlan>();
+            long materializedCells = 0;
             for (int i = 0; i < sheetNames.Count; i++) {
                 string sheetName = sheetNames[i];
                 ExcelSheet? workbookSheet = GetWorkbookSheet(document, sheetName);
@@ -361,6 +362,13 @@ namespace OfficeIMO.Excel.Pdf {
                     string materializedRange = options.MaxRowsPerSheet.HasValue
                         ? LimitRangeRows(normalizedExportRange, options.MaxRowsPerSheet.Value)
                         : normalizedExportRange;
+                    if (!ExcelA1.TryParseRange(materializedRange, out int firstRow, out int firstColumn,
+                            out int lastRow, out int lastColumn))
+                        throw new InvalidDataException("Worksheet PDF export range is invalid.");
+                    long rangeCells = (long)(lastRow - firstRow + 1) * (lastColumn - firstColumn + 1);
+                    if (rangeCells > options.MaxMaterializedWorksheetCells - materializedCells)
+                        throw new InvalidDataException("Worksheet PDF export exceeds MaxMaterializedWorksheetCells.");
+                    materializedCells += rangeCells;
                     SheetExportData exportData = ReadSheetExportData(document, sheet, workbookSheet, materializedRange, options, defaultFontFamily);
                     IReadOnlyList<int> manualRowBreaks = options.UseWorksheetPageBreaks && metadataSheet != null
                         ? metadataSheet.GetManualRowPageBreaks()
@@ -371,6 +379,12 @@ namespace OfficeIMO.Excel.Pdf {
                     object?[,] values = exportData.Values;
                     int rows = values.GetLength(0);
                     int columns = values.GetLength(1);
+                    long retainedCells = (long)rows * columns;
+                    if (retainedCells > rangeCells) {
+                        if (retainedCells - rangeCells > options.MaxMaterializedWorksheetCells - materializedCells)
+                            throw new InvalidDataException("Worksheet PDF export exceeds MaxMaterializedWorksheetCells.");
+                        materializedCells += retainedCells - rangeCells;
+                    }
                     bool hasTable = rows > 0 && columns > 0 && HasWorksheetTableContent(exportData);
                     int exportedRows = options.MaxRowsPerSheet.HasValue
                         ? Math.Min(rows, options.MaxRowsPerSheet.Value)

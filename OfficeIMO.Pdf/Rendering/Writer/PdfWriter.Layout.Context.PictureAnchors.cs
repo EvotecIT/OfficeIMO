@@ -130,7 +130,7 @@ internal static partial class PdfWriter {
                     style?.TabStops.ToArray(), lineSpacing: style?.LineSpacing,
                     textWhitespaceMode: style?.TextWhitespaceMode,
                     wordJustificationMode: style?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? style.JustificationMode : null,
-                    rowLayout: rowLayout));
+                    rowLayout: rowLayout, cancellationToken: cancellationToken));
         }
 
         /// <summary>Retains heading policy while composing the same picture-aware rows used by paragraph flow.</summary>
@@ -139,11 +139,13 @@ internal static partial class PdfWriter {
             double frameX, double frameWidth, double fontSize, double leading, double top) {
             if (!HasAnchoredPictures(style?.AnchoredCanvas) && !HasPictureExclusions)
                 return WrapRichHeadingRuns(runs, frameWidth, fontSize, ChooseNormal(currentOpts.DefaultFont),
-                    leading, null, DefaultParagraphTabStopWidth, currentOpts, style, heading.Align);
+                    leading, null, DefaultParagraphTabStopWidth, currentOpts, style, heading.Align,
+                    cancellationToken: cancellationToken);
             return WrapPictureText(heading, style?.AnchoredCanvas,
                 (frameX, frameWidth, frameX, frameWidth), fontSize, top,
                 rowLayout => WrapRichHeadingRuns(runs, frameWidth, fontSize, ChooseNormal(currentOpts.DefaultFont),
-                    leading, null, DefaultParagraphTabStopWidth, currentOpts, style, heading.Align, rowLayout));
+                    leading, null, DefaultParagraphTabStopWidth, currentOpts, style, heading.Align, rowLayout,
+                    cancellationToken));
         }
 
         /// <summary>Owns source exclusions and retained rows for both paragraph and heading composition.</summary>

@@ -9,17 +9,31 @@ public static partial class WordPdfConverterExtensions {
     // its own paragraph/style context. Copying runs into the first XML paragraph
     // would change inherited fonts, visibility and hyperlink formatting.
     private static bool TryRenderNativeJoinedParagraphs(
-        INativePdfFlow pdf, IReadOnlyList<WordElement> elements, ref int index,
+        INativePdfFlow pdf, IReadOnlyList<WordElement> elements, ref int index, ref int rejectedJoinUntil,
         Func<WordParagraph, (int Level, string Marker)?> getMarker,
         NativeNoteNumbering footnoteNumbersById, WordPdfExportOptions? options,
         NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+        if (index <= rejectedJoinUntil ||
+            elements[index] is not WordParagraph candidate ||
+            ShouldRenderNativeEmptyParagraphLineBox(candidate) ||
+            index + 1 >= elements.Count || elements[index + 1] is not WordParagraph) return false;
+        if (!CanJoinNativeTextParagraph(candidate, getMarker, nativeDefaults, nativeFontMap)) {
+            ReportUnsupportedJoin();
+            return false;
+        }
         if (!TryGetNativeParagraphJoinChain(elements, index, out var paragraphs, out int lastIndex)) return false;
         WordParagraph first = paragraphs[0];
-        if (!CanJoinNativeParagraphChain(paragraphs, getMarker, nativeDefaults, nativeFontMap)) {
+        int unsupportedOffset = FirstUnsupportedNativeJoinIndex(paragraphs, getMarker, nativeDefaults, nativeFontMap);
+        if (unsupportedOffset >= 0) {
+            rejectedJoinUntil = index + unsupportedOffset - 1;
+            ReportUnsupportedJoin();
+            return false;
+        }
+
+        void ReportUnsupportedJoin() {
             if (options != null) AddNativeExportWarning(options, "native-hidden-paragraph-join-unsupported",
                 nativeDefaults.RunningContentContext == null ? "body" : "header/footer",
                 "Hidden paragraph marks beside lists, headings, decorated paragraphs, flow breaks or objects retain separate PDF paragraph boundaries.");
-            return false;
         }
 
         WordParagraph last = paragraphs[paragraphs.Count - 1];
@@ -96,8 +110,17 @@ public static partial class WordPdfConverterExtensions {
     private static bool CanJoinNativeParagraphChain(IReadOnlyList<WordParagraph> paragraphs,
         Func<WordParagraph, (int Level, string Marker)?> getMarker,
         NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) =>
-        paragraphs.All(paragraph => CanJoinNativeTextParagraph(paragraph, getMarker, nativeDefaults, nativeFontMap)) &&
-        !paragraphs.Skip(1).Any(HasNativePageBreakBefore);
+        FirstUnsupportedNativeJoinIndex(paragraphs, getMarker, nativeDefaults, nativeFontMap) < 0;
+
+    private static int FirstUnsupportedNativeJoinIndex(IReadOnlyList<WordParagraph> paragraphs,
+        Func<WordParagraph, (int Level, string Marker)?> getMarker,
+        NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) {
+        for (int offset = 0; offset < paragraphs.Count; offset++) {
+            if ((offset > 0 && HasNativePageBreakBefore(paragraphs[offset])) ||
+                !CanJoinNativeTextParagraph(paragraphs[offset], getMarker, nativeDefaults, nativeFontMap)) return offset;
+        }
+        return -1;
+    }
 
     private static bool CanJoinNativeTextParagraph(WordParagraph paragraph,
         Func<WordParagraph, (int Level, string Marker)?> getMarker,

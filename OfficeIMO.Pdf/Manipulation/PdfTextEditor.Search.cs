@@ -33,7 +33,7 @@ internal static partial class PdfTextEditor {
             double pageHeight = page.GetPageSize().Height;
             PdfTextSpan[] spans = (includeUnsafeSpans ? page.GetGlyphTextSpans(cancellationToken: cancellationToken) : page.GetTextSpans(cancellationToken))
                 .Where(span => includeUnsafeSpans
-                    ? (span.IsVisible || span.TextRenderingMode == 3) && !string.IsNullOrEmpty(span.Text)
+                    ? !string.IsNullOrEmpty(span.Text)
                     : IsFindSpan(span, snapshot.IncludeTextRenderingMode3, pageHeight))
                 .ToArray();
             workBudget?.Charge(spans.Length);

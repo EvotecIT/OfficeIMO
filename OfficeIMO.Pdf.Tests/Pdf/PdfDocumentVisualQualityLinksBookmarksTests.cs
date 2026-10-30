@@ -688,5 +688,23 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.InRange(destination.DestinationTop!.Value, 149.5, 150.5);
     }
 
+    [Fact]
+    public void RowColumnConsecutiveBookmarksRetainEveryDestination() {
+        const int bookmarkCount = 512;
+        byte[] bytes = PdfDocument.Create()
+            .Compose(document => document.Page(page => page.Content(content =>
+                content.Row(row => row.PercentColumn(100, column => {
+                    for (int index = 0; index < bookmarkCount; index++)
+                        column.Bookmark("Anchor-" + index.ToString(CultureInfo.InvariantCulture));
+                    column.Paragraph(paragraph => paragraph.Text("After anchors"));
+                })))))
+            .ToBytes();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        Assert.Equal(bookmarkCount, info.NamedDestinations.Count);
+        Assert.Equal(1, info.PageCount);
+        Assert.Contains("After anchors", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
+    }
+
 
 }

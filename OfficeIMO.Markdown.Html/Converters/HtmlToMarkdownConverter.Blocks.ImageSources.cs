@@ -10,7 +10,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         return HtmlImageSourceResolver.ResolveImageSource(
             element,
             context.Options.BaseUri,
-            context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy,
+            context.EffectiveResourcePolicy,
             allowParentPictureFallback: true);
     }
 
@@ -18,7 +18,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         return HtmlImageSourceResolver.ResolveImageSourceCandidates(
             element,
             context.Options.BaseUri,
-            context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy,
+            context.EffectiveResourcePolicy,
             allowParentPictureFallback: true);
     }
 
@@ -26,7 +26,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         return HtmlImageSourceResolver.ResolveImageSource(
             element,
             context.Options.BaseUri,
-            context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy,
+            context.EffectiveResourcePolicy,
             allowParentPictureFallback: false);
     }
 
@@ -65,7 +65,7 @@ internal sealed partial class HtmlToMarkdownConverter {
             IReadOnlyList<HtmlSrcSetCandidate> srcSetCandidates = HtmlImageSourceResolver.ResolveSrcSetCandidates(
                 element.GetAttribute(attributeNames[i]),
                 context.Options.BaseUri,
-                context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy);
+                context.EffectiveResourcePolicy);
 
             for (int candidateIndex = 0; candidateIndex < srcSetCandidates.Count; candidateIndex++) {
                 AddResolvedCandidate(candidates, srcSetCandidates[candidateIndex].Url);
@@ -82,23 +82,23 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private static string ResolveUrlFromSrcSet(string? rawSrcSet, ConversionContext context) {
-        return HtmlImageSourceResolver.ResolveUrlFromSrcSet(rawSrcSet, context.Options.BaseUri, context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy);
+        return HtmlImageSourceResolver.ResolveUrlFromSrcSet(rawSrcSet, context.Options.BaseUri, context.EffectiveResourcePolicy);
     }
 
     private static string ResolveNormalizedSrcSet(string? rawSrcSet, ConversionContext context) {
-        return HtmlImageSourceResolver.ResolveNormalizedSrcSet(rawSrcSet, context.Options.BaseUri, context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy);
+        return HtmlImageSourceResolver.ResolveNormalizedSrcSet(rawSrcSet, context.Options.BaseUri, context.EffectiveResourcePolicy);
     }
 
     private static string ResolveUrlFromSrcSetAttributes(IElement element, ConversionContext context, params string[] attributeNames) {
-        return HtmlImageSourceResolver.ResolveUrlFromSrcSetAttributes(element, context.Options.BaseUri, context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy, attributeNames);
+        return HtmlImageSourceResolver.ResolveUrlFromSrcSetAttributes(element, context.Options.BaseUri, context.EffectiveResourcePolicy, attributeNames);
     }
 
     private static string ResolveNormalizedSrcSetAttributes(IElement element, ConversionContext context, params string[] attributeNames) {
-        return HtmlImageSourceResolver.ResolveNormalizedSrcSetAttributes(element, context.Options.BaseUri, context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy, attributeNames);
+        return HtmlImageSourceResolver.ResolveNormalizedSrcSetAttributes(element, context.Options.BaseUri, context.EffectiveResourcePolicy, attributeNames);
     }
 
     private static string ResolveUrlAttributes(IElement element, ConversionContext context, params string[] attributeNames) {
-        return HtmlImageSourceResolver.ResolveUrlAttributes(element, context.Options.BaseUri, context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy, attributeNames);
+        return HtmlImageSourceResolver.ResolveUrlAttributes(element, context.Options.BaseUri, context.EffectiveResourcePolicy, attributeNames);
     }
 
     private static void ApplyImageDimensions(IElement element, ImageBlock image) {
@@ -145,12 +145,16 @@ internal sealed partial class HtmlToMarkdownConverter {
         if (!TryResolveAssociatedNoscriptMediaElement(element, out var fallbackMediaElement)) {
             return false;
         }
-
-        if (HasEffectiveTagName(fallbackMediaElement, context, "PICTURE")) {
-            return CanCreatePictureImageBlockWithoutSideEffects(fallbackMediaElement, context);
+        bool previous = context.ProcessingNewlyParsedMedia;
+        context.ProcessingNewlyParsedMedia = true;
+        try {
+            if (HasEffectiveTagName(fallbackMediaElement, context, "PICTURE")) {
+                return CanCreatePictureImageBlockWithoutSideEffects(fallbackMediaElement, context);
+            }
+            return HasUsableImageCandidateWithoutSideEffects(ResolveImageSourceCandidates(fallbackMediaElement, context), context);
+        } finally {
+            context.ProcessingNewlyParsedMedia = previous;
         }
-
-        return HasUsableImageCandidateWithoutSideEffects(ResolveImageSourceCandidates(fallbackMediaElement, context), context);
     }
 
     private static bool CanCreatePictureImageBlockWithoutSideEffects(IElement element, ConversionContext context) {
@@ -243,23 +247,28 @@ internal sealed partial class HtmlToMarkdownConverter {
         if (!TryResolveAssociatedNoscriptMediaElement(element, out var fallbackMediaElement)) {
             return false;
         }
+        bool previous = context.ProcessingNewlyParsedMedia;
+        context.ProcessingNewlyParsedMedia = true;
+        try {
+            if (HasEffectiveTagName(fallbackMediaElement, context, "PICTURE")) {
+                var pictureImage = ConvertPictureElement(fallbackMediaElement, context).OfType<ImageBlock>().FirstOrDefault();
+                if (pictureImage == null) {
+                    return false;
+                }
 
-        if (HasEffectiveTagName(fallbackMediaElement, context, "PICTURE")) {
-            var pictureImage = ConvertPictureElement(fallbackMediaElement, context).OfType<ImageBlock>().FirstOrDefault();
-            if (pictureImage == null) {
+                image = MergeImageMetadata(element, pictureImage, FindFirstDescendantByEffectiveTagName(fallbackMediaElement, context, "IMG"));
+                return true;
+            }
+
+            if (!TryResolveUsableImageCandidate(ResolveImageSourceCandidates(fallbackMediaElement, context), context, out string fallbackSrc)) {
                 return false;
             }
 
-            image = MergeImageMetadata(element, pictureImage, FindFirstDescendantByEffectiveTagName(fallbackMediaElement, context, "IMG"));
+            image = CreateMergedImageBlock(fallbackSrc, element, fallbackMediaElement);
             return true;
+        } finally {
+            context.ProcessingNewlyParsedMedia = previous;
         }
-
-        if (!TryResolveUsableImageCandidate(ResolveImageSourceCandidates(fallbackMediaElement, context), context, out string fallbackSrc)) {
-            return false;
-        }
-
-        image = CreateMergedImageBlock(fallbackSrc, element, fallbackMediaElement);
-        return true;
     }
 
     private static ImageBlock MergeImageMetadata(IElement preferredElement, ImageBlock fallbackImage, IElement? fallbackMetadataElement) {
@@ -386,7 +395,7 @@ internal sealed partial class HtmlToMarkdownConverter {
             IReadOnlyList<HtmlSrcSetCandidate> candidates = HtmlImageSourceResolver.ResolveSrcSetCandidates(
                 element.GetAttribute(attributeNames[i]),
                 context.Options.BaseUri,
-                context.Options.ResourceUrlPolicy ?? context.Options.UrlPolicy);
+                context.EffectiveResourcePolicy);
 
             foreach (HtmlSrcSetCandidate candidate in candidates) {
                 string resolved = candidate.Url;
