@@ -11142,7 +11142,7 @@ namespace OfficeIMO.Tests {
                     tableParagraph.AddImage(jpegPath, OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(18));
                     tableParagraph.AddText(" after picture");
                     document.AddParagraph("Picture control ")
-                        .AddPictureControl(jpegPath, 22, 17, alias: "Legacy picture", tag: "legacy-picture");
+                        .AddPictureControl(jpegPath, OfficeLength.Pixels(22), OfficeLength.Pixels(17), alias: "Legacy picture", tag: "legacy-picture");
 
                     document.Save(docPath);
                 }

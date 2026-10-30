@@ -234,7 +234,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 WordParagraph pictureCell = table.Rows[1].Cells[1].Paragraphs[0];
                 pictureCell.Text = "Table-cell logo";
                 pictureCell.ParagraphAlignment = WordParagraphAlignment.Center;
-                pictureCell.AddPictureControl(logoPath, 72, 36, "Table Cell Logo", "TableCellLogo");
+                pictureCell.AddPictureControl(logoPath, OfficeLength.Pixels(72), OfficeLength.Pixels(36), "Table Cell Logo", "TableCellLogo");
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {

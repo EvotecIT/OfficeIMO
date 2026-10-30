@@ -21,7 +21,7 @@ public sealed class PdfForegroundImageOrderTests {
             if (columns) { word.Sections[0].ColumnCount = 2; word.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(6); }
             var paragraph = word.AddParagraph("Anchor text");
             if (!controlFirst) AddImage(paragraph.AddText("red"), OfficeColor.Red, 10, 10);
-            var image = paragraph.AddPictureControl(path, 72, 72).Image!;
+            var image = paragraph.AddPictureControl(path, OfficeLength.Pixels(72), OfficeLength.Pixels(72)).Image!;
             image.WrapText = WordImageTextWrapping.InFrontOfText;
             image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
             image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;

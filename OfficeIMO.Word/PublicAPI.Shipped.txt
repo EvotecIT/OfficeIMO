@@ -264,8 +264,8 @@ OfficeIMO.Word.WordBackground.Color.get -> string?
 OfficeIMO.Word.WordBackground.Color.set -> void
 OfficeIMO.Word.WordBackground.SetColor(OfficeIMO.OfficeColor color) -> OfficeIMO.Word.WordBackground!
 OfficeIMO.Word.WordBackground.SetColorHex(string! color) -> OfficeIMO.Word.WordBackground!
-OfficeIMO.Word.WordBackground.SetImage(System.IO.Stream! imageStream, string! fileName, double? width = null, double? height = null) -> OfficeIMO.Word.WordBackground!
-OfficeIMO.Word.WordBackground.SetImage(string! filePath, double? width = null, double? height = null) -> OfficeIMO.Word.WordBackground!
+OfficeIMO.Word.WordBackground.SetImage(System.IO.Stream! imageStream, string! fileName, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Word.WordBackground!
+OfficeIMO.Word.WordBackground.SetImage(string! filePath, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Word.WordBackground!
 OfficeIMO.Word.WordBackground.WordBackground(OfficeIMO.Word.WordDocument! document) -> void
 OfficeIMO.Word.WordBackground.WordBackground(OfficeIMO.Word.WordDocument! document, OfficeIMO.OfficeColor color) -> void
 OfficeIMO.Word.WordBibliographySource
@@ -2907,7 +2907,7 @@ OfficeIMO.Word.WordParagraph.AddParagraph(string! text) -> OfficeIMO.Word.WordPa
 OfficeIMO.Word.WordParagraph.AddParagraphAfterSelf() -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordParagraph.AddParagraphAfterSelf(OfficeIMO.Word.WordSection! section, OfficeIMO.Word.WordParagraph? paragraph = null) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordParagraph.AddParagraphBeforeSelf() -> OfficeIMO.Word.WordParagraph!
-OfficeIMO.Word.WordParagraph.AddPictureControl(string! filePath, double? width = null, double? height = null, string? alias = null, string? tag = null) -> OfficeIMO.Word.WordPictureControl!
+OfficeIMO.Word.WordParagraph.AddPictureControl(string! filePath, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? alias = null, string? tag = null) -> OfficeIMO.Word.WordPictureControl!
 OfficeIMO.Word.WordParagraph.AddRepeatingSection(string? sectionTitle = null, string? alias = null, string? tag = null) -> OfficeIMO.Word.WordRepeatingSection!
 OfficeIMO.Word.WordParagraph.AddShape(OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeColor? fillColor = null) -> OfficeIMO.Word.WordShape!
 OfficeIMO.Word.WordParagraph.AddShape(OfficeIMO.Word.WordShapeType shapeType, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? strokeColor = null, OfficeIMO.OfficeLength? strokeWeight = null, double arcSize = 0.25) -> OfficeIMO.Word.WordShape!
@@ -3333,8 +3333,8 @@ OfficeIMO.Word.WordPictureControl.Alias.get -> string?
 OfficeIMO.Word.WordPictureControl.ExtractValue() -> OfficeIMO.Word.WordContentControlPictureValue?
 OfficeIMO.Word.WordPictureControl.Image.get -> OfficeIMO.Word.WordImage?
 OfficeIMO.Word.WordPictureControl.Remove() -> void
-OfficeIMO.Word.WordPictureControl.SetImage(System.IO.Stream! imageStream, string! fileName, double? width = null, double? height = null) -> void
-OfficeIMO.Word.WordPictureControl.SetImage(string! filePath, double? width = null, double? height = null) -> void
+OfficeIMO.Word.WordPictureControl.SetImage(System.IO.Stream! imageStream, string! fileName, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> void
+OfficeIMO.Word.WordPictureControl.SetImage(string! filePath, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> void
 OfficeIMO.Word.WordPictureControl.Tag.get -> string?
 OfficeIMO.Word.WordPictureControl.Tag.set -> void
 OfficeIMO.Word.WordPreflightCapability

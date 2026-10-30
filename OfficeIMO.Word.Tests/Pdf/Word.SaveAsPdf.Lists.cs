@@ -91,7 +91,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordList list = document.AddList(WordListStyle.Numbered);
             WordParagraph item = list.AddItem("List item with picture control");
-            item.AddPictureControl(imagePath, 48, 48, "List Logo", "ListLogo");
+            item.AddPictureControl(imagePath, OfficeLength.Pixels(48), OfficeLength.Pixels(48), "List Logo", "ListLogo");
             document.AddParagraph("After list picture control");
 
             document.Save();

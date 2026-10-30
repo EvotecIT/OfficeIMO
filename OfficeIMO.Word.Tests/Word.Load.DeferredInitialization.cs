@@ -202,7 +202,7 @@ public sealed class WordLoadDeferredInitializationTests {
 
         Assert.Null(mainPart.DocumentSettingsPart);
 
-        document.Background.SetImage(imageStream, "background.png", 1, 1);
+        document.Background.SetImage(imageStream, "background.png", OfficeLength.Pixels(1), OfficeLength.Pixels(1));
 
         Assert.NotNull(mainPart.DocumentSettingsPart?.Settings?.DisplayBackgroundShape);
         Assert.NotNull(mainPart.Document?.DocumentBackground);

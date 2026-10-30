@@ -432,10 +432,10 @@ public partial class Word {
             document.AddHeadersAndFooters();
             WordParagraph headerParagraph = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Native picture-control header");
             headerParagraph.ParagraphAlignment = WordParagraphAlignment.Center;
-            headerParagraph.AddPictureControl(imagePath, 32, 32, "Header Logo", "HeaderLogo");
+            headerParagraph.AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "Header Logo", "HeaderLogo");
 
             WordTable footerTable = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddTable(1, 3, WordTableStyle.TableNormal);
-            footerTable.Rows[0].Cells[2].Paragraphs[0].AddPictureControl(imagePath, 32, 32, "Footer Logo", "FooterLogo");
+            footerTable.Rows[0].Cells[2].Paragraphs[0].AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "Footer Logo", "FooterLogo");
 
             document.AddParagraph("Native header/footer picture-control body");
             document.Save();
@@ -463,8 +463,8 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
         WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph();
-        header.AddPictureControl(imagePath, 32, 32, "First", "First");
-        header.AddPictureControl(imagePath, 32, 32, "Second", "Second");
+        header.AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "First", "First");
+        header.AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "Second", "Second");
         document.AddParagraph("Body");
 
         Assert.Throws<InvalidDataException>(() => document.ConvertToPdfWithEvidence(

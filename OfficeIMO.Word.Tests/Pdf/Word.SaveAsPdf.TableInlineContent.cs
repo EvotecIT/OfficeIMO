@@ -174,7 +174,7 @@ public partial class Word {
         if (contentControl) {
             string imagePath = Path.Combine(_directoryWithFiles, "hidden.png");
             File.WriteAllBytes(imagePath, bytes);
-            paragraph.AddPictureControl(imagePath, 16, 32);
+            paragraph.AddPictureControl(imagePath, OfficeLength.Pixels(16), OfficeLength.Pixels(32));
             var pictureRun = paragraph._paragraph!.Descendants<W.SdtRun>().Single().SdtContentRun!.Elements<W.Run>().Single();
             pictureRun.RunProperties ??= new W.RunProperties();
             pictureRun.RunProperties.Vanish = new W.Vanish();

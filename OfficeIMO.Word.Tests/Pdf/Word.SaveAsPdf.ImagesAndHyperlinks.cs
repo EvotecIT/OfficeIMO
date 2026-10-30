@@ -155,7 +155,7 @@ public partial class Word {
             document.AddParagraph("Logo content control:");
             WordParagraph picture = document.AddParagraph();
             picture.ParagraphAlignment = WordParagraphAlignment.Center;
-            picture.AddPictureControl(imagePath, 48, 48, "Logo", "LogoTag");
+            picture.AddPictureControl(imagePath, OfficeLength.Pixels(48), OfficeLength.Pixels(48), "Logo", "LogoTag");
 
             document.Save();
             conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
@@ -176,7 +176,7 @@ public partial class Word {
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
         using (WordDocument document = WordDocument.Create()) {
             WordParagraph paragraph = document.AddParagraph();
-            paragraph.AddPictureControl(imagePath, 48, 48);
+            paragraph.AddPictureControl(imagePath, OfficeLength.Pixels(48), OfficeLength.Pixels(48));
             SdtRun control = paragraph._paragraph.Elements<SdtRun>().Single();
             control.Remove();
             paragraph._paragraph.Append(
@@ -214,7 +214,7 @@ public partial class Word {
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
         using (WordDocument document = WordDocument.Create()) {
             WordParagraph paragraph = document.AddParagraph();
-            paragraph.AddPictureControl(imagePath, 48, 48);
+            paragraph.AddPictureControl(imagePath, OfficeLength.Pixels(48), OfficeLength.Pixels(48));
             SdtRun control = paragraph._paragraph.Elements<SdtRun>().Single();
             SdtContentRun content = control.SdtContentRun!;
             Run imageRun = content.Elements<Run>().Single();
@@ -248,7 +248,7 @@ public partial class Word {
             WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = "Logo content control in a table";
             paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-            paragraph.AddPictureControl(imagePath, 48, 48, "Cell Logo", "CellLogo");
+            paragraph.AddPictureControl(imagePath, OfficeLength.Pixels(48), OfficeLength.Pixels(48), "Cell Logo", "CellLogo");
 
             document.Save();
             conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
@@ -273,8 +273,8 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
-        paragraph.AddPictureControl(imagePath, 32, 32, "First", "First");
-        paragraph.AddPictureControl(imagePath, 32, 32, "Second", "Second");
+        paragraph.AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "First", "First");
+        paragraph.AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "Second", "Second");
 
         Assert.Throws<InvalidDataException>(() => document.ConvertToPdfWithEvidence(
             new WordPdfExportOptions { MaxImagesPerParagraph = 1 }));

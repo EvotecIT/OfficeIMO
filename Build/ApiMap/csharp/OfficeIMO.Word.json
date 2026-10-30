@@ -8165,6 +8165,20 @@
         "OfficeIMO.Word.Tests/Word.ImageCropCentimeters.cs"
       ],
       "note": "All finite crop/stroke rejection and native XML/state assertions remain. No production behavior or golden is changed."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "Numeric pixel widths/heights in WordParagraph.AddPictureControl, WordPictureControl.SetImage and WordBackground.SetImage.",
+      "new": "OfficeLength? width and height for all five creation/replacement/background methods.",
+      "reason": "Picture controls and background images use the same explicit physical sizing contract as ordinary images.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Word/WordParagraph.PublicMethods.ContentControls.cs",
+        "OfficeIMO.Word/WordPictureControl.cs",
+        "OfficeIMO.Word/WordBackground.cs"
+      ],
+      "note": "Pass typed lengths directly to AddImage; convert once to pixels only for the internal background WordImage constructor. Existing numeric consumers wrap Pixels. Intrinsic/null/aspect sizing, caller-stream lifetime, control IDs and replacement order remain; an existing saved-background test covers exact native EMUs and mixed units."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

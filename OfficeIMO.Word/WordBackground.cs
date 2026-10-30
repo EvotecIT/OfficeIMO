@@ -81,10 +81,10 @@ namespace OfficeIMO.Word {
         /// Sets the background image for the document.
         /// </summary>
         /// <param name="filePath">Path to the image file.</param>
-        /// <param name="width">Optional width of the image in pixels.</param>
-        /// <param name="height">Optional height of the image in pixels.</param>
+        /// <param name="width">Optional physical width of the image.</param>
+        /// <param name="height">Optional physical height of the image.</param>
         /// <returns>The current instance.</returns>
-        public WordBackground SetImage(string filePath, double? width = null, double? height = null) {
+        public WordBackground SetImage(string filePath, OfficeLength? width = null, OfficeLength? height = null) {
             using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             return SetImage(stream, System.IO.Path.GetFileName(filePath), width, height);
         }
@@ -94,10 +94,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="imageStream">Stream containing image data.</param>
         /// <param name="fileName">Name of the image file.</param>
-        /// <param name="width">Optional width of the image in pixels.</param>
-        /// <param name="height">Optional height of the image in pixels.</param>
+        /// <param name="width">Optional physical width of the image.</param>
+        /// <param name="height">Optional physical height of the image.</param>
         /// <returns>The current instance.</returns>
-        public WordBackground SetImage(Stream imageStream, string fileName, double? width = null, double? height = null) {
+        public WordBackground SetImage(Stream imageStream, string fileName, OfficeLength? width = null, OfficeLength? height = null) {
             if (imageStream == null) throw new ArgumentNullException(nameof(imageStream));
             if (string.IsNullOrEmpty(fileName)) throw new ArgumentNullException(nameof(fileName));
 
@@ -108,7 +108,7 @@ namespace OfficeIMO.Word {
             var paragraph = new DocumentFormat.OpenXml.Wordprocessing.Paragraph();
             _document._document.Body!.Append(paragraph);
             var wordParagraph = new WordParagraph(_document, paragraph);
-            var wordImage = new WordImage(_document, wordParagraph, imageStream, fileName, width, height, WordImageTextWrapping.BehindText);
+            var wordImage = new WordImage(_document, wordParagraph, imageStream, fileName, width?.ToPixels(), height?.ToPixels(), WordImageTextWrapping.BehindText);
             paragraph.Remove();
 
             settings.DisplayBackgroundShape = new DisplayBackgroundShape();
