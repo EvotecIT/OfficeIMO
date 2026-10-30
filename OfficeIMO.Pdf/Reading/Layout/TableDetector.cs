@@ -99,6 +99,10 @@ internal static partial class TableDetector {
                 positionedTables.Any(positioned => IsSubsumedByPositionedTable(table, positioned)));
             tables.AddRange(positionedTables);
         }
+        List<TextLayoutEngine.TextLine> recoveryLines = nonLeaderBands.SelectMany(static band => band)
+            .Take(MaximumPositionedRecoveryLines).ToList();
+        RecoverCompactColumnRefinements(tables, recoveryLines, consumeWork, cancellationCheck);
+        if (tables.Count == 0) RecoverStrongTwoRowTables(tables, recoveryLines, consumeWork, cancellationCheck);
         return tables;
     }
 

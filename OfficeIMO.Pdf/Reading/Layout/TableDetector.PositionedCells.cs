@@ -85,7 +85,8 @@ internal static partial class TableDetector {
         List<(TextLayoutEngine.TextLine Line, PositionedRow Row)> anchors,
         List<TextLayoutEngine.TextLine> lines,
         Action<long>? consumeWork,
-        Action? cancellationCheck) {
+        Action? cancellationCheck,
+        bool allowSingleBodyRow = false) {
         cancellationCheck?.Invoke();
         if (anchors.Count < 2 ||
             anchors.Any(candidate => candidate.Row.Cells.Count != anchors[0].Row.Cells.Count)) return;
@@ -141,10 +142,9 @@ internal static partial class TableDetector {
                 break;
             }
         }
-        bool firstAnchorIsHeader = anchors.Count >= 3 &&
-            hasWrappedBodyEvidence &&
+        bool firstAnchorIsHeader = (anchors.Count >= 3 || allowSingleBodyRow) &&
             LooksLikeHeaderRow(firstAnchorCells) &&
-            (HasEmphasizedText(anchors[0].Line) || !firstAnchorCells.Any(IsTabularValue));
+            (HasEmphasizedText(anchors[0].Line) || hasWrappedBodyEvidence && !firstAnchorCells.Any(IsTabularValue));
         double headerBottom;
         List<TextLayoutEngine.TextLine> headerLines;
         int firstBodyAnchorIndex;

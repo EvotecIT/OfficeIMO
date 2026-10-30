@@ -3638,7 +3638,7 @@
       "new": "PdfCreateOptions.Theme : OfficeTheme?; PdfTheme.FromOfficeTheme(OfficeTheme)",
       "reason": "Use the canonical PDF theme adapter for newly authored composition with root OfficeColor. Explicit native style/font/size overrides and clones retain precedence; loaded PDFs and source-format imports remain neutral.",
       "note": "New PDF composition snapshots shared theme defaults. Explicit fonts, per-level styles and run formatting win; loaded PDFs and source-layout imports remain neutral. Deferred/context components retain their owning page defaults, including late page configuration. Core/PDF library builds pass with zero warnings and errors on net10.0; 38 focused native cases pass. The package README snippet compiles and runs; Modern, Classic, Dark and explicit Boardroom/Courier samples render successfully. FromOfficeTheme creates a styling bundle rather than a document conversion. Raw physical properties are covered by the separate geometry migration.",
-      "extraNote": "Review remediation carries owning page defaults through deferred/context flow and keeps explicit document fonts above inherited theme heading fonts, while explicit heading/block/run styles remain stronger. The standalone styling factory retains distinct Boardroom fonts. New saved-artifact regression source covers these paths; the earlier primary 28-case result predates this remediation, which has not been built or tested in this bounded edit.",
+      "extraNote": "Deferred/context flow retains owning page defaults and explicit document fonts take precedence over inherited theme heading fonts. The saved-artifact regression set passes 38 cases on net10.0; Core/PDF builds pass without warnings or errors. The standalone styling factory retains distinct Boardroom fonts.",
       "files": [
         "Build/ApiMap/csharp/OfficeIMO.Pdf.json",
         "OfficeIMO.Core/OfficeDocumentFontSubstitutions.cs",
@@ -3680,6 +3680,21 @@
         "OfficeIMO.Visio.Pdf/VisioPdfConversionEngine.DiagramPages.cs",
         "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.cs",
         "OfficeIMO.Xps.Pdf/XpsPdfExtensions.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "Modern PDF numeric tables can merge adjacent headers or omit an aligned final row during geometric readback.",
+      "new": "PDF reading refines compact numeric columns using retained glyphs, a strong header and bounded row evidence.",
+      "reason": "Modern authoring defaults must retain the saved table data used by PDF-to-Excel reconstruction. This reader correction is outside the original API rename map.",
+      "note": "Three- and four-column saved-PDF regressions retain every header, label, numeric value, boolean and final row. The existing reading/understanding/theme closure passes 258 cases on net10.0. Current PDF builds pass on net8.0, netstandard2.0 and isolated net472; PSWriteOffice Pester passes 935 cases with four skips. Windows runtime qualification remains separate.",
+      "files": [
+        "OfficeIMO.Pdf/Reading/Layout/TableDetector.cs",
+        "OfficeIMO.Pdf/Reading/Layout/TableDetector.PositionedCells.cs",
+        "OfficeIMO.Pdf/Reading/Layout/TableDetector.ColumnRefinement.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfModernTableReadbackTests.cs"
       ]
     }
   ],
