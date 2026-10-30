@@ -234,19 +234,9 @@ namespace OfficeIMO.Tests {
             request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
                 new OidCollection { new Oid("1.3.6.1.5.5.7.3.4") },
                 critical: false));
-            using X509Certificate2 created = request.CreateSelfSigned(
+            return request.CreateSelfSigned(
                 DateTimeOffset.UtcNow.AddMinutes(-5),
                 DateTimeOffset.UtcNow.AddDays(1));
-            byte[] exported = created.Export(X509ContentType.Pfx);
-            // Synthetic fixtures need neither a loaded user profile nor persisted keys.
-            const X509KeyStorageFlags fixtureKeys = X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet;
-#if NET9_0_OR_GREATER
-            return X509CertificateLoader.LoadPkcs12(exported, null, fixtureKeys);
-#else
-#pragma warning disable SYSLIB0057 // X509CertificateLoader is unavailable before .NET 9.
-            return new X509Certificate2(exported, (string?)null, fixtureKeys);
-#pragma warning restore SYSLIB0057
-#endif
         }
 
         private static void AddTimestampedMacroSignatureProfile(
