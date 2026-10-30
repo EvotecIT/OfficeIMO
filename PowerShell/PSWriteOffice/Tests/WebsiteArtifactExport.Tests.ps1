@@ -1,4 +1,4 @@
-BeforeAll {
+﻿BeforeAll {
     $exportScript = Join-Path $PSScriptRoot '../Build/Export-WebsiteArtifacts.ps1'
     $repositoryRoot = Join-Path $TestDrive 'source'
     $sourceRoot = Join-Path $repositoryRoot 'PowerShell/PSWriteOffice'
@@ -10,8 +10,9 @@ BeforeAll {
     $null = New-Item -ItemType Directory -Path (Split-Path $engineInput)
     'public class Engine { }' | Set-Content $engineInput
     $null = New-Item -ItemType Directory -Path (Split-Path $sourceInput), (Join-Path $sourceRoot 'Build')
-    $manifestText = "@{ ModuleVersion = '3.0.8'; RootModule = 'PSWriteOffice.psm1'; CmdletsToExport = @('Get-OfficeExample') }"
-    $manifestText | Set-Content $sourceManifest
+    $manifestText = "@{ ModuleVersion = '3.0.8'; RootModule = 'PSWriteOffice.psm1'; Author = 'Łódź'; CmdletsToExport = @('Get-OfficeExample') }"
+    $manifestEncoding = [Text.UTF8Encoding]::new($true)
+    [IO.File]::WriteAllText($sourceManifest, $manifestText, $manifestEncoding)
     'public class Example { }' | Set-Content $sourceInput
     '# Source module' | Set-Content (Join-Path $sourceRoot 'PSWriteOffice.psm1')
     @'
@@ -41,7 +42,7 @@ Describe 'Website API source build qualification' {
         'public class Engine { }' | Set-Content $engineInput
         & git -C $repositoryRoot add -- OfficeIMO.Word/Engine.cs
         'public class Example { }' | Set-Content $sourceInput
-        $manifestText | Set-Content $sourceManifest
+        [IO.File]::WriteAllText($sourceManifest, $manifestText, $manifestEncoding)
         '# Source module' | Set-Content (Join-Path $sourceRoot 'PSWriteOffice.psm1')
         & git -C $sourceRoot add -- Sources/Example.cs PSWriteOffice.psd1 PSWriteOffice.psm1
     }
@@ -53,6 +54,17 @@ Describe 'Website API source build qualification' {
         }
         @(Get-ChildItem -LiteralPath $buildRoot -Directory).Count | Should -Be 2
         Test-Path $outputRoot | Should -BeFalse
+    }
+
+    It 'reads UTF-8 manifests from Git independently of the console encoding' {
+        $previousEncoding = [Console]::OutputEncoding
+        try {
+            [Console]::OutputEncoding = [Text.Encoding]::ASCII
+            { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot -ArtifactsOnly } |
+                Should -Throw '*Fresh unsigned build reached without installation*'
+        } finally {
+            [Console]::OutputEncoding = $previousEncoding
+        }
     }
 
     It 'rejects source-local retained build or custom export output before building' {
@@ -116,10 +128,10 @@ Describe 'Website API source build qualification' {
     }
 
     It 'rejects changed manifest fields while allowing normal version resolution' {
-        $manifestText.Replace("RootModule = 'PSWriteOffice.psm1'", "RootModule = 'Other.psm1'") | Set-Content $sourceManifest
+        [IO.File]::WriteAllText($sourceManifest, $manifestText.Replace("RootModule = 'PSWriteOffice.psm1'", "RootModule = 'Other.psm1'"), $manifestEncoding)
         { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot } |
             Should -Throw '*source manifest does not match this checkout*'
-        $manifestText.Replace("'3.0.8'", "'3.0.9'") | Set-Content $sourceManifest
+        [IO.File]::WriteAllText($sourceManifest, $manifestText.Replace("'3.0.8'", "'3.0.9'"), $manifestEncoding)
         { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot } |
             Should -Throw '*Fresh unsigned build reached without installation*'
         Test-Path $outputRoot | Should -BeFalse

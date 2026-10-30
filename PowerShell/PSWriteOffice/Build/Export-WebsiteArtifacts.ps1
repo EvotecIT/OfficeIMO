@@ -116,8 +116,17 @@ function Invoke-SourceGit {
     # Windows PowerShell turns native stderr into errors before callers can
     # classify Git's exit code. Keep that handling local to these read-only probes.
     $ErrorActionPreference = 'Continue'
-    $output = @(& git -C $RepositoryRoot @Arguments 2>$null)
-    [PSCustomObject]@{ ExitCode = $LASTEXITCODE; Output = $output }
+    # Git returns the UTF-8 source bytes, including a manifest's BOM. Windows
+    # shells can inherit an OEM console encoding even when running PowerShell 7.
+    $previousEncoding = [Console]::OutputEncoding
+    try {
+        [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+        $output = @(& git -C $RepositoryRoot @Arguments 2>$null)
+        $exitCode = $LASTEXITCODE
+    } finally {
+        [Console]::OutputEncoding = $previousEncoding
+    }
+    [PSCustomObject]@{ ExitCode = $exitCode; Output = $output }
 }
 
 function Get-QualifiedSourceRevision {
