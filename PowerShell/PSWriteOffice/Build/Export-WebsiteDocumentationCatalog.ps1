@@ -83,7 +83,7 @@ $familyDefinitions = @(
     [ordered]@{
         id = 'archive-migration'; title = 'Archive migration and evidence'; description = 'Inspect package safety and provenance, convert iWork and offline OneNote content, and retain fidelity evidence.'
         docs = 'automation-patterns'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples'
-        samples = @('Get-OfficePackageSecurity', 'Get-OfficeProvenance', 'Get-OfficeIWork', 'ConvertFrom-OfficeOneNote')
+        samples = @('Get-OfficePackageSecurity', 'Get-OfficeDocumentProvenance', 'Get-OfficeIWork', 'ConvertFrom-OfficeOneNote')
         match = { param($name) $name -match 'OfficeIWork|OfficeOneNote|OfficePackageSecurity|OfficeProvenance' }
     }
     [ordered]@{
