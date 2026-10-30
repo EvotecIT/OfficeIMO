@@ -4,6 +4,7 @@ on:
   pull_request:
     branches: [master]
     paths:
+      - '.github/workflows/ci-coverage.yml'
       - '.agents/plugins/**'
       - 'OfficeIMO.Tool/server.json'
       - 'OfficeIMO.Tool/README.md'
@@ -30,16 +31,28 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  coverage:
+    uses: ./.github/workflows/ci-coverage.yml
+
   package:
-    if: ${{ github.event_name != 'release' || startsWith(github.event.release.tag_name, 'OfficeIMO-v') || startsWith(github.event.release.tag_name, 'OfficeIMO.Tool-v') }}
+    needs: coverage
+    if: needs.coverage.outputs.build == 'true' && (github.event_name != 'release' || startsWith(github.event.release.tag_name, 'OfficeIMO-v') || startsWith(github.event.release.tag_name, 'OfficeIMO.Tool-v'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: officeimo
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
+          path: officeimo
       - name: Validate release source
         if: ${{ github.event_name == 'release' }}
         env:
@@ -73,7 +86,7 @@ jobs:
         if: ${{ github.event_name == 'release' }}
         uses: actions/setup-dotnet@v6
         with:
-          global-json-file: global.json
+          global-json-file: officeimo/global.json
       - name: Verify the published launcher before distributing the plugin
         if: ${{ github.event_name == 'release' }}
         run: |
@@ -88,7 +101,7 @@ jobs:
         env:
           PLUGIN_OUTPUT: ${{ runner.temp }}/officeimo-agent-plugin
         run: |
-          packer=.powerforge-agent-plugin-build/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll
+          packer="$GITHUB_WORKSPACE/.powerforge-agent-plugin-build/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll"
           dotnet "$packer" agent-plugin validate --source .agents/plugins/officeimo-document-tools --project OfficeIMO.Tool/OfficeIMO.Tool.csproj
           dotnet "$packer" agent-plugin pack --source .agents/plugins/officeimo-document-tools --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --out "$PLUGIN_OUTPUT"
       - uses: actions/upload-artifact@v7
@@ -132,3 +145,22 @@ jobs:
         with:
           archive: agent-plugin
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  ci-validation:
+    name: CI validation
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [coverage, package, attach-release, publish-distribution]
+    steps:
+      - name: Require coverage and validation
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          results = json.loads(os.environ['RESULTS'])
+          failed = [k for k, v in results.items() if v['result'] not in ('success', 'skipped')]
+          failed += ['coverage'] if results['coverage']['result'] != 'success' else []
+          print(json.dumps(results, indent=2))
+          sys.exit(bool(failed))
+          PY

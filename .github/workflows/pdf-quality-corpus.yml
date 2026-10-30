@@ -3,6 +3,7 @@ name: PDF quality corpus
 on:
   pull_request:
     paths:
+      - '.github/workflows/ci-coverage.yml'
       - "OfficeIMO.Core/**"
       - "OfficeIMO.Pdf/**"
       - "OfficeIMO.SharedSource/**"
@@ -17,34 +18,28 @@ on:
   push:
     branches:
       - master
-    paths:
-      - "OfficeIMO.Core/**"
-      - "OfficeIMO.Pdf/**"
-      - "OfficeIMO.SharedSource/**"
-      - "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/**"
-      - "Build/PdfQualityCorpus/**"
-      - "Build/Compatibility/IsExternalInit.cs"
-      - "Build/Test-PdfQualityCorpus.ps1"
-      - "Directory.Build.props"
-      - "Directory.Build.targets"
-      - "global.json"
-      - ".github/workflows/pdf-quality-corpus.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  coverage:
+    uses: ./.github/workflows/ci-coverage.yml
+
   scorecard:
+    needs: coverage
+    if: needs.coverage.outputs.build == 'true'
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
-          - macos-latest
+        os: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-latest","windows-latest"]' || '["ubuntu-latest","windows-latest","macos-latest"]') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -54,7 +49,7 @@ jobs:
         with:
           dotnet-version: |
             8.0.x
-            10.0.113
+            10.0.114
 
       - name: Run provenance-bound scorecard
         shell: pwsh
@@ -67,3 +62,22 @@ jobs:
           name: pdf-quality-corpus-${{ matrix.os }}
           path: artifacts/pdf-quality-corpus
           if-no-files-found: error
+
+  ci-validation:
+    name: CI validation
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [coverage, scorecard]
+    steps:
+      - name: Require coverage and validation
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          results = json.loads(os.environ['RESULTS'])
+          failed = [k for k, v in results.items() if v['result'] not in ('success', 'skipped')]
+          failed += ['coverage'] if results['coverage']['result'] != 'success' else []
+          print(json.dumps(results, indent=2))
+          sys.exit(bool(failed))
+          PY

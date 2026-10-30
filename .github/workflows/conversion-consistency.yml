@@ -14,11 +14,15 @@ permissions:
   contents: read
 
 concurrency:
-  group: conversion-consistency-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  coverage:
+    uses: ./.github/workflows/ci-coverage.yml
+
   changes:
+    needs: coverage
     name: Select affected conversion-consistency contracts
     runs-on: ubuntu-latest
     outputs:
@@ -28,6 +32,7 @@ jobs:
         with:
           persist-credentials: false
       - id: select
+        if: needs.coverage.outputs.build == 'true'
         uses: ./.github/actions/contract-selection
         with:
           suite: conversion-consistency
@@ -48,7 +53,7 @@ jobs:
         with:
           dotnet-version: |
             8.0.426
-            10.0.113
+            10.0.114
       - uses: ./.github/actions/nuget-cache
       - name: Build the comparison tool
         run: dotnet build Build/ConversionConsistency/OfficeIMO.ConversionConsistency.Tool.csproj -c Release -f net8.0
@@ -86,3 +91,22 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 7
+
+  ci-validation:
+    name: CI validation
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [coverage, changes, compare]
+    steps:
+      - name: Require selection and selected jobs
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          results = json.loads(os.environ['RESULTS'])
+          failed = [k for k, v in results.items() if v['result'] not in ('success', 'skipped')]
+          failed += [k for k in ('coverage', 'changes') if results[k]['result'] != 'success']
+          print(json.dumps(results, indent=2))
+          sys.exit(bool(failed))
+          PY

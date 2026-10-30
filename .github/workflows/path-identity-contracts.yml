@@ -3,6 +3,7 @@ name: Physical path identity contracts
 on:
   pull_request:
     paths:
+      - '.github/workflows/ci-coverage.yml'
       - '.github/workflows/path-identity-contracts.yml'
       - 'OfficeIMO.Core/IO/**'
       - 'OfficeIMO.Core/Internal/OfficeTemporaryFile.cs'
@@ -19,70 +20,31 @@ on:
   push:
     branches:
       - master
-    paths:
-      - '.github/workflows/path-identity-contracts.yml'
-      - 'OfficeIMO.Core/IO/**'
-      - 'OfficeIMO.Core/Internal/OfficeTemporaryFile.cs'
-      - 'OfficeIMO.Core/OfficeIMO.Core.csproj'
-      - 'OfficeIMO.Email/OfficeIMO.Email.csproj'
-      - 'OfficeIMO.Email/Store/Mutation/**'
-      - 'OfficeIMO.Email/Store/Reading/**'
-      - 'OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj'
-      - 'OfficeIMO.Email.Tests/Store/Pst/PstMutationTransactionTests.cs'
-      - 'OfficeIMO.GoogleWorkspace.Drive/**'
-      - 'OfficeIMO.Shared.Tests/PathIdentityContracts.cs'
-      - 'OfficeIMO.Shared.Tests/PathIdentityPublicationContracts.cs'
-      - 'OfficeIMO.Tool/OfficeImoToolPathSafety.cs'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  coverage:
+    uses: ./.github/workflows/ci-coverage.yml
+
   path-identity:
+    needs: coverage
+    if: needs.coverage.outputs.build == 'true'
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - name: Windows x64 / net472
-            runner: windows-latest
-            framework: net472
-            architecture: x64
-          - name: Windows x64 / net8
-            runner: windows-latest
-            framework: net8.0
-            architecture: x64
-          - name: Windows x86 / net8
-            runner: windows-latest
-            framework: net8.0
-            architecture: x86
-          - name: Windows ARM64 / net8
-            runner: windows-11-arm
-            framework: net8.0
-            architecture: arm64
-          - name: Linux x64 / net8
-            runner: ubuntu-24.04
-            framework: net8.0
-            architecture: x64
-          - name: Linux ARM64 / net8
-            runner: ubuntu-24.04-arm
-            framework: net8.0
-            architecture: arm64
-          - name: macOS Intel / net8
-            runner: macos-15-intel
-            framework: net8.0
-            architecture: x64
-          - name: macOS ARM64 / net8
-            runner: macos-15
-            framework: net8.0
-            architecture: arm64
-          - name: macOS Rosetta x64 / net8
-            runner: macos-15
-            framework: net8.0
-            architecture: x64
+      matrix: >-
+        ${{ fromJSON(github.event_name == 'pull_request' &&
+        '{"include":[{"name":"Windows x64 / net472","runner":"windows-latest","framework":"net472","architecture":"x64"},{"name":"Windows x64 / net8","runner":"windows-latest","framework":"net8.0","architecture":"x64"},{"name":"Windows x86 / net8","runner":"windows-latest","framework":"net8.0","architecture":"x86"},{"name":"Windows ARM64 / net8","runner":"windows-11-arm","framework":"net8.0","architecture":"arm64"},{"name":"Linux x64 / net8","runner":"ubuntu-24.04","framework":"net8.0","architecture":"x64"},{"name":"Linux ARM64 / net8","runner":"ubuntu-24.04-arm","framework":"net8.0","architecture":"arm64"}]}' ||
+        '{"include":[{"name":"Windows x64 / net472","runner":"windows-latest","framework":"net472","architecture":"x64"},{"name":"Windows x64 / net8","runner":"windows-latest","framework":"net8.0","architecture":"x64"},{"name":"Windows x86 / net8","runner":"windows-latest","framework":"net8.0","architecture":"x86"},{"name":"Windows ARM64 / net8","runner":"windows-11-arm","framework":"net8.0","architecture":"arm64"},{"name":"Linux x64 / net8","runner":"ubuntu-24.04","framework":"net8.0","architecture":"x64"},{"name":"Linux ARM64 / net8","runner":"ubuntu-24.04-arm","framework":"net8.0","architecture":"arm64"},{"name":"macOS Intel / net8","runner":"macos-15-intel","framework":"net8.0","architecture":"x64"},{"name":"macOS ARM64 / net8","runner":"macos-15","framework":"net8.0","architecture":"arm64"},{"name":"macOS Rosetta x64 / net8","runner":"macos-15","framework":"net8.0","architecture":"x64"}]}') }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -93,7 +55,7 @@ jobs:
           architecture: ${{ matrix.architecture }}
           dotnet-version: |
             8.0.x
-            10.0.113
+            10.0.114
 
       - name: Restore focused contracts
         run: dotnet restore OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj
@@ -109,3 +71,22 @@ jobs:
 
       - name: Run PST mutation contracts
         run: dotnet test OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj -c Release -f ${{ matrix.framework }} --no-restore --filter FullyQualifiedName~PstMutationTransactionTests --nologo
+
+  ci-validation:
+    name: CI validation
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [coverage, path-identity]
+    steps:
+      - name: Require coverage and validation
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          results = json.loads(os.environ['RESULTS'])
+          failed = [k for k, v in results.items() if v['result'] not in ('success', 'skipped')]
+          failed += ['coverage'] if results['coverage']['result'] != 'success' else []
+          print(json.dumps(results, indent=2))
+          sys.exit(bool(failed))
+          PY

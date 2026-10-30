@@ -5,6 +5,7 @@ on:
     branches:
       - master
     paths:
+      - '.github/workflows/ci-coverage.yml'
       - 'OfficeIMO.Visio/**'
       - 'OfficeIMO.Core/**'
       - 'OfficeIMO.Examples/OfficeIMO.Examples.csproj'
@@ -41,12 +42,21 @@ permissions:
 env:
   DOTNET_VERSION: |
     8.0.426
-    10.0.113
+    10.0.114
   BUILD_CONFIGURATION: Release
   SHOWCASE_PATH: OfficeIMO.Examples/bin/Release/net8.0/Documents/Visio Showcase
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  coverage:
+    uses: ./.github/workflows/ci-coverage.yml
+
   visio-showcase:
+    needs: coverage
+    if: needs.coverage.outputs.build == 'true'
     name: Generate native preview bundle
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -144,3 +154,22 @@ jobs:
             ${{ env.SHOWCASE_PATH }}/**/*.vsdx
             ${{ env.SHOWCASE_PATH }}/Preview/**
             ${{ env.SHOWCASE_PATH }}/Structural Proof/**
+
+  ci-validation:
+    name: CI validation
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [coverage, visio-showcase, visio-desktop-showcase]
+    steps:
+      - name: Require coverage and validation
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          results = json.loads(os.environ['RESULTS'])
+          failed = [k for k, v in results.items() if v['result'] not in ('success', 'skipped')]
+          failed += ['coverage'] if results['coverage']['result'] != 'success' else []
+          print(json.dumps(results, indent=2))
+          sys.exit(bool(failed))
+          PY

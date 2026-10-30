@@ -18,6 +18,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             PdfCore.PdfPageNumberStyle? style = MapNativePageNumberStyle(pageNumberType?.Format?.Value);
+            page.Options.LayoutPageNumberStyle = style ?? PdfCore.PdfPageNumberStyle.Arabic;
+            page.Options.LayoutPageNumberStyleUnsupported = pageNumberType?.Format?.Value != null
+                && (!style.HasValue || pageNumberType.Format.Value == W.NumberFormatValues.DecimalZero);
             if (style.HasValue) {
                 page.PageNumberStyle(style.Value);
             }
