@@ -65,8 +65,11 @@ byte[] detachedBytes = result.Value;
 `ToPubBytes`, `ToPubBytesResult`, `Save` and `SaveAsync` use the same bounded native
 codec. Unchanged semantic content produces a byte-exact copy of the original
 source. Supported edits include existing ordinary frame/shape/picture bounds,
-existing solid scalar paint slots, and a single-story text profile with unchanged
-paragraph count and bounded size/bold changes. The [support contract](SUPPORT.md)
+existing solid scalar paint slots, and ordinary text stories with unchanged
+paragraph counts and bounded size/bold changes. Changed stories require one
+existing frame each. The admitted native profiles retain their existing
+formatting-page allocation; page capacity and directory-layout restrictions
+apply. The [support contract](SUPPORT.md)
 defines the precise restrictions. Other in-memory edits, including new objects,
 image replacement, table changes and page/master relationships, cannot be saved
 as native PUB through this profile. Source-free native creation is unavailable.

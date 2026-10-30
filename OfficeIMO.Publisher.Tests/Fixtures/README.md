@@ -41,7 +41,13 @@ TextLong use identical page geometry, frame geometry and Arial formatting; their
 only authored difference is the text. TextParagraphs has one Arial 12-point story
 with an empty paragraph between two text paragraphs. Its retained character
 formatting covers that empty paragraph's CR; the final story CR has a separate
-native character range. Newsletter adds a two-page linked story
+native character range. TextStories has three separate stories, with an empty
+paragraph inside its middle story. TextFormattingPages retains 96 paragraphs,
+including overflow beyond its sole text frame, across two native paragraph-formatting
+pages. ZeroAnchors places each client-anchor coordinate at native zero: native
+storage omits the corresponding property instead of writing an explicit zero.
+Its four text frames qualify recovery of those omitted coordinates.
+Newsletter adds a two-page linked story
 and a picture. TableLabel adds a custom page size, styled 2-by-2 table, picture
 and Polish/Greek characters. Brochure adds two 792-by-612-point landscape sides,
 each with three 264-point panels, explicit text frames and panel markers.
@@ -94,7 +100,10 @@ also validates an OfficeIMO-written candidate:
 Validation takes a byte-identical task-owned copy, opens it read-only without
 adding it to recent files, and captures its inventory and native PDF before any
 resave. It then opens only the task-owned copy writable, saves a separate PUB and
-reopens that result. The original candidate's hash must remain unchanged. COM
+reopens that result. The original candidate's hash must remain unchanged.
+Frame inventories read the visible `TextFrame.TextRange` prefix; they do not
+establish that overflow was retained. Complete overflowing stories require a
+separate check of the native-resaved Quill text and story-length tables. COM
 Open success does not expose whether Publisher repaired a document, so the report
 keeps repair status unassessed. Native UI observation is separate evidence.
 

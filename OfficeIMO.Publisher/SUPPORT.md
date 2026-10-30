@@ -93,17 +93,23 @@ unchanged. Native bytes and compound metadata are retained privately and remain
 inert. The import-time semantic baseline and exact source OfficeArt bindings
 support the native source-save path: unchanged content copies the
 original bytes; bounded existing anchor and solid-scalar edits replace the
-OfficeArt stream. A single-story profile with unchanged paragraph count can
+OfficeArt stream. Admitted ordinary-story profiles with unchanged paragraph counts can
 replace text of different
 lengths and edit font size/bold through retained per-run OPLs, Quill text, story lengths,
 formatting endpoints and page indexes. A single original run can split into
-styled runs, and matching run counts can be edited again within one formatting
-page. In multi-paragraph stories, existing empty paragraphs can remain empty or
+styled runs, and matching run counts can be edited again. Each changed story has
+one existing frame; story identities and order remain fixed. Source layouts have
+one directory with at most 20 descriptors and no table stories. Multiple existing
+character/paragraph formatting pages retain their allocation. Repeated
+byte-identical OPLs can share native page storage, with all story lengths, range
+endpoints, page indexes and later-page start headers remapped. The original
+single-story/one-page path retains its existing encoding. In multi-paragraph stories, existing empty paragraphs can remain empty or
 gain text. Each paragraph's
 native definition and endpoint are retained independently; character ranges can
 cross paragraph boundaries. Making a paragraph empty refuses output when its
 source CR has a distinct OPL from the last visible run. Paragraph-count changes,
-unsupported run merges, other formatting and page-capacity overflow refuse
+unsupported run merges, linked changed stories, other formatting, chained
+directories and insufficient existing page capacity refuse
 output. Edited output removes the optional [SummaryInformation thumbnail](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-oleps/f7933d28-2cc4-4b36-bc23-8861cbcd37c4) so it
 cannot retain that stale content preview. The shared OLE property-set editor
 retains the other raw property values and header; unrelated logical streams and
@@ -146,6 +152,22 @@ SummaryInformation values. The `publicSaving` section of the
 [qualification record](../Build/Publisher/WriterProbe/qualification.json) identifies
 the exact source, codec and artifact hashes. This evidence does not establish
 repair-free opening or broader native editing.
+
+Eight multiple-story/page specimens qualify separate first, middle and last story
+edits, simultaneous edits, 96-paragraph growth/shrinkage across two paragraph-formatting
+pages, and re-editing after native resave. All pass native open, PDF export,
+save-as and reopen. Complete stories, including overflow, survive in Publisher's
+resaved Quill storage; native frame inventories expose the visible prefix.
+Native PDF pixels match across resave, and independent checks retain paragraph
+OPLs, other character tokens, unrelated Quill payloads, logical streams and
+directory metadata. The `multipleStoryEditing` qualification record identifies
+these exact specimens and their scope.
+
+Native client anchors can omit zero-valued coordinates. The independently
+produced ZeroAnchors control qualifies all four coordinate positions: the reader
+recovers all four text frames with their native point bounds. This does not create
+missing physical slots for native bounds patching; that operation still requires
+the complete original slot set.
 
 Six exact single-paragraph specimens of this profile have native
 read-only open, PDF export, save-as and read-only reopen evidence in Microsoft

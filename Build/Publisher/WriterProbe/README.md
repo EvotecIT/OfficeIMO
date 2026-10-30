@@ -108,9 +108,10 @@ A single original run can split into styled runs. A styled source can be edited
 again with the same run count, retaining each original run's other OPL fields.
 Font sizes require exact native units and the supported range; ambiguous native
 size/bold tokens and formatting-page overflow refuse output. The
-observed modern profile has one frame, no table story, one Quill directory, the
+original single-story modern profile has one frame, no table story, one Quill directory, the
 original 15 tag/ID records, single character/paragraph formatting pages and
-matching BTE indexes. Other profiles are refused. Growth moves the following
+matching BTE indexes. The separately qualified multiple-story/page profile below
+extends this admission. Growth moves the following
 payload by whole 512-byte pages, retaining formatting-page alignment; shrinking
 clears the former text tail. The shared Publisher formatting-page codec emits
 changed run boundaries and OPLs. Unchanged OPL tokens and opaque style/library payloads stay unchanged while
@@ -123,16 +124,24 @@ cached-record semantics remain unassessed.
 
 `edit-paragraphs` reads one run array per existing paragraph, also bounded to
 64 KiB. It retains the paragraph count, ordering and paragraph attributes.
-Within the same single-story/frame and one-page formatting profile, text can
+Within admitted ordinary-story profiles, text can
 grow or shrink, existing empty paragraphs can remain empty or gain text, and
 size/bold edits use each original native range. Character ranges can cross
 paragraph boundaries; each paragraph retains its own FDPP definition and end.
-Adjacent identical character OPLs coalesce without changing the shared page
-encoder. Making a paragraph empty is refused when its source CR has a different
+Adjacent identical character OPLs coalesce. Making a paragraph empty is refused when its source CR has a different
 OPL from the last visible run, because that would substitute an unqualified
 typing style. Formatting-page overflow also refuses output.
 
-Other formatting changes, run merges, paragraph-count changes, multiple stories, tables, image replacement,
+The multiple-story/page path retains existing story identities and order, requires
+one frame per changed story, and admits one directory with at most 20 descriptors
+and no table stories. It verifies every FDPC/FDPP page against its BTE index,
+retains the existing page counts and shares byte-identical OPLs within each page.
+Story lengths, endpoints, page offsets and later-page header starts are remapped;
+unrelated Quill payloads remain byte-identical. Chained directories and output
+that cannot fit the existing formatting pages are refused. The original
+single-story/one-page encoding path remains unchanged.
+
+Other formatting changes, run merges, paragraph-count changes, tables, image replacement,
 page/master relationships, new objects and source-free publications have no writer in this path. Every
 current semantic family is compared with the import baseline before output;
 source-byte retention does not permit dropping unsupported edits. Each new
