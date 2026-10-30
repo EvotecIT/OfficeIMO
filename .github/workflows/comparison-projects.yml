@@ -89,7 +89,7 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-          global-json-file: global.json
+          global-json-file: ${{ hashFiles('global.json') != '' && 'global.json' || '' }}
       - name: Validate optional control revision
         if: inputs.control_source_ref != ''
         shell: pwsh
@@ -108,7 +108,7 @@ jobs:
           path: Ignore/StaticQualificationControl
           persist-credentials: false
       - name: Setup control revision SDK
-        if: inputs.suite == 'html-static' && inputs.control_source_ref != ''
+        if: inputs.suite == 'html-static' && inputs.control_source_ref != '' && hashFiles('Ignore/StaticQualificationControl/global.json') != ''
         uses: actions/setup-dotnet@v6
         with:
           global-json-file: Ignore/StaticQualificationControl/global.json
