@@ -6,24 +6,9 @@ namespace OfficeIMO.Tests;
 
 public class DrawingChartBubbleTests {
     [Fact]
-    public void OfficeChartSeries_CreateBubbleRetainsBinaryCompatibleFactory() {
-        Type[] legacyParameterTypes = {
-            typeof(string),
-            typeof(IEnumerable<double>),
-            typeof(IEnumerable<double>),
-            typeof(IEnumerable<double>),
-            typeof(OfficeColor?),
-            typeof(IEnumerable<OfficeColor?>),
-            typeof(bool),
-            typeof(OfficeColor?),
-            typeof(double?)
-        };
-
-        Assert.NotNull(typeof(OfficeSeries).GetMethod(
-            nameof(OfficeSeries.CreateBubble),
-            legacyParameterTypes));
+    public void OfficeChartSeries_CreateBubbleKeepsOutlineDefaultsAndExplicitVisibility() {
         Assert.True(OfficeSeries.CreateBubble(
-            "Legacy", new[] { 1D }, new[] { 2D }, new[] { 3D })
+            "Default", new[] { 1D }, new[] { 2D }, new[] { 3D })
             .ShowMarkerOutline);
         Assert.False(OfficeSeries.CreateBubble(
             "Explicit", new[] { 1D }, new[] { 2D }, new[] { 3D },
@@ -117,7 +102,7 @@ public class DrawingChartBubbleTests {
                 new[] { 25D, 100D },
                 color,
                 markerOutlineColor: OfficeColor.Parse("#112233"),
-                markerOutlineWidth: 12D)
+                markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(12D))
         });
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(
             new OfficeChartSnapshot(
@@ -168,7 +153,7 @@ height: global::OfficeIMO.OfficeLength.Points(260D),
             OfficeSeries.CreateBubble(
                 "Outlined", new[] { 1D }, new[] { 1D },
                 new[] { 100D }, color,
-                markerOutlineWidth: 1000D)
+                markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(1000D))
         });
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(
             new OfficeChartSnapshot(
@@ -213,7 +198,7 @@ height: global::OfficeIMO.OfficeLength.Points(60D),
                 new[] { 0D, 100D }, OfficeColor.Parse("#2A9D8F"));
             if (styleZeroBubble)
                 series = series.WithPointStyles(new OfficeChartPointStyle?[] {
-                    new(outlineWidth: 1584D), null
+                    new(outlineWidth: global::OfficeIMO.OfficeLength.Points(1584D)), null
                 });
             return OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
                 "Bubbles", null, OfficeChartType.Bubble,
@@ -412,7 +397,7 @@ height: global::OfficeIMO.OfficeLength.Points(260D)));
                 new[] { 1D },
                 new[] { 2D },
                 new[] { 4D },
-                markerOutlineWidth: outlineWidth));
+                markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(outlineWidth)));
     }
 
     private static OfficeDrawing RenderBubbles(double scale,

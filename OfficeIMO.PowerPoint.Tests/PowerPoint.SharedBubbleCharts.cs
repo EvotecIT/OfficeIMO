@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(OfficeColor.Parse("#D62828"),
                         Assert.Single(refreshed.Data.Series).PointColors![0]);
                     Assert.Equal(2.5D,
-                        Assert.Single(refreshed.Data.Series).MarkerOutlineWidth);
+                        Assert.Single(refreshed.Data.Series).MarkerOutlineWidth?.ToPoints());
                     Assert.Equal(OfficeColor.Parse("#654321"),
                         Assert.Single(refreshed.Data.Series).MarkerOutlineColor);
                     Assert.Equal(145D, refreshed.BubbleScalePercent);
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(OfficeColor.Parse("#654321"),
                         Assert.Single(pdfSnapshot.Data.Series).MarkerOutlineColor);
                     Assert.Equal(2.5D,
-                        Assert.Single(pdfSnapshot.Data.Series).MarkerOutlineWidth);
+                        Assert.Single(pdfSnapshot.Data.Series).MarkerOutlineWidth?.ToPoints());
                     C.BubbleChart preservedBubble = authoredChartPart.ChartSpace!
                         .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!
                         .GetFirstChild<C.BubbleChart>()!;
@@ -134,7 +134,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(new[] { 12D, 24D, 36D }, series.Values);
                     Assert.Equal(new[] { 16D, 36D, 64D }, series.BubbleSizes);
                     Assert.Equal(OfficeColor.Parse("#F4A261"), series.PointColors![2]);
-                    Assert.Equal(2.5D, series.MarkerOutlineWidth);
+                    Assert.Equal(2.5D, series.MarkerOutlineWidth?.ToPoints());
                     Assert.Equal(OfficeColor.Parse("#654321"), series.MarkerOutlineColor);
                     Assert.Equal(145D, snapshot.BubbleScalePercent);
                     Assert.Equal(OfficeChartBubbleSizeMode.Width,
@@ -182,7 +182,7 @@ namespace OfficeIMO.Tests {
                     new[] { 4D },
                     color: OfficeColor.Parse("#112233"),
                     markerOutlineColor: outlineColor,
-                    markerOutlineWidth: 1.5D)
+                    markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(1.5D))
             });
 
             PowerPointChart chart = presentation.AddSlide().AddChart(
@@ -1922,7 +1922,7 @@ namespace OfficeIMO.Tests {
                         seriesColor, pointColors,
                         showInLegend: true,
                         markerOutlineColor: markerOutlineColor,
-                        markerOutlineWidth: markerOutlineWidth,
+                        markerOutlineWidth: markerOutlineWidth is double markerOutlineWidthPoints97493 ? global::OfficeIMO.OfficeLength.Points(markerOutlineWidthPoints97493) : (global::OfficeIMO.OfficeLength?)null,
                         showMarkerOutline: showMarkerOutline)
                 });
     }

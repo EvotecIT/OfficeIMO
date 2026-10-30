@@ -872,7 +872,7 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static double GetSeriesStrokeWidth(OfficeSeries series, double fallbackWidth) =>
-        series.SeriesStyle?.OutlineWidth ?? (series.StrokeWidth.HasValue ? Math.Max(0.1D, series.StrokeWidth.Value) : fallbackWidth);
+        series.SeriesStyle?.OutlineWidth?.ToPoints() ?? (series.StrokeWidth.HasValue ? Math.Max(0.1D, series.StrokeWidth.Value.ToPoints()) : fallbackWidth);
 
     private static OfficeStrokeDashStyle GetSeriesStrokeDashStyle(OfficeSeries series) =>
         series.StrokeDashStyle ?? OfficeStrokeDashStyle.Solid;
@@ -889,7 +889,7 @@ public static partial class OfficeChartDrawingRenderer {
         // foreground rather than the hatch background for their strokes.
         OfficeColor lineMarkerStroke = pointStyle?.OutlineColor ?? pointStyle?.HatchColor ??
             pointStyle?.FillColor ?? series.MarkerOutlineColor ?? color;
-        double markerStrokeWidth = pointStyle?.ShowOutline == false ? 0 : pointStyle?.OutlineWidth ?? series.MarkerOutlineWidth ?? strokeWidth;
+        double markerStrokeWidth = pointStyle?.ShowOutline == false ? 0 : pointStyle?.OutlineWidth?.ToPoints() ?? series.MarkerOutlineWidth?.ToPoints() ?? strokeWidth;
         if (series.MarkerShape == OfficeChartMarkerShape.Dash) {
             AddShape(drawing, OfficeShape.Line(0D, 0D, diameter, 0D), left, point.Y, null, lineMarkerStroke, markerStrokeWidth);
             return;

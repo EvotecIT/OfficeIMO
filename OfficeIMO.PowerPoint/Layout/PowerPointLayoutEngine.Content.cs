@@ -570,7 +570,7 @@ namespace OfficeIMO.PowerPoint {
                     or OfficeChartType.Scatter or OfficeChartType.Radar;
                 string accent = context.Theme.Accent(i + 1);
                 if (line) {
-                    if (series.ConnectLine) result.SetSeriesLineColor(i, accent, OfficeLength.Points(series.StrokeWidth ?? 2D));
+                    if (series.ConnectLine) result.SetSeriesLineColor(i, accent, OfficeLength.Points(series.StrokeWidth?.ToPoints() ?? 2D));
                 }
                 else result.SetSeriesFillColor(i, accent);
             }

@@ -126,7 +126,7 @@ public sealed class DrawingChartSeriesJoinTests {
     }
 
     private static OfficeChartPointStyle Paint(OfficeStrokeLineJoin? join, bool noFill = true) =>
-        new(noFill: noFill, outlineColor: Ink, outlineWidth: 16, showOutline: true, outlineJoin: join);
+        new(noFill: noFill, outlineColor: Ink, outlineWidth: global::OfficeIMO.OfficeLength.Points(16), showOutline: true, outlineJoin: join);
 
     private static OfficeDrawing Render(OfficeChartType kind, double[] values, OfficeStrokeLineJoin? join,
         bool bounded = false, bool noFill = true) {

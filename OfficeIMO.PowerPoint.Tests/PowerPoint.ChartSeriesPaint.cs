@@ -28,7 +28,7 @@ public sealed class PowerPointChartSeriesPaintTests {
         var series = new OfficeSeries("Paint", new[] { 2d, 4d }, null, OfficeColor.Blue,
             null, true, markerSize: 10, markerShape: OfficeChartMarkerShape.Circle,
             strokeDashStyle: OfficeStrokeDashStyle.Dash)
-            .WithSeriesStyle(new OfficeChartPointStyle(outlineColor: OfficeColor.Red, outlineWidth: 3));
+            .WithSeriesStyle(new OfficeChartPointStyle(outlineColor: OfficeColor.Red, outlineWidth: global::OfficeIMO.OfficeLength.Points(3)));
         if (pointOverride) series = series.WithPointStyles(new OfficeChartPointStyle?[] { new(fillColor: OfficeColor.Green), null });
         using var document = PowerPointDocument.Create();
         document.AddSlide().AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B" }, new[] { series }));

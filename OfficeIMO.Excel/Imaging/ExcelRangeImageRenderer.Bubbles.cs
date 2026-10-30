@@ -11,6 +11,6 @@ internal static partial class ExcelRangeImageRenderer {
             callerPalette && series.HasAutomaticColor ? null : ResolveArgb(series.SeriesColorArgb),
             ResolvePointColors(series.PointColorArgb),
             markerOutlineColor: ResolveArgb(series.MarkerOutlineColorArgb),
-            markerOutlineWidth: series.MarkerOutlineWidth?.ToPoints() ?? series.SeriesLineWidth?.ToPoints())
+            markerOutlineWidth: series.MarkerOutlineWidth ?? series.SeriesLineWidth)
             .WithSeriesStyle(series.SeriesStyle).WithPointStyles(series.PointStyles);
 }

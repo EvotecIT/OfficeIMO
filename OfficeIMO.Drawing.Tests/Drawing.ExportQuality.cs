@@ -42,7 +42,7 @@ public sealed class DrawingExportQualityTests {
     public void SmallAuthoredChartPreservesAbsoluteTitleFontSize() {
         var snapshot = new OfficeChartSnapshot("Small chart", "Title", OfficeChartType.Line,
             new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 3d, 4d }, null, null, null,
-                true, markerSize: 10, markerShape: OfficeChartMarkerShape.Circle, strokeWidth: 2) }), global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(30),
+                true, markerSize: 10, markerShape: OfficeChartMarkerShape.Circle, strokeWidth: global::OfficeIMO.OfficeLength.Points(2)) }), global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(30),
             style: new OfficeChartStyle(titleFontSize: 12), layout: new OfficeChartLayout(showLegend: false));
         var drawing = OfficeChartDrawingRenderer.Render(snapshot, useMinimumCanvas: false);
         var title = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Title");

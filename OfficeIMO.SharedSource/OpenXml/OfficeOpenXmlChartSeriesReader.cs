@@ -266,8 +266,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 pointColors, showMarkers: showMarkers,
                 connectLine: connectLine,
                 markerSize: markerSize, markerShape: markerShape,
-                markerOutlineColor: markerOutlineColor, markerOutlineWidth: markerOutlineWidth,
-                strokeWidth: width, strokeDashStyle: ReadDash(outline), renderKind: kind, axisGroup: axisGroup)
+                markerOutlineColor: markerOutlineColor, markerOutlineWidth: markerOutlineWidth.HasValue ? OfficeLength.Points(markerOutlineWidth.Value) : (OfficeLength?)null,
+                strokeWidth: width.HasValue ? OfficeLength.Points(width.Value) : (OfficeLength?)null, strokeDashStyle: ReadDash(outline), renderKind: kind, axisGroup: axisGroup)
                 .WithSeriesStyle(seriesPaint)
                 .WithPointStyles(styles);
             if (kind is OfficeChartType.Pie or OfficeChartType.Doughnut) {

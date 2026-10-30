@@ -22,6 +22,10 @@ internal static class OfficeDiagramDrawingRenderer {
     public static OfficeDrawing Render(OfficeDiagramSnapshot snapshot,
         bool includeBackground) {
         if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
+        return RenderScene(new DiagramScene(snapshot), includeBackground);
+    }
+
+    private static OfficeDrawing RenderScene(DiagramScene snapshot, bool includeBackground) {
         var drawing = new OfficeDrawing(snapshot.WidthPoints,
             snapshot.HeightPoints);
         if (includeBackground) {
@@ -48,7 +52,7 @@ internal static class OfficeDiagramDrawingRenderer {
     }
 
     private static List<NodeBox> LayoutProcess(
-        OfficeDiagramSnapshot snapshot) {
+        DiagramScene snapshot) {
         int count = snapshot.Nodes.Count;
         double ratio = snapshot.WidthPoints / snapshot.HeightPoints;
         int columns = Math.Max(1, Math.Min(count,
@@ -73,7 +77,7 @@ internal static class OfficeDiagramDrawingRenderer {
     }
 
     private static List<NodeBox> LayoutHierarchy(
-        OfficeDiagramSnapshot snapshot) {
+        DiagramScene snapshot) {
         int count = snapshot.Nodes.Count;
         double rootBandHeight = snapshot.HeightPoints * 0.44D;
         double rootWidth = Math.Min(snapshot.WidthPoints * 0.36D,
@@ -111,7 +115,7 @@ internal static class OfficeDiagramDrawingRenderer {
     }
 
     private static List<NodeBox> LayoutCycle(
-        OfficeDiagramSnapshot snapshot) {
+        DiagramScene snapshot) {
         int count = snapshot.Nodes.Count;
         double nodeWidth = Math.Min(snapshot.WidthPoints * 0.25D,
             Math.Max(16D, snapshot.WidthPoints / Math.Max(2.5D, count)));
@@ -137,7 +141,7 @@ internal static class OfficeDiagramDrawingRenderer {
     }
 
     private static List<NodeBox> LayoutList(
-        OfficeDiagramSnapshot snapshot) {
+        DiagramScene snapshot) {
         int count = snapshot.Nodes.Count;
         double cellHeight = snapshot.HeightPoints / count;
         double nodeWidth = Math.Max(1D, snapshot.WidthPoints - 20D);
@@ -154,7 +158,7 @@ internal static class OfficeDiagramDrawingRenderer {
     }
 
     private static List<NodeBox> LayoutMatrix(
-        OfficeDiagramSnapshot snapshot) {
+        DiagramScene snapshot) {
         int count = snapshot.Nodes.Count;
         int columns = Math.Max(1, checked((int)Math.Ceiling(Math.Sqrt(count))));
         int rows = checked((count + columns - 1) / columns);
@@ -177,7 +181,7 @@ internal static class OfficeDiagramDrawingRenderer {
     }
 
     private static List<NodeBox> LayoutPyramid(
-        OfficeDiagramSnapshot snapshot) {
+        DiagramScene snapshot) {
         int count = snapshot.Nodes.Count;
         var result = new List<NodeBox>(count);
         for (int index = 0; index < count; index++) {
@@ -192,7 +196,7 @@ internal static class OfficeDiagramDrawingRenderer {
     }
 
     private static List<NodeBox> LayoutRelationship(
-        OfficeDiagramSnapshot snapshot) {
+        DiagramScene snapshot) {
         int count = snapshot.Nodes.Count;
         double nodeWidth = Math.Min(snapshot.WidthPoints * 0.27D,
             Math.Max(16D, snapshot.WidthPoints / Math.Max(2.8D, count)));
@@ -220,7 +224,7 @@ internal static class OfficeDiagramDrawingRenderer {
     }
 
     private static void AddConnectors(OfficeDrawing drawing,
-        OfficeDiagramSnapshot snapshot, IReadOnlyList<NodeBox> nodes) {
+        DiagramScene snapshot, IReadOnlyList<NodeBox> nodes) {
         if (nodes.Count < 2) return;
         OfficeDiagramKind kind = snapshot.Kind;
         OfficeColor connectorColor = snapshot.Style?.ConnectorColor
@@ -286,7 +290,7 @@ internal static class OfficeDiagramDrawingRenderer {
     }
 
     private static void AddNodes(OfficeDrawing drawing,
-        OfficeDiagramSnapshot snapshot, IReadOnlyList<NodeBox> nodes) {
+        DiagramScene snapshot, IReadOnlyList<NodeBox> nodes) {
         for (int index = 0; index < nodes.Count; index++) {
             NodeBox node = nodes[index];
             OfficeShape shape;
@@ -323,6 +327,22 @@ internal static class OfficeDiagramDrawingRenderer {
                 OfficeTextVerticalAlignment.Center, wrapText: true,
                 shrinkToFit: true);
         }
+    }
+
+    private sealed class DiagramScene {
+        internal DiagramScene(OfficeDiagramSnapshot snapshot) {
+            WidthPoints = snapshot.Width.ToPoints();
+            HeightPoints = snapshot.Height.ToPoints();
+            Kind = snapshot.Kind;
+            Nodes = snapshot.Nodes;
+            Style = snapshot.Style;
+        }
+
+        internal double WidthPoints { get; }
+        internal double HeightPoints { get; }
+        internal OfficeDiagramKind Kind { get; }
+        internal IReadOnlyList<string> Nodes { get; }
+        internal OfficeDiagramStyle? Style { get; }
     }
 
     private readonly struct NodeBox {

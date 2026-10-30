@@ -60,7 +60,7 @@ public sealed class WordChartPointStylesTests {
                 WordChart authoredChart = authored.AddChart("Status",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(180));
                 authoredChart.AddPie("Pass", 3).AddPie("Unknown", 2).AddPie("Fail", 1);
                 authoredChart.SetDataPointStyle(0, 0, new(showOutline: true));
-                authoredChart.SetDataPointStyle(0, 1, new(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2,
+                authoredChart.SetDataPointStyle(0, 1, new(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: global::OfficeIMO.OfficeLength.Points(2),
                     outlineJoin: OfficeStrokeLineJoin.Round));
                 authoredChart.SetDataPointStyle(0, 2, new(OfficeColor.White, hatch: OfficeChartHatchPattern.WideForwardDiagonal,
                     hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black));

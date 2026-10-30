@@ -64,36 +64,16 @@ public sealed partial class OfficeSeries {
     /// <param name="markerSize">Optional source-defined marker diameter in drawing units.</param>
     /// <param name="markerShape">Optional source-defined marker shape.</param>
     /// <param name="markerOutlineColor">Optional source-defined marker outline color.</param>
-    /// <param name="markerOutlineWidth">Optional source-defined marker outline width in points, greater than zero and at most 1584.</param>
-    /// <param name="strokeWidth">Optional source-defined series stroke width in points, greater than zero and at most 1584.</param>
+    /// <param name="markerOutlineWidth">Optional source-defined marker outline physical width, greater than zero and at most 1584 points.</param>
+    /// <param name="strokeWidth">Optional source-defined series stroke physical width, greater than zero and at most 1584 points.</param>
     /// <param name="strokeDashStyle">Optional source-defined series stroke dash style.</param>
     /// <param name="renderKind">Optional per-series chart kind used by mixed/combo chart renderers.</param>
     /// <param name="axisGroup">Primary or secondary value axis used by combo chart renderers.</param>
-    public OfficeSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors, bool showMarkers, bool showInLegend = true, bool connectLine = true, int? markerSize = null, OfficeChartMarkerShape? markerShape = null, OfficeColor? markerOutlineColor = null, double? markerOutlineWidth = null, double? strokeWidth = null, OfficeStrokeDashStyle? strokeDashStyle = null, OfficeChartType? renderKind = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)
+    public OfficeSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors, bool showMarkers, bool showInLegend = true, bool connectLine = true, int? markerSize = null, OfficeChartMarkerShape? markerShape = null, OfficeColor? markerOutlineColor = null, OfficeLength? markerOutlineWidth = null, OfficeLength? strokeWidth = null, OfficeStrokeDashStyle? strokeDashStyle = null, OfficeChartType? renderKind = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)
         : this(name, values, xValues, bubbleSizes: null, color, pointColors, showMarkers, showInLegend,
             connectLine, markerSize, markerShape, markerOutlineColor, markerOutlineWidth, strokeWidth,
             strokeDashStyle, renderKind, axisGroup) {
     }
-
-    /// <summary>
-    /// Creates a bubble-chart series with numeric X/Y coordinates and per-point bubble sizes.
-    /// </summary>
-    /// <param name="name">Display name for the series.</param>
-    /// <param name="xValues">Numeric X-axis values.</param>
-    /// <param name="yValues">Numeric Y-axis values.</param>
-    /// <param name="bubbleSizes">Non-negative bubble sizes aligned with the X/Y values.</param>
-    /// <param name="color">Optional source-defined series color.</param>
-    /// <param name="pointColors">Optional source-defined colors aligned with individual bubbles.</param>
-    /// <param name="showInLegend">Whether this series should appear in rendered legends.</param>
-    /// <param name="markerOutlineColor">Optional source-defined bubble outline color.</param>
-    /// <param name="markerOutlineWidth">Optional source-defined bubble outline width in points, greater than zero and at most 1584.</param>
-    public static OfficeSeries CreateBubble(string name, IEnumerable<double> xValues,
-        IEnumerable<double> yValues, IEnumerable<double> bubbleSizes, OfficeColor? color,
-        IEnumerable<OfficeColor?>? pointColors, bool showInLegend,
-        OfficeColor? markerOutlineColor, double? markerOutlineWidth) =>
-        CreateBubble(name, xValues, yValues, bubbleSizes, color, pointColors,
-            showInLegend, markerOutlineColor, markerOutlineWidth,
-            showMarkerOutline: true);
 
     /// <summary>
     /// Creates a bubble-chart series with explicit control over whether bubble outlines are rendered.
@@ -106,12 +86,12 @@ public sealed partial class OfficeSeries {
     /// <param name="pointColors">Optional source-defined colors aligned with individual bubbles.</param>
     /// <param name="showInLegend">Whether this series should appear in rendered legends.</param>
     /// <param name="markerOutlineColor">Optional source-defined bubble outline color.</param>
-    /// <param name="markerOutlineWidth">Optional source-defined bubble outline width in points, greater than zero and at most 1584.</param>
+    /// <param name="markerOutlineWidth">Optional source-defined bubble outline physical width, greater than zero and at most 1584 points.</param>
     /// <param name="showMarkerOutline">Whether the bubble outline should be rendered.</param>
     public static OfficeSeries CreateBubble(string name, IEnumerable<double> xValues,
         IEnumerable<double> yValues, IEnumerable<double> bubbleSizes, OfficeColor? color = null,
         IEnumerable<OfficeColor?>? pointColors = null, bool showInLegend = true,
-        OfficeColor? markerOutlineColor = null, double? markerOutlineWidth = null,
+        OfficeColor? markerOutlineColor = null, OfficeLength? markerOutlineWidth = null,
         bool showMarkerOutline = true) {
         if (xValues == null) throw new ArgumentNullException(nameof(xValues));
         if (yValues == null) throw new ArgumentNullException(nameof(yValues));
@@ -129,7 +109,7 @@ public sealed partial class OfficeSeries {
         IEnumerable<double>? bubbleSizes, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors,
         bool showMarkers, bool showInLegend, bool connectLine, int? markerSize,
         OfficeChartMarkerShape? markerShape, OfficeColor? markerOutlineColor,
-        double? markerOutlineWidth, double? strokeWidth, OfficeStrokeDashStyle? strokeDashStyle,
+        OfficeLength? markerOutlineWidth, OfficeLength? strokeWidth, OfficeStrokeDashStyle? strokeDashStyle,
         OfficeChartType? renderKind, OfficeChartAxisGroup axisGroup,
         bool showMarkerOutline = true) {
         if (values == null) {
@@ -285,14 +265,14 @@ public sealed partial class OfficeSeries {
     /// <summary>Optional source-defined marker outline color.</summary>
     public OfficeColor? MarkerOutlineColor { get; }
 
-    /// <summary>Optional source-defined marker outline width in points, greater than zero and at most 1584.</summary>
-    public double? MarkerOutlineWidth { get; }
+    /// <summary>Optional source-defined marker outline physical width, greater than zero and at most 1584 points.</summary>
+    public OfficeLength? MarkerOutlineWidth { get; }
 
     /// <summary>Whether the marker or bubble outline should be rendered.</summary>
     public bool ShowMarkerOutline { get; }
 
-    /// <summary>Optional source-defined series stroke width in points, greater than zero and at most 1584.</summary>
-    public double? StrokeWidth { get; }
+    /// <summary>Optional source-defined series stroke physical width, greater than zero and at most 1584 points.</summary>
+    public OfficeLength? StrokeWidth { get; }
 
     /// <summary>Optional source-defined series stroke dash style.</summary>
     public OfficeStrokeDashStyle? StrokeDashStyle { get; }

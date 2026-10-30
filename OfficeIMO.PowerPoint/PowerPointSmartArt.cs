@@ -76,7 +76,7 @@ namespace OfficeIMO.PowerPoint {
                     return false;
                 }
                 snapshot = new OfficeDiagramSnapshot(Name, kind, nodes,
-                    Width.ToPoints(), Height.ToPoints(), style);
+                    Width, Height, style);
                 return true;
             } catch {
                 snapshot = null!;

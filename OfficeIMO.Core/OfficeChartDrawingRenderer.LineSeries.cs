@@ -81,7 +81,7 @@ public static partial class OfficeChartDrawingRenderer {
                         if (x1 == x2 && y1 == y2) continue;
                         double minX = Math.Min(x1, x2);
                         double minY = Math.Min(y1, y2);
-                        AddShape(geometry, OfficeShape.Line(x1 - minX, y1 - minY, x2 - minX, y2 - minY), minX, minY, null, currentSeries.SeriesStyle?.OutlineColor ?? color, currentSeries.SeriesStyle?.OutlineWidth ?? strokeWidth, dashStyle);
+                        AddShape(geometry, OfficeShape.Line(x1 - minX, y1 - minY, x2 - minX, y2 - minY), minX, minY, null, currentSeries.SeriesStyle?.OutlineColor ?? color, currentSeries.SeriesStyle?.OutlineWidth?.ToPoints() ?? strokeWidth, dashStyle);
                     }
                 }
             }

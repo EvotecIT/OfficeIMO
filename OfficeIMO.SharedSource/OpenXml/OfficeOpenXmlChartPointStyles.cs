@@ -167,7 +167,7 @@ internal static class OfficeOpenXmlChartPointStyles {
         A.Outline? outline = properties.GetFirstChild<A.Outline>();
         OfficeColor? line = OfficeOpenXmlThemeColorResolver.ResolveColor(outline?.GetFirstChild<A.SolidFill>(), scheme);
         bool? showOutline = outline == null ? null : outline.GetFirstChild<A.NoFill>() != null ? false : true;
-        double? width = outline?.Width?.Value is int emu && emu > 0 ? emu / 12700D : null;
+        OfficeLength? width = outline?.Width?.Value is int emu && emu > 0 ? OfficeLength.Emus(emu) : null;
         OfficeStrokeLineJoin? join = outline?.GetFirstChild<A.Round>() != null ? OfficeStrokeLineJoin.Round :
             outline?.GetFirstChild<A.LineJoinBevel>() != null ? OfficeStrokeLineJoin.Bevel :
             outline?.GetFirstChild<A.Miter>() != null ? OfficeStrokeLineJoin.Miter : null;
@@ -205,7 +205,7 @@ internal static class OfficeOpenXmlChartPointStyles {
     }
 
     internal static void ApplyPoint(OpenXmlCompositeElement series, uint index, OfficeChartPointStyle? style, OfficeColor? legacyColor = null) {
-        if (style?.OutlineWidth > 1584) throw new ArgumentOutOfRangeException(nameof(style), "Native chart outlines cannot exceed 1584 points.");
+        if (style?.OutlineWidth > OfficeLength.Points(1584)) throw new ArgumentOutOfRangeException(nameof(style), "Native chart outlines cannot exceed 1584 points.");
         if (!SupportsDataPoints(series))
             throw new NotSupportedException("Point styles are not supported by this native chart series.");
         C.DataPoint? point = GetBoundedPoints(series).FirstOrDefault(item => item.Index?.Val?.Value == index);
@@ -224,7 +224,7 @@ internal static class OfficeOpenXmlChartPointStyles {
 
     private static void ApplyPointCore(OpenXmlCompositeElement series, uint index,
         OfficeChartPointStyle? style, OfficeColor? legacyColor, C.DataPoint? point, OpenXmlElement? anchor) {
-        if (style?.OutlineWidth > 1584) throw new ArgumentOutOfRangeException(nameof(style), "Native chart outlines cannot exceed 1584 points.");
+        if (style?.OutlineWidth > OfficeLength.Points(1584)) throw new ArgumentOutOfRangeException(nameof(style), "Native chart outlines cannot exceed 1584 points.");
         if (point == null) {
             point = new C.DataPoint(new C.Index { Val = index });
             if (anchor != null) series.InsertBefore(point, anchor);
@@ -302,7 +302,7 @@ internal static class OfficeOpenXmlChartPointStyles {
         if (style?.ShowOutline == false) properties.AddChild(new A.Outline(new A.NoFill()), true);
         else if (style?.OutlineColor != null || style?.OutlineWidth != null || style?.ShowOutline == true || style?.OutlineJoin != null) {
             var outline = new A.Outline();
-            if (style.OutlineWidth.HasValue) outline.Width = (int)Math.Round(style.OutlineWidth.Value * 12700);
+            if (style.OutlineWidth.HasValue) outline.Width = checked((int)style.OutlineWidth.Value.ToEmus());
             if (style.OutlineColor is OfficeColor line) outline.Append(new A.SolidFill(CreateColor(line)));
             if (style.OutlineJoin is OfficeStrokeLineJoin join) outline.Append(join switch {
                 OfficeStrokeLineJoin.Round => new A.Round(),

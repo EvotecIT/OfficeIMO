@@ -126,7 +126,7 @@ public sealed class WordChartSeriesAppearanceReadbackTests {
     public void Snapshot_RejectsUnqualifiedAppearanceAndAllowsAnExplicitStyleReplacement(int appearance) {
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "1", "2" }, new[] { new OfficeSeries("Values", new[] { 1d, 2d }, null,
-            OfficeColor.Parse("#224466"), null, true, markerSize: 9, strokeWidth: 2) });
+            OfficeColor.Parse("#224466"), null, true, markerSize: 9, strokeWidth: global::OfficeIMO.OfficeLength.Points(2)) });
         var chart = document.AddChart(OfficeChartType.Line,data);
         var native = chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single();
         if (appearance == 0) native.AddChild(new C.Smooth { Val = true }, true);
@@ -171,7 +171,7 @@ public sealed class WordChartSeriesAppearanceReadbackTests {
         using var document = WordDocument.Create();
         var expected = new OfficeSeries("Styled", new[] { 1d, 2d }, new[] { 1d, 2d }, OfficeColor.Parse("#224466"), null, true,
             connectLine: false, markerSize: 9, markerShape: OfficeChartMarkerShape.Diamond,
-            markerOutlineColor: OfficeColor.Parse("#FF0000"), markerOutlineWidth: 2, strokeWidth: 3, strokeDashStyle: OfficeStrokeDashStyle.Dash);
+            markerOutlineColor: OfficeColor.Parse("#FF0000"), markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(2), strokeWidth: global::OfficeIMO.OfficeLength.Points(3), strokeDashStyle: OfficeStrokeDashStyle.Dash);
         var chart = document.AddChart(kind,new OfficeChartData(new[] { "1", "2" }, new[] { expected }));
         using var bytes = new MemoryStream(); document.Save(bytes); bytes.Position = 0;
         using var reopened = WordDocument.Load(bytes);
@@ -181,8 +181,8 @@ public sealed class WordChartSeriesAppearanceReadbackTests {
         Assert.Equal(9, series.MarkerSize);
         Assert.Equal(OfficeChartMarkerShape.Diamond, series.MarkerShape);
         Assert.Equal(expected.MarkerOutlineColor, series.MarkerOutlineColor);
-        Assert.Equal(2d, series.MarkerOutlineWidth);
-        Assert.Equal(3d, series.StrokeWidth);
+        Assert.Equal(2d, series.MarkerOutlineWidth?.ToPoints());
+        Assert.Equal(3d, series.StrokeWidth?.ToPoints());
         Assert.Equal(OfficeStrokeDashStyle.Dash, series.StrokeDashStyle);
         Assert.Equal(expected.Color, series.Color);
         Assert.Empty(reopened.ValidateDocument());
@@ -192,7 +192,7 @@ public sealed class WordChartSeriesAppearanceReadbackTests {
     public void Snapshot_RejectsAnUnqualifiedNativeDashInsteadOfFlatteningItsAppearance() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartType.Line,new OfficeChartData(new[] { "A", "B" },
-            new[] { new OfficeSeries("Status", new[] { 1d, 2d }, null, null, null, true, strokeWidth: 2) }));
+            new[] { new OfficeSeries("Status", new[] { 1d, 2d }, null, null, null, true, strokeWidth: global::OfficeIMO.OfficeLength.Points(2)) }));
         chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single().ChartShapeProperties!
             .GetFirstChild<A.Outline>()!.AddChild(new A.PresetDash { Val = A.PresetLineDashValues.LargeDash }, true);
         Assert.False(chart.TryGetSnapshot(out _));

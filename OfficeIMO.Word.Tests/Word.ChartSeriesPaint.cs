@@ -25,7 +25,7 @@ public sealed class WordChartSeriesPaintTests {
     [Fact]
     public void SharedNativeWriterKeepsSeriesAndPointPaintThroughDataUpdates() {
         var series = new OfficeSeries("Paint", new[] { 2d, 4d }).WithSeriesStyle(
-            new OfficeChartPointStyle(noFill: true, outlineColor: OfficeColor.Red, outlineWidth: 3, showOutline: true))
+            new OfficeChartPointStyle(noFill: true, outlineColor: OfficeColor.Red, outlineWidth: global::OfficeIMO.OfficeLength.Points(3), showOutline: true))
             .WithPointStyles(new OfficeChartPointStyle?[] { new(fillColor: OfficeColor.Green, showOutline: false), null });
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { series });
@@ -40,7 +40,7 @@ public sealed class WordChartSeriesPaintTests {
         var saved = Assert.Single(snapshot.Data.Series);
         Assert.True(saved.SeriesStyle!.NoFill);
         Assert.Equal(OfficeColor.Red, saved.SeriesStyle.OutlineColor);
-        Assert.Equal(3, saved.SeriesStyle.OutlineWidth);
+        Assert.Equal(3, saved.SeriesStyle.OutlineWidth?.ToPoints());
         Assert.Equal(OfficeColor.Green, saved.PointStyles![0]!.FillColor);
         Assert.False(saved.PointStyles[0]!.ShowOutline);
     }
@@ -55,7 +55,7 @@ public sealed class WordChartSeriesPaintTests {
             : new OfficeSeries("Paint", new[] { 2d, 4d });
         series = series.WithSeriesStyle(new OfficeChartPointStyle(fillColor: OfficeColor.White,
             hatch: OfficeChartHatchPattern.Cross, hatchColor: OfficeColor.Green,
-            outlineColor: OfficeColor.Red, outlineWidth: 3, outlineJoin: OfficeStrokeLineJoin.Round));
+            outlineColor: OfficeColor.Red, outlineWidth: global::OfficeIMO.OfficeLength.Points(3), outlineJoin: OfficeStrokeLineJoin.Round));
         using var document = WordDocument.Create();
         document.AddChart(kind,new OfficeChartData(new[] { "A", "B" }, new[] { series }));
         using var stream = new MemoryStream();
@@ -91,7 +91,7 @@ public sealed class WordChartSeriesPaintTests {
             ? OfficeSeries.CreateBubble("Paint", new[] { 1d, 2d }, new[] { 2d, 4d }, new[] { 3d, 5d })
             : new OfficeSeries("Paint", new[] { 2d, 4d }, null, null, null, showMarkers: false);
         series = series.WithSeriesStyle(new OfficeChartPointStyle(noFill: true,
-            outlineColor: OfficeColor.Red, outlineWidth: 3, showOutline: true));
+            outlineColor: OfficeColor.Red, outlineWidth: global::OfficeIMO.OfficeLength.Points(3), showOutline: true));
         using var document = WordDocument.Create();
         var chart = document.AddChart(kind,new OfficeChartData(new[] { "A", "B" }, new[] { series }));
         chart.SetSeriesColor(0, OfficeColor.Green);
@@ -102,14 +102,14 @@ public sealed class WordChartSeriesPaintTests {
         var paint = Assert.Single(snapshot.Data.Series).SeriesStyle!;
         Assert.Equal(kind == OfficeChartType.Line, paint.NoFill);
         Assert.Equal(kind == OfficeChartType.Line ? OfficeColor.Green : OfficeColor.Red, paint.OutlineColor);
-        Assert.Equal(3, paint.OutlineWidth);
+        Assert.Equal(3, paint.OutlineWidth?.ToPoints());
         if (kind != OfficeChartType.Line) Assert.Equal(OfficeColor.Green, paint.FillColor);
     }
 
     [Fact]
     public void NativeColourSetterReplacesGradientOutlineAndKeepsItsDashAndWidth() {
         var series = new OfficeSeries("Paint", new[] { 2d, 4d }, null, OfficeColor.Blue, null,
-            showMarkers: false, strokeWidth: 3, strokeDashStyle: OfficeStrokeDashStyle.Dash);
+            showMarkers: false, strokeWidth: global::OfficeIMO.OfficeLength.Points(3), strokeDashStyle: OfficeStrokeDashStyle.Dash);
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartType.Line,new OfficeChartData(new[] { "A", "B" }, new[] { series }));
         var outline = chart.ChartPart!.ChartSpace!.Descendants<DocumentFormat.OpenXml.Drawing.Outline>().First();
@@ -124,7 +124,7 @@ public sealed class WordChartSeriesPaintTests {
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
         var saved = Assert.Single(snapshot.Data.Series);
         Assert.Equal(OfficeColor.Green, saved.SeriesStyle!.OutlineColor);
-        Assert.Equal(3, saved.SeriesStyle.OutlineWidth);
+        Assert.Equal(3, saved.SeriesStyle.OutlineWidth?.ToPoints());
         Assert.Equal(OfficeStrokeDashStyle.Dash, saved.StrokeDashStyle);
     }
 

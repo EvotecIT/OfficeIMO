@@ -148,8 +148,8 @@ namespace OfficeIMO.Tests {
                     pointColors: new OfficeColor?[] { OfficeColor.ParseHex("#DC2626"), OfficeColor.ParseHex("#16A34A") },
                     showMarkers: true, connectLine: true, markerSize: 9,
                     markerShape: OfficeChartMarkerShape.Diamond,
-                    markerOutlineColor: OfficeColor.ParseHex("#111827"), markerOutlineWidth: 1.5D,
-                    strokeWidth: 2.25D, strokeDashStyle: OfficeStrokeDashStyle.Dash,
+                    markerOutlineColor: OfficeColor.ParseHex("#111827"), markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(1.5D),
+                    strokeWidth: global::OfficeIMO.OfficeLength.Points(2.25D), strokeDashStyle: OfficeStrokeDashStyle.Dash,
                     showInLegend: false, renderKind: OfficeChartType.Line)
             });
 

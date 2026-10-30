@@ -45,8 +45,8 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeColor color, OfficeChartPointStyle? style, OfficeColor? defaultOutline, double defaultWidth) {
         OfficeColor? fill = style?.NoFill == true ? null : style?.FillColor ?? color;
         OfficeColor? outline = style?.ShowOutline == false ? null : style?.OutlineColor ?? defaultOutline;
-        if (style?.ShowOutline != false && (style?.ShowOutline == true || style?.OutlineWidth != null) && !outline.HasValue) outline = OfficeColor.Black;
-        double width = style?.OutlineWidth ?? defaultWidth;
+        if (style?.ShowOutline != false && (style?.ShowOutline == true || style?.OutlineWidth?.ToPoints() != null) && !outline.HasValue) outline = OfficeColor.Black;
+        double width = style?.OutlineWidth?.ToPoints() ?? defaultWidth;
         if (outline.HasValue && width <= 0 && (style?.ShowOutline == true || style?.OutlineColor != null)) width = 0.75;
         OfficeShape baseShape = shape.Clone();
         baseShape.StrokeLineJoin = style?.OutlineJoin;
@@ -79,8 +79,8 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeColor color, OfficeChartPointStyle? pointStyle, OfficeColor? defaultOutline, double defaultWidth) {
         OfficeColor? fill = pointStyle?.NoFill == true ? null : pointStyle?.FillColor ?? color;
         OfficeColor? outline = pointStyle?.ShowOutline == false ? null : pointStyle?.OutlineColor ?? defaultOutline;
-        double outlineWidth = pointStyle?.OutlineWidth ?? defaultWidth;
-        if (pointStyle?.ShowOutline != false && (pointStyle?.ShowOutline == true || pointStyle?.OutlineWidth != null) && !outline.HasValue) outline = OfficeColor.Black;
+        double outlineWidth = pointStyle?.OutlineWidth?.ToPoints() ?? defaultWidth;
+        if (pointStyle?.ShowOutline != false && (pointStyle?.ShowOutline == true || pointStyle?.OutlineWidth?.ToPoints() != null) && !outline.HasValue) outline = OfficeColor.Black;
         if (outline.HasValue && outlineWidth <= 0 && (pointStyle?.ShowOutline == true || pointStyle?.OutlineColor != null)) outlineWidth = 0.75;
         if (pointStyle?.Hatch == null) {
             AddPolygonShape(drawing, points, fill, outline, outline.HasValue ? outlineWidth : 0,

@@ -17,7 +17,7 @@ namespace OfficeIMO.PowerPoint {
                     item.BubbleSizes, color, item.PointColors,
                     showInLegend: item.ShowInLegend,
                     markerOutlineColor: useNativeColor ? item.StrokeColor ?? color : null,
-                    markerOutlineWidth: item.StrokeWidth,
+                    markerOutlineWidth: item.StrokeWidth is double markerOutlineWidthPoints1232 ? global::OfficeIMO.OfficeLength.Points(markerOutlineWidthPoints1232) : (global::OfficeIMO.OfficeLength?)null,
                     showMarkerOutline: item.ShowStroke)
                 : new OfficeSeries(item.Name, item.Values, item.XValues, color,
                     pointColors: item.PointColors, showMarkers: item.SharedAppearance?.ShowMarkers ?? true,
@@ -26,7 +26,7 @@ namespace OfficeIMO.PowerPoint {
                     markerShape: item.SharedAppearance?.MarkerShape,
                     markerOutlineColor: useNativeColor ? item.SharedAppearance?.MarkerOutlineColor ?? item.StrokeColor ?? color : null,
                     markerOutlineWidth: item.SharedAppearance?.MarkerOutlineWidth,
-                    strokeWidth: item.StrokeWidth,
+                    strokeWidth: item.StrokeWidth is double strokeWidthPoints1992 ? global::OfficeIMO.OfficeLength.Points(strokeWidthPoints1992) : (global::OfficeIMO.OfficeLength?)null,
                     strokeDashStyle: item.SharedAppearance?.StrokeDashStyle,
                     renderKind: item.ChartKind.HasValue ? MapKind(item.ChartKind.Value) : null,
                     axisGroup: item.AxisGroup);

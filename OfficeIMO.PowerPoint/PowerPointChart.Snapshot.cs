@@ -823,7 +823,7 @@ namespace OfficeIMO.PowerPoint {
         private static PowerPointChartData? ProjectSharedSeries(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.Result? source,
             PowerPointChartSnapshotKind? kind) => source == null ? null : new PowerPointChartData(source.Categories,
                 source.Series.Select(item => new PowerPointChartSeries(item.Data.Name, item.Data.Values, item.Data.XValues,
-                    kind, item.Data.Color, item.Data.BubbleSizes != null ? item.Data.MarkerOutlineWidth : item.Data.StrokeWidth, item.Data.AxisGroup) {
+                    kind, item.Data.Color, (item.Data.BubbleSizes != null ? item.Data.MarkerOutlineWidth : item.Data.StrokeWidth)?.ToPoints(), item.Data.AxisGroup) {
                     BubbleSizes = item.Data.BubbleSizes,
                     StrokeColor = item.Data.BubbleSizes != null ? item.Data.MarkerOutlineColor : null,
                     ShowStroke = item.Data.ShowMarkerOutline,

@@ -26,7 +26,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 item.Color, item.PointColors,
                 showInLegend: item.ShowInLegend,
                 markerOutlineColor: item.StrokeColor ?? item.Color,
-                markerOutlineWidth: item.StrokeWidth,
+                markerOutlineWidth: item.StrokeWidth is double markerOutlineWidthPoints1148 ? global::OfficeIMO.OfficeLength.Points(markerOutlineWidthPoints1148) : (global::OfficeIMO.OfficeLength?)null,
                 showMarkerOutline: item.ShowStroke).WithPointStyles(item.PointStyles));
         }
 

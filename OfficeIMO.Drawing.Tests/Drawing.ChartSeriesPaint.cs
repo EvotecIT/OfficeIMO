@@ -12,7 +12,7 @@ public sealed class DrawingChartSeriesPaintTests {
         var series = kind == OfficeChartType.Bubble
             ? OfficeSeries.CreateBubble("Paint", new[] { 1d, 2d, 3d }, new[] { 4d, 5d, 6d }, new[] { 1d, 2d, 3d })
             : new OfficeSeries("Paint", new[] { 4d, 5d, 6d });
-        var paint = new OfficeChartPointStyle(noFill: true, outlineColor: OfficeColor.Red, outlineWidth: 3, showOutline: true);
+        var paint = new OfficeChartPointStyle(noFill: true, outlineColor: OfficeColor.Red, outlineWidth: global::OfficeIMO.OfficeLength.Points(3), showOutline: true);
         series = series.WithSeriesStyle(paint).WithPointStyles(new OfficeChartPointStyle?[] {
             new(outlineColor: OfficeColor.Blue), new(fillColor: OfficeColor.Green), new(showOutline: false)
         }).WithLegendVisibility(false);

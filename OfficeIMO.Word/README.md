@@ -902,7 +902,7 @@ using WordDocument document = WordDocument.Create();
 var data = new OfficeChartData(new[] { "Pass", "Could not evaluate", "Fail" }, new[] {
     new OfficeSeries("Status", new[] { 8d, 2d, 1d }).WithPointStyles(new OfficeChartPointStyle?[] {
         new OfficeChartPointStyle(fillColor: OfficeColor.Parse("#008000")),
-        new OfficeChartPointStyle(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2),
+        new OfficeChartPointStyle(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: OfficeLength.Points(2)),
         new OfficeChartPointStyle(fillColor: OfficeColor.Parse("#C00000"))
     })
 });
@@ -989,7 +989,7 @@ WordChart chart = document.AddChart("Status", roundedCorners: false, width: Offi
 chart.AddDoughnut("Pass", 8).AddDoughnut("Could not evaluate", 2).AddDoughnut("Fail", 1);
 chart.SetDataPointStyle(0, 1,
     new OfficeIMO.Drawing.OfficeChartPointStyle(noFill: true,
-        outlineColor: OfficeIMO.OfficeColor.Black, outlineWidth: 2));
+        outlineColor: OfficeIMO.OfficeColor.Black, outlineWidth: OfficeLength.Points(2)));
 ```
 
 ## Individual chart point styles

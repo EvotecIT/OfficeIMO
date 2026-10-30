@@ -83,7 +83,7 @@ public sealed class PowerPointChartAppearanceIntegrityTests {
         using PowerPointDocument document = PowerPointDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Status", new[] { 1d, 2d },
             null, OfficeColor.Parse("#168A56"), null, true, markerSize: 9, markerShape: OfficeChartMarkerShape.Diamond,
-            markerOutlineColor: OfficeColor.Parse("#333333"), markerOutlineWidth: 2, strokeWidth: 3,
+            markerOutlineColor: OfficeColor.Parse("#333333"), markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(2), strokeWidth: global::OfficeIMO.OfficeLength.Points(3),
             strokeDashStyle: OfficeStrokeDashStyle.Dash) });
         var chart = document.AddSlide().AddChart(OfficeChartType.Line, data);
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -91,8 +91,8 @@ public sealed class PowerPointChartAppearanceIntegrityTests {
         Assert.Equal(9, series.MarkerSize);
         Assert.Equal(OfficeChartMarkerShape.Diamond, series.MarkerShape);
         Assert.Equal(OfficeColor.Parse("#333333"), series.MarkerOutlineColor);
-        Assert.Equal(2d, series.MarkerOutlineWidth);
-        Assert.Equal(3d, series.StrokeWidth);
+        Assert.Equal(2d, series.MarkerOutlineWidth?.ToPoints());
+        Assert.Equal(3d, series.StrokeWidth?.ToPoints());
         Assert.Equal(OfficeStrokeDashStyle.Dash, series.StrokeDashStyle);
     }
 

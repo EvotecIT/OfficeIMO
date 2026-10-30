@@ -496,8 +496,8 @@ namespace OfficeIMO.Tests {
             Assert.True(smartArt.TryGetOfficeDiagramSnapshot(
                 out OfficeDiagramSnapshot snapshot));
             Assert.Equal(OfficeDiagramKind.List, snapshot.Kind);
-            Assert.Equal(240D, snapshot.WidthPoints, 3);
-            Assert.Equal(240D, snapshot.HeightPoints, 3);
+            Assert.Equal(240D, snapshot.Width.ToPoints(), 3);
+            Assert.Equal(240D, snapshot.Height.ToPoints(), 3);
             Assert.Empty(presentation.ValidateDocument());
         }
 

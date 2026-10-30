@@ -430,7 +430,7 @@ public sealed class WordChartOfficeSnapshotTests {
         using var document = WordDocument.Create();
         var expected = kind == OfficeChartType.Bubble
             ? OfficeSeries.CreateBubble("Measurements", new[] { 1d, 2d }, new[] { 3d, 4d }, new[] { 5d, 6d }, OfficeColor.Parse("#224466"),
-                markerOutlineColor: OfficeColor.Parse("#FF0000"), markerOutlineWidth: 2)
+                markerOutlineColor: OfficeColor.Parse("#FF0000"), markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(2))
             : new OfficeSeries("Measurements", new[] { 3d, 4d }, kind == OfficeChartType.Scatter ? new[] { 1d, 2d } : null, OfficeColor.Parse("#224466"));
         document.AddChart(kind, new OfficeChartData(new[] { "1", "2" }, new[] { expected }), new OfficeIMO.Word.WordChartOptions { Title = "Measurements" });
         using var bytes = new MemoryStream(); document.Save(bytes); bytes.Position = 0;

@@ -123,7 +123,7 @@ public class WordChartSeriesQualificationTests {
         var shared = snapshot.Data.Series.Single().ToOfficeSeries();
         var styles = shared.PointStyles!;
         Assert.Equal(OfficeColor.Parse("#ABCDEF"), shared.SeriesStyle!.OutlineColor);
-        Assert.Equal(2d, shared.SeriesStyle.OutlineWidth);
+        Assert.Equal(2d, shared.SeriesStyle.OutlineWidth?.ToPoints());
         Assert.True(styles[1]!.NoFill);
         Assert.False(styles[1]!.ShowOutline);
     }

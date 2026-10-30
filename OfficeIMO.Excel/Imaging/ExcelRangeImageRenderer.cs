@@ -516,8 +516,8 @@ namespace OfficeIMO.Excel {
                     markerSize: (int?)series.MarkerSize?.ToPoints(),
                     markerShape: series.MarkerShape,
                     markerOutlineColor: ResolveArgb(series.MarkerOutlineColorArgb),
-                    markerOutlineWidth: series.MarkerOutlineWidth?.ToPoints(),
-                    strokeWidth: series.SeriesLineWidth?.ToPoints(),
+                    markerOutlineWidth: series.MarkerOutlineWidth,
+                    strokeWidth: series.SeriesLineWidth,
                     strokeDashStyle: series.SeriesLineDashStyle,
                     renderKind: TryMapSeriesRenderKind(series.ChartType ?? snapshot.ChartType, out OfficeChartType seriesKind, out _) ? seriesKind : null,
                     axisGroup: series.AxisGroup == OfficeChartAxisGroup.Secondary

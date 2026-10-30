@@ -110,8 +110,8 @@ namespace OfficeIMO.Excel.Pdf {
                 markerSize: (int?)series.MarkerSize?.ToPoints(),
                 markerShape: series.MarkerShape,
                 markerOutlineColor: ExcelRangeImageRenderer.ResolveArgb(series.MarkerOutlineColorArgb),
-                markerOutlineWidth: series.MarkerOutlineWidth?.ToPoints(),
-                strokeWidth: series.SeriesLineWidth?.ToPoints(),
+                markerOutlineWidth: series.MarkerOutlineWidth,
+                strokeWidth: series.SeriesLineWidth,
                 strokeDashStyle: series.SeriesLineDashStyle,
                 renderKind: renderKind,
                 axisGroup: series.AxisGroup)

@@ -484,6 +484,6 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
         new(fillColor: OfficeColor.Parse("#FFF0DD"), hatch: OfficeChartHatchPattern.ForwardDiagonal,
             hatchColor: OfficeColor.Parse("#D97706")),
         new(noFill: true, outlineColor: OfficeColor.Parse("#445566"),
-            outlineWidth: 2, showOutline: true)
+            outlineWidth: global::OfficeIMO.OfficeLength.Points(2), showOutline: true)
     };
 }

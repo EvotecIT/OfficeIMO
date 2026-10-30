@@ -24,7 +24,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
         try {
             var snapshot = new OfficeDiagramSnapshot(source.Name,
-                source.Kind, source.Nodes, width, height, source.Style);
+                source.Kind, source.Nodes, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), source.Style);
             OfficeDrawing drawing = OfficeDiagramDrawingRenderer.Render(
                 snapshot, includeBackground: false);
             var frameTransform = new OfficeImageFrameTransform(

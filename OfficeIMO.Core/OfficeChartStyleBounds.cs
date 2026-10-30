@@ -13,5 +13,11 @@ internal static class OfficeChartStyleBounds {
             throw new ArgumentOutOfRangeException(parameterName, "Line width must be finite and within the DrawingML limit of 1584 points.");
     }
 
+    internal static void ValidateLineWidth(OfficeLength? width, string parameterName) {
+        if (width.HasValue && (width.Value <= OfficeLength.Zero ||
+            width.Value > OfficeLength.Points(MaximumLineWidthPoints)))
+            throw new ArgumentOutOfRangeException(parameterName, "Line width must be greater than zero and at most 1584 points.");
+    }
+
     internal static int ClampNativeMarkerSize(int size) => Math.Max(2, Math.Min(72, size));
 }

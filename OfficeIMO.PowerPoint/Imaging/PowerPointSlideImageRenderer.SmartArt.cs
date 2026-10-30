@@ -23,7 +23,7 @@ namespace OfficeIMO.PowerPoint {
 
             try {
                 var snapshot = new OfficeDiagramSnapshot(
-                    source.Name, source.Kind, source.Nodes, width, height,
+                    source.Name, source.Kind, source.Nodes, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height),
                     source.Style);
                 OfficeDrawing smartArtDrawing =
                     OfficeDiagramDrawingRenderer.Render(snapshot,

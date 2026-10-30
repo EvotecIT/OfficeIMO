@@ -42,10 +42,10 @@ namespace OfficeIMO.Excel {
                     : new ExcelChartSeries(item.Name, item.Values, item.XValues, chartType, axisGroup,
                         item.Color?.ToRgbHex());
                 mapped = mapped.WithImageExportStyle(
-                    item.Color?.ToRgbHex(), item.StrokeWidth, item.StrokeDashStyle,
+                    item.Color?.ToRgbHex(), item.StrokeWidth?.ToPoints(), item.StrokeDashStyle,
                     item.PointColors?.Select(color => color?.ToRgbHex()).ToList(), item.ShowMarkers,
                     item.ConnectLine, item.MarkerSize, item.MarkerShape, item.MarkerOutlineColor?.ToRgbHex(),
-                    item.MarkerOutlineWidth).WithSeriesStyle(item.SeriesStyle)
+                    item.MarkerOutlineWidth?.ToPoints()).WithSeriesStyle(item.SeriesStyle)
                     .WithPointStyles(item.PointStyles).WithPointExplosions(item.PointExplosions);
                 series.Add(mapped);
             }

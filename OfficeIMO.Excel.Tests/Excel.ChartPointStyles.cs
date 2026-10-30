@@ -71,9 +71,9 @@ public sealed class ExcelChartPointStylesTests {
     [InlineData(OfficeChartType.ColumnClustered)]
     public void PointStyles_PreserveNativeStylesAndRenderHatchesAfterReopen(OfficeChartType kind) {
         var hatch = new OfficeChartPointStyle(OfficeColor.White, hatch: OfficeChartHatchPattern.WideForwardDiagonal,
-            hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black, outlineWidth: 2);
+            hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black, outlineWidth: global::OfficeIMO.OfficeLength.Pixels(8D / 3D));
         var series = new OfficeSeries("Status", new[] { 3d, 2d, 1d })
-            .WithPointStyles(new OfficeChartPointStyle?[] { new(showOutline: true), new(noFill: true, outlineColor: OfficeColor.Black), hatch });
+            .WithPointStyles(new OfficeChartPointStyle?[] { new(showOutline: true, outlineWidth: global::OfficeIMO.OfficeLength.Emus(12701)), new(noFill: true, outlineColor: OfficeColor.Black), hatch });
         using ExcelDocument authored = ExcelDocument.Create();
         authored.AddSheet("Results").AddChart(kind, new OfficeChartData(new[] { "Pass", "Unknown", "Fail" }, new[] { series }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
         using var bytes = new MemoryStream(authored.ToBytes());
@@ -84,6 +84,14 @@ public sealed class ExcelChartPointStylesTests {
         Assert.True(snapshot.Data.Series[0].PointStyles![0]!.ShowOutline);
         Assert.True(snapshot.Data.Series[0].PointStyles![1]!.NoFill);
         Assert.Equal(hatch.Hatch, snapshot.Data.Series[0].PointStyles![2]!.Hatch);
+        Assert.Equal(12701L, snapshot.Data.Series[0].PointStyles![0]!.OutlineWidth!.Value.ToEmus());
+        Assert.Equal(25400L, snapshot.Data.Series[0].PointStyles![2]!.OutlineWidth!.Value.ToEmus());
+        ChartPart savedPart = Assert.Single(reopened.Sheets.Single(sheet => sheet.Name == "Results")
+            .WorksheetPart.DrawingsPart!.ChartParts);
+        C.DataPoint savedPoint = savedPart.ChartSpace!.Descendants<C.DataPoint>()
+            .Single(point => point.Index?.Val?.Value == 0U);
+        Assert.Equal(12701, savedPoint.ChartShapeProperties!.GetFirstChild<A.Outline>()!.Width!.Value);
+
         string svg = System.Text.Encoding.UTF8.GetString(chart.ExportImage(OfficeImageExportFormat.Svg).Bytes);
         Assert.Contains("#7300A3", svg, System.StringComparison.OrdinalIgnoreCase);
         Assert.Contains("clipPath", svg, System.StringComparison.Ordinal);

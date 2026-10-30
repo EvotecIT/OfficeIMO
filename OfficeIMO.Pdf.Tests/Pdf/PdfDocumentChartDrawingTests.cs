@@ -442,7 +442,7 @@ height: global::OfficeIMO.OfficeLength.Points(190D),
             new OfficeChartData(
                 new[] { "Jan", "Feb", "Mar" },
                 new[] {
-                    new OfficeSeries("Actual", new[] { 10D, 14D, 12D }, null, seriesColor, null, showMarkers: false, strokeWidth: 4D)
+                    new OfficeSeries("Actual", new[] { 10D, 14D, 12D }, null, seriesColor, null, showMarkers: false, strokeWidth: global::OfficeIMO.OfficeLength.Points(4D))
                 }),
 width: global::OfficeIMO.OfficeLength.Points(320D),
 height: global::OfficeIMO.OfficeLength.Points(190D)));
@@ -463,7 +463,7 @@ height: global::OfficeIMO.OfficeLength.Points(190D)));
             new OfficeChartData(
                 new[] { "Jan", "Feb", "Mar" },
                 new[] {
-                    new OfficeSeries("Actual", new[] { 10D, 14D, 12D }, null, seriesColor, null, showMarkers: false, strokeWidth: 4D, strokeDashStyle: OfficeStrokeDashStyle.DashDot)
+                    new OfficeSeries("Actual", new[] { 10D, 14D, 12D }, null, seriesColor, null, showMarkers: false, strokeWidth: global::OfficeIMO.OfficeLength.Points(4D), strokeDashStyle: OfficeStrokeDashStyle.DashDot)
                 }),
 width: global::OfficeIMO.OfficeLength.Points(320D),
 height: global::OfficeIMO.OfficeLength.Points(190D)));
@@ -486,8 +486,8 @@ height: global::OfficeIMO.OfficeLength.Points(190D)));
             new OfficeChartData(
                 new[] { "Jan", "Feb", "Mar" },
                 new[] {
-                    new OfficeSeries("Plus", new[] { 10D, 14D, 12D }, null, OfficeColor.ParseHex("#2563EB"), null, showMarkers: true, connectLine: false, markerSize: 12, markerShape: OfficeChartMarkerShape.Plus, markerOutlineColor: plusColor, markerOutlineWidth: 2D),
-                    new OfficeSeries("X", new[] { 12D, 16D, 13D }, null, OfficeColor.ParseHex("#16A34A"), null, showMarkers: true, connectLine: false, markerSize: 12, markerShape: OfficeChartMarkerShape.X, markerOutlineColor: xColor, markerOutlineWidth: 2D)
+                    new OfficeSeries("Plus", new[] { 10D, 14D, 12D }, null, OfficeColor.ParseHex("#2563EB"), null, showMarkers: true, connectLine: false, markerSize: 12, markerShape: OfficeChartMarkerShape.Plus, markerOutlineColor: plusColor, markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(2D)),
+                    new OfficeSeries("X", new[] { 12D, 16D, 13D }, null, OfficeColor.ParseHex("#16A34A"), null, showMarkers: true, connectLine: false, markerSize: 12, markerShape: OfficeChartMarkerShape.X, markerOutlineColor: xColor, markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(2D))
                 }),
 width: global::OfficeIMO.OfficeLength.Points(320D),
 height: global::OfficeIMO.OfficeLength.Points(190D)));
@@ -514,7 +514,7 @@ height: global::OfficeIMO.OfficeLength.Points(190D)));
             new OfficeChartData(
                 new[] { "Jan", "Feb", "Mar" },
                 new[] {
-                    new OfficeSeries("Dash", new[] { 10D, 14D, 12D }, null, OfficeColor.ParseHex("#2563EB"), null, showMarkers: true, connectLine: false, markerSize: 12, markerShape: OfficeChartMarkerShape.Dash, markerOutlineColor: dashColor, markerOutlineWidth: 2D),
+                    new OfficeSeries("Dash", new[] { 10D, 14D, 12D }, null, OfficeColor.ParseHex("#2563EB"), null, showMarkers: true, connectLine: false, markerSize: 12, markerShape: OfficeChartMarkerShape.Dash, markerOutlineColor: dashColor, markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(2D)),
                     new OfficeSeries("Dot", new[] { 12D, 16D, 13D }, null, dotColor, null, showMarkers: true, connectLine: false, markerSize: 12, markerShape: OfficeChartMarkerShape.Dot),
                     new OfficeSeries("Star", new[] { 13D, 15D, 14D }, null, starColor, null, showMarkers: true, connectLine: false, markerSize: 12, markerShape: OfficeChartMarkerShape.Star)
                 }),

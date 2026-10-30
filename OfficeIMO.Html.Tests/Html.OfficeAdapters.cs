@@ -970,7 +970,7 @@ public partial class HtmlOfficeAdapters {
                 new OfficeColor?[] { pointColor, null },
                 showInLegend: false,
                 markerOutlineColor: outlineColor,
-                markerOutlineWidth: 1.5D),
+                markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(1.5D)),
             OfficeSeries.CreateBubble("No outline",
                 new[] { 1.5D, 2.5D },
                 new[] { 8D, 16D },
@@ -1027,7 +1027,7 @@ public partial class HtmlOfficeAdapters {
         Assert.Equal(pointColor, series.PointColors![0]);
         Assert.Null(series.PointColors[1]);
         Assert.Equal(outlineColor, series.MarkerOutlineColor);
-        Assert.Equal(1.5D, series.MarkerOutlineWidth);
+        Assert.Equal(1.5D, series.MarkerOutlineWidth?.ToPoints());
         Assert.True(series.ShowMarkerOutline);
         Assert.False(snapshot.Data.Series[1].ShowMarkerOutline);
         Assert.Equal(145D, snapshot.BubbleScalePercent);
@@ -1071,8 +1071,13 @@ public partial class HtmlOfficeAdapters {
                           HtmlConversionDiagnosticCodes.ContentApproximated);
     }
 
-    [Fact]
-    public void PowerPointHtml_RejectsBubbleSizesWithoutXValues() {
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData("1e20", false)]
+    [InlineData("0.00001", false)]
+    [InlineData("1e20", true)]
+    [InlineData("0.00001", true)]
+    public void PowerPointHtml_RejectsInvalidBubbleMetadata(string? outlineWidth, bool seriesOutline) {
         using PowerPointDocument presentation =
             PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
@@ -1085,8 +1090,15 @@ public partial class HtmlOfficeAdapters {
         slide.AddChart(OfficeChartType.Bubble, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(72), Top = global::OfficeIMO.OfficeLength.Points(96), Width = global::OfficeIMO.OfficeLength.Points(240), Height = global::OfficeIMO.OfficeLength.Points(140) });
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
-        }).Replace(" data-officeimo-x=\"1.5\"", string.Empty)
-          .Replace(" data-officeimo-x=\"2.5\"", string.Empty);
+        });
+        html = outlineWidth == null
+            ? html.Replace(" data-officeimo-x=\"1.5\"", string.Empty)
+                .Replace(" data-officeimo-x=\"2.5\"", string.Empty)
+            : seriesOutline
+                ? html.Replace(" data-officeimo-outline-width=", " data-officeimo-original-outline-width=")
+                    .Replace("<tbody><tr", "<tbody><tr data-officeimo-outline-width=\"" + outlineWidth + "\"")
+                : html.Replace("data-officeimo-x=\"1.5\"",
+                    "data-officeimo-x=\"1.5\" data-officeimo-point-outline-width=\"" + outlineWidth + "\"");
 
         HtmlToPowerPointResult result =
             HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();

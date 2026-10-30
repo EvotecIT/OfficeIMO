@@ -511,7 +511,8 @@ public static partial class HtmlPowerPointConverterExtensions {
                         CultureInfo.InvariantCulture, out double parsedOutlineWidth) ||
                     double.IsNaN(parsedOutlineWidth) ||
                     double.IsInfinity(parsedOutlineWidth) ||
-                    parsedOutlineWidth <= 0D) {
+                    parsedOutlineWidth <= 0D || parsedOutlineWidth > 1584D ||
+                    OfficeLength.Points(parsedOutlineWidth) == OfficeLength.Zero) {
                     return false;
                 }
                 outlineWidth = parsedOutlineWidth;

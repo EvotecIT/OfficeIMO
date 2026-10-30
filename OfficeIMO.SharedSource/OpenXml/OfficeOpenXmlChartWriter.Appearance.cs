@@ -68,7 +68,7 @@ namespace OfficeIMO.OpenXml.Internal {
             OfficeColor? outlineColor = kind == OfficeChartType.Bubble
                 ? series.MarkerOutlineColor ?? existingOutlineColor ?? fillColor
                 : IsFilledSharedKind(kind) ? null : fillColor;
-            double? outlineWidth = kind == OfficeChartType.Bubble
+            OfficeLength? outlineWidth = kind == OfficeChartType.Bubble
                 ? series.MarkerOutlineWidth ?? series.StrokeWidth
                 : series.StrokeWidth;
             bool reenableBubbleOutline = kind == OfficeChartType.Bubble &&
@@ -114,7 +114,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 }
             }
             if (outlineWidth.HasValue) {
-                outline.Width = checked((int)FromPoints(outlineWidth.Value));
+                outline.Width = checked((int)outlineWidth.Value.ToEmus());
             } else if (reenableConnectingLine && outline.Width?.Value == 0) {
                 // A hidden native area outline may have zero width as well as no fill.
                 outline.Width = null;
@@ -153,7 +153,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     outline.AddChild(new A.SolidFill(CreateSharedRgbColor(markerColor.Value)), true);
                 }
                 if (series.MarkerOutlineWidth.HasValue) {
-                    outline.Width = checked((int)FromPoints(series.MarkerOutlineWidth.Value));
+                    outline.Width = checked((int)series.MarkerOutlineWidth.Value.ToEmus());
                 }
                 if (outline.Parent == null) properties.AddChild(outline, true);
                 if (properties.Parent == null) marker.AddChild(properties, true);

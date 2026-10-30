@@ -1171,6 +1171,7 @@ The multilingual mark profile is bounded to static fonts and supported GSUB/GPOS
 ### Deterministic text measurement
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Drawing;
 
 var measurer = OfficeTextMeasurer.Create();
@@ -1305,6 +1306,7 @@ foreach (OfficeConversionCapability route in
 ### Build a reusable vector scene
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Drawing;
 
 var drawing = new OfficeDrawing(width: 420, height: 180)
@@ -1483,7 +1485,7 @@ do not gain false edge markers or labels. Data labels for visible points can ext
 Use `OfficeSeries.WithSeriesStyle` for independent series fill and outline paint, and
 `WithPointStyles` for overrides aligned with the series values. Both use `OfficeChartPointStyle`.
 For example, `.WithSeriesStyle(new OfficeChartPointStyle(noFill: true,
-outlineColor: OfficeColor.Red, outlineWidth: 2, showOutline: true))` draws an unfilled area,
+outlineColor: OfficeColor.Red, outlineWidth: OfficeLength.Points(2), showOutline: true))` draws an unfilled area,
 column or bubble with a visible red outline. Point fills override inherited no-fill; outline-only
 point overrides keep the series fill policy. Line series use outline paint for their connecting
 line; their marker paint remains independent.
@@ -1494,7 +1496,7 @@ colour; an explicit no-fill style leaves an outlined slice visible without chang
 var status = new OfficeSeries("Status", new[] { 8d, 2d, 1d })
     .WithPointStyles(new OfficeChartPointStyle?[] {
         new(fillColor: OfficeColor.Parse("#168A56")),
-        new(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2,
+        new(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: OfficeLength.Points(2),
             outlineJoin: OfficeStrokeLineJoin.Round),
         new(hatch: OfficeChartHatchPattern.WideForwardDiagonal,
             hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black)

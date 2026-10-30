@@ -538,7 +538,7 @@ public sealed class HtmlWordChartTests {
         using var document = WordDocument.Create();
         var series = new OfficeSeries("Status", new[] { 3d, 2d, 1d }).WithPointStyles(new OfficeChartPointStyle?[] {
             new(fillColor: OfficeColor.Parse("#224466")),
-            new(noFill: true, outlineColor: OfficeColor.Parse("#778899"), outlineWidth: 2, showOutline: true),
+            new(noFill: true, outlineColor: OfficeColor.Parse("#778899"), outlineWidth: global::OfficeIMO.OfficeLength.Points(2), showOutline: true),
             new(hatch: OfficeChartHatchPattern.DiagonalCross, hatchColor: OfficeColor.Parse("#ABCDEF"))
         });
         var chart = document.AddChart(OfficeChartType.Doughnut,new OfficeChartData(new[] { "Pass", "Unknown", "Fail" }, new[] { series }));

@@ -199,7 +199,7 @@ public sealed class WordSharedChartAuthoringTests {
 
         var styled = new OfficeSeries("Status", new[] { 1d, 2d, 3d }).WithPointStyles(new OfficeChartPointStyle?[] {
             new OfficeChartPointStyle(fillColor: OfficeColor.Parse("#008000")),
-            new OfficeChartPointStyle(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2),
+            new OfficeChartPointStyle(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: global::OfficeIMO.OfficeLength.Points(2)),
             new OfficeChartPointStyle(hatch: OfficeChartHatchPattern.Cross, hatchColor: OfficeColor.Black)
         });
         WordChart pie = document.AddChart(OfficeChartType.Pie,new OfficeChartData(new[] { "A", "B", "C" }, new[] { styled }));

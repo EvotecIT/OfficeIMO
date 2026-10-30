@@ -98,7 +98,7 @@ public sealed class DrawingChartPointStylesTests {
     [InlineData(true)]
     public void PointStyles_WidthOnlyOutlinesRemainVisibleUnlessExplicitlyHidden(bool hidden) {
         var series = new OfficeSeries("Results", new[] { 8d }).WithPointStyles(
-            new OfficeChartPointStyle?[] { new(outlineWidth: 2, showOutline: hidden ? false : null) });
+            new OfficeChartPointStyle?[] { new(outlineWidth: global::OfficeIMO.OfficeLength.Points(2), showOutline: hidden ? false : null) });
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Results", null,
             OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] { series }), global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(240),
             layout: new OfficeChartLayout(showLegend: false)));
@@ -111,7 +111,7 @@ public sealed class DrawingChartPointStylesTests {
     [Fact]
     public void PointStyles_CopyKeepsBubbleAndSeriesContracts() {
         var source = OfficeSeries.CreateBubble("Results", new[] { 1d }, new[] { 2d }, new[] { 3d },
-            showInLegend: false, markerOutlineColor: OfficeColor.Black, markerOutlineWidth: 2,
+            showInLegend: false, markerOutlineColor: OfficeColor.Black, markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(2),
             showMarkerOutline: false);
         var style = new OfficeChartPointStyle(noFill: true, outlineColor: OfficeColor.Black);
         var input = new OfficeChartPointStyle?[] { style };
@@ -237,8 +237,7 @@ public sealed class DrawingChartPointStylesTests {
     public void PointStyles_RejectContradictoryAndUnboundedAppearance() {
         Assert.Throws<ArgumentException>(() => new OfficeChartPointStyle(OfficeColor.Black, noFill: true));
         Assert.Throws<ArgumentException>(() => new OfficeChartPointStyle(hatch: OfficeChartHatchPattern.Cross));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeChartPointStyle(outlineWidth: double.NaN));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeChartPointStyle(outlineWidth: 1585));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeChartPointStyle(outlineWidth: global::OfficeIMO.OfficeLength.Points(1585)));
     }
 
     [Theory]
