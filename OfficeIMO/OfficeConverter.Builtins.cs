@@ -98,7 +98,7 @@ public static partial class OfficeConverter {
             case "pdf-xlsx":
             case "pdf-pptx":
             case "pdf-html": {
-                using PdfDocument document = PdfDocument.Load(input, (settings.PdfLoad ?? new()).Snapshot(settings.MaximumInputBytes, settings.PdfLoad?.Password ?? settings.SourcePassword), token);
+                using PdfDocument document = PdfDocument.Load(input, (settings.PdfLoad ?? new()).Clone(settings.MaximumInputBytes, settings.PdfLoad?.Password ?? settings.SourcePassword), token);
                 if (id == "pdf-docx") {
                     WordPdfImportOptions options = settings.PdfWord ?? new(); options.ReadOptions ??= settings.PdfLoad; options.FailOnLoss |= settings.FailOnLoss;
                     result = await SaveConvertedAsync(await document.ToWordAsync(options, token).ConfigureAwait(false),

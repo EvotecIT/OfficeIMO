@@ -81,5 +81,16 @@ public sealed class OfficeConverterNativeRouteTests {
         Assert.Throws<InvalidDataException>(() => OfficeConverter.Convert(source, OfficeDocumentFormat.Pdf, rejectedTarget, OfficeDocumentFormat.Word,
             new OfficeConversionOptions { SourcePassword = "synthetic-open", MaximumInputBytes = bytes.Length - 1 }));
         Assert.Equal(0, rejectedTarget.Length);
+        using var policyRejectedTarget = new MemoryStream();
+        var loadOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxInputBytes = 32 } };
+        PdfReadLimitException policyError = Assert.Throws<PdfReadLimitException>(() => OfficeConverter.Convert(source,
+            OfficeDocumentFormat.Pdf, policyRejectedTarget, OfficeDocumentFormat.Word,
+            new OfficeConversionOptions { SourcePassword = "synthetic-open", PdfLoad = loadOptions }));
+        Assert.Equal(PdfReadLimitKind.InputBytes, policyError.Kind);
+        Assert.Equal(32, policyError.Limit);
+        Assert.Equal(bytes.LongLength, policyError.Actual);
+        Assert.Equal(0, policyRejectedTarget.Length);
+        Assert.Equal(32, loadOptions.Limits.MaxInputBytes);
+        Assert.Null(loadOptions.Password);
     }
 }

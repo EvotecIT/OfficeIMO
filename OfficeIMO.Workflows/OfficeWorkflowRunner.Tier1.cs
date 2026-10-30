@@ -15,7 +15,7 @@ public sealed partial class OfficeWorkflowRunner {
         options.MaximumOutputBytes = request.Limits.MaximumOutputBytes;
         options.MaximumXmlCharactersInPart = request.Limits.MaximumXmlCharactersInPart;
         options.OutputProfile = request.OutputProfile;
-        options.PdfLoad = (options.PdfLoad ?? request.PdfLoadOptions).Snapshot(request.Limits.MaximumInputBytes,
+        options.PdfLoad = (options.PdfLoad ?? request.PdfLoadOptions).Clone(request.Limits.MaximumInputBytes,
             options.PdfLoad?.Password ?? request.PdfLoadOptions.Password);
         if (!emitHtmlTaggedStructure) {
             options.Html ??= new HtmlToPdfOptions();
