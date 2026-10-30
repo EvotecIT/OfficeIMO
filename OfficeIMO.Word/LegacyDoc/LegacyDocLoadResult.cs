@@ -5,7 +5,7 @@ namespace OfficeIMO.Word.LegacyDoc {
     /// <summary>
     /// Contains the projected OfficeIMO document and the legacy DOC import report produced from the same parse.
     /// </summary>
-    public sealed class LegacyDocLoadResult : IDisposable, IOfficeConversionReport {
+    internal sealed class LegacyDocLoadResult : IDisposable, IOfficeConversionReport {
         private readonly WordDocument? _document;
         private readonly Lazy<LegacyDocImportReport> _importReport;
         private readonly Lazy<LegacyDocImportSummary> _summary;

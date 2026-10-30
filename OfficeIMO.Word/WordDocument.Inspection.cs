@@ -355,7 +355,7 @@ namespace OfficeIMO.Word {
                 snapshot.AddTabStop(new WordTabStopInfo {
                     Alignment = NormalizeOpenXmlEnumValue(tabStop.Alignment),
                     Leader = NormalizeOpenXmlEnumValue(tabStop.Leader),
-                    Position = OfficeLength.Points(tabStop.Position / 20D),
+                    Position = tabStop.Position,
                 });
             }
 
@@ -625,8 +625,8 @@ namespace OfficeIMO.Word {
         private static WordParagraphBorderInfo? BuildParagraphBorderSnapshot(
             string? style,
             string? colorHex,
-            uint? size,
-            uint? space) {
+            OfficeLength? size,
+            OfficeLength? space) {
             if (string.IsNullOrWhiteSpace(style) && string.IsNullOrWhiteSpace(colorHex) && !size.HasValue && !space.HasValue) {
                 return null;
             }
@@ -634,8 +634,8 @@ namespace OfficeIMO.Word {
             return new WordParagraphBorderInfo {
                 Style = style,
                 ColorHex = colorHex,
-                Size = size.HasValue ? OfficeLength.Points(size.Value / 8D) : null,
-                Space = space.HasValue ? OfficeLength.Points(space.Value) : null,
+                Size = size,
+                Space = space,
             };
         }
 

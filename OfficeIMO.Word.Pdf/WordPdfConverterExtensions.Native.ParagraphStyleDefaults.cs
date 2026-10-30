@@ -347,7 +347,7 @@ namespace OfficeIMO.Word.Pdf {
         private static IReadOnlyList<WordTabStop> GetNativeParagraphEffectiveTabStops(WordParagraph paragraph,
             W.Tabs? numberingTabs = null) {
             numberingTabs ??= WordDocumentTraversal.GetListInfo(paragraph)?.LevelTabStops;
-            var tabStops = new Dictionary<int, WordTabStop>();
+            var tabStops = new Dictionary<OfficeLength, WordTabStop>();
             int inspectedTabStops = 0;
             // Word tab lists compose across the hierarchy. Visit the most
             // specific declaration first, including clears that mask ancestors.

@@ -26,12 +26,12 @@ public partial class WordRtfConverterTests {
         word.Settings.MirrorMargins = true;
         word.AddPageNumbering(5, WordNumberFormat.LowerRoman);
         word.Borders.TopStyle = WordBorderStyle.Single;
-        word.Borders.TopSize = 12U;
-        word.Borders.TopSpace = 24U;
+        word.Borders.TopSize = OfficeLength.Points(1.5);
+        word.Borders.TopSpace = OfficeLength.Points(24);
         word.Borders.TopColorHex = "FF0000";
         word.Borders.BottomStyle = WordBorderStyle.Double;
-        word.Borders.BottomSize = 18U;
-        word.Borders.BottomSpace = 30U;
+        word.Borders.BottomSize = OfficeLength.Points(2.25);
+        word.Borders.BottomSpace = OfficeLength.Points(30);
         word.Borders.BottomColorHex = "0000FF";
         PageBorders pageBorders = word.Sections[0]._sectionProperties.GetFirstChild<PageBorders>()!;
         pageBorders.Display = PageBorderDisplayValues.NotFirstPage;

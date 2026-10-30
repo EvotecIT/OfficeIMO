@@ -23,7 +23,7 @@ public partial class Word {
         foreach (string text in new[] { "Grouped\t" + grouped, "Control\t" + control }) {
             WordParagraph paragraph = cell == null ? document.AddParagraph(text) : cell.AddParagraph(text);
             paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-            paragraph.AddTabStop(4000, WordTabAlignment.Decimal);
+            paragraph.AddTabStop(OfficeLength.Points(200), WordTabAlignment.Decimal);
         }
         using var output = new MemoryStream();
         document.SaveAsPdf(output, new WordPdfExportOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });

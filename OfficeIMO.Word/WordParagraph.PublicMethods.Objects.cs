@@ -64,11 +64,11 @@ namespace OfficeIMO.Word {
         /// Provides ability for configuration of Tabs in a paragraph
         /// by adding one or more TabStops
         /// </summary>
-        /// <param name="position">The position of the tabs in the paragraph.</param>
+        /// <param name="position">The signed tab position, rounded to the nearest twip.</param>
         /// <param name="alignment">The optional alignment for the tabs.</param>
         /// <param name="leader">The optional rune to use before the tabs.</param>
         /// <returns>The added tabs.</returns>
-        public WordTabStop AddTabStop(int position, WordTabAlignment? alignment = null, WordTabLeader? leader = null) {
+        public WordTabStop AddTabStop(OfficeLength position, WordTabAlignment? alignment = null, WordTabLeader? leader = null) {
             alignment ??= WordTabAlignment.Left;
             leader ??= WordTabLeader.None;
             var wordTab = new WordTabStop(this);

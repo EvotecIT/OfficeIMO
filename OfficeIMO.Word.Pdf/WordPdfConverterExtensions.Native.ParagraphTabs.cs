@@ -17,7 +17,7 @@ public static partial class WordPdfConverterExtensions {
             // Source stops are relative to the containing text margin, while
             // PDF stops use the continuation-line text frame. A hanging first
             // line can reach stops at or before that frame's origin.
-            double framePosition = tabStop.Position / 20D - leftIndent;
+            double framePosition = tabStop.Position.ToPoints() - leftIndent;
             result.Add(new PdfCore.PdfTabStop(
                 framePosition,
                 MapNativeTabAlignment(tabStop.Alignment),

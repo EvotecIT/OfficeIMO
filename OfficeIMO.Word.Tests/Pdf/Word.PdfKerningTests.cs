@@ -26,7 +26,7 @@ public sealed class WordPdfKerningTests {
             paragraph.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(1D);
             paragraph.CharacterScale = characterScale;
             paragraph._paragraph.Descendants<Run>().Last().RunProperties!.Spacing = new Spacing { Val = spacingTwips };
-            paragraph.AddTabStop(2000, WordTabAlignment.Decimal);
+            paragraph.AddTabStop(OfficeLength.Points(100), WordTabAlignment.Decimal);
         }
 
         byte[] bytes = document.ToPdf(ConversionOptions(

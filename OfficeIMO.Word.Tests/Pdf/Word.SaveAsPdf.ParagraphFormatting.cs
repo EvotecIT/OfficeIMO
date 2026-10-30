@@ -345,10 +345,10 @@ namespace OfficeIMO.Tests {
                 paragraph.Borders.BottomColorHex = "336699";
                 paragraph.Borders.LeftColorHex = "336699";
                 paragraph.Borders.RightColorHex = "336699";
-                paragraph.Borders.TopSize = 8;
-                paragraph.Borders.BottomSize = 8;
-                paragraph.Borders.LeftSize = 8;
-                paragraph.Borders.RightSize = 8;
+                paragraph.Borders.TopSize = OfficeLength.Points(1);
+                paragraph.Borders.BottomSize = OfficeLength.Points(1);
+                paragraph.Borders.LeftSize = OfficeLength.Points(1);
+                paragraph.Borders.RightSize = OfficeLength.Points(1);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -490,8 +490,8 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = document.AddParagraph("Native bordered paragraph heading");
                 paragraph.Borders.BottomStyle = WordBorderStyle.Single;
                 paragraph.Borders.BottomColorHex = "336699";
-                paragraph.Borders.BottomSize = 12;
-                paragraph.Borders.BottomSpace = 3;
+                paragraph.Borders.BottomSize = OfficeLength.Points(1.5);
+                paragraph.Borders.BottomSpace = OfficeLength.Points(3);
                 paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D);
 
                 document.AddParagraph("After native bottom border");
@@ -528,8 +528,8 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = document.AddParagraph("Native top bordered paragraph");
                 paragraph.Borders.TopStyle = WordBorderStyle.Single;
                 paragraph.Borders.TopColorHex = "008000";
-                paragraph.Borders.TopSize = 16;
-                paragraph.Borders.TopSpace = 4;
+                paragraph.Borders.TopSize = OfficeLength.Points(2);
+                paragraph.Borders.TopSpace = OfficeLength.Points(4);
                 paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(8D);
 
                 document.Save();
@@ -563,10 +563,10 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = document.AddParagraph("Native side bordered paragraph");
                 paragraph.Borders.LeftStyle = WordBorderStyle.Single;
                 paragraph.Borders.LeftColorHex = "FF0000";
-                paragraph.Borders.LeftSize = 12;
+                paragraph.Borders.LeftSize = OfficeLength.Points(1.5);
                 paragraph.Borders.RightStyle = WordBorderStyle.Single;
                 paragraph.Borders.RightColorHex = "0000FF";
-                paragraph.Borders.RightSize = 20;
+                paragraph.Borders.RightSize = OfficeLength.Points(2.5);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -600,15 +600,15 @@ namespace OfficeIMO.Tests {
                 WordParagraph tight = document.AddParagraph("TightSpace");
                 tight.Borders.LeftStyle = WordBorderStyle.Single;
                 tight.Borders.LeftColorHex = "444444";
-                tight.Borders.LeftSize = 8;
-                tight.Borders.LeftSpace = 0;
+                tight.Borders.LeftSize = OfficeLength.Points(1);
+                tight.Borders.LeftSpace = OfficeLength.Points(0);
                 tight.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(4D);
 
                 WordParagraph wide = document.AddParagraph("WideSpace");
                 wide.Borders.LeftStyle = WordBorderStyle.Single;
                 wide.Borders.LeftColorHex = "444444";
-                wide.Borders.LeftSize = 8;
-                wide.Borders.LeftSpace = 24;
+                wide.Borders.LeftSize = OfficeLength.Points(1);
+                wide.Borders.LeftSpace = OfficeLength.Points(24);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -644,10 +644,10 @@ namespace OfficeIMO.Tests {
                 paragraph.Borders.RightStyle = WordBorderStyle.Single;
                 paragraph.Borders.TopStyle = WordBorderStyle.Single;
                 paragraph.Borders.BottomStyle = WordBorderStyle.Single;
-                paragraph.Borders.LeftSpace = uint.MaxValue;
-                paragraph.Borders.RightSpace = uint.MaxValue;
-                paragraph.Borders.TopSpace = uint.MaxValue;
-                paragraph.Borders.BottomSpace = uint.MaxValue;
+                paragraph.Borders.LeftSpace = OfficeLength.Points(uint.MaxValue);
+                paragraph.Borders.RightSpace = OfficeLength.Points(uint.MaxValue);
+                paragraph.Borders.TopSpace = OfficeLength.Points(uint.MaxValue);
+                paragraph.Borders.BottomSpace = OfficeLength.Points(uint.MaxValue);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -668,7 +668,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph paragraph = document.AddParagraph("Revenue\t12");
-                paragraph.AddTabStop(4320, WordTabAlignment.Right, WordTabLeader.Dot);
+                paragraph.AddTabStop(OfficeLength.Points(216), WordTabAlignment.Right, WordTabLeader.Dot);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -741,7 +741,7 @@ namespace OfficeIMO.Tests {
             paragraph.KeepLinesTogether = true;
             paragraph.KeepWithNext = true;
             paragraph.AvoidWidowAndOrphan = true;
-            paragraph.AddTabStop(1440, WordTabAlignment.Right, WordTabLeader.Dot);
+            paragraph.AddTabStop(OfficeLength.Points(72), WordTabAlignment.Right, WordTabLeader.Dot);
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
@@ -1576,7 +1576,7 @@ namespace OfficeIMO.Tests {
         public void SaveAsPdf_OfficeIMOEngine_Keeps_Default_Tab_Width_Separate_From_Explicit_TabStops() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultTabWidth.docx"));
             WordParagraph paragraph = document.AddParagraph("Native default tab width");
-            paragraph.AddTabStop(2880, WordTabAlignment.Left, WordTabLeader.None);
+            paragraph.AddTabStop(OfficeLength.Points(144), WordTabAlignment.Left, WordTabLeader.None);
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));

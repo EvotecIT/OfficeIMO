@@ -395,28 +395,28 @@
     },
     {
       "type": "OfficeIMO.Word.LegacyDoc.* / OfficeIMO.Word.Legacy.* model types",
-      "why": "Retain all 33 exact public LegacyDoc/Legacy namespace types listed here. They include the documented LegacyWordImporter, load/options/report and immutable recovered-content model contract; a missing Word prefix is not implementation-plumbing evidence.",
-      "reviewDisposition": "retained-public-contract",
+      "why": "Native parser/lifecycle and unrooted codec models are internalized in the exact generated records. Public import diagnostics, preservation/capability results and the documented non-DOC Word importer model stay public.",
+      "reviewDisposition": "reviewed-native-plumbing-and-public-model-closure",
       "currentTypes": [
         {
           "type": "OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions",
           "assembly": "OfficeIMO.Word",
-          "visibility": "Public, Sealed, BeforeFieldInit"
+          "visibility": "NotPublic, Sealed, BeforeFieldInit"
         },
         {
           "type": "OfficeIMO.Word.LegacyDoc.LegacyDocImportReport",
           "assembly": "OfficeIMO.Word",
-          "visibility": "Public, Sealed, BeforeFieldInit"
+          "visibility": "NotPublic, Sealed, BeforeFieldInit"
         },
         {
           "type": "OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary",
           "assembly": "OfficeIMO.Word",
-          "visibility": "Public, Sealed, BeforeFieldInit"
+          "visibility": "NotPublic, Sealed, BeforeFieldInit"
         },
         {
           "type": "OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult",
           "assembly": "OfficeIMO.Word",
-          "visibility": "Public, Sealed, BeforeFieldInit"
+          "visibility": "NotPublic, Sealed, BeforeFieldInit"
         },
         {
           "type": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeature",
@@ -431,7 +431,7 @@
         {
           "type": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument",
           "assembly": "OfficeIMO.Word",
-          "visibility": "Public, Sealed, BeforeFieldInit"
+          "visibility": "NotPublic, Sealed, BeforeFieldInit"
         },
         {
           "type": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocPreservedFeature",
@@ -567,7 +567,8 @@
       "evidence": [
         "OfficeIMO.Word/README.md"
       ],
-      "reviewStatus": "scratch-only reviewed retention; no source visibility change"
+      "reviewStatus": "scratch-only reviewed retention; no source visibility change",
+      "applied": "phase-b-applied"
     },
     {
       "type": "OfficeIMO.Word.WordImage attachment constructors",
@@ -801,13 +802,169 @@
       "file": [
         "OfficeIMO.Word/WordColorNameResolver.cs"
       ],
-      "why": "Unused color-name reflection helper, with no README/guide/example use, exposed model root or in-repository consumer. The canonical public color model remains OfficeColor. No conversion-route implementation is duplicated or reintroduced.",
-      "applied": "phase-b-proposed",
+      "why": "The unused reflection color helper is already internal; OfficeColor remains the documented color contract.",
+      "applied": "phase-b-applied",
       "analysis": {
         "id": "T:OfficeIMO.Word.WordColorNameResolver",
         "source": "SurfaceAnalysis existing theme-layout inventory",
         "membersHiddenWithType": 2
-      }
+      },
+      "reviewDisposition": "already-internal"
+    },
+    {
+      "type": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument",
+      "file": [
+        "OfficeIMO.Word/LegacyDoc/Model/LegacyDocDocument.Load.cs",
+        "OfficeIMO.Word/LegacyDoc/Model/LegacyDocDocument.PageLayout.cs",
+        "OfficeIMO.Word/LegacyDoc/Model/LegacyDocDocument.ParagraphProjection.cs",
+        "OfficeIMO.Word/LegacyDoc/Model/LegacyDocDocument.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocDocument.Load.cs",
+                "line": 4
+              },
+              {
+                "file": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocDocument.PageLayout.cs",
+                "line": 4
+              },
+              {
+                "file": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocDocument.ParagraphProjection.cs",
+                "line": 6
+              },
+              {
+                "file": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocDocument.cs",
+                "line": 9
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 10
+          },
+          "package": "OfficeIMO.Word"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions",
+      "file": [
+        "OfficeIMO.Word/LegacyDoc/LegacyDocImportOptions.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.Word/LegacyDoc/LegacyDocImportOptions.cs",
+                "line": 5
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 7
+          },
+          "package": "OfficeIMO.Word"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.Word.LegacyDoc.LegacyDocImportReport",
+      "file": [
+        "OfficeIMO.Word/LegacyDoc/LegacyDocImportReport.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.Word.LegacyDoc.LegacyDocImportReport",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.Word.LegacyDoc.LegacyDocImportReport",
+          "status": "retained",
+          "entry": {
+            "id": "T:OfficeIMO.Word.LegacyDoc.LegacyDocImportReport",
+            "source": "Documented type",
+            "evidence": [
+              "OfficeIMO.TestAssets/Documents/LegacyDocCorpus/README.md"
+            ]
+          },
+          "package": "OfficeIMO.Word"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary",
+      "file": [
+        "OfficeIMO.Word/LegacyDoc/LegacyDocImportSummary.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.Word/LegacyDoc/LegacyDocImportSummary.cs",
+                "line": 3
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 10
+          },
+          "package": "OfficeIMO.Word"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "type": "OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult",
+      "file": [
+        "OfficeIMO.Word/LegacyDoc/LegacyDocLoadResult.cs"
+      ],
+      "analysis": {
+        "id": "T:OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult",
+        "source": "Build/ApiMap/SurfaceAnalysis",
+        "review": {
+          "id": "T:OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult",
+          "status": "candidate",
+          "entry": {
+            "id": "T:OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult",
+            "kind": "type",
+            "locations": [
+              {
+                "file": "OfficeIMO.Word/LegacyDoc/LegacyDocLoadResult.cs",
+                "line": 8
+              }
+            ],
+            "reason": "No documentation reference or exposed model signature",
+            "membersHiddenWithType": 20
+          },
+          "package": "OfficeIMO.Word"
+        }
+      },
+      "why": "Undocumented native parser, corpus lifecycle or unrooted codec model; documented import diagnostics/preservation/preflight contracts stay public. Cross-assembly callers use friend access.",
+      "applied": "phase-b-applied"
     }
   ],
   "colors": {
@@ -5493,9 +5650,9 @@
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordBlockContent",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordBlockContent",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordStructureContracts.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5504,15 +5661,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordContent",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordContent",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5521,15 +5678,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordDetection",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordDetection",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5538,15 +5695,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordFormat",
       "kind": "enum",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordFormat",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5555,15 +5712,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordHeaderFooterContent",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordHeaderFooterContent",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordStructureContracts.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5572,15 +5729,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordHeaderFooterOccurrence",
       "kind": "enum",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordHeaderFooterOccurrence",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordStructureContracts.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5589,15 +5746,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordImageContent",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordImageContent",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5606,8 +5763,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordImportResult",
@@ -5624,9 +5781,9 @@
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordImporter",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordImporter",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordImporter.Structure.cs, OfficeIMO.Word/Legacy/LegacyWordImporter.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5635,15 +5792,15 @@
         "status": "pending-phase-b"
       },
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordNoteContent",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordNoteContent",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5652,15 +5809,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordNoteKind",
       "kind": "enum",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordNoteKind",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5669,15 +5826,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordParagraphContent",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordParagraphContent",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5686,15 +5843,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordResourceReference",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordResourceReference",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5703,15 +5860,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordRunContent",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordRunContent",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5720,15 +5877,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordSectionContent",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordSectionContent",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordStructureContracts.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5737,15 +5894,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordStyleContent",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordStyleContent",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5754,15 +5911,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordTableCellContent",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordTableCellContent",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordStructureContracts.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5771,15 +5928,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordTableContent",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordTableContent",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordStructureContracts.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5788,15 +5945,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordTableRowContent",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordTableRowContent",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordStructureContracts.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5805,15 +5962,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.LegacyDoc.Diagnostics.LegacyDocDiagnosticSeverity",
       "kind": "enum",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.LegacyDoc.Diagnostics.LegacyDocDiagnosticSeverity",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/LegacyDoc/Diagnostics/LegacyDocDiagnosticSeverity.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5822,15 +5979,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.LegacyDoc.Diagnostics.LegacyDocImportDiagnostic",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.LegacyDoc.Diagnostics.LegacyDocImportDiagnostic",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/LegacyDoc/Diagnostics/LegacyDocImportDiagnostic.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5839,8 +5996,8 @@
         "status": "pending-phase-b"
       },
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.LegacyDoc.LegacyDocImportReport",
@@ -5868,8 +6025,8 @@
         "status": "pending-phase-b"
       },
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Generated visibility analysis and current public signature closure identify native parser plumbing; all partial declarations are internal. Public lifecycle uses the format document and unified reports."
     },
     {
       "old": "OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult",
@@ -5886,9 +6043,9 @@
     {
       "old": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeature",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeature",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocCompoundFeature.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5897,15 +6054,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeatureKind",
       "kind": "enum",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeatureKind",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocCompoundFeatureKind.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5914,8 +6071,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument",
@@ -5931,15 +6088,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Generated visibility analysis and current public signature closure identify native parser plumbing; all partial declarations are internal. Public lifecycle uses the format document and unified reports."
     },
     {
       "old": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocPreservedFeature",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocPreservedFeature",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocPreservedFeature.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5948,15 +6105,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocPreservedFeatureKind",
       "kind": "enum",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocPreservedFeatureKind",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocPreservedFeatureKind.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5965,15 +6122,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeature",
       "kind": "type",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeature",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocUnsupportedFeature.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5982,15 +6139,15 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeatureKind",
       "kind": "enum",
-      "action": "internalize",
-      "new": null,
-      "reason": "Legacy DOC model types lacking the Word prefix; DOC is reached through WordDocument.Load.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeatureKind",
+      "reason": "Retain the documented non-DOC importer contract or the diagnostic/preservation model returned by public WordDocument APIs. The design keeps models of documented APIs.",
       "file": "OfficeIMO.Word/LegacyDoc/Model/LegacyDocUnsupportedFeatureKind.cs",
       "category": "visibility",
       "notes": "Candidate for M2; rename to Word* if any must stay public (LegacyWordImporter is used by Reader.Word).",
@@ -5999,8 +6156,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The separate native LegacyDocDocument parser and unused corpus-only lifecycle/report types are internal. This type remains an exposed result/model contract."
     },
     {
       "old": "OfficeIMO.Word.WordFieldFormat.Roman",
@@ -7693,6 +7850,72 @@
       "files": [
         "OfficeIMO.Word/README.md"
       ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "WordBorders and WordParagraphBorders Size/Space as uint?, WordParagraphBorders.SetBorder(uint size), WordTabStop.Position and WordParagraph.AddTabStop(int position)",
+      "new": "Nullable OfficeLength border Size/Space, SetBorder(OfficeLength size), OfficeLength tab Position and AddTabStop(OfficeLength position)",
+      "reason": "Public border and tab geometry uses visible physical units. WordprocessingML eighth-point widths, whole-point spacing and signed twip tab positions are encoded only at the storage boundary.",
+      "files": [
+        "OfficeIMO.Examples/Showcase/RealWorldWorkflowShowcase.cs",
+        "OfficeIMO.Examples/Showcase/Workflows/PolicyBrief.cs",
+        "OfficeIMO.Examples/Word/BordersAndMargins/BordersAndMargins.Sample1.cs",
+        "OfficeIMO.Examples/Word/Paragraphs/Paragraph_FluentBordersAndShading.cs",
+        "OfficeIMO.Examples/Word/Paragraphs/Paragraphs.BasicTabStops.cs",
+        "OfficeIMO.Examples/Word/Paragraphs/Paragraphs.BordersAndShading.cs",
+        "OfficeIMO.Examples/Word/WordTextBox/WordTextBox.Sample2.cs",
+        "OfficeIMO.Examples/Word/WordTextBox/WordTextBox.Sample3.cs",
+        "OfficeIMO.Html.Tests/Html.WordGapClosure.ReviewContracts.cs",
+        "OfficeIMO.Html.Tests/Html.WordGapClosure.ReviewWave16Contracts.cs",
+        "OfficeIMO.Html.Tests/Html.WordGapClosure.ReviewWave25Contracts.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentRasterVisualBaselineNativeScenarios.cs",
+        "OfficeIMO.Rtf.Tests/Rtf/RtfParagraphFormattingTests.cs",
+        "OfficeIMO.Rtf.Tests/Rtf/WordRtfConverterTests.PageSetupAndSections.cs",
+        "OfficeIMO.Rtf.Tests/Rtf/WordRtfConverterTests.SectionImport.cs",
+        "OfficeIMO.Rtf.Tests/Rtf/WordRtfConverterTests.cs",
+        "OfficeIMO.VerifyTests/Word/BordersAndMarginsTests.cs",
+        "OfficeIMO.Word.Html/Converters/HtmlToWordConverter.BlockFrames.cs",
+        "OfficeIMO.Word.IWork/WordIWorkConverter.cs",
+        "OfficeIMO.Word.Markdown/Converters/MarkdownToWordConverter.Formatting.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.ListSuffixes.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.ParagraphStyleDefaults.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.ParagraphTabs.cs",
+        "OfficeIMO.Word.Rtf/WordRtfConverterExtensions.ParagraphFormatting.cs",
+        "OfficeIMO.Word.Rtf/WordRtfConverterExtensions.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfAnchoredImagePaginationTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.PdfKerningTests.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.AsymmetricParagraphBorders.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.DecimalTabs.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.KeptParagraphContinuation.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.NestedColumns.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.ParagraphBorderGroups.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.ParagraphFormatting.cs",
+        "OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf.TableRowsAndCells.cs",
+        "OfficeIMO.Word.Tests/Word.Borders.cs",
+        "OfficeIMO.Word.Tests/Word.BordersTabs.PhysicalLengths.cs",
+        "OfficeIMO.Word.Tests/Word.GoogleDocs.cs",
+        "OfficeIMO.Word.Tests/Word.Inspection.PhysicalLengths.cs",
+        "OfficeIMO.Word.Tests/Word.LegacyDoc.ListTabs.cs",
+        "OfficeIMO.Word.Tests/Word.LegacyDoc.cs",
+        "OfficeIMO.Word.Tests/Word.ParagraphBordersAndShading.cs",
+        "OfficeIMO.Word.Tests/Word.Settings.DecimalSymbol.cs",
+        "OfficeIMO.Word.Tests/Word.TabStopOrdering.cs",
+        "OfficeIMO.Word.Tests/Word.TabStops.cs",
+        "OfficeIMO.Word.Tests/Word.TextBox.cs",
+        "OfficeIMO.Word/Helpers/WordBorderLengths.cs",
+        "OfficeIMO.Word/README.md",
+        "OfficeIMO.Word/WordBorders.cs",
+        "OfficeIMO.Word/WordDocument.Inspection.cs",
+        "OfficeIMO.Word/WordDocument.LegacyDoc.cs",
+        "OfficeIMO.Word/WordPaperStyle.cs",
+        "OfficeIMO.Word/WordParagraph.PublicMethods.Objects.cs",
+        "OfficeIMO.Word/WordParagraphBorders.cs",
+        "OfficeIMO.Word/WordTabStop.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordTabStopCommand.cs"
+      ],
+      "applied": "phase-b-applied",
+      "note": "Preserve UInt32 border and Int32 signed tab ranges, explicit zero and unset attributes; midpoint rounding is away from zero. Negative borders and overflow fail before XML mutation. Mechanical PowerShell caller retains its existing parameter semantics."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

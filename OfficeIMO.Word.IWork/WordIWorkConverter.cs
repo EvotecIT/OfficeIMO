@@ -484,7 +484,7 @@ public static partial class WordIWorkConverter {
         if (style.TabStops != null) {
             paragraph.ClearTabStops();
             foreach (var tab in style.TabStops) paragraph.AddTabStop(
-                checked((int)Math.Round(tab.PositionPoints * 20d, MidpointRounding.AwayFromZero)), tab.Alignment switch {
+                OfficeLength.Points(tab.PositionPoints), tab.Alignment switch {
                     IWorkTabAlignment.Center => WordTabAlignment.Center,
                     IWorkTabAlignment.Right => WordTabAlignment.Right,
                     IWorkTabAlignment.Decimal => WordTabAlignment.Decimal,

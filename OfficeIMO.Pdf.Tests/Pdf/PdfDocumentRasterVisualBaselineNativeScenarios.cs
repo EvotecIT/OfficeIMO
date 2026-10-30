@@ -58,10 +58,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 panel.Borders.BottomColorHex = "336699";
                 panel.Borders.LeftColorHex = "336699";
                 panel.Borders.RightColorHex = "336699";
-                panel.Borders.TopSize = 8;
-                panel.Borders.BottomSize = 8;
-                panel.Borders.LeftSize = 8;
-                panel.Borders.RightSize = 8;
+                panel.Borders.TopSize = OfficeLength.Points(1);
+                panel.Borders.BottomSize = OfficeLength.Points(1);
+                panel.Borders.LeftSize = OfficeLength.Points(1);
+                panel.Borders.RightSize = OfficeLength.Points(1);
 
                 WordList bullets = document.AddList(WordListStyle.Bulleted);
                 bullets.AddItem("Native list mapping keeps markers and text aligned.");
@@ -159,10 +159,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 shaded.ShadingFillColorHex = "e6f2ff";
                 shaded.Borders.LeftStyle = WordBorderStyle.Single;
                 shaded.Borders.LeftColorHex = "1f4e79";
-                shaded.Borders.LeftSize = 12;
+                shaded.Borders.LeftSize = OfficeLength.Points(1.5);
                 shaded.Borders.BottomStyle = WordBorderStyle.Single;
                 shaded.Borders.BottomColorHex = "b7c9d9";
-                shaded.Borders.BottomSize = 4;
+                shaded.Borders.BottomSize = OfficeLength.Points(0.5);
 
                 WordList bullets = document.AddList(WordListStyle.Bulleted);
                 bullets.AddItem("Bullet markers stay inside the first Word column.");

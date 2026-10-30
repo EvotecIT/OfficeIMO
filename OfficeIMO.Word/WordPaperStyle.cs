@@ -185,7 +185,7 @@ public sealed partial class WordPaperStyle {
         Format(paragraph, 10, Ink);
         paragraph.ShadingFillColorHex = tint;
         paragraph.Borders.LeftStyle = WordBorderStyle.Single;
-        paragraph.Borders.LeftSize = 24;
+        paragraph.Borders.LeftSize = OfficeLength.Points(3);
         paragraph.Borders.LeftColorHex = tone;
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(10D);
         paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);

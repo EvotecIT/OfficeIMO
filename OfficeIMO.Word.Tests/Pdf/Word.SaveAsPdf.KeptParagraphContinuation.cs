@@ -65,8 +65,8 @@ public partial class Word {
             paragraph.Borders.TopStyle = paragraph.Borders.BottomStyle =
                 paragraph.Borders.LeftStyle = paragraph.Borders.RightStyle = WordBorderStyle.Single;
             paragraph.Borders.TopSize = paragraph.Borders.BottomSize =
-                paragraph.Borders.LeftSize = paragraph.Borders.RightSize = 4;
-            paragraph.Borders.TopSpace = paragraph.Borders.BottomSpace = 0;
+                paragraph.Borders.LeftSize = paragraph.Borders.RightSize = OfficeLength.Points(0.5);
+            paragraph.Borders.TopSpace = paragraph.Borders.BottomSpace = OfficeLength.Points(0);
         }
         ConfigurePartialColumnParagraph(document.AddParagraph("After"));
         var options = CellPaginationOptions();
@@ -176,8 +176,8 @@ public partial class Word {
             paragraph.Borders.TopStyle = paragraph.Borders.BottomStyle =
                 paragraph.Borders.LeftStyle = paragraph.Borders.RightStyle = WordBorderStyle.Single;
             paragraph.Borders.TopSize = paragraph.Borders.BottomSize =
-                paragraph.Borders.LeftSize = paragraph.Borders.RightSize = 4;
-            paragraph.Borders.TopSpace = paragraph.Borders.BottomSpace = 0;
+                paragraph.Borders.LeftSize = paragraph.Borders.RightSize = OfficeLength.Points(0.5);
+            paragraph.Borders.TopSpace = paragraph.Borders.BottomSpace = OfficeLength.Points(0);
         }
         ConfigurePartialColumnParagraph(document.AddParagraph("After"));
         var options = CellPaginationOptions();

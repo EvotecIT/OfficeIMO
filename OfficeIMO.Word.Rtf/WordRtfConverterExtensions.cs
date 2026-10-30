@@ -96,7 +96,7 @@ public static partial class WordRtfConverterExtensions {
             // RTF has no corresponding clear-stop declaration in this model;
             // conversion diagnostics report the unsupported source control.
             if (tabStop.Alignment == WordTabAlignment.Clear) continue;
-            destination.AddTabStop(tabStop.Position, ToRtfTabAlignment(tabStop.Alignment.ToOpenXml()), ToRtfTabLeader(tabStop.Leader.ToOpenXml()));
+            destination.AddTabStop(checked((int)tabStop.Position.ToTwips()), ToRtfTabAlignment(tabStop.Alignment.ToOpenXml()), ToRtfTabLeader(tabStop.Leader.ToOpenXml()));
         }
     }
 
@@ -850,14 +850,14 @@ public static partial class WordRtfConverterExtensions {
                 foreach (RtfTabStop tabStop in style.TabStops) {
                     int position = tabStop.PositionTwips;
                     if (!activePositions.Contains(position) && clearedPositions.Add(position)) {
-                        destination.AddTabStop(position, WordTabAlignment.Clear);
+                        destination.AddTabStop(OfficeLength.Emus((long)position * 635), WordTabAlignment.Clear);
                     }
                 }
                 styleId = style.BasedOnStyleId;
             }
         }
         foreach (RtfTabStop tabStop in source.TabStops) {
-            destination.AddTabStop(tabStop.PositionTwips, ToWordTabAlignment(tabStop.Alignment).ToOfficeEnum(), ToWordTabLeader(tabStop.Leader).ToOfficeEnum());
+            destination.AddTabStop(OfficeLength.Emus((long)tabStop.PositionTwips * 635), ToWordTabAlignment(tabStop.Alignment).ToOfficeEnum(), ToWordTabLeader(tabStop.Leader).ToOfficeEnum());
         }
     }
 

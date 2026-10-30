@@ -43,7 +43,7 @@ internal static class PolicyBrief {
         reminder.ShadingFillColorHex = "EAF1FB";
         reminder.Borders.LeftStyle = WordBorderStyle.Single;
         reminder.Borders.LeftColorHex = "2F5597";
-        reminder.Borders.LeftSize = 24;
+        reminder.Borders.LeftSize = OfficeLength.Points(3);
         document.AddParagraph("Leave it ready for the next person").Style = WordParagraphStyles.Heading2;
         WordList actions = document.AddList(WordListStyle.Bulleted);
         actions.AddItem("Remove personal items and dispose of waste.");

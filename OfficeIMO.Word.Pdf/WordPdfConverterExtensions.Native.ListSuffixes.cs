@@ -15,7 +15,7 @@ namespace OfficeIMO.Word.Pdf {
             foreach (WordTabStop tabStop in GetNativeParagraphEffectiveTabStops(paragraph, levelTabs)
                 .Where(tab => IsNativeRenderableTextTabStop(tab.Alignment))
                 .OrderBy(tab => tab.Position)) {
-                double position = tabStop.Position / 20D;
+                double position = tabStop.Position.ToPoints();
                 if (position > markerEnd + 0.01D) return indentStop.HasValue ? Math.Min(position, indentStop.Value) : position;
             }
             if (indentStop.HasValue) return indentStop.Value;

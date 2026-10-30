@@ -74,8 +74,8 @@ namespace OfficeIMO.Word.Html {
             string alternativeText = !string.IsNullOrWhiteSpace(chart.AltText) ? chart.AltText! :
                 string.IsNullOrWhiteSpace(snapshot.Title) ? "Word chart" : snapshot.Title!;
             SetOutputAttribute(image, "alt", alternativeText, "WordChart:alt");
-            SetOutputAttribute(image, "width", Math.Round(snapshot.WidthPoints * 96D / 72D).ToString(CultureInfo.InvariantCulture), "WordChart:width");
-            SetOutputAttribute(image, "height", Math.Round(snapshot.HeightPoints * 96D / 72D).ToString(CultureInfo.InvariantCulture), "WordChart:height");
+            SetOutputAttribute(image, "width", Math.Round(snapshot.Width.ToPoints() * 96D / 72D).ToString(CultureInfo.InvariantCulture), "WordChart:width");
+            SetOutputAttribute(image, "height", Math.Round(snapshot.Height.ToPoints() * 96D / 72D).ToString(CultureInfo.InvariantCulture), "WordChart:height");
             embeddedImageBytes += bytes.LongLength;
             AddExportDiagnostic(options, "word-chart-rendered-as-image",
                 "A Word chart is represented by a static SVG image; its editable data and native layout are not preserved in HTML.",

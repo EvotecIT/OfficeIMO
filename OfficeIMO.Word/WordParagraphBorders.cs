@@ -56,14 +56,16 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the left border width in points.
+        /// Gets or sets the left border width as a physical length.
         /// </summary>
-        public uint? LeftSize {
-            get => GetParagraphBorders()?.LeftBorder?.Size?.Value;
+        /// <remarks>Nonnegative lengths round to the nearest an eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? LeftSize {
+            get => WordBorderLengths.FromSize(GetParagraphBorders()?.LeftBorder?.Size?.Value);
             set {
+                uint? nativeValue = WordBorderLengths.ToSize(value);
                 var pageBorder = GetOrCreateParagraphBorders();
                 var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
-                leftBorder.Size = value;
+                leftBorder.Size = nativeValue;
             }
         }
 
@@ -121,12 +123,14 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the left border spacing.
         /// </summary>
-        public uint? LeftSpace {
-            get => GetParagraphBorders()?.LeftBorder?.Space?.Value;
+        /// <remarks>Nonnegative lengths round to the nearest a whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? LeftSpace {
+            get => WordBorderLengths.FromSpace(GetParagraphBorders()?.LeftBorder?.Space?.Value);
             set {
+                uint? nativeValue = WordBorderLengths.ToSpace(value);
                 var pageBorder = GetOrCreateParagraphBorders();
                 var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
-                leftBorder.Space = value;
+                leftBorder.Space = nativeValue;
             }
         }
 
@@ -155,14 +159,16 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the right border width in points.
+        /// Gets or sets the right border width as a physical length.
         /// </summary>
-        public uint? RightSize {
-            get => GetParagraphBorders()?.RightBorder?.Size?.Value;
+        /// <remarks>Nonnegative lengths round to the nearest an eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? RightSize {
+            get => WordBorderLengths.FromSize(GetParagraphBorders()?.RightBorder?.Size?.Value);
             set {
+                uint? nativeValue = WordBorderLengths.ToSize(value);
                 var pageBorder = GetOrCreateParagraphBorders();
                 var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
-                rightBorder.Size = value;
+                rightBorder.Size = nativeValue;
             }
         }
 
@@ -220,12 +226,14 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the right border spacing.
         /// </summary>
-        public uint? RightSpace {
-            get => GetParagraphBorders()?.RightBorder?.Space?.Value;
+        /// <remarks>Nonnegative lengths round to the nearest a whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? RightSpace {
+            get => WordBorderLengths.FromSpace(GetParagraphBorders()?.RightBorder?.Space?.Value);
             set {
+                uint? nativeValue = WordBorderLengths.ToSpace(value);
                 var pageBorder = GetOrCreateParagraphBorders();
                 var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
-                rightBorder.Space = value;
+                rightBorder.Space = nativeValue;
             }
         }
 
@@ -254,14 +262,16 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the top border width in points.
+        /// Gets or sets the top border width as a physical length.
         /// </summary>
-        public uint? TopSize {
-            get => GetParagraphBorders()?.TopBorder?.Size?.Value;
+        /// <remarks>Nonnegative lengths round to the nearest an eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? TopSize {
+            get => WordBorderLengths.FromSize(GetParagraphBorders()?.TopBorder?.Size?.Value);
             set {
+                uint? nativeValue = WordBorderLengths.ToSize(value);
                 var pageBorder = GetOrCreateParagraphBorders();
                 var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
-                topBorder.Size = value;
+                topBorder.Size = nativeValue;
             }
         }
 
@@ -319,12 +329,14 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the top border spacing.
         /// </summary>
-        public uint? TopSpace {
-            get => GetParagraphBorders()?.TopBorder?.Space?.Value;
+        /// <remarks>Nonnegative lengths round to the nearest a whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? TopSpace {
+            get => WordBorderLengths.FromSpace(GetParagraphBorders()?.TopBorder?.Space?.Value);
             set {
+                uint? nativeValue = WordBorderLengths.ToSpace(value);
                 var pageBorder = GetOrCreateParagraphBorders();
                 var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
-                topBorder.Space = value;
+                topBorder.Space = nativeValue;
             }
         }
 
@@ -354,14 +366,16 @@ namespace OfficeIMO.Word {
 
 
         /// <summary>
-        /// Gets or sets the bottom border width in points.
+        /// Gets or sets the bottom border width as a physical length.
         /// </summary>
-        public uint? BottomSize {
-            get => GetParagraphBorders()?.BottomBorder?.Size?.Value;
+        /// <remarks>Nonnegative lengths round to the nearest an eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? BottomSize {
+            get => WordBorderLengths.FromSize(GetParagraphBorders()?.BottomBorder?.Size?.Value);
             set {
+                uint? nativeValue = WordBorderLengths.ToSize(value);
                 var pageBorder = GetOrCreateParagraphBorders();
                 var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
-                bottomBorder.Size = value;
+                bottomBorder.Size = nativeValue;
             }
         }
 
@@ -419,12 +433,14 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the bottom border spacing.
         /// </summary>
-        public uint? BottomSpace {
-            get => GetParagraphBorders()?.BottomBorder?.Space?.Value;
+        /// <remarks>Nonnegative lengths round to the nearest a whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? BottomSpace {
+            get => WordBorderLengths.FromSpace(GetParagraphBorders()?.BottomBorder?.Space?.Value);
             set {
+                uint? nativeValue = WordBorderLengths.ToSpace(value);
                 var pageBorder = GetOrCreateParagraphBorders();
                 var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
-                bottomBorder.Space = value;
+                bottomBorder.Space = nativeValue;
             }
         }
 
@@ -568,28 +584,29 @@ namespace OfficeIMO.Word {
         /// <param name="type">Side of the paragraph.</param>
         /// <param name="style">Border style.</param>
         /// <param name="color">Border color.</param>
-        /// <param name="size">Border width.</param>
+        /// <param name="size">Border width, rounded to the nearest eighth of a point.</param>
         /// <param name="shadow">Whether the border has a shadow.</param>
-        public void SetBorder(WordParagraphBorderType type, WordBorderStyle style, Color color, uint size, bool shadow) {
+        public void SetBorder(WordParagraphBorderType type, WordBorderStyle style, Color color, OfficeLength size, bool shadow) {
+            WordBorderLengths.ToSize(size);
             if (type == WordParagraphBorderType.Left) {
                 LeftStyle = style;
                 LeftColor = color;
-                LeftSize = (UInt32Value)size;
+                LeftSize = size;
                 LeftShadow = shadow;
             } else if (type == WordParagraphBorderType.Right) {
                 RightStyle = style;
                 RightColor = color;
-                RightSize = (UInt32Value)size;
+                RightSize = size;
                 RightShadow = shadow;
             } else if (type == WordParagraphBorderType.Top) {
                 TopStyle = style;
                 TopColor = color;
-                TopSize = (UInt32Value)size;
+                TopSize = size;
                 TopShadow = shadow;
             } else if (type == WordParagraphBorderType.Bottom) {
                 BottomStyle = style;
                 BottomColor = color;
-                BottomSize = (UInt32Value)size;
+                BottomSize = size;
                 BottomShadow = shadow;
             }
         }

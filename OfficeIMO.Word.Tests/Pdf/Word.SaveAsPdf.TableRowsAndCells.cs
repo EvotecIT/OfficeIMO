@@ -1175,7 +1175,7 @@ public partial class Word {
 
             WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = "CellTabRevenue\t42";
-            paragraph.AddTabStop(3600, WordTabAlignment.Right, WordTabLeader.Dot);
+            paragraph.AddTabStop(OfficeLength.Points(180), WordTabAlignment.Right, WordTabLeader.Dot);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {

@@ -753,22 +753,22 @@ namespace OfficeIMO.Word.Html {
             switch (side) {
                 case BlockBorderSide.Left:
                     paragraph.Borders.LeftStyle = value.Style.ToOfficeEnum();
-                    paragraph.Borders.LeftSize = value.Size;
+                    paragraph.Borders.LeftSize = OfficeLength.Points(value.Size / 8D);
                     paragraph.Borders.LeftColorHex = color;
                     break;
                 case BlockBorderSide.Right:
                     paragraph.Borders.RightStyle = value.Style.ToOfficeEnum();
-                    paragraph.Borders.RightSize = value.Size;
+                    paragraph.Borders.RightSize = OfficeLength.Points(value.Size / 8D);
                     paragraph.Borders.RightColorHex = color;
                     break;
                 case BlockBorderSide.Top:
                     paragraph.Borders.TopStyle = value.Style.ToOfficeEnum();
-                    paragraph.Borders.TopSize = value.Size;
+                    paragraph.Borders.TopSize = OfficeLength.Points(value.Size / 8D);
                     paragraph.Borders.TopColorHex = color;
                     break;
                 case BlockBorderSide.Bottom:
                     paragraph.Borders.BottomStyle = value.Style.ToOfficeEnum();
-                    paragraph.Borders.BottomSize = value.Size;
+                    paragraph.Borders.BottomSize = OfficeLength.Points(value.Size / 8D);
                     paragraph.Borders.BottomColorHex = color;
                     break;
             }

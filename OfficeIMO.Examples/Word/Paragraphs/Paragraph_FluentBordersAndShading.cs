@@ -19,7 +19,7 @@ internal static partial class Paragraphs
                 {
                     (paragraph1.Borders).LeftStyle = WordBorderStyle.Thick;
                     (paragraph1.Borders).LeftColor = Color.Red;
-                    (paragraph1.Borders).LeftSize = 24;
+                    (paragraph1.Borders).LeftSize = OfficeLength.Points(3);
                 }
 
                 paragraph1.ShadingFillColor = Color.LightGray;

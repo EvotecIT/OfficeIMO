@@ -334,14 +334,25 @@ run.Hidden = null;  // Restore inheritance.
 
 Native DOC saving supports field display runs with one effective formatting set. Equivalent runs can use different direct settings, such as an omitted hidden setting and an explicit visible setting. A field whose display runs have different effective formatting, including visibility inherited from a paragraph or table style, raises `NotSupportedException`.
 
+## Page and paragraph borders
+
+`WordBorders` and `WordParagraphBorders` expose each side's `Size` and `Space` as nullable `OfficeLength` values. Border widths round to eighths of a point; spacing rounds to whole points. Midpoint ties round away from zero. Null removes the attribute, while zero remains explicit. Negative or overflowing lengths fail before changing the document.
+
+```csharp
+paragraph.Borders.SetBorder(WordParagraphBorderType.Left, WordBorderStyle.Single,
+    OfficeColor.Red, OfficeLength.Points(1.25), shadow: false);
+paragraph.Borders.LeftSpace = OfficeLength.Points(3);
+paragraph.Borders.LeftSpace = null; // Remove the direct spacing attribute.
+```
+
 ## Paragraph tab stops
 
-Use `AddTabStop` to configure a paragraph's explicit tab positions in twentieths of a point. `ClearTabStops()` removes those local stops without changing paragraph spacing, alignment, or inherited defaults.
+Use `AddTabStop` to configure a paragraph's explicit tab positions with `OfficeLength`. Signed positions round to the nearest twip (1/20 point) when written. `ClearTabStops()` removes those local stops without changing paragraph spacing, alignment, or inherited defaults.
 
 ```csharp
 var paragraph = document.AddParagraph("Label\t12.50");
 document.Settings.DecimalSymbol = ".";
-paragraph.ClearTabStops().AddTabStop(1440, WordTabAlignment.Decimal);
+paragraph.ClearTabStops().AddTabStop(OfficeLength.Inches(1), WordTabAlignment.Decimal);
 ```
 
 `Settings.DecimalSymbol` stores the DOCX document's decimal separator. It accepts one noncontrol Unicode character; assigning `null` removes the explicit setting. OfficeIMO PDF export uses that separator for body and table decimal tabs, so grouping punctuation in values such as `1,234.56` does not become the alignment anchor. Other applications also apply their locale and language handling when rendering decimal tabs.

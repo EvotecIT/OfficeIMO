@@ -34,9 +34,9 @@ public partial class Word {
         middle.Borders.BottomStyle = box || shape == "bottom-right" ? WordBorderStyle.Single : WordBorderStyle.Nil;
         middle.Borders.LeftStyle = box || shape == "top-left" ? WordBorderStyle.Single : WordBorderStyle.Nil;
         middle.Borders.RightStyle = box || shape == "bottom-right" ? WordBorderStyle.Single : WordBorderStyle.Nil;
-        middle.Borders.TopSize = middle.Borders.BottomSize = middle.Borders.LeftSize = middle.Borders.RightSize = 8;
-        middle.Borders.TopSpace = shape == "box-top" || shape == "top-left" ? 3U : 0U;
-        middle.Borders.BottomSpace = shape == "box-bottom" || shape == "bottom-right" ? 3U : 0U;
+        middle.Borders.TopSize = middle.Borders.BottomSize = middle.Borders.LeftSize = middle.Borders.RightSize = OfficeLength.Points(1);
+        middle.Borders.TopSpace = shape == "box-top" || shape == "top-left" ? OfficeLength.Points(3) : OfficeLength.Points(0);
+        middle.Borders.BottomSpace = shape == "box-bottom" || shape == "bottom-right" ? OfficeLength.Points(3) : OfficeLength.Points(0);
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(format)));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
@@ -63,8 +63,8 @@ public partial class Word {
         WordParagraph paragraph = source.AddParagraph(string.Join("\n", Enumerable.Range(1, 30).Select(i => $"Marker{i:D3}")));
         ConfigureAsymmetricBorderParagraph(paragraph);
         paragraph.Borders.TopStyle = paragraph.Borders.LeftStyle = WordBorderStyle.Single;
-        paragraph.Borders.TopSize = paragraph.Borders.LeftSize = 8;
-        paragraph.Borders.TopSpace = 3;
+        paragraph.Borders.TopSize = paragraph.Borders.LeftSize = OfficeLength.Points(1);
+        paragraph.Borders.TopSpace = OfficeLength.Points(3);
         ConfigureAsymmetricBorderParagraph(source.AddParagraph("After"));
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(format)));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {

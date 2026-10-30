@@ -208,8 +208,8 @@ public partial class Word {
             if (border) {
                 WordParagraphBorders borders = paragraph.Borders;
                 borders.LeftStyle = borders.RightStyle = borders.TopStyle = borders.BottomStyle = WordBorderStyle.Single;
-                borders.LeftSize = borders.RightSize = borders.TopSize = borders.BottomSize = 4;
-                borders.LeftSpace = borders.RightSpace = borders.TopSpace = borders.BottomSpace = 0;
+                borders.LeftSize = borders.RightSize = borders.TopSize = borders.BottomSize = OfficeLength.Points(0.5);
+                borders.LeftSpace = borders.RightSpace = borders.TopSpace = borders.BottomSpace = OfficeLength.Points(0);
             } else paragraph.ShadingFillColorHex = "00FFFF";
             document.AddSection(WordSectionBreakType.Continuous).ColumnCount = 1;
             ConfigurePartialColumnParagraph(document.AddParagraph("AfterContinuous"));

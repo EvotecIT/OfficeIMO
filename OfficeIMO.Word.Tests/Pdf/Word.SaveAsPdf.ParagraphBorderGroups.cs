@@ -181,8 +181,8 @@ public partial class Word {
         paragraph.Borders.BottomStyle = shape is "box" or "bottom" or "bottom-right" ? WordBorderStyle.Single : WordBorderStyle.Nil;
         paragraph.Borders.LeftStyle = shape is "box" or "left" or "top-left" ? WordBorderStyle.Single : WordBorderStyle.Nil;
         paragraph.Borders.RightStyle = shape is "box" or "bottom-right" ? WordBorderStyle.Single : WordBorderStyle.Nil;
-        paragraph.Borders.TopSize = paragraph.Borders.BottomSize = paragraph.Borders.LeftSize = paragraph.Borders.RightSize = 8;
-        paragraph.Borders.TopSpace = paragraph.Borders.BottomSpace = paragraph.Borders.LeftSpace = paragraph.Borders.RightSpace = 3;
+        paragraph.Borders.TopSize = paragraph.Borders.BottomSize = paragraph.Borders.LeftSize = paragraph.Borders.RightSize = OfficeLength.Points(1);
+        paragraph.Borders.TopSpace = paragraph.Borders.BottomSpace = paragraph.Borders.LeftSpace = paragraph.Borders.RightSpace = OfficeLength.Points(3);
     }
 
     [Theory]

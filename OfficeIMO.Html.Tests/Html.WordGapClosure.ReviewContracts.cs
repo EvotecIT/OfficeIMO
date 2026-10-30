@@ -196,8 +196,8 @@ public partial class HtmlWordGapClosure {
                 .ToWord();
             WordParagraph paragraph = Assert.Single(document.Paragraphs);
 
-            Assert.Equal((uint)9, paragraph.Borders.TopSize);
-            Assert.Equal((uint)9, paragraph.Borders.LeftSize);
+            Assert.Equal(OfficeLength.Points(1.125), paragraph.Borders.TopSize);
+            Assert.Equal(OfficeLength.Points(1.125), paragraph.Borders.LeftSize);
         } finally {
             CultureInfo.CurrentCulture = previousCulture;
         }
@@ -475,7 +475,7 @@ public partial class HtmlWordGapClosure {
         WordParagraph currentColor = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Current color");
 
         Assert.Equal(WordBorderStyle.Single, restored.Borders.LeftStyle);
-        Assert.Equal((uint)6, restored.Borders.LeftSize);
+        Assert.Equal(OfficeLength.Points(0.75), restored.Borders.LeftSize);
         Assert.Equal("FF0000", restored.Borders.LeftColorHex);
         Assert.Equal(WordBorderStyle.Single, currentColor.Borders.TopStyle);
         Assert.Equal("123456", currentColor.Borders.TopColorHex);

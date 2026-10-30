@@ -35,11 +35,11 @@ public sealed class PdfAnchoredImagePaginationTests {
             if (decoration == "top") {
                 anchor.Borders.TopStyle = WordBorderStyle.Single;
                 anchor.Borders.TopColorHex = "FF0000";
-                anchor.Borders.TopSize = 16;
+                anchor.Borders.TopSize = OfficeLength.Points(2);
             } else {
                 anchor.Borders.BottomStyle = WordBorderStyle.Single;
                 anchor.Borders.BottomColorHex = "FF0000";
-                anchor.Borders.BottomSize = 16;
+                anchor.Borders.BottomSize = OfficeLength.Points(2);
             }
             if (decoration == "panel") anchor.ShadingFillColorHex = "E6F2FF";
             if (decoration == "heading") anchor.SetStyle(WordParagraphStyles.Heading1);

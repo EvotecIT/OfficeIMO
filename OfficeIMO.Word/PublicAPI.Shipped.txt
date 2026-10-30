@@ -135,76 +135,6 @@ OfficeIMO.Word.LegacyDoc.Diagnostics.LegacyDocImportDiagnostic.Code.get -> strin
 OfficeIMO.Word.LegacyDoc.Diagnostics.LegacyDocImportDiagnostic.LegacyDocImportDiagnostic(string! code, OfficeIMO.Word.LegacyDoc.Diagnostics.LegacyDocDiagnosticSeverity severity, string! message) -> void
 OfficeIMO.Word.LegacyDoc.Diagnostics.LegacyDocImportDiagnostic.Message.get -> string!
 OfficeIMO.Word.LegacyDoc.Diagnostics.LegacyDocImportDiagnostic.Severity.get -> OfficeIMO.Word.LegacyDoc.Diagnostics.LegacyDocDiagnosticSeverity
-OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions
-OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions.LegacyDocImportOptions() -> void
-OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions.MaxDataPropertyChainLength.get -> int
-OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions.MaxDataPropertyChainLength.set -> void
-OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions.MaxDecodedCharacters.get -> int
-OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions.MaxDecodedCharacters.set -> void
-OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions.MaxDecodedImageBytes.get -> int
-OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions.MaxDecodedImageBytes.set -> void
-OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions.MaxInputBytes.get -> int
-OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions.MaxInputBytes.set -> void
-OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions.MaxParagraphPropertyWorkBytes.get -> int
-OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions.MaxParagraphPropertyWorkBytes.set -> void
-OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions.ReportUnsupportedContent.get -> bool
-OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions.ReportUnsupportedContent.set -> void
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.CharacterCount.get -> int
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.CompoundFeatureCount.get -> int
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.CompoundFeatures.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeature!>!
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.CompoundFeaturesByCode.get -> System.Collections.Generic.IReadOnlyDictionary<string!, int>!
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.CompoundFeaturesByDetail.get -> System.Collections.Generic.IReadOnlyDictionary<string!, int>!
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.CompoundFeaturesByKind.get -> System.Collections.Generic.IReadOnlyDictionary<OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeatureKind, int>!
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.DiagnosticCount.get -> int
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.DiagnosticsByCode.get -> System.Collections.Generic.IReadOnlyDictionary<string!, int>!
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.DocumentPropertyCount.get -> int
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.ErrorCount.get -> int
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.ParagraphCount.get -> int
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.PreservedFeatureCount.get -> int
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.PreservedFeatures.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.LegacyDoc.Model.LegacyDocPreservedFeature!>!
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.PreservedFeaturesByCode.get -> System.Collections.Generic.IReadOnlyDictionary<string!, int>!
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.PreservedFeaturesByDetail.get -> System.Collections.Generic.IReadOnlyDictionary<string!, int>!
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.PreservedFeaturesByKind.get -> System.Collections.Generic.IReadOnlyDictionary<OfficeIMO.Word.LegacyDoc.Model.LegacyDocPreservedFeatureKind, int>!
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.ToMarkdown() -> string!
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.UnsupportedFeatureCount.get -> int
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.UnsupportedFeatures.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeature!>!
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.UnsupportedFeaturesByCode.get -> System.Collections.Generic.IReadOnlyDictionary<string!, int>!
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.UnsupportedFeaturesByDetail.get -> System.Collections.Generic.IReadOnlyDictionary<string!, int>!
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.UnsupportedFeaturesByKind.get -> System.Collections.Generic.IReadOnlyDictionary<OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeatureKind, int>!
-OfficeIMO.Word.LegacyDoc.LegacyDocImportReport.WarningCount.get -> int
-OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary
-OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary.CompoundFeatureCount.get -> int
-OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary.DiagnosticCount.get -> int
-OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary.FidelityDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>!
-OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary.HasConversionLoss.get -> bool
-OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary.HasImportErrors.get -> bool
-OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary.HasLoss.get -> bool
-OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary.ParagraphCount.get -> int
-OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary.PreservedFeatureCount.get -> int
-OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary.RequireNoLoss() -> void
-OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary.UnsupportedFeatureCount.get -> int
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.AdvancedDocument.get -> OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument!
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.CompoundFeatures.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeature!>!
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.CreateAdvancedImportReport() -> OfficeIMO.Word.LegacyDoc.LegacyDocImportReport!
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.LegacyDoc.Diagnostics.LegacyDocImportDiagnostic!>!
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.Dispose() -> void
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.Document.get -> OfficeIMO.Word.WordDocument!
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.EnsureNoConversionLoss() -> OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult!
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.EnsureNoImportErrors() -> OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult!
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.FidelityDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>!
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.HasConversionLoss.get -> bool
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.HasDocument.get -> bool
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.HasImportErrors.get -> bool
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.HasLoss.get -> bool
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.ImportReport.get -> OfficeIMO.Word.LegacyDoc.LegacyDocImportReport!
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.LegacyDocument.get -> OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument!
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.PreservedFeatures.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.LegacyDoc.Model.LegacyDocPreservedFeature!>!
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.ProjectionException.get -> System.Exception?
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.RequireNoLoss() -> void
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.Summary.get -> OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary!
-OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult.UnsupportedFeatures.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeature!>!
 OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeature
 OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeature.Code.get -> string!
 OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeature.Description.get -> string!
@@ -221,14 +151,6 @@ OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeatureKind.DigitalSignature = 5
 OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeatureKind.EmbeddedPackage = 3 -> OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeatureKind
 OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeatureKind.OleObject = 1 -> OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeatureKind
 OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeatureKind.VbaProject = 0 -> OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeatureKind
-OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument
-OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.CompoundFeatures.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeature!>!
-OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.CreateImportReport() -> OfficeIMO.Word.LegacyDoc.LegacyDocImportReport!
-OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.LegacyDoc.Diagnostics.LegacyDocImportDiagnostic!>!
-OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.Paragraphs.get -> System.Collections.Generic.IReadOnlyList<string!>!
-OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.PreservedFeatures.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.LegacyDoc.Model.LegacyDocPreservedFeature!>!
-OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.Text.get -> string!
-OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.UnsupportedFeatures.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeature!>!
 OfficeIMO.Word.LegacyDoc.Model.LegacyDocPreservedFeature
 OfficeIMO.Word.LegacyDoc.Model.LegacyDocPreservedFeature.Code.get -> string!
 OfficeIMO.Word.LegacyDoc.Model.LegacyDocPreservedFeature.Description.get -> string!
@@ -599,9 +521,9 @@ OfficeIMO.Word.WordBorders.BottomFrame.get -> bool?
 OfficeIMO.Word.WordBorders.BottomFrame.set -> void
 OfficeIMO.Word.WordBorders.BottomShadow.get -> bool?
 OfficeIMO.Word.WordBorders.BottomShadow.set -> void
-OfficeIMO.Word.WordBorders.BottomSize.get -> uint?
+OfficeIMO.Word.WordBorders.BottomSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordBorders.BottomSize.set -> void
-OfficeIMO.Word.WordBorders.BottomSpace.get -> uint?
+OfficeIMO.Word.WordBorders.BottomSpace.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordBorders.BottomSpace.set -> void
 OfficeIMO.Word.WordBorders.BottomStyle.get -> OfficeIMO.Word.WordBorderStyle?
 OfficeIMO.Word.WordBorders.BottomStyle.set -> void
@@ -613,9 +535,9 @@ OfficeIMO.Word.WordBorders.LeftFrame.get -> bool?
 OfficeIMO.Word.WordBorders.LeftFrame.set -> void
 OfficeIMO.Word.WordBorders.LeftShadow.get -> bool?
 OfficeIMO.Word.WordBorders.LeftShadow.set -> void
-OfficeIMO.Word.WordBorders.LeftSize.get -> uint?
+OfficeIMO.Word.WordBorders.LeftSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordBorders.LeftSize.set -> void
-OfficeIMO.Word.WordBorders.LeftSpace.get -> uint?
+OfficeIMO.Word.WordBorders.LeftSpace.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordBorders.LeftSpace.set -> void
 OfficeIMO.Word.WordBorders.LeftStyle.get -> OfficeIMO.Word.WordBorderStyle?
 OfficeIMO.Word.WordBorders.LeftStyle.set -> void
@@ -627,9 +549,9 @@ OfficeIMO.Word.WordBorders.RightFrame.get -> bool?
 OfficeIMO.Word.WordBorders.RightFrame.set -> void
 OfficeIMO.Word.WordBorders.RightShadow.get -> bool?
 OfficeIMO.Word.WordBorders.RightShadow.set -> void
-OfficeIMO.Word.WordBorders.RightSize.get -> uint?
+OfficeIMO.Word.WordBorders.RightSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordBorders.RightSize.set -> void
-OfficeIMO.Word.WordBorders.RightSpace.get -> uint?
+OfficeIMO.Word.WordBorders.RightSpace.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordBorders.RightSpace.set -> void
 OfficeIMO.Word.WordBorders.RightStyle.get -> OfficeIMO.Word.WordBorderStyle?
 OfficeIMO.Word.WordBorders.RightStyle.set -> void
@@ -641,9 +563,9 @@ OfficeIMO.Word.WordBorders.TopFrame.get -> bool?
 OfficeIMO.Word.WordBorders.TopFrame.set -> void
 OfficeIMO.Word.WordBorders.TopShadow.get -> bool?
 OfficeIMO.Word.WordBorders.TopShadow.set -> void
-OfficeIMO.Word.WordBorders.TopSize.get -> uint?
+OfficeIMO.Word.WordBorders.TopSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordBorders.TopSize.set -> void
-OfficeIMO.Word.WordBorders.TopSpace.get -> uint?
+OfficeIMO.Word.WordBorders.TopSpace.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordBorders.TopSpace.set -> void
 OfficeIMO.Word.WordBorders.TopStyle.get -> OfficeIMO.Word.WordBorderStyle?
 OfficeIMO.Word.WordBorders.TopStyle.set -> void
@@ -2998,7 +2920,7 @@ OfficeIMO.Word.WordParagraph.AddShapeGroup(System.Collections.Generic.IEnumerabl
 OfficeIMO.Word.WordParagraph.AddSmartArt(OfficeIMO.Word.WordSmartArtType type) -> OfficeIMO.Word.WordSmartArt!
 OfficeIMO.Word.WordParagraph.AddStructuredDocumentTag(string! text = "", string? alias = null, string? tag = null) -> OfficeIMO.Word.WordStructuredDocumentTag!
 OfficeIMO.Word.WordParagraph.AddTab() -> OfficeIMO.Word.WordParagraph!
-OfficeIMO.Word.WordParagraph.AddTabStop(int position, OfficeIMO.Word.WordTabAlignment? alignment = null, OfficeIMO.Word.WordTabLeader? leader = null) -> OfficeIMO.Word.WordTabStop!
+OfficeIMO.Word.WordParagraph.AddTabStop(OfficeIMO.OfficeLength position, OfficeIMO.Word.WordTabAlignment? alignment = null, OfficeIMO.Word.WordTabLeader? leader = null) -> OfficeIMO.Word.WordTabStop!
 OfficeIMO.Word.WordParagraph.AddTableAfter(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.TableGrid) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordParagraph.AddTableBefore(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.TableGrid) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordParagraph.AddText(string? text) -> OfficeIMO.Word.WordParagraph!
@@ -3257,9 +3179,9 @@ OfficeIMO.Word.WordParagraphBorders.BottomFrame.get -> bool?
 OfficeIMO.Word.WordParagraphBorders.BottomFrame.set -> void
 OfficeIMO.Word.WordParagraphBorders.BottomShadow.get -> bool?
 OfficeIMO.Word.WordParagraphBorders.BottomShadow.set -> void
-OfficeIMO.Word.WordParagraphBorders.BottomSize.get -> uint?
+OfficeIMO.Word.WordParagraphBorders.BottomSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraphBorders.BottomSize.set -> void
-OfficeIMO.Word.WordParagraphBorders.BottomSpace.get -> uint?
+OfficeIMO.Word.WordParagraphBorders.BottomSpace.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraphBorders.BottomSpace.set -> void
 OfficeIMO.Word.WordParagraphBorders.BottomStyle.get -> OfficeIMO.Word.WordBorderStyle?
 OfficeIMO.Word.WordParagraphBorders.BottomStyle.set -> void
@@ -3273,9 +3195,9 @@ OfficeIMO.Word.WordParagraphBorders.LeftFrame.get -> bool?
 OfficeIMO.Word.WordParagraphBorders.LeftFrame.set -> void
 OfficeIMO.Word.WordParagraphBorders.LeftShadow.get -> bool?
 OfficeIMO.Word.WordParagraphBorders.LeftShadow.set -> void
-OfficeIMO.Word.WordParagraphBorders.LeftSize.get -> uint?
+OfficeIMO.Word.WordParagraphBorders.LeftSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraphBorders.LeftSize.set -> void
-OfficeIMO.Word.WordParagraphBorders.LeftSpace.get -> uint?
+OfficeIMO.Word.WordParagraphBorders.LeftSpace.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraphBorders.LeftSpace.set -> void
 OfficeIMO.Word.WordParagraphBorders.LeftStyle.get -> OfficeIMO.Word.WordBorderStyle?
 OfficeIMO.Word.WordParagraphBorders.LeftStyle.set -> void
@@ -3289,15 +3211,15 @@ OfficeIMO.Word.WordParagraphBorders.RightFrame.get -> bool?
 OfficeIMO.Word.WordParagraphBorders.RightFrame.set -> void
 OfficeIMO.Word.WordParagraphBorders.RightShadow.get -> bool?
 OfficeIMO.Word.WordParagraphBorders.RightShadow.set -> void
-OfficeIMO.Word.WordParagraphBorders.RightSize.get -> uint?
+OfficeIMO.Word.WordParagraphBorders.RightSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraphBorders.RightSize.set -> void
-OfficeIMO.Word.WordParagraphBorders.RightSpace.get -> uint?
+OfficeIMO.Word.WordParagraphBorders.RightSpace.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraphBorders.RightSpace.set -> void
 OfficeIMO.Word.WordParagraphBorders.RightStyle.get -> OfficeIMO.Word.WordBorderStyle?
 OfficeIMO.Word.WordParagraphBorders.RightStyle.set -> void
 OfficeIMO.Word.WordParagraphBorders.RightThemeColor.get -> OfficeIMO.Word.WordThemeColor?
 OfficeIMO.Word.WordParagraphBorders.RightThemeColor.set -> void
-OfficeIMO.Word.WordParagraphBorders.SetBorder(OfficeIMO.Word.WordParagraphBorderType type, OfficeIMO.Word.WordBorderStyle style, OfficeIMO.OfficeColor color, uint size, bool shadow) -> void
+OfficeIMO.Word.WordParagraphBorders.SetBorder(OfficeIMO.Word.WordParagraphBorderType type, OfficeIMO.Word.WordBorderStyle style, OfficeIMO.OfficeColor color, OfficeIMO.OfficeLength size, bool shadow) -> void
 OfficeIMO.Word.WordParagraphBorders.TopColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Word.WordParagraphBorders.TopColor.set -> void
 OfficeIMO.Word.WordParagraphBorders.TopColorHex.get -> string?
@@ -3306,9 +3228,9 @@ OfficeIMO.Word.WordParagraphBorders.TopFrame.get -> bool?
 OfficeIMO.Word.WordParagraphBorders.TopFrame.set -> void
 OfficeIMO.Word.WordParagraphBorders.TopShadow.get -> bool?
 OfficeIMO.Word.WordParagraphBorders.TopShadow.set -> void
-OfficeIMO.Word.WordParagraphBorders.TopSize.get -> uint?
+OfficeIMO.Word.WordParagraphBorders.TopSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraphBorders.TopSize.set -> void
-OfficeIMO.Word.WordParagraphBorders.TopSpace.get -> uint?
+OfficeIMO.Word.WordParagraphBorders.TopSpace.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraphBorders.TopSpace.set -> void
 OfficeIMO.Word.WordParagraphBorders.TopStyle.get -> OfficeIMO.Word.WordBorderStyle?
 OfficeIMO.Word.WordParagraphBorders.TopStyle.set -> void
@@ -4119,7 +4041,7 @@ OfficeIMO.Word.WordTabStop.Alignment.set -> void
 OfficeIMO.Word.WordTabStop.Equals(OfficeIMO.Word.WordTabStop? other) -> bool
 OfficeIMO.Word.WordTabStop.Leader.get -> OfficeIMO.Word.WordTabLeader
 OfficeIMO.Word.WordTabStop.Leader.set -> void
-OfficeIMO.Word.WordTabStop.Position.get -> int
+OfficeIMO.Word.WordTabStop.Position.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordTabStop.Position.set -> void
 OfficeIMO.Word.WordTabStop.WordTabStop(OfficeIMO.Word.WordParagraph! wordParagraph) -> void
 OfficeIMO.Word.WordTabStopInfo
@@ -4922,9 +4844,6 @@ static OfficeIMO.Word.Legacy.LegacyWordImporter.Detect(string! path, OfficeIMO.W
 static OfficeIMO.Word.Legacy.LegacyWordImporter.Import(System.IO.Stream! stream, OfficeIMO.Word.Legacy.LegacyWordImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Word.Legacy.LegacyWordImportResult!
 static OfficeIMO.Word.Legacy.LegacyWordImporter.Import(byte[]! data, OfficeIMO.Word.Legacy.LegacyWordImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Word.Legacy.LegacyWordImportResult!
 static OfficeIMO.Word.Legacy.LegacyWordImporter.Import(string! path, OfficeIMO.Word.Legacy.LegacyWordImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Word.Legacy.LegacyWordImportResult!
-static OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.Load(System.IO.Stream! stream, OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions? options = null) -> OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument!
-static OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.Load(byte[]! bytes, OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions? options = null) -> OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument!
-static OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.Load(string! path, OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions? options = null) -> OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument!
 static OfficeIMO.Word.WordBookmark.AddBookmark(OfficeIMO.Word.WordParagraph! paragraph, string! bookmarkName) -> OfficeIMO.Word.WordBookmark!
 static OfficeIMO.Word.WordCellComment.CanPreserveText(string! text) -> bool
 static OfficeIMO.Word.WordComment.Create(OfficeIMO.Word.WordDocument! document, string! author, string! initials, string! comment, OfficeIMO.Word.WordComment? parent = null) -> OfficeIMO.Word.WordComment!

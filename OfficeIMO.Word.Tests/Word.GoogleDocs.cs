@@ -3815,9 +3815,9 @@ namespace OfficeIMO.Tests {
             document.BuiltinDocumentProperties.Title = "Google Docs Paragraph Tab Stops";
 
             var paragraph = document.AddParagraph("Label");
-            paragraph.AddTabStop(1440, WordTabAlignment.Left, WordTabLeader.None);
+            paragraph.AddTabStop(OfficeLength.Points(72), WordTabAlignment.Left, WordTabLeader.None);
             paragraph.AddText("\tValue");
-            paragraph.AddTabStop(2880, WordTabAlignment.Decimal, WordTabLeader.Dot);
+            paragraph.AddTabStop(OfficeLength.Points(144), WordTabAlignment.Decimal, WordTabLeader.Dot);
             paragraph.AddText("\t12.34");
 
             return document;
@@ -3893,12 +3893,12 @@ namespace OfficeIMO.Tests {
             var paragraph = document.AddParagraph("Bordered paragraph");
             paragraph.Borders.TopStyle = WordBorderStyle.Single;
             paragraph.Borders.TopColorHex = "336699";
-            paragraph.Borders.TopSize = 8;
-            paragraph.Borders.TopSpace = 6;
+            paragraph.Borders.TopSize = OfficeLength.Points(1);
+            paragraph.Borders.TopSpace = OfficeLength.Points(6);
             paragraph.Borders.LeftStyle = WordBorderStyle.Single;
             paragraph.Borders.LeftColorHex = "CC3300";
-            paragraph.Borders.LeftSize = 12;
-            paragraph.Borders.LeftSpace = 4;
+            paragraph.Borders.LeftSize = OfficeLength.Points(1.5);
+            paragraph.Borders.LeftSpace = OfficeLength.Points(4);
 
             return document;
         }

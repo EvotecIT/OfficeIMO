@@ -1326,7 +1326,7 @@ namespace OfficeIMO.Word {
             foreach (LegacyDocTabStop tabStop in paragraphFormat.TabStops) {
                 if (TryMapTabStopAlignment(tabStop.Alignment, out TabStopValues tabAlignment)
                     && TryMapTabStopLeader(tabStop.Leader, out TabStopLeaderCharValues leader)) {
-                    paragraph.AddTabStop(tabStop.PositionTwips, tabAlignment.ToOfficeEnum(), leader.ToOfficeEnum());
+                    paragraph.AddTabStop(OfficeLength.Emus((long)tabStop.PositionTwips * 635), tabAlignment.ToOfficeEnum(), leader.ToOfficeEnum());
                 }
             }
         }
@@ -1480,26 +1480,26 @@ namespace OfficeIMO.Word {
                 borders.Top,
                 style => paragraph.Borders.TopStyle = style.ToOfficeEnum(),
                 color => paragraph.Borders.TopColorHex = color,
-                size => paragraph.Borders.TopSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
-                space => paragraph.Borders.TopSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+                size => paragraph.Borders.TopSize = OfficeLength.Points(size / 8D),
+                space => paragraph.Borders.TopSpace = OfficeLength.Points(space));
             ApplyLegacyDocParagraphBorder(
                 borders.Left,
                 style => paragraph.Borders.LeftStyle = style.ToOfficeEnum(),
                 color => paragraph.Borders.LeftColorHex = color,
-                size => paragraph.Borders.LeftSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
-                space => paragraph.Borders.LeftSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+                size => paragraph.Borders.LeftSize = OfficeLength.Points(size / 8D),
+                space => paragraph.Borders.LeftSpace = OfficeLength.Points(space));
             ApplyLegacyDocParagraphBorder(
                 borders.Bottom,
                 style => paragraph.Borders.BottomStyle = style.ToOfficeEnum(),
                 color => paragraph.Borders.BottomColorHex = color,
-                size => paragraph.Borders.BottomSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
-                space => paragraph.Borders.BottomSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+                size => paragraph.Borders.BottomSize = OfficeLength.Points(size / 8D),
+                space => paragraph.Borders.BottomSpace = OfficeLength.Points(space));
             ApplyLegacyDocParagraphBorder(
                 borders.Right,
                 style => paragraph.Borders.RightStyle = style.ToOfficeEnum(),
                 color => paragraph.Borders.RightColorHex = color,
-                size => paragraph.Borders.RightSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
-                space => paragraph.Borders.RightSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+                size => paragraph.Borders.RightSize = OfficeLength.Points(size / 8D),
+                space => paragraph.Borders.RightSpace = OfficeLength.Points(space));
 
             if (borders.Between.HasAny) {
                 ParagraphBorders paragraphBorders = GetOrCreateParagraphBorders(paragraph);

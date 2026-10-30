@@ -56,7 +56,7 @@ internal static class RealWorldWorkflowShowcase {
         decision.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(8D);
         decision.Borders.LeftStyle = WordBorderStyle.Single;
         decision.Borders.LeftColorHex = "235FB4";
-        decision.Borders.LeftSize = 24;
+        decision.Borders.LeftSize = OfficeLength.Points(3);
         #endregion
 
         document.Save();

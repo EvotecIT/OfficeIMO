@@ -39,14 +39,14 @@ namespace OfficeIMO.Examples.Word {
                 textBox3.HorizontalAlignment = WordTextBoxHorizontalAlignment.Center;
                 textBox3.VerticalPositionOffset = OfficeLength.Centimeters(10);
                 textBox3.Paragraphs[0].Borders.BottomStyle = WordBorderStyle.BasicWideOutline;
-                textBox3.Paragraphs[0].Borders.BottomSize = 10;
+                textBox3.Paragraphs[0].Borders.BottomSize = OfficeLength.Points(1.25);
                 textBox3.Paragraphs[0].Borders.BottomColor = Color.Red;
                 textBox3.Paragraphs[0].Borders.BottomShadow = false;
                 textBox3.Paragraphs[0].Borders.TopStyle = WordBorderStyle.BasicWideOutline;
                 textBox3.Paragraphs[0].Borders.LeftStyle = WordBorderStyle.BasicWideOutline;
                 textBox3.Paragraphs[0].Borders.RightStyle = WordBorderStyle.BasicWideOutline;
 
-                textBox3.Paragraphs[0].Borders.SetBorder(WordParagraphBorderType.Left, WordBorderStyle.BasicWideOutline, Color.Red, 10, false);
+                textBox3.Paragraphs[0].Borders.SetBorder(WordParagraphBorderType.Left, WordBorderStyle.BasicWideOutline, Color.Red, OfficeLength.Points(1.25), false);
 
                 // remove the textbox
                 textBox2.Remove();

@@ -175,7 +175,7 @@ public partial class WordRtfConverterTests {
 
         WordParagraph roundTripParagraph = Assert.Single(roundTrip.Paragraphs.GroupBy(item => item._paragraph).Select(group => group.First()));
         Assert.Equal(2, roundTripParagraph.TabStops.Count);
-        Assert.Equal(1440, roundTripParagraph.TabStops[0].Position);
+        Assert.Equal(OfficeLength.Points(72), roundTripParagraph.TabStops[0].Position);
         Assert.Equal(WordTabAlignment.Right, roundTripParagraph.TabStops[1].Alignment);
         Assert.Equal(WordTabLeader.Dot, roundTripParagraph.TabStops[1].Leader);
     }

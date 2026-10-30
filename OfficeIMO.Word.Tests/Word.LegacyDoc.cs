@@ -846,17 +846,17 @@ namespace OfficeIMO.Tests {
             Assert.Equal("bordered", paragraphs[1].Text);
             Assert.Equal(WordBorderStyle.Single, paragraphs[1].Borders.TopStyle);
             Assert.Equal("FF0000", paragraphs[1].Borders.TopColorHex);
-            Assert.Equal(4U, paragraphs[1].Borders.TopSize);
-            Assert.Equal(2U, paragraphs[1].Borders.TopSpace);
+            Assert.Equal(OfficeLength.Points(0.5), paragraphs[1].Borders.TopSize);
+            Assert.Equal(OfficeLength.Points(2), paragraphs[1].Borders.TopSpace);
             Assert.Equal(WordBorderStyle.Double, paragraphs[1].Borders.LeftStyle);
             Assert.Equal("0000FF", paragraphs[1].Borders.LeftColorHex);
-            Assert.Equal(8U, paragraphs[1].Borders.LeftSize);
+            Assert.Equal(OfficeLength.Points(1), paragraphs[1].Borders.LeftSize);
             Assert.Equal(WordBorderStyle.Dotted, paragraphs[1].Borders.BottomStyle);
             Assert.Equal("000000", paragraphs[1].Borders.BottomColorHex);
-            Assert.Equal(5U, paragraphs[1].Borders.BottomSize);
+            Assert.Equal(OfficeLength.Points(0.625), paragraphs[1].Borders.BottomSize);
             Assert.Equal(WordBorderStyle.Dashed, paragraphs[1].Borders.RightStyle);
             Assert.Equal("00FF00", paragraphs[1].Borders.RightColorHex);
-            Assert.Equal(6U, paragraphs[1].Borders.RightSize);
+            Assert.Equal(OfficeLength.Points(0.75), paragraphs[1].Borders.RightSize);
         }
 
         [Fact]
@@ -872,20 +872,20 @@ namespace OfficeIMO.Tests {
             Assert.Empty(paragraphs[0].TabStops);
             Assert.Equal("tabs", paragraphs[1].Text);
             Assert.Equal(3, paragraphs[1].TabStops.Count);
-            Assert.Equal(1440, paragraphs[1].TabStops[0].Position);
+            Assert.Equal(OfficeLength.Points(72), paragraphs[1].TabStops[0].Position);
             Assert.Equal(WordTabAlignment.Left, paragraphs[1].TabStops[0].Alignment);
             Assert.Equal(WordTabLeader.None, paragraphs[1].TabStops[0].Leader);
-            Assert.Equal(2880, paragraphs[1].TabStops[1].Position);
+            Assert.Equal(OfficeLength.Points(144), paragraphs[1].TabStops[1].Position);
             Assert.Equal(WordTabAlignment.Decimal, paragraphs[1].TabStops[1].Alignment);
             Assert.Equal(WordTabLeader.Dot, paragraphs[1].TabStops[1].Leader);
-            Assert.Equal(4320, paragraphs[1].TabStops[2].Position);
+            Assert.Equal(OfficeLength.Points(216), paragraphs[1].TabStops[2].Position);
             Assert.Equal(WordTabAlignment.Right, paragraphs[1].TabStops[2].Alignment);
             Assert.Equal(WordTabLeader.Underscore, paragraphs[1].TabStops[2].Leader);
             Assert.Equal("clear", paragraphs[2].Text);
             Assert.Equal(2, paragraphs[2].TabStops.Count);
-            Assert.Equal(1440, paragraphs[2].TabStops[0].Position);
+            Assert.Equal(OfficeLength.Points(72), paragraphs[2].TabStops[0].Position);
             Assert.Equal(WordTabAlignment.Clear, paragraphs[2].TabStops[0].Alignment);
-            Assert.Equal(2160, paragraphs[2].TabStops[1].Position);
+            Assert.Equal(OfficeLength.Points(108), paragraphs[2].TabStops[1].Position);
             Assert.Equal(WordTabAlignment.Bar, paragraphs[2].TabStops[1].Alignment);
         }
 
@@ -6458,12 +6458,12 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddParagraph("plain");
                     WordParagraph paragraph = document.AddParagraph("tabs");
-                    paragraph.AddTabStop(1440, WordTabAlignment.Left, WordTabLeader.None);
-                    paragraph.AddTabStop(2880, WordTabAlignment.Decimal, WordTabLeader.Dot);
-                    paragraph.AddTabStop(4320, WordTabAlignment.Right, WordTabLeader.Underscore);
+                    paragraph.AddTabStop(OfficeLength.Points(72), WordTabAlignment.Left, WordTabLeader.None);
+                    paragraph.AddTabStop(OfficeLength.Points(144), WordTabAlignment.Decimal, WordTabLeader.Dot);
+                    paragraph.AddTabStop(OfficeLength.Points(216), WordTabAlignment.Right, WordTabLeader.Underscore);
                     WordParagraph clear = document.AddParagraph("clear");
-                    clear.AddTabStop(1440, WordTabAlignment.Clear, WordTabLeader.None);
-                    clear.AddTabStop(2160, WordTabAlignment.Bar, WordTabLeader.None);
+                    clear.AddTabStop(OfficeLength.Points(72), WordTabAlignment.Clear, WordTabLeader.None);
+                    clear.AddTabStop(OfficeLength.Points(108), WordTabAlignment.Bar, WordTabLeader.None);
 
                     document.Save(docPath);
                 }
@@ -6477,20 +6477,20 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(paragraphs[0].TabStops);
                 Assert.Equal("tabs", paragraphs[1].Text);
                 Assert.Equal(3, paragraphs[1].TabStops.Count);
-                Assert.Equal(1440, paragraphs[1].TabStops[0].Position);
+                Assert.Equal(OfficeLength.Points(72), paragraphs[1].TabStops[0].Position);
                 Assert.Equal(WordTabAlignment.Left, paragraphs[1].TabStops[0].Alignment);
                 Assert.Equal(WordTabLeader.None, paragraphs[1].TabStops[0].Leader);
-                Assert.Equal(2880, paragraphs[1].TabStops[1].Position);
+                Assert.Equal(OfficeLength.Points(144), paragraphs[1].TabStops[1].Position);
                 Assert.Equal(WordTabAlignment.Decimal, paragraphs[1].TabStops[1].Alignment);
                 Assert.Equal(WordTabLeader.Dot, paragraphs[1].TabStops[1].Leader);
-                Assert.Equal(4320, paragraphs[1].TabStops[2].Position);
+                Assert.Equal(OfficeLength.Points(216), paragraphs[1].TabStops[2].Position);
                 Assert.Equal(WordTabAlignment.Right, paragraphs[1].TabStops[2].Alignment);
                 Assert.Equal(WordTabLeader.Underscore, paragraphs[1].TabStops[2].Leader);
                 Assert.Equal("clear", paragraphs[2].Text);
                 Assert.Equal(2, paragraphs[2].TabStops.Count);
-                Assert.Equal(1440, paragraphs[2].TabStops[0].Position);
+                Assert.Equal(OfficeLength.Points(72), paragraphs[2].TabStops[0].Position);
                 Assert.Equal(WordTabAlignment.Clear, paragraphs[2].TabStops[0].Alignment);
-                Assert.Equal(2160, paragraphs[2].TabStops[1].Position);
+                Assert.Equal(OfficeLength.Points(108), paragraphs[2].TabStops[1].Position);
                 Assert.Equal(WordTabAlignment.Bar, paragraphs[2].TabStops[1].Alignment);
             } finally {
                 DeleteIfExists(docPath);
@@ -6857,17 +6857,17 @@ namespace OfficeIMO.Tests {
                     WordParagraph bordered = document.AddParagraph("bordered");
                     bordered.Borders.TopStyle = WordBorderStyle.Single;
                     bordered.Borders.TopColorHex = "FF0000";
-                    bordered.Borders.TopSize = 4U;
-                    bordered.Borders.TopSpace = 2U;
+                    bordered.Borders.TopSize = OfficeLength.Points(0.5);
+                    bordered.Borders.TopSpace = OfficeLength.Points(2);
                     bordered.Borders.LeftStyle = WordBorderStyle.Double;
                     bordered.Borders.LeftColorHex = "0000FF";
-                    bordered.Borders.LeftSize = 8U;
+                    bordered.Borders.LeftSize = OfficeLength.Points(1);
                     bordered.Borders.BottomStyle = WordBorderStyle.Dotted;
                     bordered.Borders.BottomColorHex = "000000";
-                    bordered.Borders.BottomSize = 5U;
+                    bordered.Borders.BottomSize = OfficeLength.Points(0.625);
                     bordered.Borders.RightStyle = WordBorderStyle.Dashed;
                     bordered.Borders.RightColorHex = "00FF00";
-                    bordered.Borders.RightSize = 6U;
+                    bordered.Borders.RightSize = OfficeLength.Points(0.75);
 
                     document.Save(docPath);
                 }
@@ -6890,17 +6890,17 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("bordered", paragraphs[1].Text);
                 Assert.Equal(WordBorderStyle.Single, paragraphs[1].Borders.TopStyle);
                 Assert.Equal("FF0000", paragraphs[1].Borders.TopColorHex);
-                Assert.Equal(4U, paragraphs[1].Borders.TopSize);
-                Assert.Equal(2U, paragraphs[1].Borders.TopSpace);
+                Assert.Equal(OfficeLength.Points(0.5), paragraphs[1].Borders.TopSize);
+                Assert.Equal(OfficeLength.Points(2), paragraphs[1].Borders.TopSpace);
                 Assert.Equal(WordBorderStyle.Double, paragraphs[1].Borders.LeftStyle);
                 Assert.Equal("0000FF", paragraphs[1].Borders.LeftColorHex);
-                Assert.Equal(8U, paragraphs[1].Borders.LeftSize);
+                Assert.Equal(OfficeLength.Points(1), paragraphs[1].Borders.LeftSize);
                 Assert.Equal(WordBorderStyle.Dotted, paragraphs[1].Borders.BottomStyle);
                 Assert.Equal("000000", paragraphs[1].Borders.BottomColorHex);
-                Assert.Equal(5U, paragraphs[1].Borders.BottomSize);
+                Assert.Equal(OfficeLength.Points(0.625), paragraphs[1].Borders.BottomSize);
                 Assert.Equal(WordBorderStyle.Dashed, paragraphs[1].Borders.RightStyle);
                 Assert.Equal("00FF00", paragraphs[1].Borders.RightColorHex);
-                Assert.Equal(6U, paragraphs[1].Borders.RightSize);
+                Assert.Equal(OfficeLength.Points(0.75), paragraphs[1].Borders.RightSize);
             } finally {
                 DeleteIfExists(docPath);
             }

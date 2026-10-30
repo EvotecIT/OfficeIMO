@@ -55,7 +55,7 @@ namespace OfficeIMO.Word.Markdown {
 
             paragraph.Borders.LeftStyle = WordBorderStyle.Single;
             paragraph.Borders.LeftColorHex = palette.Border.ToRgbHex();
-            paragraph.Borders.LeftSize = 4;
+            paragraph.Borders.LeftSize = OfficeLength.Points(0.5);
             foreach (var run in paragraph.GetRuns()) {
                 run.SetColorHex(palette.Text.ToRgbHex());
             }
@@ -86,7 +86,7 @@ namespace OfficeIMO.Word.Markdown {
 
             paragraph.Borders.LeftStyle = WordBorderStyle.Single;
             paragraph.Borders.LeftColorHex = palette.Accent.ToRgbHex();
-            paragraph.Borders.LeftSize = 8;
+            paragraph.Borders.LeftSize = OfficeLength.Points(1);
             foreach (var run in paragraph.GetRuns()) {
                 run.SetColorHex(palette.Accent.ToRgbHex());
                 run.SetBold();

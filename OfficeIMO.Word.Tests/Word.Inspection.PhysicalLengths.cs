@@ -13,9 +13,9 @@ public sealed class WordInspectionPhysicalLengthTests {
         paragraph.LineSpacingBefore = OfficeLength.Points(2.35);
         paragraph.LineSpacingAfter = OfficeLength.Zero;
         paragraph.Borders.TopStyle = WordBorderStyle.Single;
-        paragraph.Borders.TopSize = 8;
-        paragraph.Borders.TopSpace = 0;
-        paragraph.AddTabStop(721);
+        paragraph.Borders.TopSize = OfficeLength.Points(1);
+        paragraph.Borders.TopSpace = OfficeLength.Points(0);
+        paragraph.AddTabStop(OfficeLength.Points(36.05));
         document.AddParagraph("Inherited text");
         WordTableCell cell = document.AddTable(1, 1, WordTableStyle.TableNormal).Rows[0].Cells[0];
         cell.Borders.TopStyle = WordBorderStyle.Single;
