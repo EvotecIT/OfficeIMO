@@ -123,7 +123,7 @@ exact byte copy. Invalid property-set structure refuses edited output; other
 cached-record semantics remain unassessed.
 
 `edit-paragraphs` reads one run array per existing paragraph, also bounded to
-64 KiB. It retains the paragraph count, ordering and paragraph attributes.
+64 KiB. This contributor command retains the paragraph count, ordering and paragraph attributes.
 Within admitted ordinary-story profiles, text can
 grow or shrink, existing empty paragraphs can remain empty or gain text, and
 size/bold edits use each original native range. Character ranges can cross
@@ -134,14 +134,18 @@ typing style. Formatting-page overflow also refuses output.
 
 The multiple-story/page path retains existing story identities and order, requires
 one frame per changed story, and admits one directory with at most 20 descriptors
-and no table stories. It verifies every FDPC/FDPP page against its BTE index,
-retains the existing page counts and shares byte-identical OPLs within each page.
+and no table stories. It verifies every FDPC/FDPP page against its BTE index
+and shares byte-identical OPLs within each page.
 Story lengths, endpoints, page offsets and later-page header starts are remapped;
-unrelated Quill payloads remain byte-identical. Chained directories and output
-that cannot fit the existing formatting pages are refused. The original
-single-story/one-page encoding path remains unchanged.
+unrelated Quill payloads remain byte-identical. Through the public
+`ReplaceStoryParagraphs` API, paragraph counts can change when projected and raw
+source paragraph/body definitions are uniform. The native codec can allocate or
+retire pages and relocate enlarged indexes. Nonzero unassigned header bytes,
+unknown page metadata, directory capacity and ambiguous source definitions guard
+that operation. Chained directories and zero-paragraph native stories remain
+unavailable. The original accepted single-story/one-page encoding path remains first.
 
-Other formatting changes, run merges, paragraph-count changes, tables, image replacement,
+Other formatting changes, run merges, nonuniform-source paragraph-count changes, tables, image replacement,
 page/master relationships, new objects and source-free publications have no writer in this path. Every
 current semantic family is compared with the import baseline before output;
 source-byte retention does not permit dropping unsupported edits. Each new

@@ -47,6 +47,9 @@ including overflow beyond its sole text frame, across two native paragraph-forma
 pages. ZeroAnchors places each client-anchor coordinate at native zero: native
 storage omits the corresponding property instead of writing an explicit zero.
 Its four text frames qualify recovery of those omitted coordinates.
+TextFormattingMany has 240 paragraphs across three native paragraph-formatting
+pages, retaining overflow. TextCharacterPages has four independent stories in
+Arial 12, 14, 16 and 18 points, producing two native character-formatting pages.
 Newsletter adds a two-page linked story
 and a picture. TableLabel adds a custom page size, styled 2-by-2 table, picture
 and Polish/Greek characters. Brochure adds two 792-by-612-point landscape sides,

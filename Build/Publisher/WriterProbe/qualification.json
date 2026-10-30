@@ -200,7 +200,7 @@
   ],
   "reproduction": "Build the opt-in probe with the pinned SDK, run the recorded create command with the repository image, then Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full on an isolated copy. Compare native inventories and both PDFs against the explicit candidate expectations. Native artifact hashes identify this observed run; a subsequent native save can include different metadata.",
   "sourceEditing": {
-    "scope": "Bounded modern-generation source edits with separately recorded placement/paint, native text mutation, paragraph, thumbnail, public-save and multiple-story/page qualification.",
+    "scope": "Bounded modern-generation source edits with separately recorded placement/paint, native text mutation, paragraph, thumbnail, public-save, multiple-story/page and paragraph-topology/allocation qualification.",
     "codecCommit": "6a0c79187aa5f68f4003f8ddeafa1b2a4a1887d2",
     "codecFiles": [
       {
@@ -2910,6 +2910,1165 @@
         "Default Block still refuses Unassessed output. Explicit Allow never enables source-free native creation or bypasses refused profiles.",
         "The original single-story/one-page output path is retained; four prior edited candidates and the internal template-free combined candidate remain byte-identical.",
         "Native PDF pixels match before/after native resave for these specimens; this does not establish OfficeIMO renderer parity or general font coverage."
+      ]
+    },
+    "paragraphTopology": {
+      "scope": "Positive paragraph-count changes from uniform native source definitions and formatting-page allocation/retirement inside the known directory profile.",
+      "codecCommit": "2b75c7610ebd466f8b4532dbc95b58ce776e04b5",
+      "codecFiles": [
+        {
+          "path": "../../../Build/Publisher/Invoke-NativeComparisonCase.ps1",
+          "sha256": "08742ffabfe228ea90c6bd64b4d88a7bbc1f4679f2364698b318f76a96e44f21",
+          "gitBlobSha256": "fcd291b16cada039bad9fd33d76c45fb0d65808e57313ed615f5f06d7b085123"
+        },
+        {
+          "path": "../../../Build/Publisher/Invoke-NativePublisherOperation.ps1",
+          "sha256": "c7d9428a3da4b7a82362c10e737cc9f8965c4a67e6e6c59c13d8b008ef831bae",
+          "gitBlobSha256": "c7d9428a3da4b7a82362c10e737cc9f8965c4a67e6e6c59c13d8b008ef831bae"
+        },
+        {
+          "path": "../../../Build/Publisher/New-NativeComparisonCorpus.ps1",
+          "sha256": "bb3362c3cf09097b0ae46fdb5afd3b2b164f2e9dba4fd057d4f3db3c0561cd8f",
+          "gitBlobSha256": "bb3362c3cf09097b0ae46fdb5afd3b2b164f2e9dba4fd057d4f3db3c0561cd8f"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherNativeWriter.Compare.cs",
+          "sha256": "b575128d467e44e81cd7c0a08138391c905e36a62dcc6998a714888991098638",
+          "gitBlobSha256": "b575128d467e44e81cd7c0a08138391c905e36a62dcc6998a714888991098638"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherNativeWriter.cs",
+          "sha256": "aba3827c2db2ee01a4e830cd10843b068791e330c58ba6bb805e1a163ef2e2d0",
+          "gitBlobSha256": "aba3827c2db2ee01a4e830cd10843b068791e330c58ba6bb805e1a163ef2e2d0"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.cs",
+          "sha256": "03a9830828eb672145cd9fb2f7cf7dc352c296d9c6ba48fa8d53447221c6fc72",
+          "gitBlobSha256": "03a9830828eb672145cd9fb2f7cf7dc352c296d9c6ba48fa8d53447221c6fc72"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Topology.cs",
+          "sha256": "e7cef8a437cc6ec80a8ed809086d97ac103a602d0886ee04835e92c9191713b5",
+          "gitBlobSha256": "e7cef8a437cc6ec80a8ed809086d97ac103a602d0886ee04835e92c9191713b5"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillSourceLayout.cs",
+          "sha256": "9ecd58973c47d9835d4aa86708703f9ff6c4463c142124dbbaaaf87a435f3bf3",
+          "gitBlobSha256": "9ecd58973c47d9835d4aa86708703f9ff6c4463c142124dbbaaaf87a435f3bf3"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillStoriesWriter.cs",
+          "sha256": "edd3469cd905e56e6c9eef04c8be91fc4887af43520b0a3fb6526eee9744e99e",
+          "gitBlobSha256": "edd3469cd905e56e6c9eef04c8be91fc4887af43520b0a3fb6526eee9744e99e"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillPageAllocator.cs",
+          "sha256": "c5e636e76e3d7da3ff758af9862d76d86ed5a8d50c94516dcf23e81f4c0e7f9d",
+          "gitBlobSha256": "c5e636e76e3d7da3ff758af9862d76d86ed5a8d50c94516dcf23e81f4c0e7f9d"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/PublisherNativeWritingTests.cs",
+          "sha256": "7e84c57a44793cbc2e0b214da12776b834eb4c5e78b22cd89a1c79fe1b1e7cb5",
+          "gitBlobSha256": "7e84c57a44793cbc2e0b214da12776b834eb4c5e78b22cd89a1c79fe1b1e7cb5"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/PublisherMultipleStoryWritingTests.cs",
+          "sha256": "f29fbef3b796c98b572a5f531c4aec0dfa082b31a4c52e0bd77edfc0a6d4c4c0",
+          "gitBlobSha256": "f29fbef3b796c98b572a5f531c4aec0dfa082b31a4c52e0bd77edfc0a6d4c4c0"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/PublisherParagraphTopologyWritingTests.cs",
+          "sha256": "0f1a07df87b5595e32d3cf1abc9b9d84b8807dd74cfb1c4c6922c1abdf627524",
+          "gitBlobSha256": "0f1a07df87b5595e32d3cf1abc9b9d84b8807dd74cfb1c4c6922c1abdf627524"
+        }
+      ],
+      "sourceHashScope": "sha256 identifies qualified worktree bytes; gitBlobSha256 identifies Git-normalized files at codecCommit.",
+      "profile": {
+        "positiveParagraphCounts": true,
+        "uniformSourceParagraphs": "One run each, matching projected formatting and byte-identical paragraph/body/intermediate-CR OPLs.",
+        "finalSourceCrRetained": true,
+        "unknownSourceDefinitionsRefused": true,
+        "oneFramePerChangedStory": true,
+        "maximumDescriptors": 20,
+        "additionalPages": "Aligned EOF allocation; enlarged BTE indexes relocated; retired/superseded known records cleared.",
+        "headerGrowth": "Only zero unassigned bytes may be consumed; page descriptor metadata must match the known DWORD1/duplicate-tag form."
+      },
+      "controls": [
+        {
+          "name": "TextFormattingMany",
+          "contract": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFormattingMany/native-textformattingmany.json",
+            "sha256": "1339a64d6c17f3a57caea12f3664b166dd7bf985518d6eca60b0f24fd1745e48"
+          },
+          "files": [
+            {
+              "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFormattingMany/native-textformattingmany.pub",
+              "sha256": "c59d838be1bdfe1c493492f45390a3434567f360350e907bd27095a6a4786e3e"
+            },
+            {
+              "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFormattingMany/native-textformattingmany.pdf",
+              "sha256": "ce038193027fc368ef3fc069007e0e5f2ac36f326215fc71ebecbd36ea5080a6"
+            }
+          ]
+        },
+        {
+          "name": "TextCharacterPages",
+          "contract": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextCharacterPages/native-textcharacterpages.json",
+            "sha256": "5db670a07ae820833e0382581f87a12a64d95ebc8edf2cfa58f68d4ab5b1f55c"
+          },
+          "files": [
+            {
+              "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextCharacterPages/native-textcharacterpages.pub",
+              "sha256": "f9591e64ba2e32a3fb74f7a658604764f0d38286cb084b946b5f82b70deea6b3"
+            },
+            {
+              "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextCharacterPages/native-textcharacterpages.pdf",
+              "sha256": "e9727215b88e8f141aaa84e5a967530809ce89b15e9a5ba5c9dc5b8544643f6f"
+            }
+          ]
+        }
+      ],
+      "validationCommand": "Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath <candidate.pub> -OutputDirectory <fresh-output>",
+      "qualifiedOperations": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "nativePhysicalPageStates": 22,
+      "verifiedInEveryPublicCase": [
+        "Native-resaved Quill retains complete requested text, paragraph counts and body size/bold values, including overflow.",
+        "Native frame text matches its visible story prefix; native initial/resaved PDF pixels and spans match.",
+        "Unrelated Quill payloads and logical streams, source paragraph definitions, other character fields, directory metadata and other SummaryInformation values/header are retained.",
+        "Formatting-page headers and BTE indexes match active ranges and page offsets; retired page bytes are cleared.",
+        "Default Block refuses Unassessed output; explicit Allow still respects refusal, byte limits and inert source boundaries."
+      ],
+      "cases": [
+        {
+          "name": "append",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "editRecipe": {
+            "mode": "append",
+            "textAndStyles": "Four paragraphs: First new paragraph / empty / Third paragraph / Fourth paragraph.",
+            "defaultChangedStyle": "Arial18bold, retaining all other source attributes",
+            "reeditPrefix": null
+          },
+          "candidateSha256": "fdc0eeab6513024f123af6cbf44a2c92c1cd829999b1b3e0aac64b7c0a9c5396",
+          "candidateBytes": 37888,
+          "beforeParagraphCounts": [
+            1
+          ],
+          "afterParagraphCounts": [
+            4
+          ],
+          "beforeFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "afterFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "quillBeforeBytes": 21504,
+          "quillAfterBytes": 22016,
+          "descriptorCount": 15,
+          "textTailShiftBytes": 512,
+          "completeNativeStoryUtf16Sha256": [
+            {
+              "id": 2,
+              "sha256": "f2fa567ff47562606d9562463ef2d3331590da16c9ce8337f2b240cbd1bc68db"
+            }
+          ],
+          "unrelatedQuillPayloadCount": 9,
+          "directoryMetadataEntries": 16,
+          "nativePixelSha256": "ae78732d25d25f4ba94215fe01c7f56facf62e4bb80f08fc1b2acfabae6377e8",
+          "nativeVisibleFontStates": [
+            {
+              "font": "Arial-BoldMT",
+              "sizePoints": 18.0
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "fdc0eeab6513024f123af6cbf44a2c92c1cd829999b1b3e0aac64b7c0a9c5396"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "f705bf4d3d1e349429a2801fe0529f095fe97d8d98993e8982627538b24245a6"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "ea3e0c37e9344bb1bc576d2a297e335f7566ea1537518ddf83a710ddc5a56d31"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "c99d6dcbe5424d1476b7e50e196192fbe349b5c3fbe743b75ff526709ea9c0be"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "f52a8733f55e7a5c333819a4c2028ca6100c8ccf94238fe80f81ab49111b071d"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "aba01b5f54edba53803b244eb1c8f7f8e4dd72962b89603de063d7d360ca95fa"
+            }
+          ]
+        },
+        {
+          "name": "remove",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextParagraphs/native-textparagraphs.pub",
+            "sha256": "8fcf3743fa67c16e68a56249374cfeba72aad69a2466c66a88ee3c51f29bb1b8"
+          },
+          "editRecipe": {
+            "mode": "remove",
+            "textAndStyles": "One paragraph: Only remaining paragraph.",
+            "defaultChangedStyle": "Arial18bold, retaining all other source attributes",
+            "reeditPrefix": null
+          },
+          "candidateSha256": "590dc5d0498836c08da3699db5bacb8e9fb6f098ab4b13cbec516b6e538b773f",
+          "candidateBytes": 37376,
+          "beforeParagraphCounts": [
+            3
+          ],
+          "afterParagraphCounts": [
+            1
+          ],
+          "beforeFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "afterFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "quillBeforeBytes": 21504,
+          "quillAfterBytes": 21504,
+          "descriptorCount": 15,
+          "textTailShiftBytes": 0,
+          "completeNativeStoryUtf16Sha256": [
+            {
+              "id": 2,
+              "sha256": "21488475daa51ac5ee3cc0d56940a49bd0b326b13d82f82db41b61d8c242ed9c"
+            }
+          ],
+          "unrelatedQuillPayloadCount": 9,
+          "directoryMetadataEntries": 16,
+          "nativePixelSha256": "43d41eed695b5f762b6ae483eab3fcc798f12f91bcba5202883ee9da050e2d5f",
+          "nativeVisibleFontStates": [
+            {
+              "font": "Arial-BoldMT",
+              "sizePoints": 18.0
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "590dc5d0498836c08da3699db5bacb8e9fb6f098ab4b13cbec516b6e538b773f"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "5afb95ae0ac9d1bef7ee0497839945f216c0c3d190a0d0f1c719cb67bf47769f"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "859b29a80a314eec241e8f18e986cb54b3f2964a39314bdf9ebe1f6395879467"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "9bb43bfd9b5e9681a4e3662d7ba1554554604e9fba115045b67922fc2d7a6405"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "5b41ad75ac490e7260021e0d5d769ddb29ff425ea93561103c2c24f3dd094399"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "43bd2671ca44c93a6db72903a547b2d5bb1420c45f5f4c6d675f3779f65febec"
+            }
+          ]
+        },
+        {
+          "name": "allocate",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "editRecipe": {
+            "mode": "allocate",
+            "textAndStyles": "240 paragraphs: New paragraph N, N from1 through240.",
+            "defaultChangedStyle": "Arial18bold, retaining all other source attributes",
+            "reeditPrefix": null
+          },
+          "candidateSha256": "85ceed507182534c93fb833cbb4ebe5b9434d55d5e6f924d1e82c341857e5ae8",
+          "candidateBytes": 47616,
+          "beforeParagraphCounts": [
+            1
+          ],
+          "afterParagraphCounts": [
+            240
+          ],
+          "beforeFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "afterFormatPages": {
+            "FDPC": 1,
+            "FDPP": 3
+          },
+          "quillBeforeBytes": 21504,
+          "quillAfterBytes": 31272,
+          "descriptorCount": 17,
+          "textTailShiftBytes": 8704,
+          "completeNativeStoryUtf16Sha256": [
+            {
+              "id": 2,
+              "sha256": "944f0bebb8f29f748025e949ab8f8416ef3e03d0883072027c664c5685ce66e3"
+            }
+          ],
+          "unrelatedQuillPayloadCount": 9,
+          "directoryMetadataEntries": 16,
+          "nativePixelSha256": "8a93985f850b97ba9bc6c02b2a055989235cdaaf940a5fdf2d87c88c5dd72edc",
+          "nativeVisibleFontStates": [
+            {
+              "font": "Arial-BoldMT",
+              "sizePoints": 18.0
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "85ceed507182534c93fb833cbb4ebe5b9434d55d5e6f924d1e82c341857e5ae8"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "3b8130caa0a7402d7f4be9e8f79dafe378d71553395e1c9f89ac6632abd2fd52"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "58086a757a958894b099ab0202da967b41c8cf84cccfbed49f442c49704239f3"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "887fa5a5f004fcb7b15358efef95b4ae2dd68c85d1141af4197452e8b44e4470"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "3c14bc96ab439371184ef89420c1ab3f4615a093ea588f2db187d4e17548a29e"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "58b8ea3c3d3766bd35f981d06fff0baea6cbe655c42d9fa198d0d767d469300f"
+            }
+          ]
+        },
+        {
+          "name": "retire",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFormattingMany/native-textformattingmany.pub",
+            "sha256": "c59d838be1bdfe1c493492f45390a3434567f360350e907bd27095a6a4786e3e"
+          },
+          "editRecipe": {
+            "mode": "retire",
+            "textAndStyles": "One paragraph: Only remaining paragraph.",
+            "defaultChangedStyle": "Arial18bold, retaining all other source attributes",
+            "reeditPrefix": null
+          },
+          "candidateSha256": "a211538841a1a688ea0104cd9562b3c876087faf173837e3d6bcb5cd2d2ecc43",
+          "candidateBytes": 61440,
+          "beforeParagraphCounts": [
+            240
+          ],
+          "afterParagraphCounts": [
+            1
+          ],
+          "beforeFormatPages": {
+            "FDPC": 1,
+            "FDPP": 3
+          },
+          "afterFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "quillBeforeBytes": 45056,
+          "quillAfterBytes": 45056,
+          "descriptorCount": 15,
+          "textTailShiftBytes": 0,
+          "completeNativeStoryUtf16Sha256": [
+            {
+              "id": 2,
+              "sha256": "21488475daa51ac5ee3cc0d56940a49bd0b326b13d82f82db41b61d8c242ed9c"
+            }
+          ],
+          "unrelatedQuillPayloadCount": 9,
+          "directoryMetadataEntries": 16,
+          "nativePixelSha256": "43d41eed695b5f762b6ae483eab3fcc798f12f91bcba5202883ee9da050e2d5f",
+          "nativeVisibleFontStates": [
+            {
+              "font": "Arial-BoldMT",
+              "sizePoints": 18.0
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "a211538841a1a688ea0104cd9562b3c876087faf173837e3d6bcb5cd2d2ecc43"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "1bfabd13b544ef11f0f129a2ca6d2c52dfa7b0bed0575d211ac4c8e4d635b7e8"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "6db23c949fe744a5e344970c9174ccacef00fc119698cd4da1930809e1aa3dfb"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "d2a3339e4c45c1eaf60e5479a6814357af6bb10e62c775215dda72b40f78905b"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "ce5060ddb24bff18a552e18518db2d2fd3e852bf4ebfdde552d3b4e051b907c5"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "6850e49b65e817dcf94e16d700ff95abc3a9712dc6a68a5f151d2724134ffd80"
+            }
+          ]
+        },
+        {
+          "name": "neighbor",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextStories/native-textstories.pub",
+            "sha256": "87860ab8ca0d6052cb8978257c713c516893d19cae79c3df263b79d13bdf43a7"
+          },
+          "editRecipe": {
+            "mode": "neighbor",
+            "textAndStyles": "Middle story only: Middle one / Middle two / empty / Middle four / Middle five.",
+            "defaultChangedStyle": "Arial18bold, retaining all other source attributes",
+            "reeditPrefix": null
+          },
+          "candidateSha256": "6a594c6d340e3b8b50ca899b964cd783f9e10521909eab2cabe685ae043a4843",
+          "candidateBytes": 40448,
+          "beforeParagraphCounts": [
+            1,
+            3,
+            1
+          ],
+          "afterParagraphCounts": [
+            1,
+            5,
+            1
+          ],
+          "beforeFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "afterFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "quillBeforeBytes": 22528,
+          "quillAfterBytes": 23040,
+          "descriptorCount": 15,
+          "textTailShiftBytes": 512,
+          "completeNativeStoryUtf16Sha256": [
+            {
+              "id": 2,
+              "sha256": "c38a0e9294403b900ca89a1f85afc924a473205b42b68b6cda6fd56d1767d9c5"
+            },
+            {
+              "id": 3,
+              "sha256": "10e22194d77d9ab114b05d791902946f6c756026294b1b0421779ef44cc20328"
+            },
+            {
+              "id": 4,
+              "sha256": "6b74e776b7019b2a7f731ea59d9931874403eff7a5f28c2e77ed93ea2ca73bad"
+            }
+          ],
+          "unrelatedQuillPayloadCount": 9,
+          "directoryMetadataEntries": 16,
+          "nativePixelSha256": "565d106369898ac826aeb29d537b265ce9e17511bbbbc83aaf8512564c7c5603",
+          "nativeVisibleFontStates": [
+            {
+              "font": "Arial-BoldMT",
+              "sizePoints": 18.0
+            },
+            {
+              "font": "Arial-BoldMT",
+              "sizePoints": 18.02400016784668
+            },
+            {
+              "font": "ArialMT",
+              "sizePoints": 12.0
+            },
+            {
+              "font": "ArialMT",
+              "sizePoints": 12.02400016784668
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "6a594c6d340e3b8b50ca899b964cd783f9e10521909eab2cabe685ae043a4843"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "b1bbbf41c9d1a33eab71e6cb5bd9c0e1bb8b5df7169148135b7686adc6fa4efb"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "6fb68ce4e0290f354ea357019a93a8550eedd7da6d78c6f14c847bf801d3f9e0"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "e9a7ed6e4d3e78ff9012c327c93c9acdb9605f57cc56529c48826a402abd3277"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "3b2ff9503913f000a2a9c270a116eb7b80e93ec15189f64ca5c515e919a6052e"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "60d8a59ffb58c0af31fca70c765fc0447d286366e9f402f7f698ad2e42a07e8d"
+            }
+          ]
+        },
+        {
+          "name": "character-control",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextCharacterPages/native-textcharacterpages.pub",
+            "sha256": "f9591e64ba2e32a3fb74f7a658604764f0d38286cb084b946b5f82b70deea6b3"
+          },
+          "editRecipe": {
+            "mode": "character-control",
+            "textAndStyles": "First story only: First new paragraph / Second new paragraph.",
+            "defaultChangedStyle": "Arial18bold, retaining all other source attributes",
+            "reeditPrefix": null
+          },
+          "candidateSha256": "9414777cff0b0d659350177f8bc44ce74b2aaa231165d29d561be9a945d2adca",
+          "candidateBytes": 40960,
+          "beforeParagraphCounts": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "afterParagraphCounts": [
+            2,
+            1,
+            1,
+            1
+          ],
+          "beforeFormatPages": {
+            "FDPC": 2,
+            "FDPP": 1
+          },
+          "afterFormatPages": {
+            "FDPC": 2,
+            "FDPP": 1
+          },
+          "quillBeforeBytes": 23040,
+          "quillAfterBytes": 23552,
+          "descriptorCount": 16,
+          "textTailShiftBytes": 512,
+          "completeNativeStoryUtf16Sha256": [
+            {
+              "id": 2,
+              "sha256": "0c0766ab2c020b090f3af3e06a9f0871680d29eb5758d4c8c2bed656ffd90bd7"
+            },
+            {
+              "id": 3,
+              "sha256": "08af426831d63db9f613c06d3403c81632613a1276f115c63e05d8dcfcb109a0"
+            },
+            {
+              "id": 4,
+              "sha256": "3a8172722beffba8f2e40b81e058dc1a5ce01fb58578426d1f221087d7883757"
+            },
+            {
+              "id": 5,
+              "sha256": "b903e46004bf670fd04eb9580015b146bb40489721a04029c63b94344e361edf"
+            }
+          ],
+          "unrelatedQuillPayloadCount": 9,
+          "directoryMetadataEntries": 16,
+          "nativePixelSha256": "e5a63730fe5e35ab6c8f685d3c3b34877bd8a220991aee092002d2905519c878",
+          "nativeVisibleFontStates": [
+            {
+              "font": "Arial-BoldMT",
+              "sizePoints": 18.0
+            },
+            {
+              "font": "ArialMT",
+              "sizePoints": 14.039999961853027
+            },
+            {
+              "font": "ArialMT",
+              "sizePoints": 15.984000205993652
+            },
+            {
+              "font": "ArialMT",
+              "sizePoints": 18.0
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "9414777cff0b0d659350177f8bc44ce74b2aaa231165d29d561be9a945d2adca"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "4ba0577ce572b5efcff57b784ef15210ece1f4c95e564a2ba79665399132f2f3"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "c24ac40896060fb96991a138bc1ff89ddd2ed909f13bdc3476aaf668a79ba590"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "624cd7bbf10d0878c0460a50aea3ce947cef07673a7813b439eede5e411cfd58"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "3135834b7cfaad17bcaf5551d9adfa616b1b673a7899151b872ac6de07d1c4ff"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "438939f4c7b715c35f1c2dae53a5ad37dd447bb5ae3f1e25341f24b48ef8b8d6"
+            }
+          ]
+        },
+        {
+          "name": "character-styles",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "editRecipe": {
+            "mode": "character-styles",
+            "textAndStyles": "One paragraph with four runs Part N, N0..3, sizes12/14/16/18, normal.",
+            "defaultChangedStyle": "Arial18bold, retaining all other source attributes",
+            "reeditPrefix": null
+          },
+          "candidateSha256": "a8c645dfbd1d204f0b2a0e33e7fc0137ce938ee002b247f2dada4004fd172190",
+          "candidateBytes": 38912,
+          "beforeParagraphCounts": [
+            1
+          ],
+          "afterParagraphCounts": [
+            1
+          ],
+          "beforeFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "afterFormatPages": {
+            "FDPC": 2,
+            "FDPP": 1
+          },
+          "quillBeforeBytes": 21504,
+          "quillAfterBytes": 22560,
+          "descriptorCount": 16,
+          "textTailShiftBytes": 512,
+          "completeNativeStoryUtf16Sha256": [
+            {
+              "id": 2,
+              "sha256": "91fa856228281ae8170800101d7817c2d8f70193801f4b5bd53246e307059127"
+            }
+          ],
+          "unrelatedQuillPayloadCount": 9,
+          "directoryMetadataEntries": 16,
+          "nativePixelSha256": "651ea3a4516ff5ecf200726ead3577ad9c8cc4822b0103a198a551c669a88f57",
+          "nativeVisibleFontStates": [
+            {
+              "font": "ArialMT",
+              "sizePoints": 12.0
+            },
+            {
+              "font": "ArialMT",
+              "sizePoints": 14.039999961853027
+            },
+            {
+              "font": "ArialMT",
+              "sizePoints": 15.960000038146973
+            },
+            {
+              "font": "ArialMT",
+              "sizePoints": 18.0
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "a8c645dfbd1d204f0b2a0e33e7fc0137ce938ee002b247f2dada4004fd172190"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "d1fb8014e7b64957b659f90a23ddb57a6eef0852817494ac885330c55c3cf354"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "c1f0466800029a077f8ec4dec3f8d53c76339b11a605e1524dcd06a480afec30"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "2b69a7612d08504a30f4903e6ebf79171ee9644db9f05cd5fe5ee3ec77cd7dda"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "7ddba5313490923bc53069d3bd7979f09395761ef8a4e412a1ca83c2328454d7"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "8a1af8e370267e539725edea75807afe86ef6fe23a9856e9127011f7b0363cf7"
+            }
+          ]
+        },
+        {
+          "name": "styled-paragraphs",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextParagraphs/native-textparagraphs.pub",
+            "sha256": "8fcf3743fa67c16e68a56249374cfeba72aad69a2466c66a88ee3c51f29bb1b8"
+          },
+          "editRecipe": {
+            "mode": "styled-paragraphs",
+            "textAndStyles": "Each original paragraph has Plain (including trailing space) at12normal, then Bold at18bold.",
+            "defaultChangedStyle": "Arial18bold, retaining all other source attributes",
+            "reeditPrefix": null
+          },
+          "candidateSha256": "b70d3b83cff6dd6f6b20d8250bcd9fa971518288a5e099e2c06c32b7f1ac3798",
+          "candidateBytes": 37888,
+          "beforeParagraphCounts": [
+            3
+          ],
+          "afterParagraphCounts": [
+            3
+          ],
+          "beforeFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "afterFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "quillBeforeBytes": 21504,
+          "quillAfterBytes": 22016,
+          "descriptorCount": 15,
+          "textTailShiftBytes": 512,
+          "completeNativeStoryUtf16Sha256": [
+            {
+              "id": 2,
+              "sha256": "3909352c713cc7370a6ba778cbd28a246d5a8124eec46d8c5a494946372e5afa"
+            }
+          ],
+          "unrelatedQuillPayloadCount": 9,
+          "directoryMetadataEntries": 16,
+          "nativePixelSha256": "b5ffb2000b9f3b168dd782fc918ca459e5a3066d962e53738c30e95a2157fadc",
+          "nativeVisibleFontStates": [
+            {
+              "font": "Arial-BoldMT",
+              "sizePoints": 18.0
+            },
+            {
+              "font": "ArialMT",
+              "sizePoints": 12.0
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "b70d3b83cff6dd6f6b20d8250bcd9fa971518288a5e099e2c06c32b7f1ac3798"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "5823fa533982d94c9048b1715a29cc03115471008d07e8a74259466767099c9e"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "2cec9871589344f268f6a653fe779ba743b614966df4415946318df7e6caaa4c"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "86cb0b62245d82942f1ad3e49486cc3192b46dd131b26d8ec0c016fb6251b2fb"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "4deaad3beca3100b87b2df50dcddbfcae58be5400b221bbcbde80f2e00519c32"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "afbf78c572ce74b7d3f9e63614d46b4bf855d85a4257541d11882159a763da3c"
+            }
+          ]
+        },
+        {
+          "name": "allocate-both",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "editRecipe": {
+            "mode": "allocate-both",
+            "textAndStyles": "84 paragraphs Paragraph N, N0..83; first sizes12/14/16/18, remaining18, allbold.",
+            "defaultChangedStyle": "Arial18bold, retaining all other source attributes",
+            "reeditPrefix": null
+          },
+          "candidateSha256": "4c5d393b2ef1350b141327f572f94e6d8eb5cfe1238e3dbc0a151d400a1c1f71",
+          "candidateBytes": 41472,
+          "beforeParagraphCounts": [
+            1
+          ],
+          "afterParagraphCounts": [
+            84
+          ],
+          "beforeFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "afterFormatPages": {
+            "FDPC": 2,
+            "FDPP": 2
+          },
+          "quillBeforeBytes": 21504,
+          "quillAfterBytes": 25152,
+          "descriptorCount": 17,
+          "textTailShiftBytes": 2560,
+          "completeNativeStoryUtf16Sha256": [
+            {
+              "id": 2,
+              "sha256": "4b6b05997769fa864ccc457ee95c4ee3810dd4d2cb0653531cc7cdb0904c2342"
+            }
+          ],
+          "unrelatedQuillPayloadCount": 9,
+          "directoryMetadataEntries": 16,
+          "nativePixelSha256": "46dbe9fae8b24046667d8b8245946172c180f4c590786a3c4809f51061e7b530",
+          "nativeVisibleFontStates": [
+            {
+              "font": "Arial-BoldMT",
+              "sizePoints": 12.0
+            },
+            {
+              "font": "Arial-BoldMT",
+              "sizePoints": 14.039999961853027
+            },
+            {
+              "font": "Arial-BoldMT",
+              "sizePoints": 15.960000038146973
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "4c5d393b2ef1350b141327f572f94e6d8eb5cfe1238e3dbc0a151d400a1c1f71"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "d872b71c8a560c766a25264d19c961ad710020631624e38bd8ed6ed0c9b4a35e"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "409b887188ddb7ded4cba76e00a10bf9d7241ab4e10d472023c1f6d24a6deb44"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "c95a26d84f03e4ac42529dda441878ff02f71bce6661a00b5283ba4075c28f94"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "b1fe730701b4e22cd6b0c8b0e415d7c184b4d9adf9dfca0a367c9226732ada57"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "401a131f68079f6f64a81286a92a58d195003c0ab3144c6c62b5242dc7c344dd"
+            }
+          ]
+        },
+        {
+          "name": "reedit-allocated",
+          "source": {
+            "nativeResaveOfCase": "allocate",
+            "artifact": "native-resaved.pub",
+            "sha256": "58086a757a958894b099ab0202da967b41c8cf84cccfbed49f442c49704239f3"
+          },
+          "editRecipe": {
+            "mode": "remove",
+            "textAndStyles": "One paragraph: Only remaining paragraph.",
+            "defaultChangedStyle": "Arial18bold, retaining all other source attributes",
+            "reeditPrefix": "Second save: "
+          },
+          "candidateSha256": "d66f23d8849bd47fbeb56f91fb99723e9fadd6f68f484fa3c3e82a97df78241e",
+          "candidateBytes": 47104,
+          "beforeParagraphCounts": [
+            240
+          ],
+          "afterParagraphCounts": [
+            1
+          ],
+          "beforeFormatPages": {
+            "FDPC": 1,
+            "FDPP": 3
+          },
+          "afterFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "quillBeforeBytes": 31232,
+          "quillAfterBytes": 31232,
+          "descriptorCount": 15,
+          "textTailShiftBytes": 0,
+          "completeNativeStoryUtf16Sha256": [
+            {
+              "id": 2,
+              "sha256": "00762b0c6968da3e3a6b96177cc0d36f364e5e5052bcd161f72c45d1eb740ea1"
+            }
+          ],
+          "unrelatedQuillPayloadCount": 9,
+          "directoryMetadataEntries": 16,
+          "nativePixelSha256": "f652ed8d882b87b43bce0e3575549af8be318724eef62564da762af3ac9150d9",
+          "nativeVisibleFontStates": [
+            {
+              "font": "Arial-BoldMT",
+              "sizePoints": 18.0
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "d66f23d8849bd47fbeb56f91fb99723e9fadd6f68f484fa3c3e82a97df78241e"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "3f47741041f7dba524faf4fa0026935d96dbab425e7420c97635ca6eed994b93"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "87129b85820199f32a2dff8ca0cdfd9cf6cc58783e6cf514cb2f1d244f8fb2eb"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "c418a76033852ad5d1368e6adbbc6d20a9f794b77b121098d01ab9783c56a3d1"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "d2291d953b826605dbbdd8db8c8a3c078c164b93b41f58b0ccbff84661759d7d"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "1a0c83cda95849c677e1eab3f2ea174a29f2894624cd83ba107052978cab4a86"
+            }
+          ]
+        },
+        {
+          "name": "reedit-retired",
+          "source": {
+            "nativeResaveOfCase": "retire",
+            "artifact": "native-resaved.pub",
+            "sha256": "6db23c949fe744a5e344970c9174ccacef00fc119698cd4da1930809e1aa3dfb"
+          },
+          "editRecipe": {
+            "mode": "allocate-both",
+            "textAndStyles": "84 paragraphs Paragraph N, N0..83; first sizes12/14/16/18, remaining18, allbold.",
+            "defaultChangedStyle": "Arial18bold, retaining all other source attributes",
+            "reeditPrefix": "Second save: "
+          },
+          "candidateSha256": "6317baa4482d9b428e7411bd8b1135943a06e786f17a63180b738d1435d27fbe",
+          "candidateBytes": 41472,
+          "beforeParagraphCounts": [
+            1
+          ],
+          "afterParagraphCounts": [
+            84
+          ],
+          "beforeFormatPages": {
+            "FDPC": 1,
+            "FDPP": 1
+          },
+          "afterFormatPages": {
+            "FDPC": 2,
+            "FDPP": 2
+          },
+          "quillBeforeBytes": 21504,
+          "quillAfterBytes": 25152,
+          "descriptorCount": 17,
+          "textTailShiftBytes": 2560,
+          "completeNativeStoryUtf16Sha256": [
+            {
+              "id": 2,
+              "sha256": "41842c08c29c23a46faab1e5fc5bfcd6ccec0012f6c36928cdd4cf9f97544ccc"
+            }
+          ],
+          "unrelatedQuillPayloadCount": 9,
+          "directoryMetadataEntries": 16,
+          "nativePixelSha256": "ba032a17b2e7699aa959c23f3d5ce21cae05d12344f6ba335459238cc907771c",
+          "nativeVisibleFontStates": [
+            {
+              "font": "Arial-BoldMT",
+              "sizePoints": 12.0
+            },
+            {
+              "font": "Arial-BoldMT",
+              "sizePoints": 14.039999961853027
+            },
+            {
+              "font": "Arial-BoldMT",
+              "sizePoints": 15.960000038146973
+            },
+            {
+              "font": "Arial-BoldMT",
+              "sizePoints": 18.0
+            },
+            {
+              "font": "Arial-BoldMT",
+              "sizePoints": 18.02400016784668
+            }
+          ],
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "6317baa4482d9b428e7411bd8b1135943a06e786f17a63180b738d1435d27fbe"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "d6dcfbdf4694ad292854b232e40c490d6ff8461061dee9891f568072040670f0"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "ced26c891aa0032814ade4f70f57988afe2c3647c6eab27e047649d7861d4112"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "33fa996765e09501137bea80ff0e4cf07b16f22c00d84f60f1d9c7e9e351e2ac"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "c7427fcf5f384d458487b293817934590d6f272c68f78f2b7650affa0d4f531f"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "ffc9ae8b7d13ca18b488873cdb574ae1da2db6615aef793c506fc634463cf698"
+            }
+          ]
+        }
+      ],
+      "allocationExperiments": {
+        "scope": "Preceding bounded layout-only experiments from the independent96paragraph control; source text/style unchanged.",
+        "probeSourceSha256": "fd0235f9c59889b9cdc2f82167e52c0445d634176038a5a4ca42e1a1d982d619",
+        "source": {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFormattingPages/native-textformattingpages.pub",
+          "sha256": "8c722cd3efb614ba70d9f69cadae94f63b2284efd8c894563bad87aa724046e3"
+        },
+        "nativePhysicalPageStates": 6,
+        "cases": [
+          {
+            "mode": "relocate-pp",
+            "candidateSha256": "f8de2237a6ed3c39f5b547132b813557e51cfddb4dac1f5b81c85f96654f2702",
+            "nativePixelsMatchIndependentSourceAndResave": true,
+            "nativeArtifacts": [
+              {
+                "name": "candidate-input.pub",
+                "sha256": "f8de2237a6ed3c39f5b547132b813557e51cfddb4dac1f5b81c85f96654f2702"
+              },
+              {
+                "name": "native-initial-inventory.json",
+                "sha256": "20be8471e07d42f4345aec3fadab8a0f24a7529bbedcb06d3bdeecb864d1bbca"
+              },
+              {
+                "name": "native-resaved.pub",
+                "sha256": "f3db71f942dab1b830ccedd7b9d666ee9605c8868746b1f3561564e91cba9fcb"
+              },
+              {
+                "name": "native-resaved-inventory.json",
+                "sha256": "37460cf5e6546a19ca47c3b07c4e2e2766c43fd2147307fdd979771bfb36ebee"
+              },
+              {
+                "name": "native-initial.pdf",
+                "sha256": "483f093cbc3746aa7ea8fadf2027cc9c8242a0bc10695921d8976928bc6130bb"
+              },
+              {
+                "name": "native-resaved.pdf",
+                "sha256": "1fa3c4981e51be85c52e6efae395d33a08099ab735bb17a0f11575bf5d8df6f5"
+              }
+            ]
+          },
+          {
+            "mode": "split-pp",
+            "candidateSha256": "d7f559558ad9bb71317328580571b99c1a9b9a1e619340023344ed477f6dceba",
+            "nativePixelsMatchIndependentSourceAndResave": true,
+            "nativeArtifacts": [
+              {
+                "name": "candidate-input.pub",
+                "sha256": "d7f559558ad9bb71317328580571b99c1a9b9a1e619340023344ed477f6dceba"
+              },
+              {
+                "name": "native-initial-inventory.json",
+                "sha256": "7f557a6bfb7bb4363eb149e0493f9c0355a1ad6b0b9ae245c123fb8155fb6658"
+              },
+              {
+                "name": "native-resaved.pub",
+                "sha256": "5118aace5777b5063a80c9d9d84ad0a6dab4f62ba759046aa6597d1a0e6171be"
+              },
+              {
+                "name": "native-resaved-inventory.json",
+                "sha256": "67b415a7f57a898b4315f26897e534f42b752570a61b62947663a9b2f11588fc"
+              },
+              {
+                "name": "native-initial.pdf",
+                "sha256": "da7578a2aea8874b101515ae15b553bb56b35f4fa7566078bf0359641eba5921"
+              },
+              {
+                "name": "native-resaved.pdf",
+                "sha256": "a7e61b57a400c0624d691dbc289f53414b41d9f402c435c0ba9546daef71cbbe"
+              }
+            ]
+          },
+          {
+            "mode": "split-pc",
+            "candidateSha256": "0b8ea94e082258717ca3407d5c05254461f1e86dbef154400e64b92c60147230",
+            "nativePixelsMatchIndependentSourceAndResave": true,
+            "nativeArtifacts": [
+              {
+                "name": "candidate-input.pub",
+                "sha256": "0b8ea94e082258717ca3407d5c05254461f1e86dbef154400e64b92c60147230"
+              },
+              {
+                "name": "native-initial-inventory.json",
+                "sha256": "db2f01869446504f42882db90e11ca09f5a3b3ca96a7e77800a1d78eecfa622e"
+              },
+              {
+                "name": "native-resaved.pub",
+                "sha256": "86b9d744515a6058d758850fb59d955e5b3ab3c9766cf7ede975ca59c48346ae"
+              },
+              {
+                "name": "native-resaved-inventory.json",
+                "sha256": "1632a246bc61d82d8a4026c105f29209350088c95998b5b10cf6441656a9d368"
+              },
+              {
+                "name": "native-initial.pdf",
+                "sha256": "ec63aa65760b28ab188d2a9c5ed0637aeb8e0206513534f011fefb688cb28fea"
+              },
+              {
+                "name": "native-resaved.pdf",
+                "sha256": "7a9586f27db629a87f2f47598b033f26491ed0ed0893b2b081d800941c07d5c4"
+              }
+            ]
+          }
+        ]
+      },
+      "limits": [
+        "Only these exact eleven public-operation specimens and three layout experiments are qualified; repair-free opening and general opaque semantics remain unassessed.",
+        "Nonuniform source definitions, empty final paragraphs with distinct native typing definitions, zero-paragraph story states, changed linked stories, tables and chained directories remain refused.",
+        "The single directory holds at most20descriptors; output requiring more formatting pages refuses rather than dropping styles.",
+        "Native pixels and spans compare physical pages before/after native resave, not OfficeIMO renderer parity or general font coverage.",
+        "Thirteen prior accepted outputs remain byte-identical, including the internal template-free combined candidate. Source-free native creation remains unavailable."
       ]
     }
   }

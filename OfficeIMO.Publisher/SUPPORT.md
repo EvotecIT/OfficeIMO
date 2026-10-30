@@ -93,23 +93,21 @@ unchanged. Native bytes and compound metadata are retained privately and remain
 inert. The import-time semantic baseline and exact source OfficeArt bindings
 support the native source-save path: unchanged content copies the
 original bytes; bounded existing anchor and solid-scalar edits replace the
-OfficeArt stream. Admitted ordinary-story profiles with unchanged paragraph counts can
+OfficeArt stream. Admitted ordinary-story profiles can
 replace text of different
 lengths and edit font size/bold through retained per-run OPLs, Quill text, story lengths,
 formatting endpoints and page indexes. A single original run can split into
 styled runs, and matching run counts can be edited again. Each changed story has
 one existing frame; story identities and order remain fixed. Source layouts have
-one directory with at most 20 descriptors and no table stories. Multiple existing
-character/paragraph formatting pages retain their allocation. Repeated
+one directory with at most 20 descriptors and no table stories. Repeated
 byte-identical OPLs can share native page storage, with all story lengths, range
 endpoints, page indexes and later-page start headers remapped. The original
-single-story/one-page path retains its existing encoding. In multi-paragraph stories, existing empty paragraphs can remain empty or
+single-story/one-page path retains its accepted encoding. In multi-paragraph stories, existing empty paragraphs can remain empty or
 gain text. Each paragraph's
 native definition and endpoint are retained independently; character ranges can
 cross paragraph boundaries. Making a paragraph empty refuses output when its
-source CR has a distinct OPL from the last visible run. Paragraph-count changes,
-unsupported run merges, linked changed stories, other formatting, chained
-directories and insufficient existing page capacity refuse
+source CR has a distinct OPL from the last visible run. Unsupported run merges,
+linked changed stories, other formatting and chained directories refuse
 output. Edited output removes the optional [SummaryInformation thumbnail](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-oleps/f7933d28-2cc4-4b36-bc23-8861cbcd37c4) so it
 cannot retain that stale content preview. The shared OLE property-set editor
 retains the other raw property values and header; unrelated logical streams and
@@ -121,6 +119,23 @@ Unsupported semantic changes refuse output. This path does not establish
 repair-free opening, general native edit acceptance or opaque semantic preservation.
 The [writer probe](../Build/Publisher/WriterProbe/README.md#loaded-source-candidates)
 records the independently qualified source-edit specimens.
+
+Paragraph counts can increase or decrease from a uniform source: every source
+paragraph has one run, matching projected formatting, byte-identical native
+paragraph definitions and matching body/intermediate-CR definitions. Added
+paragraphs repeat those definitions; the final source CR definition is retained.
+New runs can change size/bold while retaining the other source attributes.
+Nonuniform source definitions refuse count changes, even when their projected
+formatting looks equal. An empty final paragraph is refused when it would replace
+a different native typing definition. A zero-paragraph story remains unsupported
+for native saving; in-memory clearing and rendering remain available.
+
+When ranges no longer fit the original allocation, the codec can append aligned
+formatting pages, relocate enlarged BTE indexes and retire unused pages inside
+the admitted directory. Superseded known pages/indexes are cleared, while unrelated
+payloads and gap bytes remain retained. Growth refuses nonzero unassigned header
+bytes or unknown page-descriptor metadata rather than overwriting it. Directory
+capacity, output-byte limits and cancellation remain enforced.
 
 Public native saving prepares and bounds the complete candidate before destination
 publication. `PublisherSaveOptions` defaults to a 64 MiB ceiling, `Block` loss
@@ -168,6 +183,15 @@ produced ZeroAnchors control qualifies all four coordinate positions: the reader
 recovers all four text frames with their native point bounds. This does not create
 missing physical slots for native bounds patching; that operation still requires
 the complete original slot set.
+
+Eleven paragraph/allocation specimens qualify paragraph append/removal, 240-paragraph
+growth and retirement to one paragraph, neighboring-story preservation, distinct
+character styles, shared styled paragraphs, simultaneous character/paragraph index
+growth, and two re-edits after native resave. Native-resaved files retain complete
+text and body size/bold values; native pixels and text spans match across resave.
+The `paragraphTopology` qualification record separates these public operations
+from the three preceding page-relocation experiments. Repair-free opening and
+general opaque semantic preservation remain unassessed.
 
 Six exact single-paragraph specimens of this profile have native
 read-only open, PDF export, save-as and read-only reopen evidence in Microsoft
