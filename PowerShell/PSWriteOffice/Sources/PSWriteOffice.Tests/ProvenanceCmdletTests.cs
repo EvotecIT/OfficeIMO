@@ -79,6 +79,34 @@ public sealed class ProvenanceCmdletTests {
         } finally { File.Delete(path); }
     }
 
+    [Fact]
+    public void PolicyTrustPathsUsePowerShellLocationWithoutChangingRemotePolicy() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-provenance-policy-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            using var runspace = CreateRunspace();
+            runspace.SessionStateProxy.Path.SetLocation(directory);
+            using var shell = PowerShell.Create();
+            shell.Runspace = runspace;
+            shell.AddCommand("New-OfficeDocumentProvenanceOptions")
+                .AddParameter("TrustAnchorsPath", "anchors[1].pem")
+                .AddParameter("AllowedListPath", "allowed.pem")
+                .AddParameter("TrustConfigurationPath", "trust.json");
+            var policy = Assert.IsType<OfficeProvenanceAssessmentOptions>(Assert.Single(shell.Invoke()).BaseObject);
+            Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
+            Assert.Equal(Path.Combine(directory, "anchors[1].pem"), policy.Verification.TrustAnchorsPath);
+            Assert.Equal(Path.Combine(directory, "allowed.pem"), policy.Verification.AllowedListPath);
+            Assert.Equal(Path.Combine(directory, "trust.json"), policy.Verification.TrustConfigurationPath);
+            shell.Commands.Clear();
+            const string remote = "https://example.invalid/trust.pem";
+            shell.AddCommand("New-OfficeDocumentProvenanceOptions").AddParameter("TrustAnchorsPath", remote);
+            var remotePolicy = Assert.IsType<OfficeProvenanceAssessmentOptions>(Assert.Single(shell.Invoke()).BaseObject);
+            Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
+            Assert.Equal(remote, remotePolicy.Verification.TrustAnchorsPath);
+            Assert.False(remotePolicy.Verification.AllowNetworkAccess);
+        } finally { Directory.Delete(directory); }
+    }
+
     private static Runspace CreateRunspace() {
         var state = InitialSessionState.CreateDefault();
         state.Commands.Add(new SessionStateCmdletEntry("Get-OfficeDocumentProvenance", typeof(GetOfficeDocumentProvenanceCommand), null));

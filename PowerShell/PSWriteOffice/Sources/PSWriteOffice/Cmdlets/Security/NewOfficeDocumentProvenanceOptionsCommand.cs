@@ -1,6 +1,7 @@
 using System;
 using System.Management.Automation;
 using OfficeIMO.Provenance;
+using PSWriteOffice.Services;
 
 namespace PSWriteOffice.Cmdlets.Security;
 
@@ -93,9 +94,16 @@ public sealed class NewOfficeDocumentProvenanceOptionsCommand : PSCmdlet {
         if (MyInvocation.BoundParameters.ContainsKey(nameof(VerificationTimeoutSeconds))) policy.Verification.Timeout = TimeSpan.FromSeconds(VerificationTimeoutSeconds);
         if (MyInvocation.BoundParameters.ContainsKey(nameof(AllowNetworkAccess))) policy.Verification.AllowNetworkAccess = AllowNetworkAccess.IsPresent;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(IncludeRawReport))) policy.Verification.IncludeRawReport = IncludeRawReport.IsPresent;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(TrustAnchorsPath))) policy.Verification.TrustAnchorsPath = TrustAnchorsPath;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(AllowedListPath))) policy.Verification.AllowedListPath = AllowedListPath;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(TrustConfigurationPath))) policy.Verification.TrustConfigurationPath = TrustConfigurationPath;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(TrustAnchorsPath))) policy.Verification.TrustAnchorsPath = ResolveTrustPath(TrustAnchorsPath);
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(AllowedListPath))) policy.Verification.AllowedListPath = ResolveTrustPath(AllowedListPath);
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(TrustConfigurationPath))) policy.Verification.TrustConfigurationPath = ResolveTrustPath(TrustConfigurationPath);
         WriteObject(policy);
+    }
+
+    private string? ResolveTrustPath(string? path) {
+        if (path == null) return null;
+        if (Uri.TryCreate(path, UriKind.Absolute, out Uri? uri)
+            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)) return path;
+        return OfficeFileCommandUtilities.ResolvePath(this, path);
     }
 }
