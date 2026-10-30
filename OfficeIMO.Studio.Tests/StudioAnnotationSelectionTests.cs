@@ -221,8 +221,10 @@ public sealed class StudioAnnotationSelectionTests {
     }
 
     private static byte[] CreateSource() {
+        // Keep body text away from the group drag's horizontal snap guides.
         var document = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Content(content =>
-            content.Item(item => item.Paragraph(paragraph => paragraph.Text("Annotation selection workspace"))))));
+            content.Item(item => item.Paragraph(paragraph => paragraph.Text("Annotation selection workspace"),
+                style: new PdfParagraphStyle { LeftIndent = global::OfficeIMO.OfficeLength.Points(360) })))));
         document = document.Annotations.Add(new PdfAnnotationCreateOptions { Subtype = "Square", Name = "square", Contents = "Review box",
             Rectangle = new[] { 60D, 600D, 140D, 660D }, Color = new[] { 0.9D, 0.2D, 0.2D }, GenerateAppearance = true }).ToDocument();
         document = document.Annotations.Add(new PdfAnnotationCreateOptions { Subtype = "Circle", Name = "circle", Contents = "Review circle",

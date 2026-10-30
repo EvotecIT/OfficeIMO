@@ -189,10 +189,12 @@ public sealed class PdfEditorCommandTests {
         Assert.All(annotationResult.Evidence.Items, item => Assert.Equal(PdfRedactionEvidenceStatus.VerifiedAbsent, item.Status));
     }
 
+    // Selection and redaction gestures need physically disjoint source lines.
     private static byte[] CreateSource(string text = "Existing content") =>
         PdfDocument.Create(compose => compose.Page(page => page
             .Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D))
-            .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(text)))))).ToBytes();
+            .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(text),
+                style: new PdfParagraphStyle { LineHeight = 2D }))))).ToBytes();
 
     private static PdfEditorGesture CreateGesture() => new(
         1,

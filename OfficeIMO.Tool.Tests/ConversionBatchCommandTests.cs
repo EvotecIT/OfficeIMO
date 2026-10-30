@@ -49,7 +49,7 @@ public sealed class ConversionBatchCommandTests {
             Assert.Equal(1, result.RootElement.GetProperty("summary").GetProperty("failed").GetInt32());
             Assert.Contains("Literal mixed batch marker",
                 PdfReadDocument.Open(File.ReadAllBytes(Path.Combine(destination, "text.pdf"))).ExtractText(), StringComparison.Ordinal);
-            Assert.False(File.Exists(Path.Combine(destination, "drawing.fodg.pdf")));
+            Assert.False(File.Exists(Path.Combine(destination, "drawing.pdf")));
             Assert.Contains("drawing.fodg", run.Error, StringComparison.Ordinal);
         } finally { Directory.Delete(root, true); }
     }
@@ -70,7 +70,7 @@ public sealed class ConversionBatchCommandTests {
             var run = await RunBatch(["--input-directory", input, "--output", destination, "--diagram-layers", "screen"]);
 
             Assert.Equal((int)OfficeImoToolExitCode.Success, run.Code);
-            string text = PdfReadDocument.Open(File.ReadAllBytes(Path.Combine(destination, "layers.fodg.pdf"))).ExtractText();
+            string text = PdfReadDocument.Open(File.ReadAllBytes(Path.Combine(destination, "layers.pdf"))).ExtractText();
             Assert.Contains("BatchScreenOnly", text, StringComparison.Ordinal);
             Assert.DoesNotContain("BatchPrintOnly", text, StringComparison.Ordinal);
         } finally { Directory.Delete(root, true); }
@@ -87,7 +87,7 @@ public sealed class ConversionBatchCommandTests {
             Assert.Equal((int)OfficeImoToolExitCode.Success, first.Code);
             string finding = first.Error.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
                 .First(line => line.Contains("[page:1:", StringComparison.Ordinal) && line.Contains("capitalization", StringComparison.Ordinal));
-            byte[] original = File.ReadAllBytes(Path.Combine(destination, "drawing.fodg.pdf"));
+            byte[] original = File.ReadAllBytes(Path.Combine(destination, "drawing.pdf"));
 
             var reused = await RunBatch(args);
 
@@ -95,7 +95,7 @@ public sealed class ConversionBatchCommandTests {
             using JsonDocument result = JsonDocument.Parse(reused.Output);
             Assert.Equal(1, result.RootElement.GetProperty("summary").GetProperty("reused").GetInt32());
             Assert.Contains(finding, reused.Error, StringComparison.Ordinal);
-            Assert.Equal(original, File.ReadAllBytes(Path.Combine(destination, "drawing.fodg.pdf")));
+            Assert.Equal(original, File.ReadAllBytes(Path.Combine(destination, "drawing.pdf")));
         } finally { Directory.Delete(root, true); }
     }
 

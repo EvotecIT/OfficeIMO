@@ -124,7 +124,7 @@ public sealed class SavedConversionJobCommandTests {
             Assert.True(report.RootElement.GetProperty("succeeded").GetBoolean());
             Assert.Equal(1, report.RootElement.GetProperty("summary").GetProperty("completed").GetInt64());
         }
-        using var workbook = OfficeIMO.Excel.ExcelDocument.Load(Path.Combine(files.Output, "source.numbers.xlsx"));
+        using var workbook = OfficeIMO.Excel.ExcelDocument.Load(Path.Combine(files.Output, "source.xlsx"));
         Assert.Equal(42d, Assert.Single(workbook.Sheets).CellAt(1, 1).GetValue<double>());
     }
 

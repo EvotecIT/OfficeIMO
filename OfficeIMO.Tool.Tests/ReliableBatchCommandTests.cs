@@ -129,7 +129,7 @@ public sealed class ReliableBatchCommandTests {
         var result = await RunBatch([source, "--output", files.Output, "--target", "xlsx"]);
 
         Assert.Equal((int)OfficeImoToolExitCode.Success, result.Code);
-        using var workbook = OfficeIMO.Excel.ExcelDocument.Load(Path.Combine(files.Output, "source.numbers.xlsx"));
+        using var workbook = OfficeIMO.Excel.ExcelDocument.Load(Path.Combine(files.Output, "source.xlsx"));
         Assert.Equal(42d, Assert.Single(workbook.Sheets).CellAt(1, 1).GetValue<double>());
     }
 
