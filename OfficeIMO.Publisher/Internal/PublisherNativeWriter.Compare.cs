@@ -44,8 +44,7 @@ internal sealed partial class PublisherNativeWriter {
         foreach (var entry in _baseline.Text.Stories) {
             PublisherTextStory current = _current.Text.Stories[entry.Key];
             if (StoryEqual(entry.Value, current)) continue;
-            if (!CanRewriteStory(entry.Value, current)
-                || _baseline.Text.Frames.Values.Count(frame => frame.StoryId == entry.Key) != 1) return false;
+            if (!CanRewriteStory(entry.Value, current) || !CanRewriteStoryFrames(entry.Key)) return false;
         }
         if (_baseline.Text.Stories.Count == 1 && _baseline.Text.Frames.Count == 1 && _styleDependencies.Count == 1) {
             _quillBytes = PublisherQuillTextWriter.TryRewrite(_imported.NativeSource!.QuillBytes, _styleDependencies[0],
@@ -55,6 +54,17 @@ internal sealed partial class PublisherNativeWriter {
         _quillBytes = PublisherQuillStoriesWriter.TryRewrite(_imported.NativeSource!.QuillBytes, _imported.Styles.Stories,
             _baseline.Text.Stories, _current.Text.Stories, _sourceLimits, _maximumBytes, _token);
         return _quillBytes != null;
+    }
+
+    private bool CanRewriteStoryFrames(uint storyId) {
+        int frameCount = _baseline.Text.Frames.Values.Count(frame => frame.StoryId == storyId);
+        if (frameCount == 1) return true;
+        if (frameCount == 0 || !_baseline.Text.Chains.TryGetValue(storyId, out IReadOnlyList<uint>? chain)
+            || chain.Count != frameCount) return false;
+        var pages = new HashSet<uint>(_baseline.Pages.Where(page => !page.IsMaster).Select(page => page.Id));
+        return chain.All(id => _baseline.Text.Frames.TryGetValue(id, out PublisherFrameState? frame)
+            && frame.StoryId == storyId && frame.Available && frame.SupportsContinuation
+            && frame.PageId.HasValue && pages.Contains(frame.PageId.Value));
     }
 
     private static bool CanRewriteStory(PublisherTextStory before, PublisherTextStory after) {
