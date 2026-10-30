@@ -58,7 +58,7 @@ ExcelNew -Path $excelPath {
             ExcelTextRun 'Owner: '
             ExcelTextRun 'Platform' -Color Navy -Bold
         )
-        ExcelTable -Data $serviceRows -TableName 'ServiceReadiness' -StartRow 5 -StartColumn 1
+        ExcelTable -Data $serviceRows -Name 'ServiceReadiness' -StartRow 5 -StartColumn 1
         ExcelAutoFit
     }
 }

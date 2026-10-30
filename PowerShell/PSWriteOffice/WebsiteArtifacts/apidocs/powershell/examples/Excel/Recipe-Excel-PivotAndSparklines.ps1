@@ -8,7 +8,7 @@ $sales = @(
 
 ExcelNew -Path $path {
     ExcelSheet 'Sales' {
-        ExcelTable -Data $sales -TableName 'Sales' -AutoFit
+        ExcelTable -Data $sales -Name 'Sales' -AutoFit
         ExcelPivotTable -SourceRange 'A1:C5' -DestinationCell 'G2' -Name 'RevenueByRegion' -RowField Region -ColumnField Month -DataField Revenue
         ExcelSparkline -DataRange 'D2:F5' -LocationRange 'G8:G11' -Type Line -ShowMarkers -ShowHighLow
     }

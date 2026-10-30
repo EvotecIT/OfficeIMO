@@ -62,7 +62,7 @@ $xlsx = Join-Path $OutputDirectory 'SupplierOffers.xlsx'
 
 New-OfficeWord -Path $docx {
     WordHeader -Type Default { WordParagraph -Text 'PROCUREMENT / OFFER REVIEW' }
-    WordFooter -Type Default { WordPageNumber -IncludeTotalPages }
+    WordFooter -Type Default { WordPageNumber -IncludeTotal }
     WordParagraph {
         WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true
         WordText 'Supplier offer review' -Bold -FontSize 26 -Color '17365D'
@@ -103,7 +103,7 @@ New-OfficeExcel -Path $xlsx {
         ExcelCell -Address A1 -Value 'Supplier offers / USD per unit'
         ExcelRow -Row 1 -Height 30 -Bold $true -FontName 'Carlito'
         ExcelCell -Address A2 -Value 'Editable numeric values; freight and tax excluded.'
-        ExcelTable -InputObject $offers -StartRow 4 -TableName SupplierOffers -TableStyle TableStyleMedium2 -AutoFit
+        ExcelTable -InputObject $offers -StartRow 4 -Name SupplierOffers -TableStyle TableStyleMedium2 -AutoFit
         for ($row = 5; $row -lt 5 + $offers.Count; $row++) {
             # Keep each quote's decimal places visible rather than rounding every price to cents.
             $priceText = $offers[$row - 5].UnitPriceUsd.ToString($priceTextFormat, [Globalization.CultureInfo]::InvariantCulture)
