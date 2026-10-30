@@ -21,10 +21,10 @@ public sealed partial class WordPaperStyle {
             leftStyle: WordBorderStyle.Nil, rightStyle: WordBorderStyle.Nil,
             insideHStyle: WordBorderStyle.Single, insideHSize: RuleSize,
             insideHColor: OfficeIMO.OfficeColor.ParseHex(Border), insideVStyle: WordBorderStyle.Nil);
-        table.StyleDetails.MarginDefaultTopWidth = TableCellVerticalPadding;
-        table.StyleDetails.MarginDefaultBottomWidth = TableCellVerticalPadding;
-        table.StyleDetails.MarginDefaultLeftWidth = TableCellHorizontalPadding;
-        table.StyleDetails.MarginDefaultRightWidth = TableCellHorizontalPadding;
+        table.StyleDetails.MarginDefaultTop = TableCellVerticalPadding;
+        table.StyleDetails.MarginDefaultBottom = TableCellVerticalPadding;
+        table.StyleDetails.MarginDefaultLeft = TableCellHorizontalPadding;
+        table.StyleDetails.MarginDefaultRight = TableCellHorizontalPadding;
         int columnCount = table.Rows.Count == 0 ? 0 : table.Rows[0].Cells.Count;
         var numericColumns = new HashSet<int>();
         if (alignNumericColumns) {
@@ -46,10 +46,10 @@ public sealed partial class WordPaperStyle {
                     paragraph.FontSize = header ? global::OfficeIMO.OfficeLength.Points(9) : TableFontSize;
                     paragraph.Bold = header;
                     paragraph.ColorHex = header ? Muted : Ink;
-                    paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(TableParagraphSpacingPoints);
-                    paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(TableParagraphSpacingPoints);
-                    if (TableLineSpacingPoints.HasValue) {
-                        paragraph.LineSpacing = WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(TableLineSpacingPoints.Value));
+                    paragraph.LineSpacingBefore = TableParagraphSpacing;
+                    paragraph.LineSpacingAfter = TableParagraphSpacing;
+                    if (TableLineSpacing.HasValue) {
+                        paragraph.LineSpacing = WordLineSpacing.Exact(TableLineSpacing.Value);
                     }
                     paragraph.ParagraphAlignment = numericColumns.Contains(column) ? WordParagraphAlignment.Right : WordParagraphAlignment.Left;
                     if (!header && numericColumns.Contains(column)) {

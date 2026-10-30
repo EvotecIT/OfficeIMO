@@ -73,7 +73,7 @@ public sealed class WordPaperHeaderSizingTests {
         style.FitTableColumnsToHeaders(table, 0, 1);
         double fallback = OfficeIMO.Drawing.OfficeStandardFontMetrics.MeasureFallbackWidth("W-W", 9, OfficeIMO.Drawing.OfficeFontStyle.Bold);
         Assert.Equal(fallback, OfficeIMO.Drawing.OfficeStandardFontMetrics.MeasureFallbackWidth("W\u00ADW", 9, OfficeIMO.Drawing.OfficeFontStyle.Bold));
-        Assert.True(table.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList()[0] >= fallback * 20 + 2 * style.TableCellHorizontalPadding);
+        Assert.True(table.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList()[0] >= fallback * 20 + 2 * style.TableCellHorizontalPadding.ToTwips());
     }
 
     [Fact]

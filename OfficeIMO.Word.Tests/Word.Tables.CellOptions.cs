@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
                 WordTable table = document.AddTable(2, 2);
 
                 // Set a default right margin for the table
-                table.StyleDetails!.MarginDefaultRightWidth = 100;
+                table.StyleDetails!.MarginDefaultRight = global::OfficeIMO.OfficeLength.Points(5);
 
                 // Override margins for a specific cell
                 var cell = table.Rows[0].Cells[1];

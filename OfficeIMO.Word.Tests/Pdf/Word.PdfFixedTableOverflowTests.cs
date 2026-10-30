@@ -32,7 +32,7 @@ public partial class Word {
         table.Width = TableWidthFixture(widthCase == 1 ? WordTableWidthKind.Percent :
             widthCase is 2 or 3 ? WordTableWidthKind.Auto : WordTableWidthKind.Length, widthCase == 1 ? 6250 : widthCase is 2 or 3 ? 0 : widthCase == 4 ? 3620 : 4500);
         table.GridColumnWidth = new List<int> { 2250, 2250 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
-        table.StyleDetails!.TableIndentationWidth = (short)(indentPoints * 20);
+        table.StyleDetails!.TableIndentation = global::OfficeIMO.OfficeLength.Points(indentPoints);
         for (int column = 0; column < 2; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
             cell.Width = TableWidthFixture(widthCase == 1 ? WordTableWidthKind.Percent :
@@ -70,7 +70,7 @@ public partial class Word {
         table.Alignment = alignment;
         table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)((int)(width * 20D)) * 635)));
         table.GridColumnWidth = new List<int> { 2250, 2250 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
-        table.StyleDetails!.CellSpacing = 120;
+        table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(6);
         table._tableProperties.TableBorders = new W.TableBorders(
             new W.TopBorder { Val = W.BorderValues.Single, Size = 8U },
             new W.LeftBorder { Val = W.BorderValues.Single, Size = 8U },
@@ -112,7 +112,7 @@ public partial class Word {
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(600) * 635)));
         table.GridColumnWidth = new List<int> { 2250, 2250 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
-        table.StyleDetails!.CellSpacing = 120;
+        table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(6);
         W.BorderValues borderValue = borderSize > 0 ? W.BorderValues.Single : W.BorderValues.Nil;
         uint size = (uint)borderSize;
         table._tableProperties.TableBorders = new W.TableBorders(
@@ -162,7 +162,7 @@ public partial class Word {
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table.Width = WordTableWidth.Percent((percent) / 50d);
         table.GridColumnWidth = new List<int> { 2250, 2250 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
-        table.StyleDetails!.CellSpacing = spacingTwips == 0 ? null : (short)spacingTwips;
+        table.StyleDetails!.CellSpacing = spacingTwips == 0 ? null : global::OfficeIMO.OfficeLength.Points((spacingTwips) / 20D);
         uint size = (uint)(cellOverride ? 8 : borderSize);
         W.BorderValues value = size == 0 ? W.BorderValues.Nil : W.BorderValues.Single;
         table._tableProperties.TableBorders = new W.TableBorders(

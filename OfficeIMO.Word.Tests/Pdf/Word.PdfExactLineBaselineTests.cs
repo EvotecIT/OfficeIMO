@@ -19,7 +19,7 @@ public partial class Word {
         WordTable table = source.AddTable(1, 1, WordTableStyle.TableGrid);
         // Borderless cells isolate exact-line baselines and clipping from the
         // additional space reserved for table border paint.
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, global::OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeColor.Black);
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(columns ? 2040 : 4800) * 635)));
         WordTableCell cell = table.Rows[0].Cells[0];
@@ -66,7 +66,7 @@ public partial class Word {
         WordParagraph paragraph;
         if (frame == "table") {
             WordTable table = source.AddTable(1, 1, WordTableStyle.TableGrid);
-            table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.OfficeColor.Black);
+            table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, global::OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeColor.Black);
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             paragraph = cell.Paragraphs[0];

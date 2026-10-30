@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             var table = doc.Tables[0];
             var (style, size, colorHex) = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.Top);
             Assert.Equal(WordBorderStyle.Single, style);
-            Assert.Equal(12U, size);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(1.5), size);
             Assert.Equal("FF0000", colorHex);
             var cell = table.Rows[0].Cells[0];
             Assert.Equal("00FF00", cell.ShadingFillColorHex);
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
             var table = doc.Tables[0];
             var (style, size, colorHex) = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.Left);
             Assert.Equal(WordBorderStyle.Double, style);
-            Assert.Equal(18U, size);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(2.25), size);
             Assert.Equal("112233", colorHex);
             var cell = table.Rows[0].Cells[0];
             Assert.Equal(WordBorderStyle.Dotted, cell.Borders.BottomStyle);
@@ -111,7 +111,7 @@ namespace OfficeIMO.Tests {
             using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var table = doc.Tables[0];
 
-            Assert.Equal((short)90, table.StyleDetails!.CellSpacing);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(4.5), table.StyleDetails!.CellSpacing);
         }
 
         [Fact]
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
             using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var table = doc.Tables[0];
 
-            Assert.Equal((short)100, table.StyleDetails!.CellSpacing);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(5), table.StyleDetails!.CellSpacing);
         }
 
         [Fact]

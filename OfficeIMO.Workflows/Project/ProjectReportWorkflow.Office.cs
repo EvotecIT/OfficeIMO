@@ -35,7 +35,7 @@ public static partial class ProjectReportWorkflow {
                 heading.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(10D); heading.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
                 var table = document.AddTable(part.Rows.Length + 1, part.Headers.Length, WordTableStyle.TableGrid);
                 table.SetColumnWidthsPercentage(ColumnWeights(part.Headers));
-                table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 4, OfficeColor.ParseHex("#E3EAF0"));
+                table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, global::OfficeIMO.OfficeLength.Points(0.5), OfficeColor.ParseHex("#E3EAF0"));
                 var tableRows = table.Rows;
                 tableRows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
                 for (int r = 0; r < tableRows.Count; r++) {

@@ -2982,21 +2982,21 @@ OfficeIMO.Word.WordPaperStyle.Ink.get -> string!
 OfficeIMO.Word.WordPaperStyle.Ink.set -> void
 OfficeIMO.Word.WordPaperStyle.Muted.get -> string!
 OfficeIMO.Word.WordPaperStyle.Muted.set -> void
-OfficeIMO.Word.WordPaperStyle.RuleSize.get -> uint
+OfficeIMO.Word.WordPaperStyle.RuleSize.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordPaperStyle.RuleSize.set -> void
 OfficeIMO.Word.WordPaperStyle.SetCellText(OfficeIMO.Word.WordTableCell! cell, string! text) -> void
 OfficeIMO.Word.WordPaperStyle.Surface.get -> string!
 OfficeIMO.Word.WordPaperStyle.Surface.set -> void
-OfficeIMO.Word.WordPaperStyle.TableCellHorizontalPadding.get -> short
+OfficeIMO.Word.WordPaperStyle.TableCellHorizontalPadding.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordPaperStyle.TableCellHorizontalPadding.set -> void
-OfficeIMO.Word.WordPaperStyle.TableCellVerticalPadding.get -> short
+OfficeIMO.Word.WordPaperStyle.TableCellVerticalPadding.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordPaperStyle.TableCellVerticalPadding.set -> void
 OfficeIMO.Word.WordPaperStyle.TableFontSize.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordPaperStyle.TableFontSize.set -> void
-OfficeIMO.Word.WordPaperStyle.TableLineSpacingPoints.get -> double?
-OfficeIMO.Word.WordPaperStyle.TableLineSpacingPoints.set -> void
-OfficeIMO.Word.WordPaperStyle.TableParagraphSpacingPoints.get -> double
-OfficeIMO.Word.WordPaperStyle.TableParagraphSpacingPoints.set -> void
+OfficeIMO.Word.WordPaperStyle.TableLineSpacing.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordPaperStyle.TableLineSpacing.set -> void
+OfficeIMO.Word.WordPaperStyle.TableParagraphSpacing.get -> OfficeIMO.OfficeLength
+OfficeIMO.Word.WordPaperStyle.TableParagraphSpacing.set -> void
 OfficeIMO.Word.WordPaperStyle.WordPaperStyle() -> void
 OfficeIMO.Word.WordPaperText
 OfficeIMO.Word.WordParagraph
@@ -3291,8 +3291,8 @@ OfficeIMO.Word.WordParagraphBorder.None = 0 -> OfficeIMO.Word.WordParagraphBorde
 OfficeIMO.Word.WordParagraphBorder.Shadow = 3 -> OfficeIMO.Word.WordParagraphBorder
 OfficeIMO.Word.WordParagraphBorderInfo
 OfficeIMO.Word.WordParagraphBorderInfo.ColorHex.get -> string?
-OfficeIMO.Word.WordParagraphBorderInfo.Size.get -> uint?
-OfficeIMO.Word.WordParagraphBorderInfo.Space.get -> uint?
+OfficeIMO.Word.WordParagraphBorderInfo.Size.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordParagraphBorderInfo.Space.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraphBorderInfo.Style.get -> string?
 OfficeIMO.Word.WordParagraphBorderInfo.WordParagraphBorderInfo() -> void
 OfficeIMO.Word.WordParagraphBorderType
@@ -4435,7 +4435,7 @@ OfficeIMO.Word.WordTableCellBorder.TopStyle.get -> OfficeIMO.Word.WordBorderStyl
 OfficeIMO.Word.WordTableCellBorder.TopStyle.set -> void
 OfficeIMO.Word.WordTableCellBorderInfo
 OfficeIMO.Word.WordTableCellBorderInfo.ColorHex.get -> string?
-OfficeIMO.Word.WordTableCellBorderInfo.Size.get -> uint?
+OfficeIMO.Word.WordTableCellBorderInfo.Size.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordTableCellBorderInfo.Style.get -> string?
 OfficeIMO.Word.WordTableCellBorderInfo.WordTableCellBorderInfo() -> void
 OfficeIMO.Word.WordTableCellInfo
@@ -4677,30 +4677,20 @@ OfficeIMO.Word.WordTableStyle.TableGrid = 1 -> OfficeIMO.Word.WordTableStyle
 OfficeIMO.Word.WordTableStyle.TableNormal = 0 -> OfficeIMO.Word.WordTableStyle
 OfficeIMO.Word.WordTableStyleDetails
 OfficeIMO.Word.WordTableStyleDetails.ApplyBordersToAllCells() -> void
-OfficeIMO.Word.WordTableStyleDetails.CellSpacing.get -> short?
+OfficeIMO.Word.WordTableStyleDetails.CellSpacing.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordTableStyleDetails.CellSpacing.set -> void
-OfficeIMO.Word.WordTableStyleDetails.CellSpacingCentimeters.get -> double?
-OfficeIMO.Word.WordTableStyleDetails.CellSpacingCentimeters.set -> void
-OfficeIMO.Word.WordTableStyleDetails.GetBorderProperties(OfficeIMO.Word.WordTableBorderSide side) -> (OfficeIMO.Word.WordBorderStyle? Style, uint? Size, string? ColorHex)
-OfficeIMO.Word.WordTableStyleDetails.MarginDefaultBottomCentimeters.get -> double?
-OfficeIMO.Word.WordTableStyleDetails.MarginDefaultBottomCentimeters.set -> void
-OfficeIMO.Word.WordTableStyleDetails.MarginDefaultBottomWidth.get -> short?
-OfficeIMO.Word.WordTableStyleDetails.MarginDefaultBottomWidth.set -> void
-OfficeIMO.Word.WordTableStyleDetails.MarginDefaultLeftCentimeters.get -> double?
-OfficeIMO.Word.WordTableStyleDetails.MarginDefaultLeftCentimeters.set -> void
-OfficeIMO.Word.WordTableStyleDetails.MarginDefaultLeftWidth.get -> short?
-OfficeIMO.Word.WordTableStyleDetails.MarginDefaultLeftWidth.set -> void
-OfficeIMO.Word.WordTableStyleDetails.MarginDefaultRightCentimeters.get -> double?
-OfficeIMO.Word.WordTableStyleDetails.MarginDefaultRightCentimeters.set -> void
-OfficeIMO.Word.WordTableStyleDetails.MarginDefaultRightWidth.get -> short?
-OfficeIMO.Word.WordTableStyleDetails.MarginDefaultRightWidth.set -> void
-OfficeIMO.Word.WordTableStyleDetails.MarginDefaultTopCentimeters.get -> double?
-OfficeIMO.Word.WordTableStyleDetails.MarginDefaultTopCentimeters.set -> void
-OfficeIMO.Word.WordTableStyleDetails.MarginDefaultTopWidth.get -> short?
-OfficeIMO.Word.WordTableStyleDetails.MarginDefaultTopWidth.set -> void
-OfficeIMO.Word.WordTableStyleDetails.SetBordersForAllSides(OfficeIMO.Word.WordBorderStyle style, uint size, OfficeIMO.OfficeColor color) -> void
-OfficeIMO.Word.WordTableStyleDetails.SetBordersOutsideInside(OfficeIMO.Word.WordBorderStyle outsideStyle, uint outsideSize, OfficeIMO.OfficeColor outsideColor, OfficeIMO.Word.WordBorderStyle insideStyle, uint insideSize, OfficeIMO.OfficeColor insideColor) -> void
-OfficeIMO.Word.WordTableStyleDetails.SetCustomBorders(OfficeIMO.Word.WordBorderStyle? topStyle = null, uint? topSize = null, OfficeIMO.OfficeColor? topColor = null, OfficeIMO.Word.WordBorderStyle? bottomStyle = null, uint? bottomSize = null, OfficeIMO.OfficeColor? bottomColor = null, OfficeIMO.Word.WordBorderStyle? leftStyle = null, uint? leftSize = null, OfficeIMO.OfficeColor? leftColor = null, OfficeIMO.Word.WordBorderStyle? rightStyle = null, uint? rightSize = null, OfficeIMO.OfficeColor? rightColor = null, OfficeIMO.Word.WordBorderStyle? insideHStyle = null, uint? insideHSize = null, OfficeIMO.OfficeColor? insideHColor = null, OfficeIMO.Word.WordBorderStyle? insideVStyle = null, uint? insideVSize = null, OfficeIMO.OfficeColor? insideVColor = null) -> void
+OfficeIMO.Word.WordTableStyleDetails.GetBorderProperties(OfficeIMO.Word.WordTableBorderSide side) -> (OfficeIMO.Word.WordBorderStyle? Style, OfficeIMO.OfficeLength? Size, string? ColorHex)
+OfficeIMO.Word.WordTableStyleDetails.MarginDefaultBottom.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordTableStyleDetails.MarginDefaultBottom.set -> void
+OfficeIMO.Word.WordTableStyleDetails.MarginDefaultLeft.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordTableStyleDetails.MarginDefaultLeft.set -> void
+OfficeIMO.Word.WordTableStyleDetails.MarginDefaultRight.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordTableStyleDetails.MarginDefaultRight.set -> void
+OfficeIMO.Word.WordTableStyleDetails.MarginDefaultTop.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordTableStyleDetails.MarginDefaultTop.set -> void
+OfficeIMO.Word.WordTableStyleDetails.SetBordersForAllSides(OfficeIMO.Word.WordBorderStyle style, OfficeIMO.OfficeLength size, OfficeIMO.OfficeColor color) -> void
+OfficeIMO.Word.WordTableStyleDetails.SetBordersOutsideInside(OfficeIMO.Word.WordBorderStyle outsideStyle, OfficeIMO.OfficeLength outsideSize, OfficeIMO.OfficeColor outsideColor, OfficeIMO.Word.WordBorderStyle insideStyle, OfficeIMO.OfficeLength insideSize, OfficeIMO.OfficeColor insideColor) -> void
+OfficeIMO.Word.WordTableStyleDetails.SetCustomBorders(OfficeIMO.Word.WordBorderStyle? topStyle = null, OfficeIMO.OfficeLength? topSize = null, OfficeIMO.OfficeColor? topColor = null, OfficeIMO.Word.WordBorderStyle? bottomStyle = null, OfficeIMO.OfficeLength? bottomSize = null, OfficeIMO.OfficeColor? bottomColor = null, OfficeIMO.Word.WordBorderStyle? leftStyle = null, OfficeIMO.OfficeLength? leftSize = null, OfficeIMO.OfficeColor? leftColor = null, OfficeIMO.Word.WordBorderStyle? rightStyle = null, OfficeIMO.OfficeLength? rightSize = null, OfficeIMO.OfficeColor? rightColor = null, OfficeIMO.Word.WordBorderStyle? insideHStyle = null, OfficeIMO.OfficeLength? insideHSize = null, OfficeIMO.OfficeColor? insideHColor = null, OfficeIMO.Word.WordBorderStyle? insideVStyle = null, OfficeIMO.OfficeLength? insideVSize = null, OfficeIMO.OfficeColor? insideVColor = null) -> void
 OfficeIMO.Word.WordTableStyleDetails.ShadingColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Word.WordTableStyleDetails.ShadingColor.set -> void
 OfficeIMO.Word.WordTableStyleDetails.ShadingColorHex.get -> string!
@@ -4711,10 +4701,8 @@ OfficeIMO.Word.WordTableStyleDetails.ShadingFillColorHex.get -> string!
 OfficeIMO.Word.WordTableStyleDetails.ShadingFillColorHex.set -> void
 OfficeIMO.Word.WordTableStyleDetails.ShadingPattern.get -> OfficeIMO.Word.WordShadingPattern?
 OfficeIMO.Word.WordTableStyleDetails.ShadingPattern.set -> void
-OfficeIMO.Word.WordTableStyleDetails.TableIndentationCentimeters.get -> double?
-OfficeIMO.Word.WordTableStyleDetails.TableIndentationCentimeters.set -> void
-OfficeIMO.Word.WordTableStyleDetails.TableIndentationWidth.get -> short?
-OfficeIMO.Word.WordTableStyleDetails.TableIndentationWidth.set -> void
+OfficeIMO.Word.WordTableStyleDetails.TableIndentation.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordTableStyleDetails.TableIndentation.set -> void
 OfficeIMO.Word.WordTableVerticalAlignment
 OfficeIMO.Word.WordTableVerticalAlignment.Bottom = 2 -> OfficeIMO.Word.WordTableVerticalAlignment
 OfficeIMO.Word.WordTableVerticalAlignment.Center = 1 -> OfficeIMO.Word.WordTableVerticalAlignment

@@ -22,10 +22,10 @@ public partial class Word {
         source.AddParagraph("Gap");
         WordTable indented = source.AddTable(1, 1, WordTableStyle.TableGrid);
         Configure(indented, "MarkerNegative");
-        indented.StyleDetails!.TableIndentationWidth = -108;
+        indented.StyleDetails!.TableIndentation = global::OfficeIMO.OfficeLength.Points(-5.4);
         using WordDocument reopened = WordDocument.Load(new MemoryStream(nativeDoc
             ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
-        Assert.Equal((short)-108, reopened.Tables[1].StyleDetails!.TableIndentationWidth);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(-5.4), reopened.Tables[1].StyleDetails!.TableIndentation);
         byte[] bytes = reopened.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
             PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(500),OfficeIMO.OfficeLength.Points(400)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))

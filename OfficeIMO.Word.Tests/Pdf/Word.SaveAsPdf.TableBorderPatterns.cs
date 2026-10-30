@@ -84,7 +84,7 @@ public partial class Word {
             });
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
         } else {
-            table.StyleDetails!.SetBordersForAllSides(borderStyle, 12U, OfficeIMO.OfficeColor.Red);
+            table.StyleDetails!.SetBordersForAllSides(borderStyle, global::OfficeIMO.OfficeLength.Points(1.5), OfficeIMO.OfficeColor.Red);
         }
         return document;
     }

@@ -57,7 +57,7 @@ namespace OfficeIMO.Word {
                 .Select(row => row.DefaultCellSpacingTwips)
                 .FirstOrDefault(spacing => spacing.HasValue);
             if (tableCellSpacingTwips != null) {
-                table.StyleDetails!.CellSpacing = checked((short)tableCellSpacingTwips.Value);
+                table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points((checked((short)tableCellSpacingTwips.Value)) / 20D);
             }
 
             for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {

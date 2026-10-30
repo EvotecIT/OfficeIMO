@@ -13,7 +13,7 @@ public partial class Word {
     public void SaveAsPdf_ZeroSpacingRowsShareMarginsAndRetainTheirHeight(bool minimum, double advance) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(document, 2, 2, 0);
-        table.StyleDetails!.CellSpacing = 0;
+        table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(0);
         foreach (WordTableRow row in table.Rows) {
             if (minimum) row.MinimumHeight = global::OfficeIMO.OfficeLength.Points(120D);
             else row.Height = global::OfficeIMO.OfficeLength.Points(120D);

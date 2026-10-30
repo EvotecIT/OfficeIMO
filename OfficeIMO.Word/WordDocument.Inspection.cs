@@ -618,7 +618,7 @@ namespace OfficeIMO.Word {
             return new WordTableCellBorderInfo {
                 Style = style,
                 ColorHex = colorHex,
-                Size = size,
+                Size = size.HasValue ? OfficeLength.Points(size.Value / 8D) : null,
             };
         }
 
@@ -634,8 +634,8 @@ namespace OfficeIMO.Word {
             return new WordParagraphBorderInfo {
                 Style = style,
                 ColorHex = colorHex,
-                Size = size,
-                Space = space,
+                Size = size.HasValue ? OfficeLength.Points(size.Value / 8D) : null,
+                Space = space.HasValue ? OfficeLength.Points(space.Value) : null,
             };
         }
 

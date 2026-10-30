@@ -462,8 +462,8 @@ namespace OfficeIMO.Word {
         public string? Style { get; internal set; }
         /// <summary>Gets the authored OOXML border-color token, typically an RGB hex value but possibly the automatic-color keyword.</summary>
         public string? ColorHex { get; internal set; }
-        /// <summary>Gets the border width in eighths of a point.</summary>
-        public uint? Size { get; internal set; }
+        /// <summary>Gets the physical border width.</summary>
+        public OfficeLength? Size { get; internal set; }
     }
 
     /// <summary>Style, color, width, and spacing of one paragraph border.</summary>
@@ -472,10 +472,10 @@ namespace OfficeIMO.Word {
         public string? Style { get; internal set; }
         /// <summary>Gets the authored OOXML border-color token, typically an RGB hex value but possibly the automatic-color keyword.</summary>
         public string? ColorHex { get; internal set; }
-        /// <summary>Gets the border width in eighths of a point.</summary>
-        public uint? Size { get; internal set; }
+        /// <summary>Gets the physical border width.</summary>
+        public OfficeLength? Size { get; internal set; }
         /// <summary>Gets spacing between the border and paragraph.</summary>
-        public uint? Space { get; internal set; }
+        public OfficeLength? Space { get; internal set; }
     }
 
     /// <summary>Alignment, leader, and position of an explicit paragraph tab stop.</summary>

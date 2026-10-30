@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordTable table = document.AddTable(2, 2);
-                table.StyleDetails!.MarginDefaultRightWidth = 100;
+                table.StyleDetails!.MarginDefaultRight = global::OfficeIMO.OfficeLength.Points(5);
 
                 var cell1 = table.Rows[0].Cells[1];
                 cell1.AddParagraph("Right margin 200 twips");

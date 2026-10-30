@@ -174,7 +174,7 @@ public partial class Word {
     public void LegacyDoc_TablePartialDefaultMarginsRetainHorizontalInsetAndExplicitZeroCellOverride() {
         using WordDocument source = CreateJoinedParagraphDocument();
         WordTable table = source.AddTable(1, 2, WordTableStyle.TableGrid);
-        table.StyleDetails!.MarginDefaultTopWidth = 60;
+        table.StyleDetails!.MarginDefaultTop = global::OfficeIMO.OfficeLength.Points(3);
         table._tableProperties!.TableStyle = null;
         table.Rows[0].Cells[0].AddParagraph("DEFAULT", removeExistingParagraphs: true);
         WordTableCell second = table.Rows[0].Cells[1]; second.AddParagraph("ZERO", removeExistingParagraphs: true);
@@ -228,7 +228,7 @@ public partial class Word {
         table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(9360) * 635)));
         table.LayoutMode = WordTableLayoutMode.Fixed; table.GridColumnWidth = new List<int> { 4680, 4680 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         foreach (WordTableCell cell in table.Rows[0].Cells) { cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4680) * 635))); }
-        table.StyleDetails!.MarginDefaultTopWidth = 60;
+        table.StyleDetails!.MarginDefaultTop = global::OfficeIMO.OfficeLength.Points(3);
         table._tableProperties!.TableStyle = null;
         table.Rows[0].Cells[0].AddParagraph("MARGIN", removeExistingParagraphs: true);
         table.Rows[0].Cells[1].AddParagraph("ZERO", removeExistingParagraphs: true);

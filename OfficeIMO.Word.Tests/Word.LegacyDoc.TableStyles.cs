@@ -171,11 +171,11 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal(WordTableAlignment.Right, reloadedTable.Alignment);
-                Assert.Equal((short)720, reloadedTable.StyleDetails!.TableIndentationWidth);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(36), reloadedTable.StyleDetails!.TableIndentation);
                 Assert.Equal(WordTableWidthKind.Length, reloadedTable.Width?.Kind);
                 Assert.Equal(2160, reloadedTable.Width?.ToNativeValue());
                 Assert.Equal(WordTableLayoutMode.Fixed, reloadedTable.LayoutMode);
-                Assert.Equal((short)240, reloadedTable.StyleDetails.CellSpacing);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(12), reloadedTable.StyleDetails.CellSpacing);
 
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Inherited layout", row.Cells[0].Paragraphs[0].Text);

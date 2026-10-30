@@ -48,8 +48,8 @@ public partial class Word {
         table.LayoutMode = WordTableLayoutMode.AutoFit;
         table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)((int)(width * 20D)) * 635)));
         table.GridColumnWidth = new List<int> { 2250, 2250 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.OfficeColor.Black);
-        if (spacing >= 0) table.StyleDetails.CellSpacing = spacing;
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, global::OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeColor.Black);
+        if (spacing >= 0) table.StyleDetails.CellSpacing = global::OfficeIMO.OfficeLength.Points((spacing) / 20D);
         else table._tableProperties.TableCellSpacing = null;
         for (int column = 0; column < 2; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];

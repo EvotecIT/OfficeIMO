@@ -119,7 +119,7 @@ public partial class Word {
         WordTable table = document.AddTable(rowCount, 1, WordTableStyle.TableGrid);
         // Keep frame capacity governed by the authored line heights; border
         // paint and cell margins have separate artifact regression coverage.
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, global::OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeColor.Black);
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4000) * 635)));
         for (int row = 0; row < rowCount; row++) {

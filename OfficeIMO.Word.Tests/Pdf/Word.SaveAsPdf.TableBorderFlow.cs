@@ -35,7 +35,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(2, 1);
         table.ConditionalFormattingFirstRow = false;
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 4U, OfficeIMO.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, global::OfficeIMO.OfficeLength.Points(0.5), OfficeIMO.OfficeColor.Black);
         for (int row = 0; row < 2; row++) {
             WordTableCell cell = table.Rows[row].Cells[0];
             cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
@@ -62,7 +62,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 1);
         table.ConditionalFormattingFirstRow = false;
-        table.StyleDetails!.SetBordersForAllSides(border, size, OfficeIMO.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(border, global::OfficeIMO.OfficeLength.Points((size) / 8D), OfficeIMO.OfficeColor.Black);
         WordTableCell cell = table.Rows[0].Cells[0];
         cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
         WordParagraph first = cell.Paragraphs[0];

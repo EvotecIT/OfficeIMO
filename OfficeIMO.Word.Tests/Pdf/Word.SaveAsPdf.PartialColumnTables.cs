@@ -29,7 +29,7 @@ public partial class Word {
             WordSection columns = document.AddSection(WordSectionBreakType.Continuous);
             columns.ColumnCount=2; columns.ColumnsSpace=global::OfficeIMO.OfficeLength.Points(20);
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
-            table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.OfficeColor.Black);
+            table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, global::OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeColor.Black);
             table.LayoutMode=WordTableLayoutMode.Fixed; table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4000) * 635)));
             WordTableCell cell=table.Rows[0].Cells[0]; cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4000) * 635)));
             cell.MarginTop=global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom=global::OfficeIMO.OfficeLength.Zero; cell.MarginLeft=global::OfficeIMO.OfficeLength.Zero; cell.MarginRight=global::OfficeIMO.OfficeLength.Zero;

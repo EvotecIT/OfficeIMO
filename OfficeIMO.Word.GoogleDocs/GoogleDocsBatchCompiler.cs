@@ -532,7 +532,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             return new GoogleDocsTableCellBorder {
                 Style = border.Style,
                 ColorHex = border.ColorHex,
-                Size = border.Size,
+                Size = border.Size.HasValue ? checked((uint)Math.Round(border.Size.Value.ToPoints() * 8D, MidpointRounding.AwayFromZero)) : null,
             };
         }
 
@@ -544,8 +544,8 @@ namespace OfficeIMO.Word.GoogleDocs {
             return new GoogleDocsParagraphBorder {
                 Style = border.Style,
                 ColorHex = border.ColorHex,
-                Size = border.Size,
-                Space = border.Space,
+                Size = border.Size.HasValue ? checked((uint)Math.Round(border.Size.Value.ToPoints() * 8D, MidpointRounding.AwayFromZero)) : null,
+                Space = border.Space.HasValue ? checked((uint)Math.Round(border.Space.Value.ToPoints(), MidpointRounding.AwayFromZero)) : null,
             };
         }
 

@@ -170,7 +170,7 @@ public partial class Word {
     public void SaveAsPdf_SpacedTableExactHeightUsesEffectiveBottomMargins(short bottom, bool inheritOne, bool merge, double effective) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(document, 3, 2, 120);
-        table.StyleDetails!.MarginDefaultBottomWidth = 80;
+        table.StyleDetails!.MarginDefaultBottom = global::OfficeIMO.OfficeLength.Points(4);
         foreach (WordTableRow row in table.Rows) {
             row.Height = global::OfficeIMO.OfficeLength.Points(48D);
             foreach (WordTableCell cell in row.Cells) cell.MarginBottom = global::OfficeIMO.OfficeLength.Points((bottom) / 20D);
@@ -247,7 +247,7 @@ public partial class Word {
         WordTable table = CreateAutomaticWidthControl(document, Enumerable.Repeat(2400, columns).ToArray());
         while (table.Rows.Count < rows) table.AddRow();
         // Plain controls omit spacing; an absolute zero selects separate borders.
-        table.StyleDetails!.CellSpacing = spacing == 0 ? null : spacing;
+        table.StyleDetails!.CellSpacing = spacing == 0 ? null : global::OfficeIMO.OfficeLength.Points((spacing) / 20D);
         for (int row = 0; row < rows; row++)
             for (int column = 0; column < columns; column++) {
                 WordTableCell cell = table.Rows[row].Cells[column];

@@ -236,11 +236,11 @@ namespace OfficeIMO.Word.GoogleDocs {
 
         private static string ParagraphBorderFingerprint(WordParagraphBorderInfo? border) => border == null
             ? string.Empty
-            : GoogleWorkspaceCheckpointFormat.Format($"{border.Style}|{border.ColorHex}|{border.Size}|{border.Space}");
+            : GoogleWorkspaceCheckpointFormat.Format($"{border.Style}|{border.ColorHex}|{(border.Size.HasValue ? Math.Round(border.Size.Value.ToPoints() * 8D, MidpointRounding.AwayFromZero) : (double?)null)}|{border.Space?.ToPoints()}");
 
         private static string TableCellBorderFingerprint(WordTableCellBorderInfo? border) => border == null
             ? string.Empty
-            : GoogleWorkspaceCheckpointFormat.Format($"{border.Style}|{border.ColorHex}|{border.Size}");
+            : GoogleWorkspaceCheckpointFormat.Format($"{border.Style}|{border.ColorHex}|{(border.Size.HasValue ? Math.Round(border.Size.Value.ToPoints() * 8D, MidpointRounding.AwayFromZero) : (double?)null)}");
 
         private static string Hash(string value) {
             using SHA256 sha = SHA256.Create();

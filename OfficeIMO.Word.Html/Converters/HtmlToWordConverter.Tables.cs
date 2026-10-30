@@ -440,7 +440,7 @@ namespace OfficeIMO.Word.Html {
 
             if (borderSpecified && tableBorderStyle.HasValue && tableBorderSize != null) {
                 if (collapse) {
-                    wordTable.StyleDetails?.SetBordersForAllSides(tableBorderStyle.Value.ToOfficeEnum(), tableBorderSize.Value, tableBorderColor);
+                    wordTable.StyleDetails?.SetBordersForAllSides(tableBorderStyle.Value.ToOfficeEnum(), global::OfficeIMO.OfficeLength.Points((tableBorderSize.Value) / 8D), tableBorderColor);
                 } else {
                     var hex = tableBorderColor.ToRgbHex();
                     foreach (var row in wordTable.Rows) {
@@ -460,16 +460,16 @@ namespace OfficeIMO.Word.Html {
                 var hasRight = sideBorders.TryGetValue(TableBorderSide.Right, out var right);
                 wordTable.StyleDetails?.SetCustomBorders(
                     topStyle: hasTop ? top.Style.ToOfficeEnum() : null,
-                    topSize: hasTop ? top.Size : null,
+                    topSize: hasTop ? global::OfficeIMO.OfficeLength.Points(top.Size / 8D) : (global::OfficeIMO.OfficeLength?)null,
                     topColor: hasTop ? top.Color : null,
                     bottomStyle: hasBottom ? bottom.Style.ToOfficeEnum() : null,
-                    bottomSize: hasBottom ? bottom.Size : null,
+                    bottomSize: hasBottom ? global::OfficeIMO.OfficeLength.Points(bottom.Size / 8D) : (global::OfficeIMO.OfficeLength?)null,
                     bottomColor: hasBottom ? bottom.Color : null,
                     leftStyle: hasLeft ? left.Style.ToOfficeEnum() : null,
-                    leftSize: hasLeft ? left.Size : null,
+                    leftSize: hasLeft ? global::OfficeIMO.OfficeLength.Points(left.Size / 8D) : (global::OfficeIMO.OfficeLength?)null,
                     leftColor: hasLeft ? left.Color : null,
                     rightStyle: hasRight ? right.Style.ToOfficeEnum() : null,
-                    rightSize: hasRight ? right.Size : null,
+                    rightSize: hasRight ? global::OfficeIMO.OfficeLength.Points(right.Size / 8D) : (global::OfficeIMO.OfficeLength?)null,
                     rightColor: hasRight ? right.Color : null);
             }
 
@@ -486,11 +486,11 @@ namespace OfficeIMO.Word.Html {
 
             var styleDetails = wordTable.StyleDetails;
             if (styleDetails != null) {
-                if (padTop != null) styleDetails.MarginDefaultTopWidth = (short)padTop.Value;
-                if (padBottom != null) styleDetails.MarginDefaultBottomWidth = (short)padBottom.Value;
-                if (padLeft != null) styleDetails.MarginDefaultLeftWidth = (short)padLeft.Value;
-                if (padRight != null) styleDetails.MarginDefaultRightWidth = (short)padRight.Value;
-                if (cellSpacing != null) styleDetails.CellSpacing = (short)cellSpacing.Value;
+                if (padTop != null) styleDetails.MarginDefaultTop = global::OfficeIMO.OfficeLength.Points((padTop.Value) / 20D);
+                if (padBottom != null) styleDetails.MarginDefaultBottom = global::OfficeIMO.OfficeLength.Points((padBottom.Value) / 20D);
+                if (padLeft != null) styleDetails.MarginDefaultLeft = global::OfficeIMO.OfficeLength.Points((padLeft.Value) / 20D);
+                if (padRight != null) styleDetails.MarginDefaultRight = global::OfficeIMO.OfficeLength.Points((padRight.Value) / 20D);
+                if (cellSpacing != null) styleDetails.CellSpacing = global::OfficeIMO.OfficeLength.Points((cellSpacing.Value) / 20D);
             }
         }
 

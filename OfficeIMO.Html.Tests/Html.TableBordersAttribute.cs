@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
 
             var (style, size, colorHex) = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.Top);
             Assert.Equal(WordBorderStyle.Single, style);
-            Assert.Equal(12U, size);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(1.5), size);
             Assert.Equal("000000", colorHex);
 
             Assert.Contains("A1", string.Join(string.Empty, table.Rows[0].Cells[0].Paragraphs.ConvertAll(p => p.Text)));

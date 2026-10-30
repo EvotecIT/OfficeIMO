@@ -26,7 +26,7 @@ public partial class Word {
         WordTable table = CreateUnequalFixedMinimumControl(document, 1, 2250, 0);
         table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(60) * 635)));
         if (!separate) table._tableProperties.TableCellSpacing = null;
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, (uint)border, OfficeIMO.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, global::OfficeIMO.OfficeLength.Points((border) / 8D), OfficeIMO.OfficeColor.Black);
         foreach (WordTableCell cell in table.Rows[0].Cells)
             cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points((margin) / 20D);
         string xml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
@@ -48,7 +48,7 @@ public partial class Word {
     public void SaveAsPdf_AbsoluteZeroSpacingRetainsTheSeparateBorderBaseline(int border) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateUnequalFixedMinimumControl(document, 1, 2250, 0);
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, (uint)border, OfficeIMO.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, global::OfficeIMO.OfficeLength.Points((border) / 8D), OfficeIMO.OfficeColor.Black);
         using var separate = PdfPigDocument.Open(document.ToPdf(UnequalFixedMinimumOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         double separateBaseline = Assert.Single(separate.GetPage(1).Letters, letter => letter.Value == "L").StartBaseLine.Y;
         table._tableProperties.TableCellSpacing = null;
@@ -69,7 +69,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateUnequalFixedMinimumControl(document, 1, 2250, 0);
         table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(60) * 635)));
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 8U, OfficeIMO.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, global::OfficeIMO.OfficeLength.Points(1), OfficeIMO.OfficeColor.Black);
         W.TableWidthUnitValues spacingUnit = unit == "dxa" ? W.TableWidthUnitValues.Dxa
             : unit == "auto" ? W.TableWidthUnitValues.Auto : W.TableWidthUnitValues.Pct;
         var spacing = new W.TableCellSpacing { Type = spacingUnit, Width = "0" };
@@ -172,7 +172,7 @@ public partial class Word {
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4500) * 635)));
         table.GridColumnWidth = new List<int> { first, 4500 - first }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
-        table.StyleDetails!.CellSpacing = spacing;
+        table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points((spacing) / 20D);
         table._tableProperties.TableBorders = new W.TableBorders(
             new W.TopBorder { Val = W.BorderValues.Nil }, new W.LeftBorder { Val = W.BorderValues.Nil },
             new W.BottomBorder { Val = W.BorderValues.Nil }, new W.RightBorder { Val = W.BorderValues.Nil },

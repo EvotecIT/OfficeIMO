@@ -21,13 +21,13 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable plain = document.AddTable(1, 1);
             ConfigureMarginTable(plain, "PlainPad");
-            plain.StyleDetails!.MarginDefaultLeftWidth = 0;
+            plain.StyleDetails!.MarginDefaultLeft = global::OfficeIMO.OfficeLength.Points(0);
 
             document.AddParagraph("between padding tables");
 
             WordTable padded = document.AddTable(1, 1);
             ConfigureMarginTable(padded, "WidePad");
-            padded.StyleDetails!.MarginDefaultLeftWidth = 1000;
+            padded.StyleDetails!.MarginDefaultLeft = global::OfficeIMO.OfficeLength.Points(50);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -54,13 +54,13 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable plain = document.AddTable(1, 1);
             ConfigureMarginTable(plain, "PlainCellPad");
-            plain.StyleDetails!.MarginDefaultLeftWidth = 0;
+            plain.StyleDetails!.MarginDefaultLeft = global::OfficeIMO.OfficeLength.Points(0);
 
             document.AddParagraph("between per-cell padding tables");
 
             WordTable padded = document.AddTable(1, 1);
             ConfigureMarginTable(padded, "WideCellPad");
-            padded.StyleDetails!.MarginDefaultLeftWidth = 0;
+            padded.StyleDetails!.MarginDefaultLeft = global::OfficeIMO.OfficeLength.Points(0);
             padded.Rows[0].Cells[0].MarginLeft = global::OfficeIMO.OfficeLength.Points(50D);
             padded.Rows[0].Cells[0].MarginTop = global::OfficeIMO.OfficeLength.Points(16D);
 
@@ -142,13 +142,13 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable plain = document.AddTable(1, 2);
             ConfigureCellSpacingTable(plain, "PlainA", "PlainB");
-            plain.StyleDetails!.CellSpacing = 0;
+            plain.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(0);
 
             document.AddParagraph("between spacing tables");
 
             WordTable spaced = document.AddTable(1, 2);
             ConfigureCellSpacingTable(spaced, "SpaceA", "SpaceB");
-            spaced.StyleDetails!.CellSpacing = 240;
+            spaced.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(12);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -188,7 +188,7 @@ public partial class Word {
 
             WordTable plain = document.AddTable(1, 2);
             ConfigureCellSpacingTable(plain, "PA", "PB");
-            plain.StyleDetails!.CellSpacing = 0;
+            plain.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(0);
 
             document.AddParagraph("between style spacing tables");
 

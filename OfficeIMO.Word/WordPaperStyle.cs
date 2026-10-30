@@ -22,19 +22,54 @@ public sealed partial class WordPaperStyle {
     public string Surface { get; set; } = "F5F6F7";
     /// <summary>Gets or sets horizontal table rule color, as RGB hex.</summary>
     public string Border { get; set; } = "D9DDE1";
-    /// <summary>Gets or sets the hairline thickness in eighths of a point (4 is 0.5 pt).</summary>
-    public uint RuleSize { get; set; } = 4;
+    private global::OfficeIMO.OfficeLength _ruleSize = global::OfficeIMO.OfficeLength.Points(0.5);
+    private global::OfficeIMO.OfficeLength _tableCellVerticalPadding = global::OfficeIMO.OfficeLength.Points(4.5);
+    private global::OfficeIMO.OfficeLength _tableCellHorizontalPadding = global::OfficeIMO.OfficeLength.Points(5);
+    private global::OfficeIMO.OfficeLength _tableParagraphSpacing = global::OfficeIMO.OfficeLength.Points(2);
+    private global::OfficeIMO.OfficeLength? _tableLineSpacing;
+
+    /// <summary>Gets or sets the nonnegative hairline thickness; the default is 0.5 pt. Serialization rounds to eighths of a point.</summary>
+    public global::OfficeIMO.OfficeLength RuleSize {
+        get => _ruleSize;
+        set { ValidateRuleSize(value); _ruleSize = value; }
+    }
 
     /// <summary>Gets or sets table body type size in points. Header cells use 9 points.</summary>
     public global::OfficeIMO.OfficeLength TableFontSize { get; set; } = global::OfficeIMO.OfficeLength.Points(10);
-    /// <summary>Gets or sets top and bottom table-cell padding in twentieths of a point.</summary>
-    public short TableCellVerticalPadding { get; set; } = 90;
-    /// <summary>Gets or sets left and right table-cell padding in twentieths of a point.</summary>
-    public short TableCellHorizontalPadding { get; set; } = 100;
-    /// <summary>Gets or sets spacing before and after table paragraphs, in points.</summary>
-    public double TableParagraphSpacingPoints { get; set; } = 2;
-    /// <summary>Gets or sets exact table line spacing in points; null preserves inherited line spacing.</summary>
-    public double? TableLineSpacingPoints { get; set; }
+    /// <summary>Gets or sets nonnegative top and bottom table-cell padding; the default is 4.5 pt. Rounded twips must fit 0 through 32767.</summary>
+    public global::OfficeIMO.OfficeLength TableCellVerticalPadding {
+        get => _tableCellVerticalPadding;
+        set { ValidatePaperLength(value, short.MaxValue); _tableCellVerticalPadding = value; }
+    }
+    /// <summary>Gets or sets nonnegative left and right table-cell padding; the default is 5 pt. Rounded twips must fit 0 through 32767.</summary>
+    public global::OfficeIMO.OfficeLength TableCellHorizontalPadding {
+        get => _tableCellHorizontalPadding;
+        set { ValidatePaperLength(value, short.MaxValue); _tableCellHorizontalPadding = value; }
+    }
+    /// <summary>Gets or sets nonnegative spacing before and after table paragraphs; the default is 2 pt. Rounded twips must fit a signed 32-bit integer.</summary>
+    public global::OfficeIMO.OfficeLength TableParagraphSpacing {
+        get => _tableParagraphSpacing;
+        set { ValidatePaperLength(value, int.MaxValue); _tableParagraphSpacing = value; }
+    }
+    /// <summary>Gets or sets nonnegative exact table line height; null preserves inherited spacing and zero remains explicit. Rounded twips must fit a signed 32-bit integer.</summary>
+    public global::OfficeIMO.OfficeLength? TableLineSpacing {
+        get => _tableLineSpacing;
+        set {
+            if (value.HasValue) ValidatePaperLength(value.Value, int.MaxValue);
+            _tableLineSpacing = value;
+        }
+    }
+
+    private static void ValidateRuleSize(global::OfficeIMO.OfficeLength value) {
+        decimal native = Math.Round(value.ToEmus() * 8m / 12700m, 0, MidpointRounding.AwayFromZero);
+        if (value < global::OfficeIMO.OfficeLength.Zero || native > uint.MaxValue)
+            throw new ArgumentOutOfRangeException(nameof(value), "Rule thickness must fit Word's unsigned 32-bit eighth-point range.");
+    }
+
+    private static void ValidatePaperLength(global::OfficeIMO.OfficeLength value, long maximumTwips) {
+        if (value < global::OfficeIMO.OfficeLength.Zero || value.ToTwips() > maximumTwips)
+            throw new ArgumentOutOfRangeException(nameof(value), "The length must fit the nonnegative native twip range.");
+    }
 
     /// <summary>Applies body typography and dark headings to existing document paragraphs without restyling tables.</summary>
     public void ApplyTypography(WordDocument document) {

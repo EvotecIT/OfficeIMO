@@ -1197,7 +1197,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_TableCellSpacing_ExportsBorderSpacingAndRoundTrips() {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(1, 1);
-            table.StyleDetails!.CellSpacing = 240;
+            table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(12);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Spaced";
             table.Rows[0].Cells[0].Borders.LeftStyle = WordBorderStyle.Single;
             table.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
@@ -1211,7 +1211,7 @@ namespace OfficeIMO.Tests {
 
             using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
-            Assert.Equal((short)240, roundTrip.Tables[0].StyleDetails!.CellSpacing);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(12), roundTrip.Tables[0].StyleDetails!.CellSpacing);
         }
 
         [Theory]
@@ -1220,7 +1220,7 @@ namespace OfficeIMO.Tests {
         public void WordToHtml_SpacedBorderlessTableUsesSeparateBorderMode(WordBorderStyle hiddenBorder) {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(1, 1);
-            table.StyleDetails!.CellSpacing = 240;
+            table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(12);
             var cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].Text = "Spaced";
             cell.Borders.LeftStyle = hiddenBorder;

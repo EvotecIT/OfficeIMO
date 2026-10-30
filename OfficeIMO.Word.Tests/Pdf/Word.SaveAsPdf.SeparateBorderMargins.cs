@@ -16,7 +16,7 @@ public partial class Word {
         source.Sections[0].ColumnCount = columns;
         WordTable table = CreateBorderFrameControl(source, 1, 3, spacing);
         table._tableProperties!.TableStyle = null;
-        table.StyleDetails!.CellSpacing = spacing;
+        table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points((spacing) / 20D);
         table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(120D);
         table.Rows[0].Cells[2].MarginTop = global::OfficeIMO.OfficeLength.Points(6D);
         WordPdfExportOptions options = BorderFramePdfOptions();
@@ -60,7 +60,7 @@ public partial class Word {
         short spacing, int heightRule, bool reverse) {
         using WordDocument source = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(source, 1, 2, spacing);
-        table.StyleDetails!.CellSpacing = spacing;
+        table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points((spacing) / 20D);
         WordTableRow row = table.Rows[0];
         if (heightRule == 1) row.Height = global::OfficeIMO.OfficeLength.Points(120D);
         if (heightRule == 2) row.MinimumHeight = global::OfficeIMO.OfficeLength.Points(120D);

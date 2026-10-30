@@ -59,7 +59,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(horizontal ? 2 : 1, horizontal ? 1 : 2);
             table.Style = WordTableStyle.TableGrid;
-            if (cellSpacingTwips > 0) table.StyleDetails!.CellSpacing = (short)cellSpacingTwips;
+            if (cellSpacingTwips > 0) table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points((cellSpacingTwips) / 20D);
             table._tableProperties!.TableBorders = new TableBorders(
                 new TopBorder { Val = BorderValues.Nil },
                 new BottomBorder { Val = BorderValues.Nil },

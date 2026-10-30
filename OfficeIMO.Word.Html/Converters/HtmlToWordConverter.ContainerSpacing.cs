@@ -28,9 +28,9 @@ namespace OfficeIMO.Word.Html {
             foreach (WordTable table in tables) {
                 WordTableStyleDetails? styleDetails = table.StyleDetails;
                 if (horizontalStart != 0 && styleDetails != null) {
-                    int indentation = (styleDetails.TableIndentationWidth ?? 0) + horizontalStart;
-                    indentation = Math.Max(short.MinValue, Math.Min(short.MaxValue, indentation));
-                    styleDetails.TableIndentationWidth = checked((short)indentation);
+                    long indentation = (styleDetails.TableIndentation?.ToTwips() ?? 0) + horizontalStart;
+                    indentation = Math.Max(int.MinValue, Math.Min(int.MaxValue, indentation));
+                    styleDetails.TableIndentation = global::OfficeIMO.OfficeLength.Points(indentation / 20D);
                 }
                 ApplyTableContainerWidth(table, horizontalStart, horizontalEnd);
             }

@@ -90,11 +90,11 @@ namespace OfficeIMO.Word.Html {
 
             string? GetTableCellSpacingCss(WordTable table) {
                 var cellSpacing = table.StyleDetails?.CellSpacing;
-                if (cellSpacing == null || cellSpacing.Value <= 0) {
+                if (cellSpacing == null || cellSpacing.Value <= global::OfficeIMO.OfficeLength.Zero) {
                     return null;
                 }
 
-                return FormatTwips(cellSpacing.Value);
+                return FormatTwips(checked((int)cellSpacing.Value.ToTwips()));
             }
 
             void AppendColumnGroup(IDocument htmlDoc, IElement tableElement, WordTable table) {

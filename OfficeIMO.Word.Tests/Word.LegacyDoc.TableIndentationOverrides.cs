@@ -34,12 +34,12 @@ public partial class Word {
 
         WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
         table._tableProperties!.TableStyle = new TableStyle { Val = derivedStyle ? "ZeroTable" : "IndentedTable" };
-        if (!derivedStyle) table.StyleDetails!.TableIndentationWidth = 0;
+        if (!derivedStyle) table.StyleDetails!.TableIndentation = global::OfficeIMO.OfficeLength.Points(0);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Explicit zero indentation";
 
         using WordDocument reopened = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordTable reloaded = Assert.Single(reopened.Tables);
         // The native zero edge may omit an optional property, but its effective indent must remain zero.
-        Assert.Equal((short)0, reloaded.StyleDetails!.TableIndentationWidth.GetValueOrDefault());
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(0), reloaded.StyleDetails!.TableIndentation.GetValueOrDefault());
     }
 }

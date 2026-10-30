@@ -12,8 +12,14 @@ public sealed class WordInspectionPhysicalLengthTests {
         paragraph.IndentationHanging = OfficeLength.Points(3.45);
         paragraph.LineSpacingBefore = OfficeLength.Points(2.35);
         paragraph.LineSpacingAfter = OfficeLength.Zero;
+        paragraph.Borders.TopStyle = WordBorderStyle.Single;
+        paragraph.Borders.TopSize = 8;
+        paragraph.Borders.TopSpace = 0;
         paragraph.AddTabStop(721);
         document.AddParagraph("Inherited text");
+        WordTableCell cell = document.AddTable(1, 1, WordTableStyle.TableNormal).Rows[0].Cells[0];
+        cell.Borders.TopStyle = WordBorderStyle.Single;
+        cell.Borders.TopSize = 5;
         string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
 
         Check(document.Inspect());
@@ -29,10 +35,15 @@ public sealed class WordInspectionPhysicalLengthTests {
             Assert.Equal(OfficeLength.Points(-3.45), paragraphs[0].IndentFirstLine);
             Assert.Equal(OfficeLength.Points(2.35), paragraphs[0].SpaceAbove);
             Assert.Equal(OfficeLength.Zero, paragraphs[0].SpaceBelow);
+            Assert.Equal(OfficeLength.Points(1), paragraphs[0].TopBorder!.Size);
+            Assert.Equal(OfficeLength.Zero, paragraphs[0].TopBorder!.Space);
+            Assert.Null(paragraphs[1].TopBorder);
             Assert.Equal(OfficeLength.Points(36.05), Assert.Single(paragraphs[0].TabStops).Position);
             Assert.Equal(OfficeLength.Points(11.5), Assert.Single(paragraphs[0].Runs).FontSize);
             Assert.Null(Assert.Single(paragraphs[1].Runs).FontSize);
             Assert.Null(paragraphs[1].SpaceAbove);
+            WordTableInfo table = Assert.Single(section.Elements.OfType<WordTableInfo>());
+            Assert.Equal(OfficeLength.Points(0.625), table.Rows[0].Cells[0].TopBorder!.Size);
         }
     }
 }

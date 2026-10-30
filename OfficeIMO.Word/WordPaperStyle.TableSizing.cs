@@ -92,8 +92,8 @@ public sealed partial class WordPaperStyle {
             }
             longest = Math.Max(longest, wordWidth);
         }
-        int left = checked((short?)(cell.MarginLeft?.ToTwips())) ?? table.StyleDetails?.MarginDefaultLeftWidth ?? TableCellHorizontalPadding;
-        int right = checked((short?)(cell.MarginRight?.ToTwips())) ?? table.StyleDetails?.MarginDefaultRightWidth ?? TableCellHorizontalPadding;
+        int left = checked((int)(cell.MarginLeft ?? table.StyleDetails?.MarginDefaultLeft ?? TableCellHorizontalPadding).ToTwips());
+        int right = checked((int)(cell.MarginRight ?? table.StyleDetails?.MarginDefaultRight ?? TableCellHorizontalPadding).ToTwips());
         // Round strictly outward: an exact twip boundary must survive PDF grid normalization.
         return Math.Max(1, checked((int)Math.Floor(longest * 20D) + 1 + Math.Max(0, left) + Math.Max(0, right)));
     }

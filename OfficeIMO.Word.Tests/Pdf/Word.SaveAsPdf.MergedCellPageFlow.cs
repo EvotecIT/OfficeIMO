@@ -58,7 +58,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(3, 2);
         table.ConditionalFormattingFirstRow = false;
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 4U, OfficeIMO.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, global::OfficeIMO.OfficeLength.Points(0.5), OfficeIMO.OfficeColor.Black);
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 2; column++) {
                 WordTableCell cell = table.Rows[row].Cells[column];

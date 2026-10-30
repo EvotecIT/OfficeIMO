@@ -37,7 +37,7 @@ public partial class Word {
         table.ConditionalFormattingFirstRow = false;
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4000) * 635)));
-        table.StyleDetails!.SetBordersForAllSides(style, 12U, OfficeIMO.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(style, global::OfficeIMO.OfficeLength.Points(1.5), OfficeIMO.OfficeColor.Black);
         foreach (var row in table.Rows) {
             var cell = row.Cells[0];
             cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4000) * 635)));
@@ -66,7 +66,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(2, 1);
         table.ConditionalFormattingFirstRow = false;
-        table.StyleDetails!.SetBordersForAllSides(style, size, OfficeIMO.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(style, global::OfficeIMO.OfficeLength.Points((size) / 8D), OfficeIMO.OfficeColor.Black);
         for (int row = 0; row < 2; row++) {
             var cell = table.Rows[row].Cells[0];
             cell.MarginTop = global::OfficeIMO.OfficeLength.Points((marginTwips) / 20D);

@@ -42,7 +42,7 @@ public partial class Word {
         WordTable table = CreateAutomaticWidthControl(document, 2160, 720);
         table.LayoutMode = layout;
         table._tableProperties!.TableWidth = new W.TableWidth { Type = W.TableWidthUnitValues.Dxa, Width = "2880" };
-        table.StyleDetails!.CellSpacing = spacing;
+        table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points((spacing) / 20D);
         for (int column = 0; column < 2; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
             cell.Paragraphs[0].Text = column == 0 ? "AAA BBB" : "CCCC DDDD EEEE";
