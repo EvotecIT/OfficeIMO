@@ -37,7 +37,12 @@ namespace OfficeIMO.Excel {
                 limits.MaxInCellImageBytes,
                 limits.MaxTotalInCellImageBytes);
             sourceSheet.PreflightInCellImages(inCellImageContext);
-            return CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode).Sheet;
+            PreflightReferencedDefinedNamesFromSource(this, new[] { sourceSheet },
+                new DefinedNameCopyBudget(limits.MaxDefinedNames, limits.MaxDefinedNameCharacters));
+            WorksheetPackageCopyResult result = CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode);
+            var sheetMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [sourceSheet.Name] = result.Sheet.Name };
+            CopyReferencedDefinedNamesFromSource(this, result.Sheet, sheetMap, result.TableNameMap);
+            return result.Sheet;
         }
 
         private WorksheetPackageCopyResult CopyWorksheetWithinWorkbook(ExcelSheet sourceSheet, string newSheetName, ExcelSheetNameValidationMode validationMode) {
@@ -51,8 +56,12 @@ namespace OfficeIMO.Excel {
                 WorksheetPart sourcePart = sourceSheet.WorksheetPart;
                 WorksheetPart copiedPart = WorkbookPartRoot.AddNewPart<WorksheetPart>();
                 copiedPart.Worksheet = (Worksheet)sourcePart.Worksheet!.CloneNode(true);
-                RemoveRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
+                CopyRelationshipBackedWorksheetFeatures(this, sourceSheet, copiedPart);
+                RemoveUnsupportedRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
                 Dictionary<string, string> tableNameMap = CopyWorksheetTables(sourcePart, copiedPart, rewriteCopiedTableReferences: true);
+                RewriteCopiedChartReferences(copiedPart, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+                    [sourceSheet.Name] = validatedName
+                }, tableNameMap, targetSheetName: validatedName);
                 copiedPart.Worksheet.Save();
 
                 Sheet sheet = AppendWorksheetElement(copiedPart, validatedName);
@@ -99,7 +108,12 @@ namespace OfficeIMO.Excel {
                     options.MaxInCellImageBytes,
                     options.MaxTotalInCellImageBytes);
                 sourceSheet.PreflightInCellImages(inCellImageContext);
-                return CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode).Sheet;
+                PreflightReferencedDefinedNamesFromSource(this, new[] { sourceSheet },
+                    new DefinedNameCopyBudget(options.MaxDefinedNames, options.MaxDefinedNameCharacters));
+                WorksheetPackageCopyResult result = CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode);
+                var sheetMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [sourceSheet.Name] = result.Sheet.Name };
+                CopyReferencedDefinedNamesFromSource(this, result.Sheet, sheetMap, result.TableNameMap);
+                return result.Sheet;
             }
 
             return options.CopyMode == ExcelWorksheetCopyMode.Values
@@ -310,14 +324,15 @@ namespace OfficeIMO.Excel {
             return sheet;
         }
 
-        private static void RemoveRelationshipBackedWorksheetFeatures(Worksheet worksheet) {
-            worksheet.RemoveAllChildren<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
-            worksheet.RemoveAllChildren<LegacyDrawing>();
-            worksheet.RemoveAllChildren<LegacyDrawingHeaderFooter>();
+        /// <summary>
+        /// Removes worksheet references to parts that worksheet copies do not carry. Drawings, comments,
+        /// header/footer VML, background pictures and hyperlinks are cloned by
+        /// <see cref="CopyRelationshipBackedWorksheetFeatures"/>; tables are re-created by <see cref="CopyWorksheetTables"/>.
+        /// </summary>
+        private static void RemoveUnsupportedRelationshipBackedWorksheetFeatures(Worksheet worksheet) {
             worksheet.RemoveAllChildren<TableParts>();
             worksheet.RemoveAllChildren<OleObjects>();
             worksheet.RemoveAllChildren<Controls>();
-            worksheet.RemoveAllChildren<Picture>();
 
             PageSetup? pageSetup = worksheet.GetFirstChild<PageSetup>();
             if (pageSetup != null) {
@@ -329,16 +344,6 @@ namespace OfficeIMO.Excel {
             RemoveElementsByLocalName(worksheet, "queryTableParts");
             RemoveElementsByLocalName(worksheet, "customProperties");
             RemoveWorksheetExtensionsContainingLocalNames(worksheet, "slicerList", "slicerRef", "timelineRefs", "timelineRef");
-
-            foreach (Hyperlinks hyperlinks in worksheet.Elements<Hyperlinks>().ToList()) {
-                foreach (Hyperlink hyperlink in hyperlinks.Elements<Hyperlink>().Where(h => h.Id != null).ToList()) {
-                    hyperlink.Remove();
-                }
-
-                if (!hyperlinks.Elements<Hyperlink>().Any()) {
-                    hyperlinks.Remove();
-                }
-            }
         }
 
         private static void RemoveWorksheetExtensionsContainingLocalNames(Worksheet worksheet, params string[] localNames) {
@@ -568,6 +573,8 @@ namespace OfficeIMO.Excel {
                 formula.Text = RewriteExternalWorkbookReferenceIndexes(formula.Text, externalReferenceMap);
             }
 
+            RewriteCopiedChartReferences(worksheetPart, externalReferenceMap: externalReferenceMap);
+
             foreach (TableDefinitionPart tablePart in worksheetPart.TableDefinitionParts) {
                 if (tablePart.Table == null) {
                     continue;
@@ -688,6 +695,9 @@ namespace OfficeIMO.Excel {
             var existing = new HashSet<string>(
                 worksheetPart.Parts.Select(part => part.RelationshipId ?? string.Empty),
                 StringComparer.Ordinal);
+            existing.UnionWith(worksheetPart.HyperlinkRelationships.Select(_ => _.Id ?? string.Empty));
+            existing.UnionWith(worksheetPart.ExternalRelationships.Select(_ => _.Id ?? string.Empty));
+            existing.UnionWith(worksheetPart.DataPartReferenceRelationships.Select(_ => _.Id ?? string.Empty));
             int index = 1;
             string relationshipId;
             do {

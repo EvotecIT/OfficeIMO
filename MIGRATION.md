@@ -167,6 +167,10 @@ document.UpdateFields(new WordFieldUpdateOptions {
 explicitly. Calls that set `UseLayoutPagination = true` also need this selection.
 The Word package keeps its PDF-independent field refresh based on explicit breaks.
 
+## Excel worksheet copies keep drawings, comments and links
+
+`CopyWorksheet`, `CopyWorksheetFrom` with `ExcelWorksheetCopyMode.Package` and package-mode `MergeWorkbookFrom` now keep the copied sheet's images, charts, shapes, legacy and threaded comments, header/footer images, background picture and external hyperlinks. Earlier versions removed them. Copied threaded comments receive new ids, and the people they mention are added to the target workbook. Code that removed these features after copying, or that expected the copy to have none, should remove them explicitly with the sheet's comment, image and hyperlink APIs. See the [worksheet copy contract](OfficeIMO.Excel/COMPATIBILITY.md#workbook-capabilities).
+
 ## Word document append
 
 `WordDocument.AppendDocument` now keeps the page setup of each document: the destination's final section properties become a section break before the appended content, which starts in its own section (a new page unless the source section says otherwise). To continue the appended content in the destination's section, as a workaround that moved the destination's closing `w:sectPr` did before, pass `new WordDocumentMergeOptions { SectionMode = WordMergeSectionMode.UseDestinationSections }`.

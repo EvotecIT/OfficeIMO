@@ -11,7 +11,8 @@ namespace OfficeIMO.Excel {
         private void RewriteCopiedWorksheetReferences(
             WorksheetPart worksheetPart,
             IReadOnlyDictionary<string, string> sheetNameMap,
-            IReadOnlyDictionary<string, string>? tableNameMap = null) {
+            IReadOnlyDictionary<string, string>? tableNameMap = null,
+            string? targetSheetName = null) {
             Worksheet worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
             bool worksheetChanged = RewriteWorksheetSheetReferences(worksheet, sheetNameMap);
             if (tableNameMap?.Count > 0) {
@@ -45,6 +46,40 @@ namespace OfficeIMO.Excel {
             if (worksheetChanged) {
                 worksheet.Save();
             }
+
+            RewriteCopiedChartReferences(worksheetPart, sheetNameMap, tableNameMap, targetSheetName: targetSheetName);
+        }
+
+        /// <summary>Rewrites references in both standard and extended chart series.</summary>
+        private static void RewriteCopiedChartReferences(WorksheetPart worksheetPart,
+            IReadOnlyDictionary<string, string>? sheetNameMap = null,
+            IReadOnlyDictionary<string, string>? tableNameMap = null,
+            IReadOnlyDictionary<int, int>? externalReferenceMap = null,
+            string? targetSheetName = null) {
+            DrawingsPart? drawingsPart = worksheetPart.DrawingsPart;
+            if (drawingsPart == null) return;
+            foreach (OpenXmlPart part in drawingsPart.ChartParts.Cast<OpenXmlPart>().Concat(drawingsPart.ExtendedChartParts)) {
+                OpenXmlPartRootElement? root = part.RootElement;
+                if (root == null) continue;
+                bool changed = false;
+                foreach (OpenXmlLeafTextElement formula in ChartFormulaElements(root)) {
+                    if (sheetNameMap != null) changed |= RewriteFormulaSheetReference(formula, sheetNameMap);
+                    // Excel stores a current-workbook chart name as [0]!Name. Copied names are
+                    // sheet-scoped, so bind this formula to the copied sheet's name.
+                    if (targetSheetName != null && formula.Text.StartsWith("[0]!", StringComparison.Ordinal)) {
+                        formula.Text = "'" + targetSheetName.Replace("'", "''") + "'!" + formula.Text.Substring(4);
+                        changed = true;
+                    }
+                    if (tableNameMap != null) changed |= RewriteStructuredTableFormula(formula, tableNameMap);
+                    if (externalReferenceMap != null) changed |= RewriteExternalWorkbookReferenceIndexFormula(formula, externalReferenceMap);
+                }
+                if (changed) root.Save();
+            }
+        }
+
+        private static IEnumerable<OpenXmlLeafTextElement> ChartFormulaElements(OpenXmlElement root) {
+            return root.Descendants<DocumentFormat.OpenXml.Drawing.Charts.Formula>().Cast<OpenXmlLeafTextElement>()
+                .Concat(root.Descendants<DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing.Formula>());
         }
 
         private static bool RewriteStructuredTableReferences(Worksheet worksheet, IReadOnlyDictionary<string, string> tableNameMap) {
@@ -437,6 +472,15 @@ namespace OfficeIMO.Excel {
             foreach (OfficeFormula formula in worksheet.Descendants<OfficeFormula>()) {
                 if (!string.IsNullOrEmpty(formula.Text)) {
                     yield return formula.Text!;
+                }
+            }
+
+            if (worksheetPart.DrawingsPart is DrawingsPart drawings) {
+                foreach (OpenXmlPart part in drawings.ChartParts.Cast<OpenXmlPart>().Concat(drawings.ExtendedChartParts)) {
+                    if (part.RootElement == null) continue;
+                    foreach (OpenXmlLeafTextElement formula in ChartFormulaElements(part.RootElement)) {
+                        if (!string.IsNullOrEmpty(formula.Text)) yield return formula.Text;
+                    }
                 }
             }
 
