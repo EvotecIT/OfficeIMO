@@ -162,6 +162,7 @@ namespace OfficeIMO.Examples.Excel {
                 doc.AddBackLinksToToc();
                 // Horizontal band: avoid full-sheet auto-fit to prevent column width fights
                 composer.Finish(autoFitColumns: false);
+                SizeSummaryColumns(composer.Sheet, summaryRange);
 
                 // One sheet per domain with richer layout
                 foreach (var d in data) {
@@ -270,6 +271,17 @@ namespace OfficeIMO.Examples.Excel {
                     doc.OpenInApplication(filePath);
                 }
             }
+        }
+
+        /// <summary>
+        /// Gives the summary table columns room for headers such as "Classification" and
+        /// "Confidence" and prints it in landscape, so the headers are not cut off.
+        /// </summary>
+        internal static void SizeSummaryColumns(ExcelSheet sheet, string summaryRange) {
+            if (!ExcelA1.TryParseRange(summaryRange, out _, out int firstColumn, out _, out int lastColumn)) return;
+            sheet.SetColumnWidth(firstColumn, 22);
+            for (int column = firstColumn + 1; column <= lastColumn; column++) sheet.SetColumnWidth(column, 15);
+            sheet.SetOrientation(OfficePageOrientation.Landscape);
         }
     }
 }
