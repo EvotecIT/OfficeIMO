@@ -44,9 +44,15 @@ namespace OfficeIMO.Excel.Fluent {
                 return $"A{_row - 1}:A{_row - 1}";
             }
 
-            IReadOnlyList<string> paths = opts.Columns == null
-                ? projection.Columns.OrderBy(path => path, System.StringComparer.Ordinal).ToList()
-                : projection.Columns;
+            // Pinned columns and priorities already ordered the projection; only an
+            // unordered projection falls back to a stable alphabetical order.
+            bool explicitOrder = opts.Columns != null
+                || opts.PinnedFirst?.Length > 0
+                || opts.PinnedLast?.Length > 0
+                || opts.PropertyPriority.Count > 0;
+            IReadOnlyList<string> paths = explicitOrder
+                ? projection.Columns
+                : projection.Columns.OrderBy(path => path, System.StringComparer.Ordinal).ToList();
 
             // If we still have no columns (e.g., row type exposes fields but no public properties),
             // degrade gracefully rather than producing an invalid table definition.
