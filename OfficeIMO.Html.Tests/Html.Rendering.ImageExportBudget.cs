@@ -112,10 +112,10 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             MaximumRasterPixels = 1600L
         };
-        Assert.DoesNotContain(document.ToPdfDocumentResult(pdfOptions).Report.Warnings,
+        Assert.DoesNotContain(document.ConvertToPdfWithEvidence(pdfOptions).Report.Warnings,
             warning => warning.Code == HtmlPdfDiagnosticCodes.ImagePayloadOmitted);
         pdfOptions.MaximumRasterPixels = 1599L;
-        Assert.Contains(document.ToPdfDocumentResult(pdfOptions).Report.Warnings,
+        Assert.Contains(document.ConvertToPdfWithEvidence(pdfOptions).Report.Warnings,
             warning => warning.Code == HtmlPdfDiagnosticCodes.ImagePayloadOmitted);
         options.MaximumRasterPixels = 1599L;
         OfficeImageExportPolicyException synchronous = Assert.Throws<OfficeImageExportPolicyException>(() =>

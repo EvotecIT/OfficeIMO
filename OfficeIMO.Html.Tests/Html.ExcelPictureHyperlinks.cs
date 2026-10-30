@@ -61,7 +61,7 @@ public sealed class HtmlExcelPictureHyperlinkTests {
 
         var result = HtmlConversionDocument.Parse(source.ToHtml()).ToExcelDocumentResult();
         using ExcelDocument restored = result.RequireValue();
-        using var artifact = restored.ToStream();
+        using var artifact = new MemoryStream(restored.ToBytes());
         using var reopened = ExcelDocument.Load(new MemoryStream(artifact.ToArray()));
 
         Assert.Null(reopened.Sheets.Single().Images.Single().HyperlinkUri);

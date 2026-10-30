@@ -23,14 +23,14 @@ public sealed class VisioPdfWorkflowTests {
             File.WriteAllBytes(output, sentinel);
             var result = await new OfficeWorkflowRunner().RunAsync(new() {
                 Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output,
-                ConversionRouteId = "visio-pdf", ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                ConversionRouteId = "visio-pdf", ConflictPolicy = OfficePublicationPolicy.Replace,
                 Limits = new() { MaximumXmlCharactersInPart = 20_000 }
             });
             Assert.False(result.Succeeded);
             Assert.Equal(sentinel, File.ReadAllBytes(output));
             var accepted = await new OfficeWorkflowRunner().RunAsync(new() {
                 Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output,
-                ConversionRouteId = "visio-pdf", ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                ConversionRouteId = "visio-pdf", ConflictPolicy = OfficePublicationPolicy.Replace,
                 Limits = new() { MaximumXmlCharactersInPart = 30_000 }
             });
             Assert.True(accepted.Succeeded, accepted.Summary);

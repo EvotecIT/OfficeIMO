@@ -9,16 +9,26 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
         [Fact]
-        public void PowerPointSlide_RejectsOversizedTableBeforeImageExport() {
+        public void PowerPointSlide_ReportsOversizedTableAndEnforcesStrictOmissionPolicy() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTable table = slide.AddTablePoints(1, 1, 10, 10, 80, 40);
             A.TableRow row = table.TableElement.Elements<A.TableRow>().Single();
             for (int index = 1; index <= 4096; index++) table.TableElement.Append(row.CloneNode(true));
 
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                slide.ExportImage(OfficeImageExportFormat.Svg));
-            Assert.Contains("PowerPoint table export exceeds", exception.Message);
+            OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Svg);
+            Assert.Contains(result.Diagnostics, diagnostic =>
+                diagnostic.Code == PowerPointImageExportDiagnosticCodes.UnsupportedShape &&
+                diagnostic.LossKind == OfficeConversionLossKind.Omission &&
+                diagnostic.Message.Contains("4097 rows"));
+            OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
+                slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions {
+                    Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }
+                }));
+            Assert.Contains(exception.Diagnostics, diagnostic =>
+                diagnostic.Code == PowerPointImageExportDiagnosticCodes.UnsupportedShape &&
+                diagnostic.LossKind == OfficeConversionLossKind.Omission &&
+                diagnostic.Message.Contains("4097 rows"));
         }
 
         [Fact]

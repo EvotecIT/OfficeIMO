@@ -48,7 +48,7 @@ public sealed class MarkdownAllSeverityBatch11SecurityTests {
     public void MarkdownReader_LinkLabelWrapperSkipsLongUnmatchedBacktickRun() {
         string markdown = "[<u>" + new string('`', 12_000) + "</u>](https://example.com)";
 
-        MarkdownDoc document = MarkdownReader.Parse(markdown);
+        MarkdownDocument document = MarkdownReader.Parse(markdown);
 
         Assert.Single(document.Blocks);
     }
