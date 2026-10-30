@@ -5,6 +5,17 @@ namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherNativeTests {
     [Fact]
+    public void Omitted_zero_client_anchor_coordinates_keep_all_independently_positioned_frames() {
+        PublisherDocument document = PublisherDocument.Load(Fixture("NativeComparison/ZeroAnchors/native-zeroanchors.pub"));
+        PublisherPage page = Assert.Single(document.Pages);
+        var expected = new[] { (306D, 72D, 234D, 72D), (72D, 396D, 360D, 72D), (72D, 216D, 234D, 72D), (72D, 288D, 360D, 108D) };
+        Assert.Equal(4, page.TextFrames.Count);
+        Assert.Equal(expected, page.TextFrames.Select(frame => (frame.X, frame.Y, frame.Width, frame.Height)));
+        Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_OBJECT_ANCHOR_UNRESOLVED"
+            || diagnostic.Code == "PUB_STORY_NOT_PLACED");
+    }
+
+    [Fact]
     public void Publisher_authored_frames_keep_native_no_line_style_and_page_geometry() {
         PublisherDocument document = PublisherDocument.Load(Fixture("native-authored.pub"));
         PublisherPage page = Assert.Single(document.Pages);

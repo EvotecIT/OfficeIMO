@@ -28,7 +28,7 @@ param(
     [string] $NativeEditText,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextStories', 'TextFormattingPages', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -560,6 +560,21 @@ try {
         }
         'TextParagraphs' {
             $null = Add-TextFrame $page 'ParagraphText' "First paragraph`r`rLast paragraph" 72 72 360 144
+        }
+        'TextStories' {
+            $null = Add-TextFrame $page 'FirstStory' 'First independent story' 72 72 360 72
+            $null = Add-TextFrame $page 'MiddleStory' "Middle paragraph`r`rLast middle paragraph" 72 216 360 108
+            $null = Add-TextFrame $page 'LastStory' 'Last independent story' 72 396 360 72
+        }
+        'TextFormattingPages' {
+            $paragraphs = @(1..96 | ForEach-Object { 'Paragraph {0:D2} preserves its native formatting.' -f $_ })
+            $null = Add-TextFrame $page 'FormattingPages' ($paragraphs -join "`r") 72 72 360 648
+        }
+        'ZeroAnchors' {
+            $null = Add-TextFrame $page 'ZeroLeft' 'Left at native zero' 306 72 234 72
+            $null = Add-TextFrame $page 'ZeroTop' 'Top at native zero' 72 396 360 72
+            $null = Add-TextFrame $page 'ZeroRight' 'Right at native zero' 72 216 234 72
+            $null = Add-TextFrame $page 'ZeroBottom' 'Bottom at native zero' 72 288 360 108
         }
         'TextBlank' {
             $pageCount = 2

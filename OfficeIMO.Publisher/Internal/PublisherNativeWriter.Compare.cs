@@ -11,7 +11,7 @@ internal sealed partial class PublisherNativeWriter {
                 if ((!_current.Text.Stories.TryGetValue(story.Key, out PublisherTextStory? current) || !StoryEqual(story.Value, current))
                     && sourceStyles.TryGetValue(story.Key, out PublisherQuillStoryStyles? dependency)) _styleDependencies.Add(dependency);
             }
-            if (!TryRewriteSingleStory()) Reject("Quill", "Stories or formatting changed outside the observed single-story writer profile. StyleDependencies identifies the original story, definition ordinals and direct native OPL spans.");
+            if (!TryRewriteStories()) Reject("Quill", "Stories or formatting changed outside the supported existing-story and formatting-page profiles. StyleDependencies identifies the original stories, definition ordinals and direct native OPL spans.");
         }
         if (!PagesEqual() || !MapEqual(_baseline.ObjectOwners, _current.ObjectOwners, (a, b) => a == b)
             || !SameKeys(_baseline.Text.Frames, _current.Text.Frames) || !SameKeys(_baseline.Shapes, _current.Shapes)
@@ -39,10 +39,25 @@ internal sealed partial class PublisherNativeWriter {
         foreach (var entry in _baseline.Shapes) CompareShape(entry.Value, _current.Shapes[entry.Key]);
     }
 
-    private bool TryRewriteSingleStory() {
-        if (_baseline.Text.Stories.Count != 1 || _current.Text.Stories.Count != 1 || _styleDependencies.Count != 1
-            || _baseline.Text.Frames.Count != 1 || _baseline.Text.TableStories.Count != 0) return false;
-        PublisherTextStory before = _baseline.Text.Stories.Values.Single(), after = _current.Text.Stories.Values.Single();
+    private bool TryRewriteStories() {
+        if (!SameKeys(_baseline.Text.Stories, _current.Text.Stories) || _baseline.Text.TableStories.Count != 0) return false;
+        foreach (var entry in _baseline.Text.Stories) {
+            PublisherTextStory current = _current.Text.Stories[entry.Key];
+            if (StoryEqual(entry.Value, current)) continue;
+            if (!CanRewriteStory(entry.Value, current)
+                || _baseline.Text.Frames.Values.Count(frame => frame.StoryId == entry.Key) != 1) return false;
+        }
+        if (_baseline.Text.Stories.Count == 1 && _baseline.Text.Frames.Count == 1 && _styleDependencies.Count == 1) {
+            _quillBytes = PublisherQuillTextWriter.TryRewrite(_imported.NativeSource!.QuillBytes, _styleDependencies[0],
+                _baseline.Text.Stories.Values.Single(), _current.Text.Stories.Values.Single(), _sourceLimits, _maximumBytes, _token);
+            if (_quillBytes != null) return true;
+        }
+        _quillBytes = PublisherQuillStoriesWriter.TryRewrite(_imported.NativeSource!.QuillBytes, _imported.Styles.Stories,
+            _baseline.Text.Stories, _current.Text.Stories, _sourceLimits, _maximumBytes, _token);
+        return _quillBytes != null;
+    }
+
+    private static bool CanRewriteStory(PublisherTextStory before, PublisherTextStory after) {
         if (before.Id != after.Id || before.Paragraphs.Count == 0 || before.Paragraphs.Count != after.Paragraphs.Count) return false;
         for (int paragraph = 0; paragraph < before.Paragraphs.Count; paragraph++) {
             OfficeRichTextParagraph a = before.Paragraphs[paragraph], b = after.Paragraphs[paragraph];
@@ -52,9 +67,7 @@ internal sealed partial class PublisherNativeWriter {
                 if (b.Runs[index].Text.Length == 0 && (before.Paragraphs.Count == 1 || b.Runs.Count != 1)
                     || !RunOtherFormattingEqual(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index])) return false;
         }
-        _quillBytes = PublisherQuillTextWriter.TryRewrite(_imported.NativeSource!.QuillBytes, _styleDependencies[0],
-            before, after, _sourceLimits, _maximumBytes, _token);
-        return _quillBytes != null;
+        return true;
     }
 
     private bool PagesEqual() => _baseline.Pages.Count == _current.Pages.Count

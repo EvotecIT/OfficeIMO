@@ -8,12 +8,21 @@ internal static class PublisherQuillParagraphWriter {
         PublisherTextStory before, PublisherTextStory after, int textOffset, CancellationToken token,
         out byte[]? characterPage, out byte[]? paragraphPage) {
         characterPage = paragraphPage = null;
+        if (!TryPlan(data, context, binding, before, after, textOffset, token, out var pc, out var pp)) return false;
+        characterPage = Pack(pc); paragraphPage = Pack(pp);
+        return characterPage != null && paragraphPage != null;
+    }
+
+    internal static bool TryPlan(PublisherBinaryData data, PublisherParseContext context, PublisherQuillStoryStyles binding,
+        PublisherTextStory before, PublisherTextStory after, int outputTextOffset, CancellationToken token,
+        out List<PublisherQuillFormattingRange> pc, out List<PublisherQuillFormattingRange> pp) {
+        pc = new(); pp = new();
+        // Local lists can be captured by the range-coalescing helper.
+        var charactersOut = pc;
         PublisherQuillStyleUse[] characters = binding.Uses.Where(use => use.Tag == "FDPC").ToArray();
         PublisherQuillStyleUse[] paragraphs = binding.Uses.Where(use => use.Tag == "FDPP").ToArray();
         if (paragraphs.Length != before.Paragraphs.Count) return false;
-        var pc = new List<PublisherQuillFormattingRange>();
-        var pp = new List<PublisherQuillFormattingRange>();
-        int originalPosition = 0, position = textOffset;
+        int originalPosition = binding.NativeStart, position = outputTextOffset;
         for (int paragraphIndex = 0; paragraphIndex < paragraphs.Length; paragraphIndex++) {
             token.ThrowIfCancellationRequested();
             IReadOnlyList<OfficeRichTextRun> oldRuns = before.Paragraphs[paragraphIndex].Runs;
@@ -53,10 +62,7 @@ internal static class PublisherQuillParagraphWriter {
             pp.Add(new PublisherQuillFormattingRange(position, Copy(paragraph.DirectDefinition)));
             originalPosition = checked(oldCursor + 1);
         }
-        if (originalPosition != binding.NativeLength || position != textOffset + after.Text.Length * 2) return false;
-        characterPage = Pack(pc);
-        paragraphPage = Pack(pp);
-        return characterPage != null && paragraphPage != null;
+        return originalPosition == binding.NativeStart + binding.NativeLength && position == outputTextOffset + after.Text.Length * 2;
 
         PublisherQuillStyleUse? FindCharacter(int start, int length) {
             foreach (PublisherQuillStyleUse use in characters)
@@ -71,10 +77,10 @@ internal static class PublisherQuillParagraphWriter {
         bool Append(int end, byte[] style) {
             // One original character range can span several paragraphs. Keep
             // identical adjacent definitions shared by one continuous range.
-            if (pc.Count != 0 && pc[pc.Count - 1].Style.SequenceEqual(style))
-                pc[pc.Count - 1] = new PublisherQuillFormattingRange(end, pc[pc.Count - 1].Style);
-            else pc.Add(new PublisherQuillFormattingRange(end, style));
-            return pc.Count <= 84;
+            if (charactersOut.Count != 0 && charactersOut[charactersOut.Count - 1].Style.SequenceEqual(style))
+                charactersOut[charactersOut.Count - 1] = new PublisherQuillFormattingRange(end, charactersOut[charactersOut.Count - 1].Style);
+            else charactersOut.Add(new PublisherQuillFormattingRange(end, style));
+            return true;
         }
     }
 

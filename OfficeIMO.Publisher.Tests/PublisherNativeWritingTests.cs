@@ -504,7 +504,7 @@ public sealed class PublisherNativeWritingTests {
         new PublisherBinaryData(compound.Streams["Escher/EscherStm"], "Escher/EscherStm"),
         compound.Streams.TryGetValue("Escher/EscherDelayStm", out byte[]? delay) ? new PublisherBinaryData(delay, "Escher/EscherDelayStm") : null,
         new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Read();
-    private static void AssertPreservedStorage(byte[] source, byte[] output, string changedStream = "Escher/EscherStm", params string[] additionalChangedStreams) {
+    internal static void AssertPreservedStorage(byte[] source, byte[] output, string changedStream = "Escher/EscherStm", params string[] additionalChangedStreams) {
         OfficeCompoundFile before = Compound(source), after = Compound(output);
         Assert.Equal(before.Streams.Keys.OrderBy(path => path), after.Streams.Keys.OrderBy(path => path));
         foreach (var stream in before.Streams.Where(item => item.Key != changedStream && !additionalChangedStreams.Contains(item.Key))) {

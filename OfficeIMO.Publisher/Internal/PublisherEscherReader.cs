@@ -80,9 +80,13 @@ internal sealed class PublisherEscherReader {
         };
         if (anchor != null) {
             Dictionary<ushort, uint> values = ClientValues(anchor);
-            if (values.TryGetValue(0x2001, out uint x1) && values.TryGetValue(0x2002, out uint y1)
-                && values.TryGetValue(0x2003, out uint x2) && values.TryGetValue(0x2004, out uint y2))
+            // Native client anchors omit zero-valued coordinates. Require an
+            // actual coordinate record, then recover absent axes as zero.
+            if (values.Keys.Any(key => key is >= 0x2001 and <= 0x2004)) {
+                values.TryGetValue(0x2001, out uint x1); values.TryGetValue(0x2002, out uint y1);
+                values.TryGetValue(0x2003, out uint x2); values.TryGetValue(0x2004, out uint y2);
                 shape.Bounds = new PublisherNativeRectangle(unchecked((int)x1), unchecked((int)y1), unchecked((int)x2), unchecked((int)y2));
+            }
         } else if (childAnchor != null) {
             _data.Range(childAnchor.Offset, 16, childAnchor.End);
             var relative = Rectangle(childAnchor.Offset);
