@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
-import { exportCanopy, createCanopyExport } from "../dist/integrations/canopyx/index.js";
+import { exportCanopy, createCanopyExport, writeCanopyTo } from "../dist/integrations/canopyx/index.js";
 import { writePdf } from "../dist/pdf/index.js";
 import { inspectPdf } from "./pdf-reader.mjs";
 
@@ -40,9 +40,86 @@ test("Canopy default fitted PDF wraps all ordinary text date and numeric cells w
 });
 
 test("Canopy explicit nonwrapping PDF columns and core writer keep strict overflow semantics", async () => {
-  await assert.rejects(exportCanopy(ordersCapture(), "pdf", { columnOptions: { placed: { wrapText: false } } }), /Unwrapped PDF cell/);
+  await assert.rejects(exportCanopy(ordersCapture(), "pdf", { columnOptions: { placed: { wrapText: false } },
+    pdf: { columnWidths: [50, 90, 50, 50, 30, 40, 80] } }), /Unwrapped PDF cell/);
   await assert.rejects(writePdf([["An ordinary long label"]], { columns: [{ header: "Name", wrapText: false }], columnWidths: [30] }), /Unwrapped PDF cell/);
   const result = await exportCanopy(ordersCapture(), "pdf", { columnOptions: { placed: { wrapText: false } },
     pdf: { columnWidths: [50, 90, 50, 50, 200, 40, 80], orientation: "landscape", pageNumbers: false } });
   assert.ok((await inspectPdf(result)).text.includes("2026-01-01T00:00:00.000Z"));
+});
+
+function painted(pdf) {
+  return pdf.pages.flatMap(page => [...page.content.matchAll(/BT \/(F\d+) [\s\S]*?([-\d.]+) ([-\d.]+) Tm <([a-f0-9]*)> Tj ET/g)]
+    .map(match => ({ font: match[1], x: Number(match[2]), y: Number(match[3]), text: Buffer.from(match[4], "hex").toString("latin1") })));
+}
+
+test("Canopy PDF fits measured headers and date values without mid-word breaks or equal column widths", async () => {
+  const capture = ordersCapture(), rows = [];
+  for await (const row of capture.rows()) rows.push(row);
+  capture.request.columns = capture.request.columns.map(column => ({ ...column,
+    title: column.id === "items" ? "Lines" : column.id[0].toUpperCase() + column.id.slice(1) }));
+  rows.forEach(row => { row.cells.placed.text = "2026-01-01 00:00 UTC"; });
+  capture.rows = async function* () { yield* rows; };
+  const pdf = await inspectPdf(await exportCanopy(capture, "pdf", { pdf: { pageSize: { width: 600, height: 500 } } })), runs = painted(pdf);
+  assert.ok(runs.some(run => run.text === "Amount"), "Amount is one whole header word");
+  assert.equal(runs.filter(run => run.text === "2026-01-01 00:00 UTC").length, 48, "Every timestamp fits on one line");
+  const header = name => runs.find(run => run.text === name);
+  assert.ok(header("Placed").x - header("Status").x < header("Lines").x - header("Placed").x,
+    "The date column receives more width than a short status column");
+  assert.ok(pdf.pages.length <= 3, "Natural date widths do not double the height of every row");
+});
+
+test("Canopy PDF wraps text at whole words while preserving every character", async () => {
+  const input = { request: { columns: [{ id: "label", title: "Description", kind: "text" }, { id: "date", title: "Placed", kind: "datetime" }],
+    recordCount: 1, values: "raw", presentation: "text", timeZone: "utc", revision: "word-wrap" },
+    async *rows() { yield { id: "one", cells: { label: { value: null, text: "A readable sentence with several whole words" }, date: { value: null, text: "2026-01-01 00:00 UTC" } } }; } };
+  const pdf = await inspectPdf(await exportCanopy(input, "pdf", { pdf: { pageSize: { width: 310, height: 300 }, orientation: "portrait" } }));
+  const lines = painted(pdf).filter(run => run.y < painted(pdf).find(run => run.text === "Description").y && !run.text.startsWith("Page"));
+  const tokens = new Set("A readable sentence with several whole words 2026-01-01 00:00 UTC".split(" "));
+  for (const line of lines) for (const word of line.text.trim().split(/\s+/)) assert.ok(tokens.has(word), "No word is split: " + word);
+  assert.ok(pdf.text.replace(/\s/g, "").includes("Areadablesentencewithseveralwholewords"));
+});
+
+test("Canopy PDF content measurement bounds lookahead and closes the single source on destination failure", async () => {
+  let read = 0, calls = 0, closed = 0;
+  const input = ordersCapture(); input.request.recordCount = 500;
+  const example = (await input.rows().next()).value;
+  input.rows = async function* () { calls++; try { for (let i = 0; i < 500; i++) { read++; yield { ...example, id: "row-" + i }; } } finally { closed++; } };
+  const failure = new Error("Destination rejected PDF");
+  await assert.rejects(writeCanopyTo(input, "pdf", { write() { throw failure; } }), error => error === failure);
+  assert.equal(calls, 1); assert.ok(read <= 128, "Measurement never buffers the whole source");
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(closed, 1);
+});
+
+test("Canopy PDF freezes nested settings before awaiting its content sample", async () => {
+  let entered, release;
+  const waiting = new Promise(resolve => { entered = resolve; }), blocked = new Promise(resolve => { release = resolve; });
+  const input = ordersCapture(), first = (await input.rows().next()).value; input.request.recordCount = 1;
+  input.rows = async function* () { entered(); await blocked; yield first; };
+  const widths = [60, 100, 50, 60, 160, 40, 70], labels = { prefix: "Original ", separator: " of " };
+  const pending = exportCanopy(input, "pdf", { pdf: { columnWidths: widths, pageNumberLabels: labels } });
+  await waiting; widths[0] = 1; labels.prefix = "Mutated "; release();
+  const pdf = await inspectPdf(await pending);
+  assert.ok(pdf.text.includes("Original 1 of ")); assert.ok(!pdf.text.includes("Mutated"));
+});
+
+test("Canopy PDF measures bare CR and CRLF line boundaries like the writer", async () => {
+  for (const ending of ["\r", "\r\n"]) {
+    const input = { request: { columns: [{ id: "label", title: "Region" + ending + "name", kind: "text" }],
+      recordCount: 1, values: "raw", presentation: "text", timeZone: "utc", revision: "line-boundaries" },
+      async *rows() { yield { id: "one", cells: { label: { value: null, text: "North" + ending + "South" } } }; } };
+    const pdf = await inspectPdf(await exportCanopy(input, "pdf"));
+    for (const line of ["Region", "name", "North", "South"]) assert.ok(pdf.pages[0].lines.includes(line));
+  }
+});
+
+test("Canopy PDF distinguishes thousands marks from the sampled decimal convention", async () => {
+  for (const [integer, fractional, large, small] of [["1,234", "12.5", "1,234.000", "12.500"], ["1.234", "12,5", "1.234,000", "12,500"]]) {
+    const input = { request: { columns: [{ id: "amount", title: "Amount", kind: "number" }], recordCount: 2,
+      values: "raw", presentation: "text", timeZone: "utc", revision: "grouped-decimals" },
+      async *rows() { yield { id: "a", cells: { amount: { value: 1234, text: integer } } }; yield { id: "b", cells: { amount: { value: 12.5, text: fractional } } }; } };
+    const pdf = await inspectPdf(await exportCanopy(input, "pdf", { columnOptions: { amount: { format: "#,##0.000" } } }));
+    assert.ok(pdf.pages[0].lines.includes(large)); assert.ok(pdf.pages[0].lines.includes(small));
+  }
 });

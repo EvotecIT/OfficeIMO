@@ -87,7 +87,7 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
     const selected: NonNullable<CanopySourceOptions["columnOptions"]>[string] = Object.hasOwn(options.columnOptions ?? {}, column.id) ? options.columnOptions![column.id]! : {};
     for (const key of Object.keys(selected)) if (!(columnFields as readonly string[]).includes(key)) throw new TypeError("Unsupported Canopy column option: " + key);
     const override = captureFields(selected, columnFields);
-    const numericFormat = format === "xlsx" && values === "raw" && column.kind === "number" && column.format !== undefined && override.format === undefined
+    const numericFormat = (format === "xlsx" || format === "pdf") && values === "raw" && column.kind === "number" && column.format !== undefined && override.format === undefined
       ? canopyNumberFormat(column.format, report, column.id) : undefined;
     const [captured] = copyColumns([{ ...override, key: column.id, header: column.title,
       ...(format === "xlsx" && override.width === undefined && column.width !== undefined ? { width: canopyXlsxWidth(column.width.preferred) } : {}),
@@ -98,7 +98,8 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
       // PDF defaults to lossless wrapping; an explicit writer override stays strict.
       ...(format === "pdf" ? { wrapText: override.wrapText ?? true } :
         override.wrapText === undefined && column.wrap === undefined ? {} : { wrapText: override.wrapText ?? column.wrap! }),
-      ...(override.alignment === undefined && column.alignment === undefined ? {} : { alignment: override.alignment ?? column.alignment! }) }]);
+      ...(override.alignment === undefined && column.alignment === undefined ?
+        format === "pdf" && column.kind === "number" ? { alignment: "right" as const } : {} : { alignment: override.alignment ?? column.alignment! }) }]);
     return Object.freeze({ id: column.id, kind: column.kind, input: column, nativeFormatOverride: override.format, column: Object.freeze(captured!) });
   });
   const rowCount = request.recordCount;
@@ -125,8 +126,10 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
         if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string") value = datetime(value, dateMode, clock);
         const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;
         const nativeFormat = capturedFormat === undefined ? undefined : spec.nativeFormatOverride === "" ? "General" : spec.nativeFormatOverride ?? capturedFormat;
-        const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat ? {
-          ...rowStyle, ...cellStyle, ...(format === "xlsx" && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {}) } : undefined;
+        const summary = format === "pdf" && pivot && (row.summary || row.grandTotal);
+        const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat || summary ? {
+          ...rowStyle, ...(summary ? { bold: true } : {}), ...cellStyle,
+          ...((format === "xlsx" || format === "pdf") && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {}) } : undefined;
         // CSV has no presentation or link metadata: emit its selected scalar directly.
         // This also avoids a frozen wrapper for every cell in large CSV captures.
         if (format === "csv") result.push(value);
