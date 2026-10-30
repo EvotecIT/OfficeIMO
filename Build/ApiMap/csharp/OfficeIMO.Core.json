@@ -1439,6 +1439,20 @@
       "files": [
         "OfficeIMO.Core/OfficeTextTabLeaderStyle.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "action": "fix",
+      "old": "Positive native ODF tab-leader absolute widths and font sizes can round to zero when projected to shared physical styles.",
+      "new": "Keep native declarations unchanged and project positive sub-EMU sizes as one EMU, reporting the shared rendering approximation.",
+      "reason": "The native ODF consumer must retain valid positive declarations after the Core authoring-style migration.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.OpenDocument/Text/OdfTabLineLeader.cs",
+        "OfficeIMO.OpenDocument/Drawing/OdgPage.DrawingStyledTabLeaders.cs",
+        "OfficeIMO.OpenDocument/Drawing/OdgPage.DrawingTabs.cs"
+      ],
+      "note": "Saved ODG line/text controls fail before the fix. Preserve source XML, body text and tab positions; finite zero/negative and nonfinite validation is unchanged. Native values outside OfficeLength range retain the existing explicit unsupported path."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
