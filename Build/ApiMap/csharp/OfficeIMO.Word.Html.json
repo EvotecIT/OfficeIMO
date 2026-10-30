@@ -585,6 +585,15 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "HTML import uses the containing Paragraph of created hyperlinks to preserve subsequent formatting and insertion."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "change": "Verify HTML table round trips through the actual table rows and cell contents.",
+      "reason": "The format-wide styled table defaults legitimately emit table attributes. The existing bare<table> substring pinned attribute absence and checked only two loose letters. Retain the real conversion input, assert exactly one table with two rows and allfour cells through the existing parser dependency.",
+      "files": [
+        "OfficeIMO.Html.Tests/Html.HtmlConverter.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on macOS, including standard-library and modern-framework runtime proof. Windows .NET Framework validation remains pending.",

@@ -81,9 +81,10 @@ public partial class Html {
         var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
         string roundTrip = doc.ToHtml(new WordHtmlExportOptions());
 
-        Assert.Contains("<table>", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("A", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("D", roundTrip, StringComparison.OrdinalIgnoreCase);
+        var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(roundTrip);
+        var table = Assert.Single(parsed.QuerySelectorAll("table"));
+        Assert.Equal(2, table.QuerySelectorAll("tr").Length);
+        Assert.Equal(new[] { "A", "B", "C", "D" }, table.QuerySelectorAll("td").Select(cell => cell.TextContent.Trim()));
     }
 
     [Fact]

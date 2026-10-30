@@ -98,13 +98,17 @@ namespace OfficeIMO.Tests.Pdf {
             // The bundled SourceSerif4 OS/2 xAvg is 558 with UPEM 1000;
             // the synthetic TrueType average is 400 with UPEM 1000.
             Letter[] natural = Read(Render(runs, 200D, distributed: false, cff), "cff-natural");
-            Letter[] actual = Read(Render(runs, Span(natural) + 0.354D, distributed: true, cff), "cff-actual");
+            // Keep the preferred-share budget above the page-size quantum so rounding
+            // cannot ration the shares at the assertion's decimal midpoint.
+            double width = (global::OfficeIMO.OfficeLength.Points(Span(natural) + 40D + 0.354D)
+                + global::OfficeIMO.OfficeLength.Emus(2)).ToPoints() - 40D;
+            Letter[] actual = Read(Render(runs, width, distributed: true, cff), "cff-actual");
 
             Assert.Equal("ABCD", string.Concat(actual.Select(letter => letter.Value)));
             Assert.Equal(0.1395D, Gap(actual, 0, 1) - Gap(natural, 0, 1), 3);
             Assert.Equal(0.1395D, Gap(actual, 1, 2) - Gap(natural, 1, 2), 3);
             Assert.Equal(0.075D, Gap(actual, 2, 3) - Gap(natural, 2, 3), 3);
-            Assert.Equal(Span(natural) + 0.354D, Span(actual), 3);
+            Assert.Equal(width, Span(actual), 3);
             AssertNaturalGlyphWidths(natural, actual);
         }
 

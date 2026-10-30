@@ -5748,6 +5748,15 @@
         "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.ContentStream.cs"
       ],
       "note": "Use the shared exponent-free precise PDF number formatter; text matrices retain existing rotation formatting and precise positions bypass lossy move folding. Saved text/image stamp and watermark controls at UserUnit10000/60000 failed before the fix; each verifies signed physical origins and dimensions within one EMU."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "change": "Keep the CFF/TrueType preferred-share fixture above the whole-EMU page-size quantum.",
+      "reason": "The original exact0.354pt budget can round below the preferred capacity and cross a decimal assertion midpoint. Add only2EMU to the quantized fixture input; preserve all independent preferred-share expectations, glyph-width assertions and3decimal precision. No renderer behavior changes.",
+      "files": [
+        "OfficeIMO.Pdf.Tests/Pdf/PdfWordCharacterExpansionTests.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
