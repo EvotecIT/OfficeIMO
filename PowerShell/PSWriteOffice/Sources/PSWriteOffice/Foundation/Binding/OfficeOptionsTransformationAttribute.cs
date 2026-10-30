@@ -23,11 +23,16 @@ public sealed class OfficeOptionsTransformationAttribute : ArgumentTransformatio
         object? value = OfficeArgumentValue.Unwrap(inputData);
         if (value != null && OptionsType.IsInstanceOfType(value)) return value;
         if (value is not IDictionary dictionary) throw OfficeArgumentValue.Invalid("Expected a typed options object or hashtable.");
+        return ApplyTo(engineIntrinsics, Activator.CreateInstance(OptionsType)!, dictionary);
+    }
+
+    /// <summary>Applies an already captured override without replacing unrelated adapter settings.</summary>
+    internal object ApplyTo(EngineIntrinsics engineIntrinsics, object result, IDictionary dictionary) {
+        if (!OptionsType.IsInstanceOfType(result)) throw new ArgumentException("The destination must have the binder's options type.", nameof(result));
         var properties = new Dictionary<string, PropertyInfo>(StringComparer.OrdinalIgnoreCase);
         foreach (var property in OptionsType.GetProperties(BindingFlags.Public | BindingFlags.Instance)) {
             if (property.SetMethod?.IsPublic == true && property.GetIndexParameters().Length == 0) properties[property.Name] = property;
         }
-        object result = Activator.CreateInstance(OptionsType)!;
         foreach (DictionaryEntry entry in dictionary) {
             if (entry.Key is not string key || !properties.TryGetValue(key, out var property))
                 throw OfficeArgumentValue.Invalid($"Unknown or read-only {OptionsType.Name} option '{entry.Key}'.");
