@@ -124,7 +124,8 @@ public sealed partial class XpsPage {
 
 /// <summary>A self-contained SVG projection and its explicit loss diagnostics.</summary>
 public sealed class XpsSvgResult {
-    internal XpsSvgResult(string svg, List<string> diagnostics, List<XpsTextSpan> textSpans, List<XpsNavigationTarget> targets) { Svg = svg; Diagnostics = diagnostics.AsReadOnly(); TextSpans = textSpans.AsReadOnly(); Targets = targets.AsReadOnly(); }
+    internal XpsSvgResult(string svg, List<string> diagnostics, List<XpsTextSpan> textSpans, List<XpsNavigationTarget> targets, int pathCommands) { Svg = svg; Diagnostics = diagnostics.AsReadOnly(); TextSpans = textSpans.AsReadOnly(); Targets = targets.AsReadOnly(); PathCommands = pathCommands; }
+    internal int PathCommands { get; }
     internal IReadOnlyList<XpsTextSpan> TextSpans { get; }
     internal IReadOnlyList<XpsNavigationTarget> Targets { get; }
     /// <summary>Self-contained SVG. Embedded glyphs are outlined to preserve native positioning.</summary>
