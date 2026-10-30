@@ -135,7 +135,7 @@ public sealed class PdfNestedColumnBalancingTests {
     public void Columns_NestedRowKeepRulesUseTheContentHeightAfterContainerPadding() {
         var runs = new[] { PdfTextRun.Normal(string.Join("\n", Enumerable.Range(1, 16).Select(index => $"Marker{index:D3}"))) };
         var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: 12,
-            lineSpacing: PdfLineSpacing.Exactly(20), widowControl: false, keepTogether: true) });
+            lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), widowControl: false, keepTogether: true) });
         var panel = PanelStyle(); panel.PaddingY = 20;
         byte[] bytes = PdfDocument.Create(Options()).Columns(columns => columns.Panel(content => content.Table(new[] { new[] { cell } },
             style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0, FontSize = 12, LineHeight = 20D / 12D,
@@ -152,7 +152,7 @@ public sealed class PdfNestedColumnBalancingTests {
         string[] markers = Enumerable.Range(1, count).Select(index => $"Marker{index:D3}").ToArray();
         if (kind == "paragraph") content.Paragraph(p => p.Text(string.Join("\n", markers)), style: ParagraphStyle());
         else if (kind == "list") content.RichNumbered(markers.Select(marker => new PdfListItem(marker)), style: new PdfListStyle {
-            LineSpacing = PdfLineSpacing.Exactly(20), ItemSpacing = 0, SpacingBefore = 0, SpacingAfter = 0
+            LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), ItemSpacing = 0, SpacingBefore = 0, SpacingAfter = 0
         });
         else content.Table(markers.Select(marker => new[] { new PdfTableCell(marker) }), style: new PdfTableStyle {
             HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0, FontSize = 12, LineHeight = 20D / 12D,
@@ -173,7 +173,7 @@ public sealed class PdfNestedColumnBalancingTests {
         pdf.GetPage(page).GetWords().Single(word => word.Text == marker || word.Text.EndsWith("." + marker, StringComparison.Ordinal));
     private static PdfCreateOptions Options() => new() { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40),
         MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false };
-    private static PdfParagraphStyle ParagraphStyle() => new() { LineSpacing = PdfLineSpacing.Exactly(20),
-        SpacingBefore = 0, SpacingAfter = 0, WidowControl = false };
+    private static PdfParagraphStyle ParagraphStyle() => new() { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)),
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false };
     private static PdfPanelStyle PanelStyle() => new() { PaddingX = 0, PaddingY = 10, SpacingBefore = 0, SpacingAfter = 0 };
 }

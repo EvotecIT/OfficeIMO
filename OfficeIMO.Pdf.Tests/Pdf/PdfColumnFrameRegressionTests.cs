@@ -15,8 +15,8 @@ public sealed class PdfColumnFrameRegressionTests {
         } };
         var imageStyle = new PdfImageStyle { ScaleDownToFit = true, SpacingBefore = 0, SpacingAfter = 0 };
         byte[] image = PdfPngTestImages.CreateRgbPng(0, 160, 96);
-        var line = new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0,
-            SpacingAfter = 0, WidowControl = false };
+        var line = new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false };
         var document = PdfDocument.Create(options).Columns(content => {
             content.Paragraph(p => p.Text("Lead"), style: line).Spacer(378);
             content.Panel(panel => panel.Image(image, 332, 400, style: imageStyle)
@@ -136,7 +136,7 @@ public sealed class PdfColumnFrameRegressionTests {
     [InlineData("panel")]
     [InlineData("keep")]
     public void Columns_BalancingSuppressesParagraphSpacingBeforeAtAColumnStart(string kind) {
-        var style = Paragraph(); style.SpacingBefore = 200;
+        var style = Paragraph(); style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(200);
         if (kind == "keep") style.KeepTogether = true;
         byte[] bytes = PdfDocument.Create(Options()).Columns(content => {
             if (kind == "panel") content.Panel(panel => panel.Paragraph(p => p.Text(Lines("Line", 8)), style: style),
@@ -236,7 +236,7 @@ public sealed class PdfColumnFrameRegressionTests {
 
     [Fact]
     public void Columns_ParagraphTableKeepChainRetainsConditionalBeforeSpacingDuringBalancing() {
-        var before = Paragraph(); before.SpacingBefore = 200; before.KeepWithNext = true;
+        var before = Paragraph(); before.SpacingBefore = global::OfficeIMO.OfficeLength.Points(200); before.KeepWithNext = true;
         var following = Paragraph(); following.KeepTogether = true;
         var document = PdfDocument.Create(Options());
         document.Content.Columns(content => {
@@ -263,7 +263,7 @@ public sealed class PdfColumnFrameRegressionTests {
         MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false
     };
     private static PdfParagraphStyle Paragraph() => new() {
-        LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false
+        LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
     };
     private static PdfMultiColumnOptions Unequal() => new() {
         BalanceLastPage = false, ColumnDefinitions = new[] {

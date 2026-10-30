@@ -178,7 +178,7 @@ internal static partial class PdfWriter {
         private double MeasurePictureParagraph(RichParagraphBlock paragraph, double frameX, double frameWidth,
             double fontSize, bool firstVisualOnly = false) {
             PdfParagraphStyle? style = EffectiveParagraphStyle(paragraph);
-            fontSize = style?.FontSize ?? currentOpts.DefaultFontSize.ToPoints();
+            fontSize = style?.FontSize?.ToPoints() ?? currentOpts.DefaultFontSize.ToPoints();
             double leading = GetParagraphLeading(style, fontSize);
             double before = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(style));
             var wrapped = WrapPictureParagraph(paragraph, frameX, frameWidth, fontSize, y - before);

@@ -169,7 +169,7 @@ public partial class PdfDocumentVisualQualityTests {
             // Measure the Light preset's default rhythm through document-style inheritance.
             DefaultTableStyle = PdfTableStyles.Light(),
             DefaultParagraphStyle = new PdfParagraphStyle {
-                SpacingAfter = 0
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             }
         };
         PdfTableStyle defaultLight = PdfTableStyles.Light();

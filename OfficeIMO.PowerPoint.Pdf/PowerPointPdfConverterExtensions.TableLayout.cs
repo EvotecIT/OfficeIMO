@@ -91,7 +91,7 @@ public static partial class PowerPointPdfConverterExtensions {
             options.CancellationToken.ThrowIfCancellationRequested();
             double size = paragraph.FontSize ?? fontSize;
             bool exact = paragraph.LineSpacing?.Rule == PdfCore.PdfLineSpacingRule.Exact;
-            double factor = exact ? paragraph.LineSpacing!.Value / size : paragraph.LineSpacing?.Value ?? paragraph.LineHeight ?? defaultFactor;
+            double factor = exact ? paragraph.LineSpacing!.Height!.Value.ToPoints() / size : (paragraph.LineSpacing?.Height?.ToPoints() ?? paragraph.LineSpacing?.MultipleValue) ?? paragraph.LineHeight ?? defaultFactor;
             double leading = size * factor;
             OfficeRichTextRun[] runs = CreateTableLayoutRuns(paragraph.Runs, size, rowBold, options);
             // PDF keeps a hanging indent relative to the paragraph's left

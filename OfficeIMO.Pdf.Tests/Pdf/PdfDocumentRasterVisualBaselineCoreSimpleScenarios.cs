@@ -51,7 +51,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 .Text("This page mixes ")
                 .Bold("rich text")
                 .Text(", colors, list flow, a panel, a horizontal rule, and a wrapped table."),
-                style: new PdfParagraphStyle { LineHeight = 1.5, LeftIndent = 6, RightIndent = 18, SpacingAfter = 7 })
+                style: new PdfParagraphStyle { LineHeight = 1.5, LeftIndent = global::OfficeIMO.OfficeLength.Points(6), RightIndent = global::OfficeIMO.OfficeLength.Points(18), SpacingAfter = global::OfficeIMO.OfficeLength.Points(7) })
             .Bullets(new[] {
                 "Natural proportional text spacing",
                 "Stable vertical rhythm",
@@ -201,7 +201,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 .Strikethrough("obsolete ")
                 .Color(global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80)).Text("and ")
                 .Color(global::OfficeIMO.OfficeColor.FromRgb(8, 28, 120)).Text("colors."),
-                style: new PdfParagraphStyle { SpacingBefore = 14 })
+                style: new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(14) })
             .Paragraph(p => p
                 .Text("Underline respects color: ")
                 .Underlined("red", global::OfficeIMO.OfficeColor.FromRgb(200, 0, 0))
@@ -236,9 +236,9 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 FooterAlign = PdfAlign.Right,
                 ShowPageNumbers = true,
                 DefaultParagraphStyle = new PdfParagraphStyle {
-                    DefaultTabStopWidth = 252,
+                    DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(252),
                     LineHeight = 1.18,
-                    SpacingAfter = 4
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(4)
                 }
             })
             .Meta(title: "OfficeIMO.Pdf Tabs and Leaders", author: "OfficeIMO")
@@ -260,9 +260,9 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             .Spacer(4)
             .Paragraph(p => p.Text("Left label").Tab().Text("plain tab").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Center).Text("center"),
                 style: new PdfParagraphStyle {
-                    DefaultTabStopWidth = 144,
-                    SpacingBefore = 4,
-                    SpacingAfter = 2
+                    DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(144),
+                    SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(2)
                 })
             .PanelParagraph(
                 p => p.Text("Tab leaders are paragraph primitives, not invoice-specific rendering. Dotted value rows should align while remaining extractable as leader rows."),

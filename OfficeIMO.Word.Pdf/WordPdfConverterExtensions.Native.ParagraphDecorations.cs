@@ -36,8 +36,8 @@ namespace OfficeIMO.Word.Pdf {
                 AllowTrailingPaddingOverflow = hasParagraphBorder,
                 FragmentBottomInset = hasParagraphBorder && !UsesModernNativeWordLayout(paragraph._document)
                     ? ResolveNativeParagraphPanelPadding(borders.Bottom) : 0D,
-                SpacingBefore = paragraphStyle.SpacingBefore,
-                SpacingAfter = paragraphStyle.SpacingAfter ?? 6D,
+                SpacingBefore = paragraphStyle.SpacingBefore.ToPoints(),
+                SpacingAfter = (paragraphStyle.SpacingAfter?.ToPoints()) ?? 6D,
                 ClipSpacingAfterAtFrameEnd = true,
                 KeepWithNext = paragraphStyle.KeepWithNext,
                 Align = ResolveNativeParagraphAlign(paragraph, allowJustify: false)
@@ -91,8 +91,8 @@ namespace OfficeIMO.Word.Pdf {
             return new PdfCore.PdfHorizontalRuleStyle {
                 Thickness = (borders.Bottom.Size ?? 4U) / 8D,
                 Color = ParseNativeColor(NormalizeNativeBorderColor(borders.Bottom.ColorHex)) ?? global::OfficeIMO.OfficeColor.Black,
-                SpacingBefore = paragraphStyle.SpacingBefore,
-                SpacingAfter = paragraphStyle.SpacingAfter ?? (borders.Bottom.Space ?? 6U),
+                SpacingBefore = paragraphStyle.SpacingBefore.ToPoints(),
+                SpacingAfter = (paragraphStyle.SpacingAfter?.ToPoints()) ?? (borders.Bottom.Space ?? 6U),
                 KeepWithNext = paragraphStyle.KeepWithNext
             };
         }
@@ -107,7 +107,7 @@ namespace OfficeIMO.Word.Pdf {
                 Thickness = (borders.Bottom.Size ?? 4U) / 8D,
                 Color = ParseNativeColor(NormalizeNativeBorderColor(borders.Bottom.ColorHex)) ?? global::OfficeIMO.OfficeColor.Black,
                 SpacingBefore = borders.Bottom.Space ?? 0D,
-                SpacingAfter = paragraphStyle.SpacingAfter ?? 6D,
+                SpacingAfter = (paragraphStyle.SpacingAfter?.ToPoints()) ?? 6D,
                 KeepWithNext = paragraphStyle.KeepWithNext
             };
         }
@@ -121,7 +121,7 @@ namespace OfficeIMO.Word.Pdf {
             return new PdfCore.PdfHorizontalRuleStyle {
                 Thickness = (borders.Top.Size ?? 4U) / 8D,
                 Color = ParseNativeColor(NormalizeNativeBorderColor(borders.Top.ColorHex)) ?? global::OfficeIMO.OfficeColor.Black,
-                SpacingBefore = paragraphStyle.SpacingBefore,
+                SpacingBefore = paragraphStyle.SpacingBefore.ToPoints(),
                 SpacingAfter = borders.Top.Space ?? 0D,
                 KeepWithNext = true
             };

@@ -227,7 +227,7 @@ public class PdfDocumentDeferredTableTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(paragraph => paragraph.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 70
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
             .Paragraph(paragraph => paragraph.Text("KeepWithDeferredTable"), style: new PdfParagraphStyle {
                 KeepWithNext = true

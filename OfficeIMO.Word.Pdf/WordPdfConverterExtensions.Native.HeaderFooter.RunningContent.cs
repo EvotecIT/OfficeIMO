@@ -78,7 +78,7 @@ public static partial class WordPdfConverterExtensions {
                 // combine many source paragraphs into one line box. Ignore
                 // spacing and use the smallest line box in each such chain.
                 joinedLineHeight = Math.Min(joinedLineHeight,
-                    (style.FontSize ?? NativeHeaderFooterFontSize) * (style.LineHeight ?? 1.2D));
+                    ((style.FontSize?.ToPoints()) ?? NativeHeaderFooterFontSize) * (style.LineHeight ?? 1.2D));
                 if (ShouldRenderNativeEmptyParagraphLineBox(paragraph)) {
                     minimumHeight += joinedLineHeight;
                     joinedLineHeight = double.PositiveInfinity;
@@ -87,8 +87,8 @@ public static partial class WordPdfConverterExtensions {
                 // Keep the established bounded simple-story export for indents
                 // that cannot leave both paragraph-flow text frames positive.
                 // Admission switches every paragraph in every active variant.
-                double textWidth = width - style.LeftIndent - style.RightIndent;
-                double firstLineWidth = textWidth - style.FirstLineIndent;
+                double textWidth = width - style.LeftIndent.ToPoints() - style.RightIndent.ToPoints();
+                double firstLineWidth = textWidth - style.FirstLineIndent.ToPoints();
                 if (textWidth <= 0D || firstLineWidth <= 0D ||
                     double.IsNaN(textWidth) || double.IsInfinity(textWidth) ||
                     double.IsNaN(firstLineWidth) || double.IsInfinity(firstLineWidth)) return false;

@@ -31,7 +31,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         } else {
             // Exact leading makes image overhang reachable without admitting an oversized line.
             var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs,
-                lineSpacing: PdfLineSpacing.Exactly(12), widowControl: false) });
+                lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12)), widowControl: false) });
             var style = CreateTableStyle(18);
             style.ClipTextToCellBounds = true;
             bytes = RenderPaintTable(frame, options, cell, style);

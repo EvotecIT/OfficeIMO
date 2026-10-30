@@ -28,7 +28,7 @@ public static partial class WordPdfConverterExtensions {
                 foreach (var item in _objects) item.Render(inner);
             }, new OfficeIMO.Pdf.PdfPanelStyle {
                 PaddingX = 0D, PaddingY = 0D, BorderWidth = 0D,
-                SpacingBefore = _style.SpacingBefore, SpacingAfter = _style.SpacingAfter ?? 0D,
+                SpacingBefore = _style.SpacingBefore.ToPoints(), SpacingAfter = (_style.SpacingAfter?.ToPoints()) ?? 0D,
                 KeepTogether = true, KeepWithNext = _style.KeepWithNext,
                 AnchoredCanvas = _style.AnchoredCanvas,
                 MinimumContentHeight = _minimumHeight,

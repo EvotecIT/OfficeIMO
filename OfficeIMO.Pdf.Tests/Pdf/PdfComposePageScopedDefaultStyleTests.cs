@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void ComposePage_DefaultParagraphStyleAppliesOnlyToThatPageAndSnapshotsInput() {
             var style = new PdfParagraphStyle {
-                FirstLineIndent = 24,
-                SpacingAfter = 0
+                FirstLineIndent = global::OfficeIMO.OfficeLength.Points(24),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             };
             var doc = PdfDocument.Create();
 
@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests.Pdf {
                             column.Item().Paragraph(p => p.Text("PageOneFirst").LineBreak().Text("PageOneSecond"))));
                 });
 
-                style.FirstLineIndent = 0;
+                style.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(0);
 
                 c.Page(page => {
                     page.Margin(30);

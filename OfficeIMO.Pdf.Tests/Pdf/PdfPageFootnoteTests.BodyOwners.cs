@@ -25,12 +25,12 @@ public partial class PdfPageFootnoteTests {
             document.Content.Heading(2, "BodyReference", paragraph => paragraph.Runs(new[] { reference }),
                 PdfAlign.Left, null, new PdfHeadingStyle {
                     FontSize = 8, Font = PdfStandardFont.Helvetica, Bold = false,
-                    LineSpacing = PdfLineSpacing.Exactly(10), SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = false
+                    LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10)), SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = false
                 });
         } else if (owner == "list") {
             document.Content.RichNumbered(new[] { PdfListItem.Rich(new[] { reference }) }, style: new PdfListStyle {
                 FontSize = 8, MarkerFontSize = 8, MarkerFont = PdfStandardFont.Helvetica,
-                LineSpacing = PdfLineSpacing.Exactly(10), SpacingBefore = 0, SpacingAfter = 0, ItemSpacing = 0,
+                LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10)), SpacingBefore = 0, SpacingAfter = 0, ItemSpacing = 0,
                 KeepTogether = false, KeepWithNext = false
             });
         } else {

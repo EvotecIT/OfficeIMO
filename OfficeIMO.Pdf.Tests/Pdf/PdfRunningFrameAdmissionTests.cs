@@ -165,7 +165,7 @@ public sealed class PdfRunningFrameAdmissionTests {
         PdfDocument document = CreateContentDocument(content =>
             content.Heading(1, "HEADING", style: new PdfHeadingStyle {
                 FontSize = 10D,
-                LineSpacing = PdfLineSpacing.Exactly(RequiredParagraphHeight),
+                LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(RequiredParagraphHeight)),
                 SpacingBefore = 0D,
                 SpacingAfter = 0D,
                 KeepWithNext = false
@@ -184,7 +184,7 @@ public sealed class PdfRunningFrameAdmissionTests {
         PdfDocument document = CreateContentDocument(content =>
             content.Bullets(new[] { "LIST" }, style: new PdfListStyle {
                 FontSize = 10D,
-                LineSpacing = PdfLineSpacing.Exactly(RequiredParagraphHeight),
+                LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(RequiredParagraphHeight)),
                 SpacingBefore = 0D,
                 SpacingAfter = 0D,
                 ItemSpacing = 0D,
@@ -316,7 +316,7 @@ public sealed class PdfRunningFrameAdmissionTests {
         // The Word adapter supplies these paragraph-level widow constraints
         // through the existing cell model. Two 25pt lines fit the short frame.
         var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs,
-            fontSize: 20D, lineSpacing: PdfLineSpacing.Exactly(25D), widowControl: true) });
+            fontSize: 20D, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(25D)), widowControl: true) });
         PdfDocument document = CreateContentDocument(content =>
             content.Table(new[] { new[] { new PdfTableCell("PREFIX") }, new[] { cell } }, style: style),
             header => ConfigureStaticHeader(header, LargeBodyHeight, LargeBodyHeight, SmallBodyHeight));
@@ -366,7 +366,7 @@ public sealed class PdfRunningFrameAdmissionTests {
                 content.Table(new[] { new[] { "FIRST" }, new[] { "SECOND" } }, style: style);
             } else {
                 content.Bullets(new[] { "FIRST", "SECOND" }, style: new PdfListStyle {
-                    FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(40D), ItemSpacing = 0D,
+                    FontSize = 10D, LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(40D)), ItemSpacing = 0D,
                     SpacingBefore = 0D, SpacingAfter = 0D, KeepTogether = true, KeepWithNext = true,
                     KeepTogetherOverflow = PdfKeepTogetherOverflowBehavior.Reject
                 });
@@ -374,8 +374,8 @@ public sealed class PdfRunningFrameAdmissionTests {
             // The 80pt group fits the remaining 100pt. Its 30pt successor
             // triggers the move but can itself fit the short 50pt frame.
             content.Paragraph(paragraph => paragraph.Text("NEXT"), style: new PdfParagraphStyle {
-                LineSpacing = PdfLineSpacing.Exactly(30D), SpacingBefore = 0D,
-                SpacingAfter = 0D, WidowControl = false
+                LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(30D)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D), WidowControl = false
             });
         }, header => ConfigureStaticHeader(header, LargeBodyHeight,
             laterFrameFits ? LargeBodyHeight : SmallBodyHeight, SmallBodyHeight));
@@ -400,14 +400,14 @@ public sealed class PdfRunningFrameAdmissionTests {
         PdfDocument document = CreateContentDocument(content => {
             content.Spacer(90D);
             PdfFootnoteDefinition note = content.DefineFootnote(body => body.Text("NOTE", style: new PdfParagraphStyle {
-                LineSpacing = PdfLineSpacing.Exactly(40D), SpacingBefore = 0D,
-                SpacingAfter = 0D, WidowControl = false
+                LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(40D)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D), WidowControl = false
             }));
             Action<PdfContentBuilder> body = group => group.Paragraph(paragraph => paragraph.Runs(new[] {
                 PdfTextRun.Normal("REF").WithFootnoteReference(note)
             }), style: new PdfParagraphStyle {
-                LineSpacing = PdfLineSpacing.Exactly(80D), SpacingBefore = 0D,
-                SpacingAfter = 0D, WidowControl = false
+                LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(80D)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D), WidowControl = false
             });
             if (kind == "flow") content.Flow(body, new PdfFlowOptions { KeepTogether = true }, capture);
             else content.Panel(body, new PdfPanelStyle {
@@ -434,7 +434,7 @@ public sealed class PdfRunningFrameAdmissionTests {
         PdfDocument document = CreateContentDocument(content => {
             if (occupiedFirstFrame) content.Spacer(150D);
             content.Bullets(new[] { "LIST" }, style: new PdfListStyle {
-                FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(RequiredParagraphHeight),
+                FontSize = 10D, LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(RequiredParagraphHeight)),
                 SpacingBefore = 0D, SpacingAfter = 0D, ItemSpacing = 0D
             });
         }, header => ConfigureStaticHeader(header,
@@ -532,9 +532,9 @@ public sealed class PdfRunningFrameAdmissionTests {
             page.Header(configureHeader ?? (header => ConfigureStaticHeader(header, SmallBodyHeight, LargeBodyHeight)));
             page.Content(content => {
                 content.Paragraph(paragraph => paragraph.Text("INTRO"), style: new PdfParagraphStyle {
-                    LineSpacing = PdfLineSpacing.Exactly(SmallBodyHeight / 5D),
-                    SpacingBefore = 0D,
-                    SpacingAfter = 0D,
+                    LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(SmallBodyHeight / 5D)),
+                    SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D),
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D),
                     WidowControl = false
                 });
                 target(content);
@@ -543,10 +543,10 @@ public sealed class PdfRunningFrameAdmissionTests {
     }
 
     private static PdfParagraphStyle TargetStyle(bool keepTogether) => new() {
-        LineSpacing = PdfLineSpacing.Exactly(keepTogether
-            ? RequiredParagraphHeight / 3D : RequiredParagraphHeight),
-        SpacingBefore = 0D,
-        SpacingAfter = 0D,
+        LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(keepTogether
+            ? RequiredParagraphHeight / 3D : RequiredParagraphHeight)),
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D),
+        SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D),
         WidowControl = false,
         KeepTogether = keepTogether,
         KeepTogetherOverflow = PdfKeepTogetherOverflowBehavior.Reject

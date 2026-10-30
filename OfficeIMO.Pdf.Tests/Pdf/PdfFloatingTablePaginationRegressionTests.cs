@@ -66,8 +66,8 @@ public class PdfFloatingTablePaginationRegressionTests {
     public void StaticConstrainedFlowRemeasuresSpacingAfterFloatClearance() {
         using var pdf = Pig.Open(PdfDocument.Create(Options(240))
             .Table(new[] { new[] { "floating" } }, style: Floating(320, 50))
-            .Flow(flow => flow.Paragraph(p => p.Text("first"), style: new PdfParagraphStyle { LineHeight = 1, SpacingBefore = 50, SpacingAfter = 0 })
-                .Spacer(80).Paragraph(p => p.Text("last"), style: new PdfParagraphStyle { LineHeight = 1, SpacingAfter = 0 }),
+            .Flow(flow => flow.Paragraph(p => p.Text("first"), style: new PdfParagraphStyle { LineHeight = 1, SpacingBefore = global::OfficeIMO.OfficeLength.Points(50), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
+                .Spacer(80).Paragraph(p => p.Text("last"), style: new PdfParagraphStyle { LineHeight = 1, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }),
                 new PdfFlowOptions { KeepTogether = true }).ToBytes());
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "first");
         Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "first");
@@ -103,7 +103,7 @@ public class PdfFloatingTablePaginationRegressionTests {
     public void FloatKeepWithNextIncludesAfterSpacing() {
         using var pdf = Pig.Open(PdfDocument.Create(Options(240))
             .Table(new[] { new[] { "floating" } }, style: Floating(320, 90))
-            .Paragraph(p => p.Text("first"), style: new PdfParagraphStyle { KeepWithNext = true, SpacingAfter = 50 })
+            .Paragraph(p => p.Text("first"), style: new PdfParagraphStyle { KeepWithNext = true, SpacingAfter = global::OfficeIMO.OfficeLength.Points(50) })
             .Paragraph(p => p.Text("next")).ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "first");
@@ -172,7 +172,7 @@ public class PdfFloatingTablePaginationRegressionTests {
     [InlineData(true)]
     public void LeadingTabIncludesAdvanceWhenAvoidingFloat(bool inline) {
         var style = Floating(200); style.Position = new PdfTablePosition(horizontalAlignment: PdfAlign.Right);
-        var paragraphStyle = new PdfParagraphStyle { DefaultTabStopWidth = 100 };
+        var paragraphStyle = new PdfParagraphStyle { DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(100) };
         using var pdf = Pig.Open(PdfDocument.Create(Options()).Table(new[] { new[] { "floating" } }, style: style)
             .Paragraph(p => {
                 p.Text("\t");
@@ -221,7 +221,7 @@ public class PdfFloatingTablePaginationRegressionTests {
     [Fact]
     public void WidowTransferredTabsRetainParagraphStopColumn() {
         var style = new PdfParagraphStyle { WidowControl = true };
-        style.TabStops.Add(new PdfTabStop(240));
+        style.TabStops.Add(new PdfTabStop(global::OfficeIMO.OfficeLength.Points(240)));
         using var pdf = Pig.Open(PdfDocument.Create(Options(240)).Table(new[] { new[] { "floating" } }, style: Floating(200, 145))
             .Paragraph(p => p.Text(string.Join("\n", Enumerable.Range(0, 12).Select(i => "\tword" + i))), style: style).ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);

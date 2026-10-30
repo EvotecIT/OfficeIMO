@@ -15,8 +15,8 @@ internal static class PdfReportVisualFixtureStyles {
         return options.ApplyTheme(new PdfTheme {
             ParagraphStyle = new PdfParagraphStyle {
                 LineHeight = 1.4D,
-                SpacingBefore = 0D,
-                SpacingAfter = leading * 0.3D
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(leading * 0.3D)
             },
             HeadingStyles = new PdfHeadingStyles {
                 Level1 = Heading(24D, options),

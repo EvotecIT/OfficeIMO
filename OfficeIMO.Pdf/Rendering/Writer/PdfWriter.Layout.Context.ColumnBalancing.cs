@@ -77,7 +77,7 @@ internal static partial class PdfWriter {
             if (block is TableBlock table) return MeasureTableColumnBalanceUnits(table, scope, frameWidth);
             if (block is RichParagraphBlock paragraph) {
                 PdfParagraphStyle? style = EffectiveParagraphStyle(paragraph);
-                double size = style?.FontSize ?? currentOpts.DefaultFontSize.ToPoints();
+                double size = style?.FontSize?.ToPoints() ?? currentOpts.DefaultFontSize.ToPoints();
                 double leading = GetParagraphLeading(style, size);
                 var frame = GetParagraphTextFrame(style, scope.ParentOptions.MarginLeft.ToPoints(), frameWidth);
                 var wrapped = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, frame.Width, size, ChooseNormal(currentOpts.DefaultFont),

@@ -28,7 +28,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 70
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
             .Compose(document =>
                 document.Page(page =>
@@ -42,7 +42,7 @@ public partial class PdfDocumentVisualQualityTests {
                                     .LineBreak()
                                     .Text("ColumnKeepLast"), style: new PdfParagraphStyle {
                                         KeepTogether = true,
-                                        SpacingAfter = 0
+                                        SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                                     }))))))
             .ToBytes();
 
@@ -70,7 +70,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 70
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
             .Compose(document =>
                 document.Page(page =>
@@ -111,7 +111,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 60
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(60)
             })
             .Compose(document =>
                 document.Page(page =>
@@ -154,7 +154,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 70
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
             .Compose(document =>
                 document.Page(page =>
@@ -191,7 +191,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 70
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
             .Compose(document =>
                 document.Page(page =>
@@ -228,7 +228,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 56
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(56)
             })
             .Compose(document =>
                 document.Page(page =>
@@ -306,7 +306,7 @@ public partial class PdfDocumentVisualQualityTests {
                         content.Row(row =>
                             row.PercentColumn(100, column => column
                                 .Paragraph(p => p.Text("ColumnIntroMarker"), style: new PdfParagraphStyle {
-                                    SpacingAfter = 70
+                                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
                                 })
                                 .H3("ColumnSignalHeading")
                                 .Paragraph(p => p.Text("ColumnSignalBody")))))))
@@ -341,7 +341,7 @@ public partial class PdfDocumentVisualQualityTests {
                         content.Row(row =>
                             row.PercentColumn(100, column => column
                                 .Paragraph(p => p.Text("ColumnIntroMarker"), style: new PdfParagraphStyle {
-                                    SpacingAfter = 70
+                                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
                                 })
                                 .Paragraph(p => p
                                     .Text("ColumnWidowFirst")
@@ -350,7 +350,7 @@ public partial class PdfDocumentVisualQualityTests {
                                     .LineBreak()
                                     .Text("ColumnWidowThird"), style: new PdfParagraphStyle {
                                         WidowControl = true,
-                                        SpacingAfter = 0
+                                        SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                                     }))))))
             .ToBytes();
 
@@ -378,7 +378,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 60
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(60)
             })
             .Compose(document =>
                 document.Page(page =>

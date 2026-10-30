@@ -163,7 +163,7 @@ public sealed class PdfDrawingFlowWidthTests {
         panelStyle.PaddingY = 20;
         panelStyle.RepeatFragmentDecoration = false;
         PdfParagraphStyle paragraphStyle = Paragraph();
-        paragraphStyle.LineSpacing = PdfLineSpacing.Exactly(230);
+        paragraphStyle.LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(230));
         document.Content.Columns(content => content.Panel(panel => {
             if (leadingBookmark) panel.Bookmark("panel-start");
             panel.Paragraph(p => p.Text("Body"), style: paragraphStyle);
@@ -181,7 +181,7 @@ public sealed class PdfDrawingFlowWidthTests {
         var document = PdfDocument.Create(options);
         if (partialFirstPage) {
             PdfParagraphStyle prelude = Paragraph();
-            prelude.FontSize = 20;
+            prelude.FontSize = global::OfficeIMO.OfficeLength.Points(20);
             document.Content.Paragraph(p => p.Text("Prelude"), style: prelude).Spacer(180);
         }
         PdfPanelStyle panelStyle = PlainPanel(10);
@@ -228,7 +228,7 @@ public sealed class PdfDrawingFlowWidthTests {
         var document = PdfDocument.Create(options);
         if (partialFirstPage) {
             PdfParagraphStyle prelude = Paragraph();
-            prelude.FontSize = 20;
+            prelude.FontSize = global::OfficeIMO.OfficeLength.Points(20);
             document.Content.Paragraph(p => p.Text("Prelude"), style: prelude).Spacer(180);
         }
         document.Content.Columns(content => content.Flow(flow => {
@@ -339,7 +339,7 @@ public sealed class PdfDrawingFlowWidthTests {
     };
 
     private static PdfParagraphStyle Paragraph() => new() {
-        LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false
+        LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
     };
 
     private static PdfMultiColumnOptions UnequalColumns() => new() {

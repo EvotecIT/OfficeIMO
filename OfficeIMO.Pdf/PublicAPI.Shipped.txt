@@ -1001,6 +1001,8 @@ OfficeIMO.Pdf.PdfContentBuilder.Table(System.Collections.Generic.IEnumerable<Off
 OfficeIMO.Pdf.PdfContentBuilder.Table(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTableCell![]!>! rows, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfTableStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.Table(System.Collections.Generic.IEnumerable<string![]!>! rows) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.Table(System.Collections.Generic.IEnumerable<string![]!>! rows, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfTableStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.Table<T>(System.Collections.Generic.IEnumerable<T>! rows) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.Table<T>(System.Collections.Generic.IEnumerable<T>! rows, OfficeIMO.OfficeTableOptions? options) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.TableDeferred(System.Func<System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTableCell![]!>!>! rowFactory, int batchSize = 256, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfTableStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.TableDeferred(System.Func<System.Collections.Generic.IEnumerable<string![]!>!>! rowFactory, int batchSize = 256, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfTableStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.TableOfContents(OfficeIMO.Pdf.PdfTableOfContentsOptions? options = null) -> OfficeIMO.Pdf.PdfContentBuilder!
@@ -1514,6 +1516,8 @@ OfficeIMO.Pdf.PdfCreateOptions.TextWatermark.get -> OfficeIMO.Pdf.PdfTextWaterma
 OfficeIMO.Pdf.PdfCreateOptions.TextWatermark.set -> void
 OfficeIMO.Pdf.PdfCreateOptions.TextWhitespaceMode.get -> OfficeIMO.Pdf.PdfTextWhitespaceMode
 OfficeIMO.Pdf.PdfCreateOptions.TextWhitespaceMode.set -> void
+OfficeIMO.Pdf.PdfCreateOptions.Theme.get -> OfficeIMO.OfficeTheme?
+OfficeIMO.Pdf.PdfCreateOptions.Theme.set -> void
 OfficeIMO.Pdf.PdfCreateOptions.TrappingStatus.get -> OfficeIMO.Pdf.PdfTrappingStatus?
 OfficeIMO.Pdf.PdfCreateOptions.TrappingStatus.set -> void
 OfficeIMO.Pdf.PdfCreateOptions.TryRegisterDefaultDocumentMonospaceFontFallback(bool requireEmbeddedFont = false) -> bool
@@ -3986,9 +3990,10 @@ OfficeIMO.Pdf.PdfLayoutRegion.Width.get -> double
 OfficeIMO.Pdf.PdfLayoutRegion.X.get -> double
 OfficeIMO.Pdf.PdfLayoutRegion.Y.get -> double
 OfficeIMO.Pdf.PdfLineSpacing
+OfficeIMO.Pdf.PdfLineSpacing.Height.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Pdf.PdfLineSpacing.MultipleValue.get -> double?
 OfficeIMO.Pdf.PdfLineSpacing.NaturalMultiplier.get -> double
 OfficeIMO.Pdf.PdfLineSpacing.Rule.get -> OfficeIMO.Pdf.PdfLineSpacingRule
-OfficeIMO.Pdf.PdfLineSpacing.Value.get -> double
 OfficeIMO.Pdf.PdfLineSpacingRule
 OfficeIMO.Pdf.PdfLineSpacingRule.AtLeast = 2 -> OfficeIMO.Pdf.PdfLineSpacingRule
 OfficeIMO.Pdf.PdfLineSpacingRule.Exact = 1 -> OfficeIMO.Pdf.PdfLineSpacingRule
@@ -5737,14 +5742,14 @@ OfficeIMO.Pdf.PdfParagraphBuilder.Underline(bool enable = true) -> OfficeIMO.Pdf
 OfficeIMO.Pdf.PdfParagraphBuilder.Underlined(string! text, OfficeIMO.Drawing.OfficeTextDecorationStyle style, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.Underlined(string! text, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphStyle
-OfficeIMO.Pdf.PdfParagraphStyle.AddTabStop(double position, OfficeIMO.Pdf.PdfTabAlignment alignment = OfficeIMO.Pdf.PdfTabAlignment.Left, OfficeIMO.Pdf.PdfTabLeaderStyle leader = OfficeIMO.Pdf.PdfTabLeaderStyle.None) -> OfficeIMO.Pdf.PdfTabStop!
+OfficeIMO.Pdf.PdfParagraphStyle.AddTabStop(OfficeIMO.OfficeLength position, OfficeIMO.Pdf.PdfTabAlignment alignment = OfficeIMO.Pdf.PdfTabAlignment.Left, OfficeIMO.Pdf.PdfTabLeaderStyle leader = OfficeIMO.Pdf.PdfTabLeaderStyle.None) -> OfficeIMO.Pdf.PdfTabStop!
 OfficeIMO.Pdf.PdfParagraphStyle.ClearTabStops() -> void
 OfficeIMO.Pdf.PdfParagraphStyle.Clone() -> OfficeIMO.Pdf.PdfParagraphStyle!
-OfficeIMO.Pdf.PdfParagraphStyle.DefaultTabStopWidth.get -> double?
+OfficeIMO.Pdf.PdfParagraphStyle.DefaultTabStopWidth.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Pdf.PdfParagraphStyle.DefaultTabStopWidth.set -> void
-OfficeIMO.Pdf.PdfParagraphStyle.FirstLineIndent.get -> double
+OfficeIMO.Pdf.PdfParagraphStyle.FirstLineIndent.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfParagraphStyle.FirstLineIndent.set -> void
-OfficeIMO.Pdf.PdfParagraphStyle.FontSize.get -> double?
+OfficeIMO.Pdf.PdfParagraphStyle.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Pdf.PdfParagraphStyle.FontSize.set -> void
 OfficeIMO.Pdf.PdfParagraphStyle.JustificationMode.get -> OfficeIMO.Pdf.PdfJustificationMode
 OfficeIMO.Pdf.PdfParagraphStyle.JustificationMode.set -> void
@@ -5756,7 +5761,7 @@ OfficeIMO.Pdf.PdfParagraphStyle.KeepTogether.get -> bool
 OfficeIMO.Pdf.PdfParagraphStyle.KeepTogether.set -> void
 OfficeIMO.Pdf.PdfParagraphStyle.KeepWithNext.get -> bool
 OfficeIMO.Pdf.PdfParagraphStyle.KeepWithNext.set -> void
-OfficeIMO.Pdf.PdfParagraphStyle.LeftIndent.get -> double
+OfficeIMO.Pdf.PdfParagraphStyle.LeftIndent.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfParagraphStyle.LeftIndent.set -> void
 OfficeIMO.Pdf.PdfParagraphStyle.LineHeight.get -> double?
 OfficeIMO.Pdf.PdfParagraphStyle.LineHeight.set -> void
@@ -5767,11 +5772,11 @@ OfficeIMO.Pdf.PdfParagraphStyle.MinimumOrphanLines.set -> void
 OfficeIMO.Pdf.PdfParagraphStyle.MinimumWidowLines.get -> int
 OfficeIMO.Pdf.PdfParagraphStyle.MinimumWidowLines.set -> void
 OfficeIMO.Pdf.PdfParagraphStyle.PdfParagraphStyle() -> void
-OfficeIMO.Pdf.PdfParagraphStyle.RightIndent.get -> double
+OfficeIMO.Pdf.PdfParagraphStyle.RightIndent.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfParagraphStyle.RightIndent.set -> void
-OfficeIMO.Pdf.PdfParagraphStyle.SpacingAfter.get -> double?
+OfficeIMO.Pdf.PdfParagraphStyle.SpacingAfter.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Pdf.PdfParagraphStyle.SpacingAfter.set -> void
-OfficeIMO.Pdf.PdfParagraphStyle.SpacingBefore.get -> double
+OfficeIMO.Pdf.PdfParagraphStyle.SpacingBefore.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfParagraphStyle.SpacingBefore.set -> void
 OfficeIMO.Pdf.PdfParagraphStyle.TabStops.get -> System.Collections.Generic.IList<OfficeIMO.Pdf.PdfTabStop!>!
 OfficeIMO.Pdf.PdfParagraphStyle.TextWhitespaceMode.get -> OfficeIMO.Pdf.PdfTextWhitespaceMode?
@@ -7507,15 +7512,15 @@ OfficeIMO.Pdf.PdfTabStop.Alignment.get -> OfficeIMO.Pdf.PdfTabAlignment
 OfficeIMO.Pdf.PdfTabStop.Alignment.set -> void
 OfficeIMO.Pdf.PdfTabStop.BarColor.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfTabStop.BarColor.set -> void
-OfficeIMO.Pdf.PdfTabStop.BarWidth.get -> double
+OfficeIMO.Pdf.PdfTabStop.BarWidth.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTabStop.BarWidth.set -> void
 OfficeIMO.Pdf.PdfTabStop.Clone() -> OfficeIMO.Pdf.PdfTabStop!
 OfficeIMO.Pdf.PdfTabStop.DecimalSeparator.get -> char?
 OfficeIMO.Pdf.PdfTabStop.DecimalSeparator.set -> void
 OfficeIMO.Pdf.PdfTabStop.Leader.get -> OfficeIMO.Pdf.PdfTabLeaderStyle
 OfficeIMO.Pdf.PdfTabStop.Leader.set -> void
-OfficeIMO.Pdf.PdfTabStop.PdfTabStop(double position, OfficeIMO.Pdf.PdfTabAlignment alignment = OfficeIMO.Pdf.PdfTabAlignment.Left, OfficeIMO.Pdf.PdfTabLeaderStyle leader = OfficeIMO.Pdf.PdfTabLeaderStyle.None) -> void
-OfficeIMO.Pdf.PdfTabStop.Position.get -> double
+OfficeIMO.Pdf.PdfTabStop.PdfTabStop(OfficeIMO.OfficeLength position, OfficeIMO.Pdf.PdfTabAlignment alignment = OfficeIMO.Pdf.PdfTabAlignment.Left, OfficeIMO.Pdf.PdfTabLeaderStyle leader = OfficeIMO.Pdf.PdfTabLeaderStyle.None) -> void
+OfficeIMO.Pdf.PdfTabStop.Position.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTabStop.Position.set -> void
 OfficeIMO.Pdf.PdfTableAnchor
 OfficeIMO.Pdf.PdfTableAnchor.Flow = 0 -> OfficeIMO.Pdf.PdfTableAnchor
@@ -7634,6 +7639,14 @@ OfficeIMO.Pdf.PdfTableOfContentsOptions.PageNumberFormatter.set -> void
 OfficeIMO.Pdf.PdfTableOfContentsOptions.PdfTableOfContentsOptions() -> void
 OfficeIMO.Pdf.PdfTableOfContentsOptions.Title.get -> string?
 OfficeIMO.Pdf.PdfTableOfContentsOptions.Title.set -> void
+OfficeIMO.Pdf.PdfTableOptions
+OfficeIMO.Pdf.PdfTableOptions.Align.get -> OfficeIMO.Pdf.PdfAlign
+OfficeIMO.Pdf.PdfTableOptions.Align.set -> void
+OfficeIMO.Pdf.PdfTableOptions.PdfTableOptions() -> void
+OfficeIMO.Pdf.PdfTableOptions.Projection.get -> OfficeIMO.Data.ObjectFlattenerOptions?
+OfficeIMO.Pdf.PdfTableOptions.Projection.set -> void
+OfficeIMO.Pdf.PdfTableOptions.Style.get -> OfficeIMO.Pdf.PdfTableStyle?
+OfficeIMO.Pdf.PdfTableOptions.Style.set -> void
 OfficeIMO.Pdf.PdfTablePosition
 OfficeIMO.Pdf.PdfTablePosition.AllowOverlap.get -> bool
 OfficeIMO.Pdf.PdfTablePosition.DistanceBottom.get -> double
@@ -8737,8 +8750,8 @@ static OfficeIMO.Pdf.PdfImageExportExtensions.SaveAsImages(this OfficeIMO.Pdf.Pd
 static OfficeIMO.Pdf.PdfImageExportExtensions.SaveAsImagesAsync(this OfficeIMO.Pdf.PdfDocument! document, string! folderPath, OfficeIMO.Pdf.PdfImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
 static OfficeIMO.Pdf.PdfKeyValueRow.Rich(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTextRun!>! keyRuns, System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTextRun!>! valueRuns) -> OfficeIMO.Pdf.PdfKeyValueRow!
 static OfficeIMO.Pdf.PdfKeyValueRow.Text(string? key, string? value) -> OfficeIMO.Pdf.PdfKeyValueRow!
-static OfficeIMO.Pdf.PdfLineSpacing.AtLeast(double points, double naturalMultiplier = 1.4) -> OfficeIMO.Pdf.PdfLineSpacing!
-static OfficeIMO.Pdf.PdfLineSpacing.Exactly(double points) -> OfficeIMO.Pdf.PdfLineSpacing!
+static OfficeIMO.Pdf.PdfLineSpacing.AtLeast(OfficeIMO.OfficeLength height, double naturalMultiplier = 1.4) -> OfficeIMO.Pdf.PdfLineSpacing!
+static OfficeIMO.Pdf.PdfLineSpacing.Exact(OfficeIMO.OfficeLength height) -> OfficeIMO.Pdf.PdfLineSpacing!
 static OfficeIMO.Pdf.PdfLineSpacing.Multiple(double multiplier) -> OfficeIMO.Pdf.PdfLineSpacing!
 static OfficeIMO.Pdf.PdfListItem.Plain(string! text, string? bookmarkName = null, string? marker = null) -> OfficeIMO.Pdf.PdfListItem!
 static OfficeIMO.Pdf.PdfListItem.Rich(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTextRun!>! runs, string? bookmarkName = null, string? marker = null) -> OfficeIMO.Pdf.PdfListItem!
@@ -8908,6 +8921,7 @@ static OfficeIMO.Pdf.PdfTextRun.Tab(OfficeIMO.Pdf.PdfTabLeaderStyle leader = Off
 static OfficeIMO.Pdf.PdfTextRun.Tab(OfficeIMO.Pdf.PdfTabLeaderStyle leader) -> OfficeIMO.Pdf.PdfTextRun!
 static OfficeIMO.Pdf.PdfTextRun.Underlined(string! text, OfficeIMO.OfficeColor? color = null, double? fontSize = null, OfficeIMO.OfficeColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
 static OfficeIMO.Pdf.PdfTheme.Compact() -> OfficeIMO.Pdf.PdfTheme!
+static OfficeIMO.Pdf.PdfTheme.FromOfficeTheme(OfficeIMO.OfficeTheme! theme) -> OfficeIMO.Pdf.PdfTheme!
 static OfficeIMO.Pdf.PdfTheme.Report() -> OfficeIMO.Pdf.PdfTheme!
 static OfficeIMO.Pdf.PdfTheme.TechnicalDocument() -> OfficeIMO.Pdf.PdfTheme!
 static OfficeIMO.Pdf.PdfTheme.WordLike() -> OfficeIMO.Pdf.PdfTheme!
@@ -8921,16 +8935,3 @@ static OfficeIMO.Pdf.PdfXIdentification.PdfX1A2003() -> OfficeIMO.Pdf.PdfXIdenti
 static OfficeIMO.Pdf.PdfXIdentification.PdfX4() -> OfficeIMO.Pdf.PdfXIdentification!
 static OfficeIMO.Pdf.PdfXProductionMetadata.CreateNow() -> OfficeIMO.Pdf.PdfXProductionMetadata!
 virtual OfficeIMO.Pdf.PdfTextHyphenationCallback.Invoke(string! token) -> System.Collections.Generic.IReadOnlyList<int>!
-OfficeIMO.Pdf.PdfContentBuilder.Table<T>(System.Collections.Generic.IEnumerable<T>! rows) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.Table<T>(System.Collections.Generic.IEnumerable<T>! rows, OfficeIMO.OfficeTableOptions? options) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfTableOptions
-OfficeIMO.Pdf.PdfTableOptions.PdfTableOptions() -> void
-OfficeIMO.Pdf.PdfTableOptions.Align.get -> OfficeIMO.Pdf.PdfAlign
-OfficeIMO.Pdf.PdfTableOptions.Align.set -> void
-OfficeIMO.Pdf.PdfTableOptions.Style.get -> OfficeIMO.Pdf.PdfTableStyle?
-OfficeIMO.Pdf.PdfTableOptions.Style.set -> void
-OfficeIMO.Pdf.PdfTableOptions.Projection.get -> OfficeIMO.Data.ObjectFlattenerOptions?
-OfficeIMO.Pdf.PdfTableOptions.Projection.set -> void
-OfficeIMO.Pdf.PdfCreateOptions.Theme.get -> OfficeIMO.OfficeTheme?
-OfficeIMO.Pdf.PdfCreateOptions.Theme.set -> void
-static OfficeIMO.Pdf.PdfTheme.FromOfficeTheme(OfficeIMO.OfficeTheme! theme) -> OfficeIMO.Pdf.PdfTheme!

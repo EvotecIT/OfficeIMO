@@ -201,7 +201,7 @@ public partial class PdfUnderstandingPipelineTests {
     public void Pipeline_UsesCallerSuppliedStageAndRecordsItsProvider() {
         byte[] pdf = PdfDocument.Create()
             .Paragraph(p => p.Text("Top region"))
-            .Paragraph(p => p.Text("Bottom region"), style: new PdfParagraphStyle { SpacingBefore = 40 })
+            .Paragraph(p => p.Text("Bottom region"), style: new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(40) })
             .ToBytes();
         var custom = new ReverseReadingOrderStage();
         var options = new PdfUnderstandingPipelineOptions { ReadingOrder = custom };

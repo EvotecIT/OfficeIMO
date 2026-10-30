@@ -126,11 +126,11 @@ public class PdfColumnContentBalancingTests {
     };
 
     private static PdfParagraphStyle ParagraphStyle() => new() {
-        LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false
+        LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
     };
 
     private static PdfListStyle ListStyle() => new() {
-        LineSpacing = PdfLineSpacing.Exactly(20), ItemSpacing = 0, SpacingBefore = 0, SpacingAfter = 0
+        LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), ItemSpacing = 0, SpacingBefore = 0, SpacingAfter = 0
     };
 
     private static PdfTableStyle TableStyle() => new() {

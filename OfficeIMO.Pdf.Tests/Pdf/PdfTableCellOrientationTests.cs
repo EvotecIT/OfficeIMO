@@ -21,7 +21,7 @@ public sealed class PdfTableCellOrientationTests {
         style.CellPaddingX = 2; style.CellPaddingY = 2;
         var paragraphs = new[] { "ABCD", "EFGH", "IJKL", "MNOP", "QRST" }
             .Select(text => new PdfTableCellParagraph(new[] { PdfTextRun.Normal(text) },
-                fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(6))).ToArray();
+                fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(6)))).ToArray();
         var cell = new PdfTableCell(paragraphs.SelectMany(paragraph => paragraph.Runs), paragraphs,
             textRotation: rotation, linkUri: "https://example.com/turned-clip");
         var cells = new[] { new[] { cell } };

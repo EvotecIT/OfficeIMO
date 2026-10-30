@@ -59,7 +59,7 @@ internal static class PdfPlainTextConverter {
         PdfDocument document = PdfDocument.CreateForImportedLayout(pdfOptions);
         string[] pages = normalized.ToString().Split('\f');
         if (pages.Length > settings.MaximumPages) throw new InvalidDataException("Plain text exceeds the explicit page limit.");
-        var style = new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0, LineHeight = 1.2 };
+        var style = new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), LineHeight = 1.2 };
         for (int index = 0; index < pages.Length; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             if (index > 0) document.Content.PageBreak();

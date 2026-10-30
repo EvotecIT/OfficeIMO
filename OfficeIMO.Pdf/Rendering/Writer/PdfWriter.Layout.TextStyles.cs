@@ -49,7 +49,7 @@ internal static partial class PdfWriter {
     }
 
     private static double GetParagraphSpacingBefore(PdfParagraphStyle? style) {
-        double spacingBefore = style?.SpacingBefore ?? 0;
+        double spacingBefore = style?.SpacingBefore.ToPoints() ?? 0;
         if (spacingBefore < 0 || double.IsNaN(spacingBefore) || double.IsInfinity(spacingBefore)) {
             throw new ArgumentException("Paragraph spacing before must be a non-negative finite value.");
         }
@@ -58,7 +58,7 @@ internal static partial class PdfWriter {
     }
 
     private static double GetParagraphSpacingAfter(PdfParagraphStyle? style, double leading) {
-        double spacingAfter = style?.SpacingAfter ?? leading * 0.3;
+        double spacingAfter = style?.SpacingAfter?.ToPoints() ?? leading * 0.3;
         if (spacingAfter < 0 || double.IsNaN(spacingAfter) || double.IsInfinity(spacingAfter)) {
             throw new ArgumentException("Paragraph spacing after must be a non-negative finite value.");
         }
@@ -67,7 +67,7 @@ internal static partial class PdfWriter {
     }
 
     private static double GetParagraphTabStopWidth(PdfParagraphStyle? style) {
-        double tabStopWidth = style?.DefaultTabStopWidth ?? DefaultParagraphTabStopWidth;
+        double tabStopWidth = style?.DefaultTabStopWidth?.ToPoints() ?? DefaultParagraphTabStopWidth;
         if (tabStopWidth <= 0 || double.IsNaN(tabStopWidth) || double.IsInfinity(tabStopWidth)) {
             throw new ArgumentException("Paragraph default tab stop width must be a positive finite value.");
         }
@@ -204,9 +204,9 @@ internal static partial class PdfWriter {
     }
 
     private static (double X, double Width, double FirstLineX, double FirstLineWidth) GetParagraphTextFrame(PdfParagraphStyle? style, double x, double width) {
-        double leftIndent = style?.LeftIndent ?? 0;
-        double rightIndent = style?.RightIndent ?? 0;
-        double firstLineIndent = style?.FirstLineIndent ?? 0;
+        double leftIndent = style?.LeftIndent.ToPoints() ?? 0;
+        double rightIndent = style?.RightIndent.ToPoints() ?? 0;
+        double firstLineIndent = style?.FirstLineIndent.ToPoints() ?? 0;
         if (double.IsNaN(leftIndent) || double.IsInfinity(leftIndent)) {
             throw new ArgumentException("Paragraph left indent must be a finite value.");
         }

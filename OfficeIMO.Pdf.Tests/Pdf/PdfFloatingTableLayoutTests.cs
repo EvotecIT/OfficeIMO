@@ -13,9 +13,9 @@ public class PdfFloatingTableLayoutTests {
     public void FloatingTableKeepWithNextTransfersFullWidthFloatAndClearedLineTogether(bool importedMultipleSpacing) {
         var style = Floating(320, 70); style.KeepWithNext = true;
         var paragraphStyle = importedMultipleSpacing
-            ? new PdfParagraphStyle { FontSize = 10D, SpacingBefore = 0D, SpacingAfter = 0D,
+            ? new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(10D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D),
                 LineSpacing = PdfLineSpacing.Multiple(2.8D).WithFontLineBoxBaseline(1.4D) }
-            : new PdfParagraphStyle { SpacingAfter = 0D };
+            : new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) };
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240)).Canvas(c => c.Text("before", 40, 10, 100, 20)).Spacer(80)
             .Table(new[] { new[] { "floating" } }, style: style)
             .Paragraph(p => p.Text("below"), style: paragraphStyle).ToBytes());
@@ -29,7 +29,7 @@ public class PdfFloatingTableLayoutTests {
     public void OuterKeptFlowAccountsForNestedKeptFlowClearance() {
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240)).Canvas(c => c.Text("before", 40, 10, 100, 20)).Spacer(60).Flow(flow => {
             flow.Table(new[] { new[] { "floating" } }, style: Floating(100, 70));
-            flow.Flow(nested => nested.Paragraph(p => p.Text("below"), style: new PdfParagraphStyle { LineHeight = 3.75, SpacingAfter = 0 }),
+            flow.Flow(nested => nested.Paragraph(p => p.Text("below"), style: new PdfParagraphStyle { LineHeight = 3.75, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }),
                 new PdfFlowOptions { KeepTogether = true });
         }, new PdfFlowOptions { KeepTogether = true }).ToBytes());
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "floating");
@@ -60,7 +60,7 @@ public class PdfFloatingTableLayoutTests {
             if (kind == 0) flow.Semantic(PdfSemanticRole.Section, Paint);
             else if (kind == 1) flow.Layer("float", Paint);
             else flow.Flow(Paint);
-            flow.Paragraph(p => p.Text("alongside"), style: new PdfParagraphStyle { SpacingAfter = 0 });
+            flow.Paragraph(p => p.Text("alongside"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
         }, new PdfFlowOptions { KeepTogether = true, OverflowBehavior = PdfFlowOverflowBehavior.Skip }).ToBytes());
         Assert.Contains(pdf.GetPage(1).GetWords(), w => w.Text == "alongside");
     }
@@ -71,7 +71,7 @@ public class PdfFloatingTableLayoutTests {
     public void FloatingClearanceIsIncludedExactlyOnceInFlowMeasurement(PdfFlowOverflowBehavior overflow) {
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240)).Spacer(60).Flow(flow => {
             flow.Table(new[] { new[] { "floating" } }, style: Floating(320, 70));
-            flow.Paragraph(p => p.Text("below"), style: new PdfParagraphStyle { SpacingAfter = 0 });
+            flow.Paragraph(p => p.Text("below"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
         }, new PdfFlowOptions { OverflowBehavior = overflow }).ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.Contains(pdf.GetPage(1).GetWords(), w => w.Text == "below");
@@ -82,7 +82,7 @@ public class PdfFloatingTableLayoutTests {
         var style = Floating(100, 60); style.KeepWithNext = true;
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240)).Spacer(100)
             .Table(new[] { new[] { "floating" } }, style: style)
-            .Paragraph(p => p.Text("alongside"), style: new PdfParagraphStyle { SpacingAfter = 0 }).ToBytes());
+            .Paragraph(p => p.Text("alongside"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }).ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.Contains(pdf.GetPage(1).GetWords(), w => w.Text == "alongside");
     }
@@ -120,7 +120,7 @@ public class PdfFloatingTableLayoutTests {
         var capture = new PdfLayoutPositionCapture();
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240)).Spacer(60).Flow(flow => {
             flow.Table(new[] { new[] { "floating" } }, style: style);
-            flow.Paragraph(p => p.Text("alongside"), style: new PdfParagraphStyle { SpacingAfter = 0 });
+            flow.Paragraph(p => p.Text("alongside"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
         }, new PdfFlowOptions { KeepTogether = true, OverflowBehavior = overflow }, capture: capture).ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.Contains(pdf.GetPage(1).GetWords(), w => w.Text == "alongside");
@@ -135,7 +135,7 @@ public class PdfFloatingTableLayoutTests {
         string text = string.Join("\n", Enumerable.Range(0, heading ? 8 : 15).Select(i => "line" + i));
         byte[] bytes = PdfDocument.Create(Options(240)).Flow(flow => {
             if (heading) flow.H1(text);
-            else flow.Paragraph(p => p.Text(text), style: new PdfParagraphStyle { LineHeight = 1, SpacingAfter = 0 });
+            else flow.Paragraph(p => p.Text(text), style: new PdfParagraphStyle { LineHeight = 1, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
             flow.Table(new[] { new[] { "floating" } }, style: Floating(120, 30));
         }, capture: capture).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
@@ -196,7 +196,7 @@ public class PdfFloatingTableLayoutTests {
             .Table(new[] { new[] { "floating" } }, style: Floating(320, 80))
             .Columns(columns => {
                 for (int index = 0; index < 12; index++) columns.Paragraph(p => p.Text("item" + index),
-                    style: new PdfParagraphStyle { SpacingAfter = 0, LineHeight = 1 });
+                    style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), LineHeight = 1 });
             }, new PdfMultiColumnOptions { ColumnCount = 2, BalanceLastPage = false }).ToBytes());
         var first = pdf.GetPage(1).GetWords().Where(w => w.Text.StartsWith("item")).Select(w => int.Parse(w.Text.Substring(4))).OrderBy(i => i).ToArray();
         Assert.Equal(Enumerable.Range(0, first.Length), first);
@@ -235,7 +235,7 @@ public class PdfFloatingTableLayoutTests {
             .Bookmark("target");
         byte[] bytes = document.Paragraph(p => p.Text("targetword"), style: new PdfParagraphStyle {
             // A 15.4-point line cannot fit in the 15 points remaining below the tall float.
-            FontSize = 11, LineHeight = 1.4, SpacingBefore = 0, SpacingAfter = 0
+            FontSize = global::OfficeIMO.OfficeLength.Points(11), LineHeight = 1.4, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         }).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         var destination = Assert.Single(PdfInspector.Inspect(bytes).NamedDestinations);

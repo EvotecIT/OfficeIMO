@@ -159,7 +159,7 @@ public class PdfImportedColumnPreferenceTests {
         } else {
             leftText = "ABCDEFGHIJ";
             var metric = PdfDocument.Create(ConstrainedImportedPreferenceOptions());
-            metric.Content.Text(leftText, style: new PdfParagraphStyle { FontSize = 10D, SpacingAfter = 0D });
+            metric.Content.Text(leftText, style: new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(10D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) });
             using var metricPdf = PdfPigDocument.Open(metric.ToBytes());
             var measured = Assert.Single(metricPdf.GetPages()).Letters;
             minimumContentWidth = measured[measured.Count - 1].EndBaseLine.X - measured[0].StartBaseLine.X;

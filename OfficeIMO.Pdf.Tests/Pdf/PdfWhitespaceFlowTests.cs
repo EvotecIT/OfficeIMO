@@ -152,7 +152,7 @@ public sealed class PdfWhitespaceFlowTests {
         DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D),
         PageWidth = global::OfficeIMO.OfficeLength.Points(136D), PageHeight = global::OfficeIMO.OfficeLength.Points(240D),
         MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
-        DefaultParagraphStyle = new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exactly(14.4D) },
+        DefaultParagraphStyle = new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(14.4D)) },
         TextWhitespaceMode = mode
     };
 
@@ -271,7 +271,7 @@ public sealed class PdfWhitespaceFlowTests {
     public void ATabFollowedBySpaceRetainsItsStopAndLeader(PdfTextWhitespaceMode mode, bool explicitStop, bool inline) {
         PdfCreateOptions options = Options(mode);
         PdfParagraphStyle style = options.DefaultParagraphStyle!;
-        if (explicitStop) style.AddTabStop(60D, leader: PdfTabLeaderStyle.Dots);
+        if (explicitStop) style.AddTabStop(global::OfficeIMO.OfficeLength.Points(60D), leader: PdfTabLeaderStyle.Dots);
         byte[] Render(bool space) {
             var runs = new List<PdfTextRun> { PdfTextRun.Normal("A\t" + (space ? " " : "")) };
             if (inline) runs.Add(PdfTextRun.Inline(new PdfInlineBox(10D, 8D)));
@@ -325,7 +325,7 @@ public sealed class PdfWhitespaceFlowTests {
     public void BufferedTabUsesTheFollowingSpaceAndContentForAlignment(
         PdfTextWhitespaceMode mode, PdfTabAlignment align, bool inline, double delta) {
         PdfCreateOptions options = Options(mode);
-        PdfParagraphStyle style = options.DefaultParagraphStyle!; style.AddTabStop(60D, align);
+        PdfParagraphStyle style = options.DefaultParagraphStyle!; style.AddTabStop(global::OfficeIMO.OfficeLength.Points(60D), align);
         byte[] Render(bool space) {
             var runs = new List<PdfTextRun> { PdfTextRun.Normal("A\t" + (space ? " " : "")) };
             if (inline) runs.Add(PdfTextRun.Inline(new PdfInlineBox(10D, 8D)));
@@ -366,7 +366,7 @@ public sealed class PdfWhitespaceFlowTests {
 
     private static byte[] RenderCell(PdfCreateOptions options, PdfTextRun[] runs, bool columns, double secondColumnWidth = 128D) {
         var cells = new[] { new[] { new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs,
-            fontSize: 12D, lineSpacing: PdfLineSpacing.Exactly(14.4D), widowControl: false) }) } };
+            fontSize: 12D, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(14.4D)), widowControl: false) }) } };
         var style = new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0,
             BorderWidth = 0, RowSeparatorWidth = 0, FontSize = 12D, SpacingBefore = 0, SpacingAfter = 0 };
         PdfDocument document = PdfDocument.Create(options);

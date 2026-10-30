@@ -166,8 +166,8 @@ public sealed partial class PdfReadLayoutSmokeTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultParagraphStyle = new PdfParagraphStyle {
-                    DefaultTabStopWidth = 160,
-                    SpacingAfter = 0
+                    DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(160),
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                 }
             })
             .Paragraph(p => p.Text("Fallback table row").Tab().Text("12345"))

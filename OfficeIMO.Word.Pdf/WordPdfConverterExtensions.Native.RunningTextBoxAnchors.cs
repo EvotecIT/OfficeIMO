@@ -18,8 +18,8 @@ public static partial class WordPdfConverterExtensions {
                 paragraph, runs, marker, notes, options, defaults, fontMap, out var prepared)) return false;
         WordParagraph[] selected = prepared!.Runs;
         string text = string.Concat(selected.Select(run => run.Text));
-        if (ShouldSuppressNativeContextualSpacingAfter(paragraph, nextParagraph)) prepared.Style.SpacingAfter = 0D;
-        if (ShouldSuppressNativeContextualSpacingBefore(paragraph)) prepared.Style.SpacingBefore = 0D;
+        if (ShouldSuppressNativeContextualSpacingAfter(paragraph, nextParagraph)) prepared.Style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
+        if (ShouldSuppressNativeContextualSpacingBefore(paragraph)) prepared.Style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
         pdf.Paragraph(builder => AddNativeParagraphContent(builder, paragraph, null, selected, true, text,
             Array.Empty<int>(), notes, options, defaults, fontMap, projectedContentOnly: true),
             PdfCore.PdfAlign.Left, style: prepared.Style);
@@ -60,7 +60,7 @@ public static partial class WordPdfConverterExtensions {
         // warned flow until an asymmetric mirrored exclusion is qualified.
         if (ShouldMirrorNativeMargins(defaults.RunningContentSection, options) &&
             margins.Left.ToPoints() != margins.Right.ToPoints()) return false;
-        double textLeft = margins.Left.ToPoints() + paragraphStyle.LeftIndent + paragraphStyle.FirstLineIndent;
+        double textLeft = margins.Left.ToPoints() + paragraphStyle.LeftIndent.ToPoints() + paragraphStyle.FirstLineIndent.ToPoints();
         double textWidth = 0D;
         foreach (WordParagraph run in surrounding) {
             NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(run, paragraph, nativeDefaults: defaults, nativeFontMap: fontMap);
@@ -72,7 +72,7 @@ public static partial class WordPdfConverterExtensions {
             }
         }
         double contentWidth = defaults.RunningContentContext?.ContentWidth ?? pageSize.Width.ToPoints() - margins.Left.ToPoints() - margins.Right.ToPoints();
-        if (textLeft + textWidth > margins.Left.ToPoints() + contentWidth - paragraphStyle.RightIndent) return false;
+        if (textLeft + textWidth > margins.Left.ToPoints() + contentWidth - paragraphStyle.RightIndent.ToPoints()) return false;
         var canvas = new PdfCore.PdfPageCanvas();
         foreach (WordTextBox box in boxes.OrderBy(box => box.ZOrder)) {
             options?.CancellationToken.ThrowIfCancellationRequested();

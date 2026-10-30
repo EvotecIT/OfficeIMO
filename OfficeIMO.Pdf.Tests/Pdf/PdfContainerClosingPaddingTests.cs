@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests.Pdf {
                 MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
             };
             var paragraphStyle = new PdfParagraphStyle {
-                FontSize = 10D, SpacingBefore = 0D, SpacingAfter = 0D, WidowControl = false,
+                FontSize = global::OfficeIMO.OfficeLength.Points(10D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D), WidowControl = false,
                 LineSpacing = PdfLineSpacing.Multiple(lineAdvance / 10D).WithFontLineBoxBaseline(1.4D)
             };
             var firstStyle = new PdfPanelStyle {
@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests.Pdf {
             return PdfDocument.Create(options)
                 .Panel(panel => panel.Paragraph(p => p.Text("First"), style: paragraphStyle), firstStyle)
                 .Panel(panel => panel.Paragraph(p => p.Text("Next"), style: new PdfParagraphStyle {
-                    FontSize = 10D, SpacingBefore = 0D, SpacingAfter = 0D, LineSpacing = PdfLineSpacing.Exactly(10D)
+                    FontSize = global::OfficeIMO.OfficeLength.Points(10D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10D))
                 }), nextStyle).ToBytes();
         }
     }

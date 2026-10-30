@@ -4,7 +4,7 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void AppendFootnoteParagraph(RichParagraphBlock paragraph, PdfParagraphStyle? style,
             double frameX, double frameWidth, FootnotePanel[] panels, List<FootnoteUnit> units) {
-            double size = style?.FontSize ?? currentOpts.DefaultFontSize.ToPoints();
+            double size = style?.FontSize?.ToPoints() ?? currentOpts.DefaultFontSize.ToPoints();
             double leading = GetParagraphLeading(style, size);
             var frame = GetParagraphTextFrame(style, frameX, frameWidth);
             var wrapped = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, frame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,

@@ -15,7 +15,7 @@ public partial class PdfPageFootnoteTests {
     };
 
     private static PdfParagraphStyle Style() => new() {
-        FontSize = 8, LineSpacing = PdfLineSpacing.Exactly(10), SpacingBefore = 0, SpacingAfter = 0
+        FontSize = global::OfficeIMO.OfficeLength.Points(8), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
     };
 
     [Fact]
@@ -99,7 +99,7 @@ public partial class PdfPageFootnoteTests {
     public void ImpossibleFirstFragmentAndContinuationPageLimitFailWithoutUnboundedPagination() {
         var doc = PdfDocument.Create(Options());
         var note = doc.Content.DefineFootnote(body => body.Text("OversizedNote", style: new PdfParagraphStyle {
-            FontSize = 8, LineSpacing = PdfLineSpacing.Exactly(110), SpacingAfter = 0
+            FontSize = global::OfficeIMO.OfficeLength.Points(8), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(110)), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         }));
         doc.Content.Paragraph(p => p.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
         Assert.Throws<ArgumentException>(() => doc.ToBytes());

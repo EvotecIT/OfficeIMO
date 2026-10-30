@@ -46,7 +46,7 @@ public sealed class PdfTableCellPaginationTests {
     private static PdfTableCell Cell(string text, bool? widowControl, bool keepTogether = false) {
         var runs = new[] { PdfTextRun.Normal(text) };
         return new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: 12,
-            lineSpacing: PdfLineSpacing.Exactly(20), widowControl: widowControl, keepTogether: keepTogether) });
+            lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), widowControl: widowControl, keepTogether: keepTogether) });
     }
 
     [Theory]
@@ -75,8 +75,8 @@ public sealed class PdfTableCellPaginationTests {
         var first = new[] { PdfTextRun.Normal("JoinedFirst") };
         var next = new[] { PdfTextRun.Normal("NextOne\nNextTwo\nNextThree") };
         var cell = new PdfTableCell(first.Concat(next), new[] {
-            new PdfTableCellParagraph(first, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(20), widowControl: false, keepWithNext: keepWithNext),
-            new PdfTableCellParagraph(next, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(20), widowControl: false)
+            new PdfTableCellParagraph(first, fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), widowControl: false, keepWithNext: keepWithNext),
+            new PdfTableCellParagraph(next, fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), widowControl: false)
         });
         var cells = new[] {
             new[] { Cell(string.Join("\n", Enumerable.Range(1, 15).Select(line => "Prelude" + line)), false) }, new[] { cell }

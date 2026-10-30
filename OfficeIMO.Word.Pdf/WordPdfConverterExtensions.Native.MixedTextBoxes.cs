@@ -25,8 +25,8 @@ public static partial class WordPdfConverterExtensions {
         var emittedNoteKeys = new HashSet<NativeNoteKey>();
         var pending = new List<WordParagraph>();
         var paragraphStyle = CreateNativeParagraphStyle(paragraph, defaults, fontMap);
-        if (paragraphStyle.SpacingBefore is > 0D)
-            pdf.ParagraphSpacingBefore(paragraphStyle.SpacingBefore);
+        if (paragraphStyle.SpacingBefore.ToPoints() is > 0D)
+            pdf.ParagraphSpacingBefore(paragraphStyle.SpacingBefore.ToPoints());
         bool first = true;
         bool emittedOwnParagraph = false;
         foreach (WordParagraph run in GetNativeMixedTextBoxContentRuns(paragraph, runs, cancellationToken)) {
@@ -48,8 +48,8 @@ public static partial class WordPdfConverterExtensions {
                     if (HasNativeParagraphShapeGroups(new[] { view })) {
                         Flush();
                         var groupStyle = CreateNativeParagraphStyle(paragraph, defaults, fontMap);
-                        groupStyle.SpacingBefore = 0D;
-                        groupStyle.SpacingAfter = 0D;
+                        groupStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
+                        groupStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
                         RenderNativeParagraphShapeGroups(pdf, paragraph, new[] { view },
                             ResolveNativeParagraphAlign(paragraph, allowJustify: false), options, groupStyle, ref imageCount, null);
                         if (groupStyle.AnchoredCanvas != null) {
@@ -86,8 +86,8 @@ public static partial class WordPdfConverterExtensions {
         // from the styled lines actually emitted, not recursively read box text.
         RecordNativeParagraphBarTabDiagnostics(paragraph, options, "mixed text-box paragraph",
             omitted: !emittedOwnParagraph);
-        if (!ShouldSuppressNativeContextualSpacingAfter(paragraph, nextParagraph) && paragraphStyle.SpacingAfter is > 0D)
-            pdf.ParagraphSpacingAfter(paragraphStyle.SpacingAfter.Value);
+        if (!ShouldSuppressNativeContextualSpacingAfter(paragraph, nextParagraph) && (paragraphStyle.SpacingAfter?.ToPoints()) is > 0D)
+            pdf.ParagraphSpacingAfter(paragraphStyle.SpacingAfter.Value.ToPoints());
 
         void Flush() {
             bool visible = pending.Any(run => IsNativeRenderableTextRun(run, paragraph));
@@ -102,8 +102,8 @@ public static partial class WordPdfConverterExtensions {
                 ApplyNativeInlineListIndent(paragraph, style);
                 ApplyNativeInlineListMarkerAlignment(paragraph, currentMarker.Value.Marker, style, defaults, fontMap);
             }
-            style.SpacingBefore = 0D;
-            style.SpacingAfter = 0D;
+            style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
+            style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
             WordParagraph[] segment = pending.ToArray();
             string text = string.Concat(segment.Select(run => run.Text));
             pdf.Paragraph(builder => AddNativeParagraphContent(builder, paragraph, currentMarker,

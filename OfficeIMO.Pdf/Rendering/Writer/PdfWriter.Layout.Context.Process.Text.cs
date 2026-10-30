@@ -8,7 +8,7 @@ internal static partial class PdfWriter {
         private void RenderRichParagraphFlowBlock(RichParagraphBlock rpb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             double frameStart = GetCurrentFramePageStartY();
             PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(rpb);
-            double size = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize.ToPoints();
+            double size = paragraphStyle?.FontSize?.ToPoints() ?? currentOpts.DefaultFontSize.ToPoints();
             double leading = GetParagraphLeading(paragraphStyle, size);
             double spacingBefore = GetParagraphSpacingBefore(paragraphStyle);
             double spacingAfter = GetParagraphSpacingAfter(paragraphStyle, leading);
@@ -182,7 +182,7 @@ internal static partial class PdfWriter {
                 bool forcePhysicalPage = SkipColumnsForParagraphOverflow() || AdvancePastPartialColumn(firstBodyHeight);
                 if (activeColumnFlow?.Options.BalanceLastPage == true) {
                     PdfParagraphStyle continuationStyle = paragraphStyle?.Clone() ?? new PdfParagraphStyle();
-                    if (!firstLogicalLine) { continuationStyle.SpacingBefore = 0D; continuationStyle.FirstLineIndent = 0D; }
+                    if (!firstLogicalLine) { continuationStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D); continuationStyle.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(0D); }
                     var remainingRuns = firstLogicalLine ? rpb.Runs : BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
                     QueueColumnBalanceRemainder(new RichParagraphBlock(remainingRuns, rpb.Align, rpb.DefaultColor, continuationStyle), blockList, blockIndex,
                         forcePhysicalPage);
@@ -200,8 +200,8 @@ internal static partial class PdfWriter {
                     PdfParagraphStyle? continuation = paragraphStyle?.Clone();
                     if (!firstLogicalLine) {
                         continuation ??= new PdfParagraphStyle();
-                        continuation.SpacingBefore = 0D;
-                        continuation.FirstLineIndent = 0D;
+                        continuation.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
+                        continuation.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(0D);
                         continuation.AnchoredCanvas = null;
                     }
                     var remainder = new RichParagraphBlock(remaining, rpb.Align, rpb.DefaultColor, continuation);
@@ -245,7 +245,7 @@ internal static partial class PdfWriter {
                             if (segment.LeadingIsTab || segment.LeadingTabStop != null) {
                                 PdfTextRun? sourceTab = segment.SourceTabRun;
                                 PdfTabStop? stop = sourceTab?.RelativeTabStop is { } relative
-                                    ? new PdfTabStop(Math.Max(.001D, textFrame.Width * relative.Fraction + relative.Offset),
+                                    ? new PdfTabStop(global::OfficeIMO.OfficeLength.Points(Math.Max(.001D, textFrame.Width * relative.Fraction + relative.Offset)),
                                         sourceTab.TabAlignment, sourceTab.TabLeader)
                                     : TakeNextParagraphTabStop(destinationStops, lineWidth, ref nextDestinationStop);
                                 // Older positioned segments may have no source-run

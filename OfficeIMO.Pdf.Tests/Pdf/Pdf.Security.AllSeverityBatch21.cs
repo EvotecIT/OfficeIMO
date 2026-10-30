@@ -132,7 +132,7 @@ public class PdfAllSeverityBatch21Tests {
                 paragraph => paragraph.Text("This visible paragraph fits."),
                 style: new PdfParagraphStyle {
                     KeepTogether = true,
-                    SpacingBefore = 500
+                    SpacingBefore = global::OfficeIMO.OfficeLength.Points(500)
                 })
             .ToBytes();
 
@@ -157,7 +157,7 @@ public class PdfAllSeverityBatch21Tests {
                 paragraph => paragraph.Text("This paragraph fits after its spacing collapses."),
                 style: new PdfParagraphStyle {
                     KeepTogether = true,
-                    SpacingBefore = 500
+                    SpacingBefore = global::OfficeIMO.OfficeLength.Points(500)
                 })
             .ToBytes();
 

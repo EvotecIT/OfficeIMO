@@ -44,7 +44,7 @@ public sealed class RtfNaturalFontLineBoxTests {
         RtfDocument actualSource = RtfDocument.Read(prefix + @"\line\par B\par}").Document;
         RtfDocument emptyBoxes = RtfDocument.Read(prefix + @"\par\par B\par}").Document;
         RtfToPdfOptions options = Options();
-        Assert.IsType<PdfCreateOptions>(options.PdfOptions).DefaultFontSize = 64D;
+        Assert.IsType<PdfCreateOptions>(options.PdfOptions).DefaultFontSize = global::OfficeIMO.OfficeLength.Points(64D);
 
         using PdfPigDocument expected = PdfPigDocument.Open((emptyBoxes.ToPdf(options)).ToBytes());
         using PdfPigDocument actual = PdfPigDocument.Open((actualSource.ToPdf(options)).ToBytes());
@@ -63,7 +63,7 @@ public sealed class RtfNaturalFontLineBoxTests {
         RtfDocument actualSource = RtfDocument.Read(prefix + @"\tab\par B\par}").Document;
         RtfDocument emptyBox = RtfDocument.Read(prefix + @"\par B\par}").Document;
         RtfToPdfOptions options = Options();
-        Assert.IsType<PdfCreateOptions>(options.PdfOptions).DefaultFontSize = 64D;
+        Assert.IsType<PdfCreateOptions>(options.PdfOptions).DefaultFontSize = global::OfficeIMO.OfficeLength.Points(64D);
 
         using PdfPigDocument expected = PdfPigDocument.Open((emptyBox.ToPdf(options)).ToBytes());
         using PdfPigDocument actual = PdfPigDocument.Open((actualSource.ToPdf(options)).ToBytes());
@@ -99,7 +99,7 @@ public sealed class RtfNaturalFontLineBoxTests {
             return source;
         }
         RtfToPdfOptions options = Options();
-        Assert.IsType<PdfCreateOptions>(options.PdfOptions).DefaultFontSize = 64D;
+        Assert.IsType<PdfCreateOptions>(options.PdfOptions).DefaultFontSize = global::OfficeIMO.OfficeLength.Points(64D);
         using PdfPigDocument expected = PdfPigDocument.Open((Create(reference: true).ToPdf(options)).ToBytes());
         using PdfPigDocument actual = PdfPigDocument.Open((Create(reference: false).ToPdf(options)).ToBytes());
         Letter[] referenceLetters = Markers(expected, "A", "B");
@@ -118,7 +118,7 @@ public sealed class RtfNaturalFontLineBoxTests {
         AddText(paragraph, "\t", 24, normal);
         AddText(source.AddParagraph(), "B", 12, normal);
         RtfToPdfOptions options = Options();
-        Assert.IsType<PdfCreateOptions>(options.PdfOptions).DefaultFontSize = 64D;
+        Assert.IsType<PdfCreateOptions>(options.PdfOptions).DefaultFontSize = global::OfficeIMO.OfficeLength.Points(64D);
 
         using PdfPigDocument pdf = PdfPigDocument.Open((source.ToPdf(options)).ToBytes());
         Letter[] letters = Markers(pdf, "A", "B");
@@ -259,7 +259,7 @@ public sealed class RtfNaturalFontLineBoxTests {
         RtfDocument source = RtfDocument.Read(
             @"{\rtf1\ansi\deff0{\fonttbl{\f0 Arial;}}\plain A\par B\par}").Document;
         RtfToPdfOptions options = Options();
-        Assert.IsType<PdfCreateOptions>(options.PdfOptions).DefaultFontSize = 64D;
+        Assert.IsType<PdfCreateOptions>(options.PdfOptions).DefaultFontSize = global::OfficeIMO.OfficeLength.Points(64D);
 
         using PdfPigDocument pdf = PdfPigDocument.Open((source.ToPdf(options)).ToBytes());
         Letter[] letters = Markers(pdf, "A", "B");
@@ -295,7 +295,7 @@ public sealed class RtfNaturalFontLineBoxTests {
         AddText(paragraph, "B", 24, normal).VerticalPosition = RtfVerticalPosition.Superscript;
         RtfToPdfOptions smallDefault = Options();
         RtfToPdfOptions largeDefault = Options();
-        Assert.IsType<PdfCreateOptions>(largeDefault.PdfOptions).DefaultFontSize = 64D;
+        Assert.IsType<PdfCreateOptions>(largeDefault.PdfOptions).DefaultFontSize = global::OfficeIMO.OfficeLength.Points(64D);
 
         using PdfPigDocument expected = PdfPigDocument.Open((source.ToPdf(smallDefault)).ToBytes());
         using PdfPigDocument actual = PdfPigDocument.Open((source.ToPdf(largeDefault)).ToBytes());

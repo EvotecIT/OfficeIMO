@@ -41,7 +41,7 @@ internal static partial class PdfWriter {
         double textAdvance = textAscent + textDescent;
         if (spacing.Rule == PdfLineSpacingRule.Multiple)
             textAdvance = bodyAscent == 0D && textDescent == 0D ? 0D
-                : (bodyAscent + textDescent) * spacing.Value / natural
+                : (bodyAscent + textDescent) * spacing.MultipleValue!.Value / natural
                     + Math.Max(0D, textAscent - bodyAscent);
         contentHeight = Math.Max(contentHeight, textAdvance);
         return hasInline && (inlineAscent > textAscent || inlineDescent > textDescent)
@@ -153,9 +153,9 @@ internal static partial class PdfWriter {
         if (spacing?.LineGridPitch != null)
             ascent += spacing.GetGridBaselineExpansion(ascent + descent);
         else if (spacing?.FontLineBoxMultiplier is double natural && spacing.Rule == PdfLineSpacingRule.Multiple)
-            ascent = Math.Max(inlineAscent, ascent - bodyAscent * (1D - Math.Min(1D, spacing.Value / natural)));
+            ascent = Math.Max(inlineAscent, ascent - bodyAscent * (1D - Math.Min(1D, spacing.MultipleValue!.Value / natural)));
         else if (spacing?.FontLineBoxMultiplier != null && spacing.Rule == PdfLineSpacingRule.AtLeast)
-            ascent = Math.Max(ascent, spacing.Value - descent);
+            ascent = Math.Max(ascent, spacing.Height!.Value.ToPoints() - descent);
         return ascent == 0D ? fallbackAscent : ascent;
     }
 

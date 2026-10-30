@@ -69,24 +69,24 @@ internal static class RtfPdfMapping {
         IReadOnlyList<RtfTabStop> tabStops = paragraph.TabStops;
         PdfCore.PdfParagraphStyle pdfStyle = new PdfCore.PdfParagraphStyle();
         double leftIndentPoints = ToNonNegativePoints(leftIndent);
-        pdfStyle.LeftIndent = leftIndentPoints;
-        pdfStyle.RightIndent = ToNonNegativePoints(rightIndent);
-        pdfStyle.FirstLineIndent = ToSafeFirstLineIndent(firstLineIndent, leftIndentPoints);
+        pdfStyle.LeftIndent = global::OfficeIMO.OfficeLength.Points(leftIndentPoints);
+        pdfStyle.RightIndent = global::OfficeIMO.OfficeLength.Points(ToNonNegativePoints(rightIndent));
+        pdfStyle.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(ToSafeFirstLineIndent(firstLineIndent, leftIndentPoints));
 
         if (spaceBefore.HasValue && spaceBefore.Value >= 0) {
-            pdfStyle.SpacingBefore = TwipsToPoints(spaceBefore.Value);
+            pdfStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(TwipsToPoints(spaceBefore.Value));
         } else if (spaceBeforeAuto == true) {
-            pdfStyle.SpacingBefore = 0D;
+            pdfStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
         }
 
         if (spaceAfter.HasValue && spaceAfter.Value >= 0) {
-            pdfStyle.SpacingAfter = TwipsToPoints(spaceAfter.Value);
+            pdfStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(TwipsToPoints(spaceAfter.Value));
         } else if (spaceAfterAuto == true) {
             pdfStyle.SpacingAfter = null;
         } else {
             // RTF's normal paragraph has no after gap. Do not inherit the PDF
             // builder's convenience gap when the source omits this control.
-            pdfStyle.SpacingAfter = 0D;
+            pdfStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
         }
 
         pdfStyle.LineSpacing = ToPdfLineSpacing(lineSpacing, lineSpacingMultiple);
@@ -94,22 +94,22 @@ internal static class RtfPdfMapping {
         if (!exact && PdfCore.PdfWriter.TryResolveImportedLineBoxFloor(runs,
                 options.DefaultFont, options,
                 out double layoutFontSize, out double naturalMultiplier)) {
-            pdfStyle.FontSize = layoutFontSize;
+            pdfStyle.FontSize = global::OfficeIMO.OfficeLength.Points(layoutFontSize);
             double multiple = lineSpacing.HasValue && lineSpacing.Value != 0 && lineSpacingMultiple == true
                 ? Math.Max(0.1D, Math.Abs((double)lineSpacing.Value) / 240D) : 1D;
             pdfStyle.LineSpacing = lineSpacing.HasValue && lineSpacing.Value > 0 && lineSpacingMultiple != true
-                ? PdfCore.PdfLineSpacing.AtLeast(lineSpacing.Value / 20D, naturalMultiplier)
+                ? PdfCore.PdfLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(lineSpacing.Value / 20D), naturalMultiplier)
                     .WithFontLineBoxBaseline(naturalMultiplier)
                 : PdfCore.PdfLineSpacing.Multiple(naturalMultiplier * multiple)
                     .WithFontLineBoxBaseline(naturalMultiplier);
         }
 
         if (defaultTabWidth.HasValue && defaultTabWidth.Value > 0) {
-            pdfStyle.DefaultTabStopWidth = TwipsToPoints(defaultTabWidth.Value);
+            pdfStyle.DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(TwipsToPoints(defaultTabWidth.Value));
         }
 
         foreach (RtfTabStop tabStop in tabStops) {
-            pdfStyle.AddTabStop(TwipsToPoints(tabStop.PositionTwips), ToPdfTabAlignment(tabStop.Alignment), ToPdfTabLeader(tabStop.Leader));
+            pdfStyle.AddTabStop(global::OfficeIMO.OfficeLength.Points(TwipsToPoints(tabStop.PositionTwips)), ToPdfTabAlignment(tabStop.Alignment), ToPdfTabLeader(tabStop.Leader));
         }
 
         pdfStyle.KeepTogether = keepTogether;
@@ -410,8 +410,8 @@ internal static class RtfPdfMapping {
         return lineSpacingTwips.Value < 0
             // Native exact-height RTF lines position the baseline within the
             // authored box independently of the selected run's font metrics.
-            ? PdfCore.PdfLineSpacing.Exactly(points).WithFixedLineBoxBaseline(points * 4D / 5D)
-            : PdfCore.PdfLineSpacing.AtLeast(points);
+            ? PdfCore.PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(points)).WithFixedLineBoxBaseline(points * 4D / 5D)
+            : PdfCore.PdfLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(points));
     }
 
     internal static double TwipsToPoints(int twips) => twips / 20D;

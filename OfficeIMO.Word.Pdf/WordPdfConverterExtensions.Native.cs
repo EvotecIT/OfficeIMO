@@ -188,8 +188,8 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.PdfParagraphStyle? CreateNativePanelParagraphStyle(PdfCore.PdfParagraphStyle? style, PdfCore.PdfPanelStyle? panelStyle) {
             if (style == null) return null;
             PdfCore.PdfParagraphStyle result = style.Clone();
-            result.SpacingBefore = 0D;
-            result.SpacingAfter = panelStyle == null ? 0D : Math.Max(0D, (style.SpacingAfter ?? 0D) - panelStyle.SpacingAfter);
+            result.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
+            result.SpacingAfter = global::OfficeIMO.OfficeLength.Points(panelStyle == null ? 0D : Math.Max(0D, ((style.SpacingAfter?.ToPoints()) ?? 0D) - panelStyle.SpacingAfter));
             return result;
         }
 

@@ -194,10 +194,10 @@ public partial class RichParagraphWrappingTests {
         bool literal, PdfTabLeaderStyle paragraphLeader = PdfTabLeaderStyle.Underscores,
         PdfStandardFont sourceFont = PdfStandardFont.Courier, double sourceSize = 24D, double tabStop = 72D) {
         var style = new PdfParagraphStyle {
-            FontSize = 12D, LineHeight = 1.2D, SpacingBefore = 0D, SpacingAfter = 0D,
+            FontSize = global::OfficeIMO.OfficeLength.Points(12D), LineHeight = 1.2D, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D),
             TextWhitespaceMode = whitespace
         };
-        style.AddTabStop(tabStop, leader: paragraphLeader);
+        style.AddTabStop(global::OfficeIMO.OfficeLength.Points(tabStop), leader: paragraphLeader);
         var runs = new List<PdfTextRun> {
             literal
                 ? PdfTextRun.Normal("_____", fontSize: 24D, font: PdfStandardFont.Courier)
@@ -218,7 +218,7 @@ public partial class RichParagraphWrappingTests {
     private static (List<PdfTextRun> Runs, double Height) RestoreSourceTabTypography(PdfTextRun[] runs) {
         object wrapped = InvokePrivateFontMethod<object>("WrapRichRunsCoreWithFirstLineOrigin",
             runs, 288D, 12D, PdfStandardFont.Helvetica, 14.4D, null!, null!, 36D,
-            TrailingTabOptions(), new[] { new PdfTabStop(72D, leader: PdfTabLeaderStyle.Underscores) },
+            TrailingTabOptions(), new[] { new PdfTabStop(global::OfficeIMO.OfficeLength.Points(72D), leader: PdfTabLeaderStyle.Underscores) },
             null!, null!, null!, PdfTextWhitespaceMode.Collapse);
         object lines = wrapped.GetType().GetField("Item1")!.GetValue(wrapped)!;
         var restored = InvokePrivateFontMethod<List<PdfTextRun>>("BuildTextRunsFromWrappedLines", lines, 0, 1);

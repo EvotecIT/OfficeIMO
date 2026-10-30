@@ -699,7 +699,7 @@ namespace OfficeIMO.Tests {
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
 
-            Assert.Equal(72D, style.DefaultTabStopWidth);
+            Assert.Equal(72D, (style.DefaultTabStopWidth?.ToPoints()));
         }
 
         [Fact]
@@ -746,13 +746,13 @@ namespace OfficeIMO.Tests {
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
 
-            Assert.Null(style.DefaultTabStopWidth);
+            Assert.Null((style.DefaultTabStopWidth?.ToPoints()));
             PdfTabStop tabStop = Assert.Single(style.TabStops);
-            Assert.Equal(72D, tabStop.Position);
+            Assert.Equal(72D, tabStop.Position.ToPoints());
             Assert.Equal(PdfTabAlignment.Right, tabStop.Alignment);
             Assert.Equal(PdfTabLeaderStyle.Dots, tabStop.Leader);
             Assert.Equal(1.220703125D * (259D / 240D), style.LineHeight);
-            Assert.Equal(8D, style.SpacingAfter);
+            Assert.Equal(8D, (style.SpacingAfter?.ToPoints()));
             Assert.True(style.KeepTogether);
             Assert.True(style.KeepWithNext);
             Assert.True(style.WidowControl);
@@ -785,9 +785,9 @@ namespace OfficeIMO.Tests {
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
 
-            Assert.Null(style.DefaultTabStopWidth);
+            Assert.Null((style.DefaultTabStopWidth?.ToPoints()));
             PdfTabStop tabStop = Assert.Single(style.TabStops);
-            Assert.Equal(72D, tabStop.Position);
+            Assert.Equal(72D, tabStop.Position.ToPoints());
             Assert.Equal(PdfTabAlignment.Right, tabStop.Alignment);
             Assert.Equal(PdfTabLeaderStyle.Dots, tabStop.Leader);
         }
@@ -861,9 +861,9 @@ namespace OfficeIMO.Tests {
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
 
-            Assert.Equal(72D, style.LeftIndent);
-            Assert.Equal(36D, style.RightIndent);
-            Assert.Equal(-18D, style.FirstLineIndent);
+            Assert.Equal(72D, style.LeftIndent.ToPoints());
+            Assert.Equal(36D, style.RightIndent.ToPoints());
+            Assert.Equal(-18D, style.FirstLineIndent.ToPoints());
         }
 
         [Fact]
@@ -1581,9 +1581,9 @@ namespace OfficeIMO.Tests {
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
 
-            Assert.Null(style.DefaultTabStopWidth);
+            Assert.Null((style.DefaultTabStopWidth?.ToPoints()));
             PdfTabStop tabStop = Assert.Single(style.TabStops);
-            Assert.Equal(144D, tabStop.Position);
+            Assert.Equal(144D, tabStop.Position.ToPoints());
         }
 
         [Fact]
@@ -2002,8 +2002,8 @@ namespace OfficeIMO.Tests {
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
 
-            Assert.Equal(72D, style.LeftIndent);
-            Assert.Equal(-36D, style.FirstLineIndent);
+            Assert.Equal(72D, style.LeftIndent.ToPoints());
+            Assert.Equal(-36D, style.FirstLineIndent.ToPoints());
         }
 
         [Fact]

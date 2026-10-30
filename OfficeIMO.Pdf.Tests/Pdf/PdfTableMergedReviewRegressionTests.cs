@@ -16,8 +16,8 @@ public partial class PdfDocumentVisualQualityTests {
         PdfDocument document = PdfDocument.Create(Options(140)).TaggedPdfCatalogMarkers();
         document.Compose(builder => builder.Page(page => page.Content(content => {
             content.Paragraph(p => p.Text("Intro1\nIntro2\nIntro3"), style: new PdfParagraphStyle {
-                FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(14), SpacingBefore = 0,
-                SpacingAfter = 0, WidowControl = false
+                FontSize = global::OfficeIMO.OfficeLength.Points(12), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(14)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
             });
             content.Table(new[] {
                 new[] { PdfTableCell.Merge("Alpha", rowSpan: 2), PdfTableCell.TextCell("Ready") },
@@ -102,7 +102,7 @@ public partial class PdfDocumentVisualQualityTests {
         string[] tokens = Enumerable.Range(1, 8).Select(n => $"Tall{n}").ToArray();
         PdfTextRun[] runs = { PdfTextRun.Normal(string.Join("\n", tokens)) };
         PdfTableCell anchor = new(runs, new[] {
-            new PdfTableCellParagraph(runs, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(60), widowControl: false)
+            new PdfTableCellParagraph(runs, fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(60)), widowControl: false)
         }, rowSpan: 3);
         PdfTableStyle style = Style();
         style.HeaderRowCount = 1;
@@ -133,8 +133,8 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTextRun[] kept = { PdfTextRun.Normal(string.Join("\n", keptTokens)) };
         PdfTextRun[] runs = { PdfTextRun.Normal(string.Join("\n", tallTokens.Concat(keptTokens))) };
         PdfTableCell anchor = new(runs, new[] {
-            new PdfTableCellParagraph(tall, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(inClosingPanelRow ? 80 : 60), widowControl: false),
-            new PdfTableCellParagraph(kept, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(oversizedWidowParagraph ? 30 : 18),
+            new PdfTableCellParagraph(tall, fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(inClosingPanelRow ? 80 : 60)), widowControl: false),
+            new PdfTableCellParagraph(kept, fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(oversizedWidowParagraph ? 30 : 18)),
                 keepTogether: !oversizedWidowParagraph, widowControl: oversizedWidowParagraph)
         }, rowSpan: 3);
         PdfTableStyle style = Style();
@@ -177,8 +177,8 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTextRun[] ending = { PdfTextRun.Normal("End") };
         PdfTextRun[] tall = { PdfTextRun.Normal(string.Join("\n", tokens)) };
         PdfTableCell anchor = new(runs, new[] {
-            new PdfTableCellParagraph(tall, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(90), widowControl: false),
-            new PdfTableCellParagraph(ending, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(15), widowControl: false)
+            new PdfTableCellParagraph(tall, fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(90)), widowControl: false),
+            new PdfTableCellParagraph(ending, fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(15)), widowControl: false)
         }, rowSpan: 3);
         PdfDocument document = PdfDocument.Create(Options(160));
         document.Compose(builder => builder.Page(page => page.Content(content => content
@@ -187,8 +187,8 @@ public partial class PdfDocumentVisualQualityTests {
                 RepeatFragmentDecoration = repeatDecoration
             }).Content(inner => {
                 inner.Paragraph(p => p.Text("Prelude"), style: new PdfParagraphStyle {
-                    FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(15),
-                    SpacingBefore = 0, SpacingAfter = 0, WidowControl = false
+                    FontSize = global::OfficeIMO.OfficeLength.Points(12), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(15)),
+                    SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
                 });
                 PdfTableCell[][] rows = {
                     new[] { anchor, PdfTableCell.TextCell("Ready") },
@@ -207,7 +207,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void DeferredMergedParagraphRetainsEveryLineWhenItsNeighborContinuesIntoANarrowerColumn() {
         PdfTextRun[] runs = { PdfTextRun.Normal("Kept1\nKept2\nKept3\nKept4") };
         PdfTableCell anchor = new(runs, new[] {
-            new PdfTableCellParagraph(runs, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(18),
+            new PdfTableCellParagraph(runs, fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18)),
                 keepTogether: true, widowControl: false)
         }, rowSpan: 3);
         string[] neighbors = Enumerable.Range(1, 8).Select(n => $"N{n}").ToArray();
@@ -218,8 +218,8 @@ public partial class PdfDocumentVisualQualityTests {
             MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
         }).Columns(content => {
             content.Paragraph(p => p.Text("Intro1\nIntro2\nIntro3"), style: new PdfParagraphStyle {
-                FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(14), SpacingBefore = 0,
-                SpacingAfter = 0, WidowControl = false
+                FontSize = global::OfficeIMO.OfficeLength.Points(12), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(14)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
             });
             content.Table(new[] {
                 new[] { anchor, PdfTableCell.TextCell(string.Join("\n", neighbors)) },

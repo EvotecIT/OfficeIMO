@@ -120,7 +120,7 @@ internal static partial class PdfWriter {
         for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
             PdfTableCellParagraph paragraph = paragraphs[paragraphIndex];
             PdfParagraphStyle paragraphStyle = CreateTableCellParagraphStyle(paragraph, cellInnerWidth);
-            double paragraphFontSize = paragraphStyle.FontSize ?? fontSize;
+            double paragraphFontSize = (paragraphStyle.FontSize?.ToPoints()) ?? fontSize;
             double paragraphLeading = paragraphStyle.LineHeight.HasValue || paragraphStyle.LineSpacing != null
                 ? GetParagraphLeading(paragraphStyle, paragraphFontSize) : leading;
             var paragraphFrame = GetParagraphTextFrame(paragraphStyle, 0D, wrapWidth);
@@ -210,13 +210,13 @@ internal static partial class PdfWriter {
         double textWidth = System.Math.Max(minimumTextWidth, safeWidth - leftIndent - rightIndent);
         double firstLineIndent = System.Math.Max(-maximumSafeIndentMagnitude, System.Math.Min(paragraph.FirstLineIndent, textWidth - minimumTextWidth));
         var style = new PdfParagraphStyle {
-            FontSize = paragraph.FontSize,
+            FontSize = ((paragraph.FontSize) is { } pdfLength12128 ? global::OfficeIMO.OfficeLength.Points(pdfLength12128) : (global::OfficeIMO.OfficeLength?)null),
             LineSpacing = paragraph.LineSpacing,
             LineHeight = paragraph.LineHeight,
-            LeftIndent = leftIndent,
-            RightIndent = rightIndent,
-            FirstLineIndent = firstLineIndent,
-            DefaultTabStopWidth = paragraph.DefaultTabStopWidth,
+            LeftIndent = global::OfficeIMO.OfficeLength.Points(leftIndent),
+            RightIndent = global::OfficeIMO.OfficeLength.Points(rightIndent),
+            FirstLineIndent = global::OfficeIMO.OfficeLength.Points(firstLineIndent),
+            DefaultTabStopWidth = ((paragraph.DefaultTabStopWidth) is { } pdfLength12401 ? global::OfficeIMO.OfficeLength.Points(pdfLength12401) : (global::OfficeIMO.OfficeLength?)null),
             JustificationMode = paragraph.JustificationMode,
             JustifyExplicitLineBreaks = paragraph.JustifyExplicitLineBreaks,
             JustifyLastLine = paragraph.JustifyLastLine,

@@ -19,7 +19,7 @@ namespace OfficeIMO.Word.Pdf {
                     RenderNativeParagraph(pdf, paragraph, getMarker(paragraph), getMarker, footnoteNumbers, footnoteNumbersById, options, headingDestinations, nativeDefaults, nativeFontMap, nextElement as WordParagraph);
                     if (ShouldSuppressNativeContextualSpacingAfter(paragraph, nextElement as WordParagraph) &&
                         pdf is NativeSpacingCollapseFlow collapseFlow)
-                        collapseFlow.RetainSuppressedSpacingAfter(CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap).SpacingAfter);
+                        collapseFlow.RetainSuppressedSpacingAfter((CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap).SpacingAfter?.ToPoints()));
                     break;
                 case WordTableOfContent tableOfContent:
                     WordParagraph? title = tableOfContent.TitleParagraph;
@@ -159,9 +159,9 @@ namespace OfficeIMO.Word.Pdf {
             bool needsAnchorLine = style.AnchoredCanvas != null && !hasRenderableRuns &&
                 string.IsNullOrEmpty(renderContent) && marker == null && paragraphFootnoteNumbers.Count == 0;
             if (ShouldSuppressNativeContextualSpacingAfter(paragraph, nextParagraph)) {
-                style.SpacingAfter = 0D;
+                style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
             }
-            if (ShouldSuppressNativeContextualSpacingBefore(paragraph)) style.SpacingBefore = 0D;
+            if (ShouldSuppressNativeContextualSpacingBefore(paragraph)) style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
             WordShape? currentShape = runs.Where(run => ReferenceEquals(run._run, paragraph._run))
                 .Select(run => run.Shape).FirstOrDefault(shape => shape != null);
             bool objectOnly = !hasRenderableRuns && string.IsNullOrEmpty(renderContent) &&
@@ -234,13 +234,13 @@ namespace OfficeIMO.Word.Pdf {
             // A heading style without visible heading text still needs ordinary
             // paragraph flow for its pictures and other inline content.
             bool renderHeading = !string.IsNullOrWhiteSpace(headingText);
-            if (!renderHeading && RenderNativeDocumentStartSpacing(pdf, paragraph, style.SpacingBefore))
-                style.SpacingBefore = 0D;
+            if (!renderHeading && RenderNativeDocumentStartSpacing(pdf, paragraph, style.SpacingBefore.ToPoints()))
+                style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
             global::OfficeIMO.OfficeColor? headingColor = GetNativeHeadingColor(headingLevel, defaultColor);
             PdfCore.PdfHorizontalRuleStyle? topBorderRuleStyle = marker == null ? CreateNativeTopBorderRuleStyle(paragraph, style) : null;
             PdfCore.PdfParagraphStyle paragraphStyle = topBorderRuleStyle == null ? style : style.Clone();
             if (topBorderRuleStyle != null) {
-                paragraphStyle.SpacingBefore = 0;
+                paragraphStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0);
                 pdf.HR(style: topBorderRuleStyle);
             }
 
@@ -284,7 +284,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (bottomBorderRuleStyle != null) {
-                paragraphStyle.SpacingAfter = 0;
+                paragraphStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
             }
 
             if (needsAnchorLine || inlineImages.Count > 0 || hasRenderableRuns || !string.IsNullOrEmpty(renderContent) || marker != null || paragraphFootnoteNumbers.Count > 0) {
@@ -321,9 +321,9 @@ namespace OfficeIMO.Word.Pdf {
                 nativeDefaults,
                 nativeFontMap);
             if (height > 0D) {
-                pdf.ParagraphSpacingBefore(style.SpacingBefore);
+                pdf.ParagraphSpacingBefore(style.SpacingBefore.ToPoints());
                 pdf.Spacer(height);
-                pdf.ParagraphSpacingAfter(style.SpacingAfter ?? nativeDefaults.ParagraphSpacingAfter);
+                pdf.ParagraphSpacingAfter((style.SpacingAfter?.ToPoints()) ?? nativeDefaults.ParagraphSpacingAfter);
             }
         }
 
@@ -345,8 +345,8 @@ namespace OfficeIMO.Word.Pdf {
 
         private static double MeasureNativeEmptyParagraphHeight(WordParagraph paragraph, PdfCore.PdfParagraphStyle style,
             NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) =>
-            style.SpacingBefore + MeasureNativeEmptyParagraphLineHeight(paragraph, nativeDefaults, nativeFontMap) +
-            (style.SpacingAfter ?? nativeDefaults.ParagraphSpacingAfter);
+            style.SpacingBefore.ToPoints() + MeasureNativeEmptyParagraphLineHeight(paragraph, nativeDefaults, nativeFontMap) +
+            ((style.SpacingAfter?.ToPoints()) ?? nativeDefaults.ParagraphSpacingAfter);
 
         private static void RenderNativeFormFields(INativePdfFlow pdf, IReadOnlyList<W.SdtRun> formFieldControls, PdfCore.PdfAlign align) {
             for (int index = 0; index < formFieldControls.Count; index++) {
@@ -923,8 +923,8 @@ namespace OfficeIMO.Word.Pdf {
                         ApplyNativeInlineListIndent(paragraph, paragraphStyle);
                         ApplyNativeInlineListMarkerAlignment(paragraph, paragraphMarker.Marker, paragraphStyle, nativeDefaults, nativeFontMap);
                     }
-                    paragraphStyle.SpacingBefore = 0D;
-                    paragraphStyle.SpacingAfter = 0D;
+                    paragraphStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
+                    paragraphStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
                     contentBuilder.Paragraph(builder => AddNativeParagraphContent(builder, paragraph, getMarker(paragraph),
                         runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap,
                         inlineMarkerColumnWidth: ResolveNativeInlineListMarkerColumnWidth(paragraph, getMarker(paragraph)?.Marker ?? string.Empty, paragraphStyle, nativeDefaults, nativeFontMap)),
@@ -1111,11 +1111,11 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (HasNativeHeadingDeclaredSpacingBefore(paragraph, styleDefaults)) {
-                style.SpacingBefore = paragraphStyle.SpacingBefore;
+                style.SpacingBefore = paragraphStyle.SpacingBefore.ToPoints();
             }
 
             if (HasNativeHeadingDeclaredSpacingAfter(paragraph, styleDefaults)) {
-                style.SpacingAfter = paragraphStyle.SpacingAfter;
+                style.SpacingAfter = (paragraphStyle.SpacingAfter?.ToPoints());
             }
 
             // Headings currently use the containing margin as their text frame;

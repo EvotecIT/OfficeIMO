@@ -117,13 +117,13 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
             // Fourteen-point body lines leave room for the rule, but not its following line.
             DefaultParagraphStyle = new PdfParagraphStyle {
-                LineHeight = 1.4, SpacingBefore = 0, SpacingAfter = 0, WidowControl = false
+                LineHeight = 1.4, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
             }
         };
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 81
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(81)
             })
             .HR(style: new PdfHorizontalRuleStyle {
                 Thickness = 3,
@@ -161,7 +161,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 81
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(81)
             })
             .Compose(document =>
                 document.Page(page =>
@@ -205,7 +205,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 66
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(66)
             })
             .Image(png, 24, 24, style: new PdfImageStyle {
                 KeepWithNext = true
@@ -241,7 +241,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 56
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(56)
             })
             .Image(png, 24, 24, style: new PdfImageStyle {
                 KeepWithNext = true
@@ -280,7 +280,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 66
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(66)
             })
             .Compose(document =>
                 document.Page(page =>
@@ -322,7 +322,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 66
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(66)
             })
             .Shape(shape, style: new PdfDrawingStyle {
                 KeepWithNext = true
@@ -359,7 +359,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 66
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(66)
             })
             .Compose(document =>
                 document.Page(page =>
@@ -400,7 +400,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 66
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(66)
             })
             .Drawing(drawing, style: new PdfDrawingStyle {
                 KeepWithNext = true
@@ -436,7 +436,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 66
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(66)
             })
             .Compose(document =>
                 document.Page(page =>
@@ -479,7 +479,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 60
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(60)
             })
             .Table(new[] {
                 new[] { "TableKeepHeader", "Ready" },
@@ -516,7 +516,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 60
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(60)
             })
             .Compose(document =>
                 document.Page(page =>
@@ -562,7 +562,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content => {
                         content.Column(column =>
                             column.Item().Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                                SpacingAfter = 75
+                                SpacingAfter = global::OfficeIMO.OfficeLength.Points(75)
                             }));
                         content.Row(row => {
                             row.Style(rowStyle);
@@ -606,7 +606,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content => {
                         content.Column(column =>
                             column.Item().Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                                SpacingAfter = 56
+                                SpacingAfter = global::OfficeIMO.OfficeLength.Points(56)
                             }));
                         content.Row(row => {
                             row.Style(rowStyle);

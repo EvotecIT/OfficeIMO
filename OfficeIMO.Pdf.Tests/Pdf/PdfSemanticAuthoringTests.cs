@@ -257,7 +257,7 @@ public sealed class PdfSemanticAuthoringTests {
                 options.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10);
             })
             .Content(content => content
-                .Paragraph(paragraph => paragraph.Text("IntroMarker"), style: new PdfParagraphStyle { SpacingAfter = 48 })
+                .Paragraph(paragraph => paragraph.Text("IntroMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(48) })
                 .H3("ElementChainHeading")
                 .Element(element => element
                     .Padding(4)

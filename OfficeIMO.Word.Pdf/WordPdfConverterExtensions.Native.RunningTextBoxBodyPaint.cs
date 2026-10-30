@@ -35,7 +35,7 @@ public static partial class WordPdfConverterExtensions {
                 WordEquation.GetOccurrences(document, source).Count > 0) return null;
             var canvasStyle = new PdfCore.PdfCanvasTextBoxStyle {
                 Background = null, BorderColor = null, BorderWidth = 0D, PaddingX = 0D, PaddingY = 0D,
-                FontSize = paragraphStyle.FontSize, LineHeight = paragraphStyle.LineHeight, LineSpacing = paragraphStyle.LineSpacing
+                FontSize = (paragraphStyle.FontSize?.ToPoints()), LineHeight = paragraphStyle.LineHeight, LineSpacing = paragraphStyle.LineSpacing
             };
             // A page fragment can start with any run. Measure each at the
             // canonical baseline for its effective spacing and font size.
@@ -50,7 +50,7 @@ public static partial class WordPdfConverterExtensions {
                 double? width = fontMap.MeasureText(run);
                 if (!width.HasValue) return null;
                 if (width.Value <= 0D) continue;
-                double? fontSize = run.FontSize ?? paragraphStyle.FontSize;
+                double? fontSize = run.FontSize ?? (paragraphStyle.FontSize?.ToPoints());
                 if (canvasStyle.LineSpacing == null || !fontSize.HasValue) return null;
                 double frameHeight = canvasStyle.LineSpacing.GetAdvance(fontSize.Value);
                 PdfCore.PdfWriter.CanvasTextBoxMeasurement? measured = fontMap.MeasureCanvasTextBox(new[] { run },

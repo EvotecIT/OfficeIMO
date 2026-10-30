@@ -15,7 +15,7 @@ public sealed class PdfRunSpacingRegressionTests {
     [InlineData(PdfTabLeaderStyle.Underscores, "_", 150D, 1D)]
     public void TabLeadersUseTheRunGlyphWidthAndTracking(PdfTabLeaderStyle leader, string glyph, double scale, double tracking) {
         PdfCreateOptions options = Options();
-        options.DefaultParagraphStyle = new PdfParagraphStyle { DefaultTabStopWidth = 150D };
+        options.DefaultParagraphStyle = new PdfParagraphStyle { DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(150D) };
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
             .Paragraph(p => p.HorizontalTextScaling(scale).CharacterSpacing(tracking)
                 .Text("A").Tab(leader).Text("Z")).ToBytes());
@@ -78,7 +78,7 @@ public sealed class PdfRunSpacingRegressionTests {
     [Fact]
     public void ScaledDecimalTabs_AlignDifferentNumericPrefixes() {
         PdfCreateOptions options = Options();
-        options.DefaultParagraphStyle = new PdfParagraphStyle { DefaultTabStopWidth = 150D, SpacingAfter = 0D };
+        options.DefaultParagraphStyle = new PdfParagraphStyle { DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(150D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) };
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
             .Paragraph(p => p.Text("Tax").Tab(PdfTabLeaderStyle.None, PdfTabAlignment.DecimalSeparator)
                 .HorizontalTextScaling(50D).CharacterSpacing(1D).Text("8.50"))

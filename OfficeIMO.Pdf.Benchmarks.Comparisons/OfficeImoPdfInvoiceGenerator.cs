@@ -128,7 +128,7 @@ internal static class OfficeImoPdfInvoiceGenerator {
         new[] { "Amount due", InvoiceComparisonScenario.Money(scenario.Calculation.PayableAmount, scenario.Invoice.Currency) }
     };
 
-    private static PdfParagraphStyle Tight(double after) => new() { SpacingBefore = 0D, SpacingAfter = after };
+    private static PdfParagraphStyle Tight(double after) => new() { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(after) };
 
     private static PdfPanelStyle CardStyle() => new() {
         Background = Surface, BorderColor = Border, BorderWidth = 0.6D, CornerRadius = 7D,

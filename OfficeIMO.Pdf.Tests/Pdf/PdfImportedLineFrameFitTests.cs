@@ -19,7 +19,7 @@ public sealed class PdfImportedLineFrameFitTests {
         };
         var document = PdfDocument.Create(Options(107D)).Table(new[] { new[] { "T" } }, style: tableStyle)
             .Paragraph(p => p.Text("A\nB\nC\nD"), style: new PdfParagraphStyle {
-                FontSize = 10D, SpacingBefore = 0D, SpacingAfter = 0D, KeepTogether = keep,
+                FontSize = global::OfficeIMO.OfficeLength.Points(10D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D), KeepTogether = keep,
                 LineSpacing = PdfLineSpacing.Multiple(2.8D).WithFontLineBoxBaseline(1.4D)
             });
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -54,7 +54,7 @@ public sealed class PdfImportedLineFrameFitTests {
             LineSpacing = spacing, KeepTogether = keep
         });
         else document.Paragraph(p => p.Text(text), style: new PdfParagraphStyle {
-            FontSize = 10D, SpacingBefore = 0D, SpacingAfter = 0D, LineSpacing = spacing, KeepTogether = keep
+            FontSize = global::OfficeIMO.OfficeLength.Points(10D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D), LineSpacing = spacing, KeepTogether = keep
         });
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         var page = Assert.Single(pdf.GetPages());
@@ -70,12 +70,12 @@ public sealed class PdfImportedLineFrameFitTests {
     [InlineData("ordinary-multiple")]
     public void FixedMinimumAndOrdinarySpacingRetainTheirFullFrameRequirement(string kind) {
         PdfLineSpacing spacing = kind switch {
-            "exact" => PdfLineSpacing.Exactly(28D).WithFontLineBoxBaseline(1.4D),
-            "minimum" => PdfLineSpacing.AtLeast(28D).WithFontLineBoxBaseline(1.4D),
+            "exact" => PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(28D)).WithFontLineBoxBaseline(1.4D),
+            "minimum" => PdfLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(28D)).WithFontLineBoxBaseline(1.4D),
             _ => PdfLineSpacing.Multiple(2.8D)
         };
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(107D)).Paragraph(p => p.Text("A\nB\nC\nD"),
-            style: new PdfParagraphStyle { FontSize = 10D, SpacingBefore = 0D, SpacingAfter = 0D, LineSpacing = spacing }).ToBytes());
+            style: new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(10D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D), LineSpacing = spacing }).ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Equal("ABC", string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value)));
         Assert.Equal("D", string.Concat(pdf.GetPage(2).Letters.Select(letter => letter.Value)));
@@ -84,7 +84,7 @@ public sealed class PdfImportedLineFrameFitTests {
     [Fact]
     public void ImportedFrameFittingStillRejectsAnOversizedVisibleFontBox() {
         var document = PdfDocument.Create(Options(20D)).Paragraph(p => p.FontSize(30D).Text("A"),
-            style: new PdfParagraphStyle { FontSize = 10D, SpacingAfter = 0D,
+            style: new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(10D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D),
                 LineSpacing = PdfLineSpacing.Multiple(2.8D).WithFontLineBoxBaseline(1.4D) });
         Assert.Throws<ArgumentException>(() => document.ToBytes());
     }

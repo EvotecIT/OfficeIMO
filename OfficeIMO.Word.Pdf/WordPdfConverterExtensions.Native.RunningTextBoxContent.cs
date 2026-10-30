@@ -81,14 +81,14 @@ public static partial class WordPdfConverterExtensions {
         var body = box.DrawingTextBodyProperties!;
         PdfCore.PdfParagraphStyle paragraph = CreateNativeParagraphStyle(inner, defaults, fontMap);
         style = new PdfCore.PdfCanvasTextBoxStyle { Background = null, BorderColor = null, BorderWidth = 0D };
-        if (paragraph.SpacingBefore is > 0D || paragraph.LeftIndent != 0D || paragraph.RightIndent != 0D ||
-            paragraph.FirstLineIndent != 0D || HasNativeUnsupportedRunningTextBoxParagraphPaint(inner)) return false;
+        if (paragraph.SpacingBefore.ToPoints() is > 0D || paragraph.LeftIndent.ToPoints() != 0D || paragraph.RightIndent.ToPoints() != 0D ||
+            paragraph.FirstLineIndent.ToPoints() != 0D || HasNativeUnsupportedRunningTextBoxParagraphPaint(inner)) return false;
         double left = (body.LeftInset?.Value ?? 91440) / 12700D;
         double right = (body.RightInset?.Value ?? 91440) / 12700D;
         double top = (body.TopInset?.Value ?? 45720) / 12700D;
         double bottom = (body.BottomInset?.Value ?? 45720) / 12700D;
         style.Align = ResolveNativeParagraphAlign(inner, allowJustify: false);
-        style.FontSize = paragraph.FontSize;
+        style.FontSize = (paragraph.FontSize?.ToPoints());
         style.LineHeight = paragraph.LineHeight;
         style.LineSpacing = paragraph.LineSpacing;
         style.VerticalAlign = PdfCore.PdfVerticalAlign.Top;

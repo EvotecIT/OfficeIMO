@@ -51,7 +51,7 @@ public partial class PdfPageFootnoteTests {
             for (int index = 0; index < 9; index++) body.Text("CompleteNote" + index, style: Style());
         }, new PdfFootnoteOptions {
             ContinuationNotice = body => body.Text("UnusedNotice", style: new PdfParagraphStyle {
-                FontSize = 8, LineSpacing = PdfLineSpacing.Exactly(100), SpacingBefore = 0, SpacingAfter = 0
+                FontSize = global::OfficeIMO.OfficeLength.Points(8), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(100)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
         });
         document.Content.Paragraph(body => body.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());

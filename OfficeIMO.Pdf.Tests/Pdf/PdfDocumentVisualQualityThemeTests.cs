@@ -174,12 +174,12 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] defaultBytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .H2("HeadingMarker", style: defaultStyle)
             .Paragraph(p => p.Text("AfterMarker"))
             .ToBytes();
         byte[] spacedBytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .H2("HeadingMarker", style: spacedStyle)
             .Paragraph(p => p.Text("AfterMarker"))
             .ToBytes();
@@ -308,12 +308,12 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] defaultBytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .Spacer(80)
             .H2("PagedHeadingMarker", style: defaultStyle)
             .ToBytes();
         byte[] spacedBytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .Spacer(80)
             .H2("PagedHeadingMarker", style: spacedStyle)
             .ToBytes();
@@ -443,7 +443,7 @@ public partial class PdfDocumentVisualQualityTests {
             .DefaultPanelStyle(style)
             .PanelParagraph(p => p.Text("DefaultPanel"))
             .Paragraph(p => p.Text("AfterPanel"), style: new PdfParagraphStyle {
-                SpacingAfter = 0
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
             .ToBytes();
 
@@ -549,8 +549,8 @@ public partial class PdfDocumentVisualQualityTests {
             Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
         };
         var paragraphStyle = new PdfParagraphStyle {
-            FirstLineIndent = 24,
-            SpacingAfter = 0
+            FirstLineIndent = global::OfficeIMO.OfficeLength.Points(24),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
         var tableStyle = PdfTableStyles.Minimal();
         tableStyle.CellPaddingX = 22;
@@ -580,7 +580,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         textStyle.FontSize = 8;
         textStyle.Color = global::OfficeIMO.OfficeColor.Black;
-        paragraphStyle.FirstLineIndent = 0;
+        paragraphStyle.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(0);
         tableStyle.CellPaddingX = 0;
         theme.TextStyle = new PdfTextStyle {
             Font = PdfStandardFont.Helvetica,
@@ -619,7 +619,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         theme.ParagraphStyle = new PdfParagraphStyle {
             LineHeight = 2,
-            SpacingAfter = 0
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
         theme.TableStyle = PdfTableStyles.Minimal();
 
@@ -629,7 +629,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(11, options.DefaultFontSize.ToPoints());
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55), options.DefaultTextColor);
         Assert.Equal(1.15, options.DefaultParagraphStyle!.LineHeight);
-        Assert.Equal(8, options.DefaultParagraphStyle.SpacingAfter);
+        Assert.Equal(8, (options.DefaultParagraphStyle.SpacingAfter?.ToPoints()));
         Assert.True(options.DefaultParagraphStyle.WidowControl);
         Assert.Equal(20, options.DefaultHeadingStyles!.Level1!.FontSize);
         Assert.Equal(16, options.DefaultHeadingStyles.Level2!.FontSize);
@@ -649,7 +649,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(18, options.DefaultRowStyle!.Gap);
         Assert.Equal(8, options.DefaultRowStyle.SpacingAfter);
         Assert.Equal(11, freshTheme.TextStyle!.FontSize);
-        Assert.Equal(8, freshTheme.ParagraphStyle!.SpacingAfter);
+        Assert.Equal(8, (freshTheme.ParagraphStyle!.SpacingAfter?.ToPoints()));
     }
 
     [Fact]
@@ -667,7 +667,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         Assert.Equal(10, compact.DefaultFontSize.ToPoints());
         Assert.Equal(1.08, compact.DefaultParagraphStyle!.LineHeight);
-        Assert.Equal(4, compact.DefaultParagraphStyle.SpacingAfter);
+        Assert.Equal(4, (compact.DefaultParagraphStyle.SpacingAfter?.ToPoints()));
         Assert.Equal(9, compact.DefaultTableStyle!.FontSize);
         Assert.Equal(14, compact.DefaultRowStyle!.Gap);
 
@@ -781,8 +781,8 @@ public partial class PdfDocumentVisualQualityTests {
                     Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
                 },
                 ParagraphStyle = new PdfParagraphStyle {
-                    FirstLineIndent = 24,
-                    SpacingAfter = 0
+                    FirstLineIndent = global::OfficeIMO.OfficeLength.Points(24),
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                 },
                 TableStyle = tableStyle
             });

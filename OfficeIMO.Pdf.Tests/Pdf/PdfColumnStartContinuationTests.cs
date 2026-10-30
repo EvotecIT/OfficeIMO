@@ -31,10 +31,10 @@ public sealed class PdfColumnStartContinuationTests {
         byte[] bytes = PdfDocument.Create(Options()).Paragraph(p => p.Text(Markers("Prelude", 12)), style: ParagraphStyle())
             .Columns(columns => {
                 if (kind == "paragraph") {
-                    var style = ParagraphStyle(); style.LineSpacing = PdfLineSpacing.Exactly(120);
+                    var style = ParagraphStyle(); style.LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(120));
                     columns.Paragraph(p => p.Text("Marker001"), style: style);
                 } else columns.RichNumbered(new[] { new PdfListItem("Marker001") }, style: new PdfListStyle {
-                    LineSpacing = PdfLineSpacing.Exactly(120), SpacingBefore = 0, SpacingAfter = 0, ItemSpacing = 0
+                    LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(120)), SpacingBefore = 0, SpacingAfter = 0, ItemSpacing = 0
                 });
             }, ColumnOptions()).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
@@ -53,13 +53,13 @@ public sealed class PdfColumnStartContinuationTests {
         byte[] bytes = PdfDocument.Create(Options()).Paragraph(p => p.Text(Markers("Prelude", 12)), style: ParagraphStyle())
             .Columns(columns => {
                 if (kind == "heading") columns.H1("Marker001", style: new PdfHeadingStyle {
-                    FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0
+                    FontSize = 12, LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = 0, SpacingAfter = 0
                 });
                 else if (kind == "paragraph") {
                     var style = ParagraphStyle(); style.KeepWithNext = true;
                     columns.Paragraph(p => p.Text("Marker001"), style: style);
                 } else if (kind == "list") columns.RichNumbered(new[] { new PdfListItem("Marker001") }, style: new PdfListStyle {
-                    LineSpacing = PdfLineSpacing.Exactly(20), ItemSpacing = 0, SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = true
+                    LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), ItemSpacing = 0, SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = true
                 });
                 else columns.Panel(content => content.Paragraph(p => p.Text("Marker001"), style: ParagraphStyle()), new PdfPanelStyle {
                     PaddingX = 0, PaddingY = 0, SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = true
@@ -116,7 +116,7 @@ public sealed class PdfColumnStartContinuationTests {
         byte[] bytes = PdfDocument.Create(Options()).Columns(columns => {
             columns.Paragraph(p => p.Text(Markers("Prelude", 32)), style: ParagraphStyle());
             if (kind == "heading") columns.H1("Marker001", style: new PdfHeadingStyle {
-                FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0
+                FontSize = 12, LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = 0, SpacingAfter = 0
             });
             else AddKeptContent(columns, kind, 4);
             int count = kind == "heading" ? 9 : 6;
@@ -138,7 +138,7 @@ public sealed class PdfColumnStartContinuationTests {
             content.Paragraph(p => p.Text(Markers("Marker", count)), style: style);
         } else if (kind == "list") content.RichNumbered(Enumerable.Range(1, count)
             .Select(index => new PdfListItem($"Marker{index:D3}")), style: new PdfListStyle {
-                LineSpacing = PdfLineSpacing.Exactly(20), ItemSpacing = 0, SpacingBefore = 0, SpacingAfter = 0, KeepTogether = true
+                LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), ItemSpacing = 0, SpacingBefore = 0, SpacingAfter = 0, KeepTogether = true
             });
         else if (kind == "panel") content.Panel(panel => panel.Paragraph(p => p.Text(Markers("Marker", count)), style: ParagraphStyle()),
             new PdfPanelStyle { PaddingX = 0, PaddingY = 0, SpacingBefore = 0, SpacingAfter = 0, KeepTogether = true });
@@ -155,7 +155,7 @@ public sealed class PdfColumnStartContinuationTests {
         .Single(word => word.Text == marker || word.Text.EndsWith("." + marker, StringComparison.Ordinal)).BoundingBox.Left;
     private static PdfCreateOptions Options() => new() { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40),
         MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false, MaxGeneratedPages = 4 };
-    private static PdfParagraphStyle ParagraphStyle() => new() { LineSpacing = PdfLineSpacing.Exactly(20),
-        SpacingBefore = 0, SpacingAfter = 0, WidowControl = false };
+    private static PdfParagraphStyle ParagraphStyle() => new() { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)),
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false };
     private static PdfMultiColumnOptions ColumnOptions() => new() { Gap = 20, BalanceLastPage = true };
 }

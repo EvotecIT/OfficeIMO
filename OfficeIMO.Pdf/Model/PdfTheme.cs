@@ -101,7 +101,7 @@ public sealed partial class PdfTheme {
             },
             ParagraphStyle = new PdfParagraphStyle {
                 LineHeight = 1.15,
-                SpacingAfter = 8,
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(8),
                 WidowControl = true
             },
             HeadingStyles = new PdfHeadingStyles {
@@ -207,7 +207,7 @@ public sealed partial class PdfTheme {
         };
         theme.ParagraphStyle = new PdfParagraphStyle {
             LineHeight = 1.08,
-            SpacingAfter = 4,
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(4),
             WidowControl = true
         };
         theme.ListStyle = new PdfListStyle {

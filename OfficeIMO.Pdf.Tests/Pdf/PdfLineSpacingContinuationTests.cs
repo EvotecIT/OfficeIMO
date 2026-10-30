@@ -13,7 +13,7 @@ public sealed class PdfLineSpacingContinuationTests {
     public void AutomaticColumnWidthUsesEffectiveParagraphFontSize(double size, bool defaultStyle) {
         double Render(bool explicitRunSize) {
             var options = Options();
-            var style = new PdfParagraphStyle { FontSize = size };
+            var style = new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(size) };
             if (defaultStyle) options.DefaultParagraphStyle = style;
             var document = PdfDocument.Create(options);
             document.Content.Row(row => row.Gap(10)
@@ -42,8 +42,8 @@ public sealed class PdfLineSpacingContinuationTests {
             p.FontSize(32).LineBreak();
             p.FontSize(8).Text(atBoundary ? "E" : "B\nC\nD\nE\nF\nG\nH\nI\nJ");
         }, style: new PdfParagraphStyle {
-            FontSize = 8, SpacingBefore = 0, SpacingAfter = 0,
-            LineSpacing = multiple ? PdfLineSpacing.Multiple(1) : PdfLineSpacing.AtLeast(20, 1)
+            FontSize = global::OfficeIMO.OfficeLength.Points(8), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
+            LineSpacing = multiple ? PdfLineSpacing.Multiple(1) : PdfLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(20), 1)
         }), new PdfMultiColumnOptions {
             ColumnCount = 2, Gap = 12, BalanceParagraphLines = true, BalanceLastPage = !atBoundary,
             ColumnDefinitions = atBoundary ? new[] {

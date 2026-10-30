@@ -49,7 +49,7 @@ public class PdfDeferredTableRowGroupingTests {
         });
         document.Compose(root => root.Page(page => page.Content(content => {
             if (mode != "last") content.Paragraph(paragraph => paragraph.Text("Preamble\nContinuation"),
-                style: new PdfParagraphStyle { FontSize = 12, LineHeight = 1, SpacingAfter = 0 });
+                style: new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 1, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
             content.TableDeferred(() => rows, batchSize, style: style);
         })));
         return document.ToBytes();

@@ -22,7 +22,7 @@ public partial class PdfDocumentVisualQualityTests {
         double contentWidth = pageWidth - margin - margin;
         double expectedRightColumnX = margin + ((contentWidth - gutter) / 2) + gutter;
         var tightParagraph = new PdfParagraphStyle {
-            SpacingAfter = 0
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -71,7 +71,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void RowStyle_KeepTogetherMovesRowToNextPage() {
         var tightParagraph = new PdfParagraphStyle {
             LineHeight = 1,
-            SpacingAfter = 0
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -192,14 +192,14 @@ public partial class PdfDocumentVisualQualityTests {
     public void Paragraph_RejectsInvalidSpacing() {
         var spacingBeforeException = Assert.Throws<ArgumentException>(() =>
             new PdfParagraphStyle {
-                SpacingBefore = -1
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(-1)
             });
 
         Assert.Contains("Paragraph spacing before must be a non-negative finite value.", spacingBeforeException.Message, StringComparison.Ordinal);
 
         var spacingAfterException = Assert.Throws<ArgumentException>(() =>
             new PdfParagraphStyle {
-                SpacingAfter = double.PositiveInfinity
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(-1)
             });
 
         Assert.Contains("Paragraph spacing after must be a non-negative finite value.", spacingAfterException.Message, StringComparison.Ordinal);
@@ -211,30 +211,9 @@ public partial class PdfDocumentVisualQualityTests {
 
         Assert.Contains("Paragraph line height must be a positive finite value.", lineHeightException.Message, StringComparison.Ordinal);
 
-        var leftIndentException = Assert.Throws<ArgumentException>(() =>
-            new PdfParagraphStyle {
-                LeftIndent = double.NegativeInfinity
-            });
-
-        Assert.Contains("Paragraph left indent must be a finite value.", leftIndentException.Message, StringComparison.Ordinal);
-
-        var rightIndentException = Assert.Throws<ArgumentException>(() =>
-            new PdfParagraphStyle {
-                RightIndent = double.NaN
-            });
-
-        Assert.Contains("Paragraph right indent must be a finite value.", rightIndentException.Message, StringComparison.Ordinal);
-
-        var firstLineIndentException = Assert.Throws<ArgumentException>(() =>
-            new PdfParagraphStyle {
-                FirstLineIndent = double.PositiveInfinity
-            });
-
-        Assert.Contains("Paragraph first line indent must be a finite value.", firstLineIndentException.Message, StringComparison.Ordinal);
-
         var tabStopException = Assert.Throws<ArgumentException>(() =>
             new PdfParagraphStyle {
-                DefaultTabStopWidth = double.NaN
+                DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Zero
             });
 
         Assert.Contains("Paragraph default tab stop width must be a positive finite value.", tabStopException.Message, StringComparison.Ordinal);
@@ -246,7 +225,7 @@ public partial class PdfDocumentVisualQualityTests {
                     MarginRight = global::OfficeIMO.OfficeLength.Points(20)
                 })
                 .Paragraph(p => p.Text("Invalid first line width"), style: new PdfParagraphStyle {
-                    FirstLineIndent = 120
+                    FirstLineIndent = global::OfficeIMO.OfficeLength.Points(120)
                 })
                 .ToBytes());
 
@@ -259,8 +238,8 @@ public partial class PdfDocumentVisualQualityTests {
                     MarginRight = global::OfficeIMO.OfficeLength.Points(20)
                 })
                 .Paragraph(p => p.Text("Invalid text width"), style: new PdfParagraphStyle {
-                    LeftIndent = 50,
-                    RightIndent = 40
+                    LeftIndent = global::OfficeIMO.OfficeLength.Points(50),
+                    RightIndent = global::OfficeIMO.OfficeLength.Points(40)
                 })
                 .ToBytes());
     }

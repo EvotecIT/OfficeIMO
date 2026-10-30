@@ -46,7 +46,7 @@ internal static partial class PdfWriter {
         double cursor, ref int nextIndex) {
         if (stops == null) return null;
         while (nextIndex < stops.Length && (stops[nextIndex].Alignment == PdfTabAlignment.Bar ||
-            stops[nextIndex].Position <= cursor + .001D)) nextIndex++;
+            stops[nextIndex].Position.ToPoints() <= cursor + .001D)) nextIndex++;
         return nextIndex < stops.Length ? stops[nextIndex++] : null;
     }
     private static PdfTabStop? GetNextExplicitTabStop(double lineWidth, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops) {
@@ -57,11 +57,11 @@ internal static partial class PdfWriter {
         PdfTabStop? next = null;
         for (int i = 0; i < tabStops.Count; i++) {
             PdfTabStop tabStop = tabStops[i];
-            if (tabStop.Alignment == PdfTabAlignment.Bar || tabStop.Position <= lineWidth + 0.001D) {
+            if (tabStop.Alignment == PdfTabAlignment.Bar || tabStop.Position.ToPoints() <= lineWidth + 0.001D) {
                 continue;
             }
 
-            if (next == null || tabStop.Position < next.Position) {
+            if (next == null || tabStop.Position.ToPoints() < next.Position.ToPoints()) {
                 next = tabStop;
             }
         }

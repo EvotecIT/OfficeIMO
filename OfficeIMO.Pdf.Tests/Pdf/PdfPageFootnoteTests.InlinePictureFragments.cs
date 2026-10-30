@@ -18,8 +18,8 @@ public partial class PdfPageFootnoteTests {
             : new[] { PdfTextRun.Normal($"PLAIN{index}" + (index < 9 ? "\n" : "")) }).ToArray();
         var note = document.Content.DefineFootnote(body => body.Paragraph(paragraph => paragraph.Runs(runs),
             style: new PdfParagraphStyle {
-                FontSize = 10, LineSpacing = PdfLineSpacing.Exactly(12), WidowControl = false,
-                SpacingBefore = 0, SpacingAfter = 0
+                FontSize = global::OfficeIMO.OfficeLength.Points(10), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12)), WidowControl = false,
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             }));
         document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
             PdfTextRun.Normal("Reference").WithFootnoteReference(note)

@@ -198,15 +198,15 @@ namespace OfficeIMO.Examples.Pdf {
         }
 
         private static PdfParagraphStyle TightParagraph() {
-            return new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 2, LineHeight = 1.15 };
+            return new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(2), LineHeight = 1.15 };
         }
 
         private static PdfParagraphStyle LabelParagraph() {
-            return new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0, LineHeight = 1.1 };
+            return new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), LineHeight = 1.1 };
         }
 
         private static PdfParagraphStyle AddressParagraph() {
-            return new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0, LineHeight = 1.35 };
+            return new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), LineHeight = 1.35 };
         }
 
         private static OfficeIMO.Drawing.OfficeShape CreateBrandRule() {

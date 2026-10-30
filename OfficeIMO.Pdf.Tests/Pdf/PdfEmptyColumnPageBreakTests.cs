@@ -81,7 +81,7 @@ public sealed class PdfEmptyColumnPageBreakTests {
                 for (int index = 0; index < breaks; index++) content.ColumnBreak();
                 content.PageBreak(preserve);
                 content.Paragraph(paragraph => paragraph.Text("AFTER"), style: new PdfParagraphStyle {
-                    LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false
+                    LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
                 });
             }, new PdfMultiColumnOptions { ColumnCount = columns, Gap = 20, BalanceLastPage = false }));
         }));

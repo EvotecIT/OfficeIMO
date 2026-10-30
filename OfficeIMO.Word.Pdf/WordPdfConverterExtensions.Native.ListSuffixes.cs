@@ -26,7 +26,7 @@ namespace OfficeIMO.Word.Pdf {
         private static double ResolveNativeInlineListMarkerColumnWidth(WordParagraph paragraph,
             string marker, PdfCore.PdfParagraphStyle paragraphStyle,
             NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
-            double width = Math.Max(0D, -paragraphStyle.FirstLineIndent);
+            double width = Math.Max(0D, -paragraphStyle.FirstLineIndent.ToPoints());
             WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
             if (marker.Length == 0 || info == null || info.Value.LevelSuffix is WordListLevelSuffix.Space or WordListLevelSuffix.Nothing)
                 return width;
@@ -36,9 +36,9 @@ namespace OfficeIMO.Word.Pdf {
             double markerWidth = nativeFontMap.MeasureText(markerRun)
                 ?? EstimateNativeListMarkerWidth(marker, markerRun.FontSize ?? nativeDefaults.FontSize,
                     ResolveNativeListMarkerTextSpacing(info.Value, textStyle.ListMarkerTextSpacing));
-            double markerStart = paragraphStyle.LeftIndent + paragraphStyle.FirstLineIndent;
+            double markerStart = paragraphStyle.LeftIndent.ToPoints() + paragraphStyle.FirstLineIndent.ToPoints();
             double bodyPosition = ResolveNativeListTabBodyPosition(paragraph, markerStart + markerWidth,
-                paragraphStyle.LeftIndent, nativeDefaults);
+                paragraphStyle.LeftIndent.ToPoints(), nativeDefaults);
             return Math.Max(0D, bodyPosition - markerStart);
         }
 
@@ -49,7 +49,7 @@ namespace OfficeIMO.Word.Pdf {
             ApplyNativeInlineListMarkerAlignment(paragraph, marker, paragraphStyle, nativeDefaults, nativeFontMap);
             double advance = ResolveNativeInlineListMarkerColumnWidth(paragraph, marker, paragraphStyle,
                 nativeDefaults, nativeFontMap);
-            return Math.Abs(advance - Math.Max(0D, -paragraphStyle.FirstLineIndent)) > 0.01D;
+            return Math.Abs(advance - Math.Max(0D, -paragraphStyle.FirstLineIndent.ToPoints())) > 0.01D;
         }
 
         // Word emits the numbering space in Arial at the marker's size,

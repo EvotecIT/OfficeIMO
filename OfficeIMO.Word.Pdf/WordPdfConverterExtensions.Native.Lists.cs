@@ -328,16 +328,16 @@ namespace OfficeIMO.Word.Pdf {
 
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             bool useParagraphStyleIndent = ShouldApplyNativeListParagraphStyleIndent(paragraph);
-            style.LeftIndent = paragraph.IndentationBefore?.ToPoints() ??
+            style.LeftIndent = global::OfficeIMO.OfficeLength.Points(paragraph.IndentationBefore?.ToPoints() ??
                 (useParagraphStyleIndent ? styleDefaults.LeftIndent : null) ??
-                ConvertNativeTwipsToPoints(info.Value.LeftIndentTwips ?? ((info.Value.Level + 1) * 720)) ?? 0D;
+                ConvertNativeTwipsToPoints(info.Value.LeftIndentTwips ?? ((info.Value.Level + 1) * 720)) ?? 0D);
             double hangingIndent = paragraph.IndentationHanging?.ToPoints() ??
                 (useParagraphStyleIndent ? GetNativeStyleHangingIndent(styleDefaults) : null) ??
                 ConvertNativeTwipsToPoints(info.Value.HangingIndentTwips ?? 360) ?? 0D;
-            style.FirstLineIndent = paragraph.IndentationHanging.HasValue
+            style.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(paragraph.IndentationHanging.HasValue
                 ? -hangingIndent
                 : paragraph.IndentationFirstLine?.ToPoints() ??
-                    (useParagraphStyleIndent ? styleDefaults.FirstLineIndent : null) ?? -hangingIndent;
+                    (useParagraphStyleIndent ? styleDefaults.FirstLineIndent : null) ?? -hangingIndent);
             // Rebase against the resolved continuation frame, after numbering
             // indentation has replaced the paragraph style's provisional value.
             RefreshNativeParagraphTabStops(paragraph, style);
@@ -364,7 +364,7 @@ namespace OfficeIMO.Word.Pdf {
             if (nativeFontMap.MeasureText(markerRun) is { } width) {
                 if (info.Value.LevelSuffix == WordListLevelSuffix.Space)
                     width += ResolveNativeListSpaceSuffixWidth(paragraph, nativeDefaults, nativeFontMap);
-                style.FirstLineIndent -= GetNativeMarkerAnchorShift(info.Value, width);
+                style.FirstLineIndent -= global::OfficeIMO.OfficeLength.Points(GetNativeMarkerAnchorShift(info.Value, width));
             }
         }
 
@@ -453,7 +453,8 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool NativeLineSpacingsEquivalent(PdfCore.PdfLineSpacing? left, PdfCore.PdfLineSpacing? right) =>
             ReferenceEquals(left, right) || left != null && right != null &&
-            left.Rule == right.Rule && DoubleEquals(left.Value, right.Value) &&
+            left.Rule == right.Rule && NullableDoubleEquals(left.Height?.ToPoints(), right.Height?.ToPoints()) &&
+            NullableDoubleEquals(left.MultipleValue, right.MultipleValue) &&
             DoubleEquals(left.NaturalMultiplier, right.NaturalMultiplier) &&
             NullableDoubleEquals(left.FontLineBoxMultiplier, right.FontLineBoxMultiplier) &&
             NullableDoubleEquals(left.LineGridPitch, right.LineGridPitch) &&

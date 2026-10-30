@@ -162,7 +162,7 @@ public sealed class PdfInlineFormTests {
             PdfTextRun.Normal(cached.Substring(0, split)).WithFormField(descriptor),
             new PdfTextRun(cached.Substring(split), bold: true).WithFormField(descriptor),
             PdfTextRun.Normal(" TAIL")
-        }), style: new PdfParagraphStyle { SpacingAfter = 0, LineHeight = 1.2D });
+        }), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), LineHeight = 1.2D });
     }
 
     private static PdfCreateOptions Options(double width, double height) => new() {

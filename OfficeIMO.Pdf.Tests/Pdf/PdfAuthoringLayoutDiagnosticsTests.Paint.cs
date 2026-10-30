@@ -191,7 +191,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         var runs = inline
             ? new[] { PdfTextRun.Inline(new PdfInlineBox(5.004D, 8, borderColor: global::OfficeIMO.OfficeColor.Black, borderWidth: 2)) }
             : new[] { PdfTextRun.Normal("T", fontSize: 9, font: PdfStandardFont.TimesItalic) };
-        var style = new PdfParagraphStyle { RightIndent = 212D - 5.004D };
+        var style = new PdfParagraphStyle { RightIndent = global::OfficeIMO.OfficeLength.Points(212D - 5.004D) };
         if (column) document.Row(row => row.PercentColumn(100, content =>
             content.Paragraph(paragraph => paragraph.Runs(runs), style: style)));
         else document.Paragraph(paragraph => paragraph.Runs(runs), style: style);

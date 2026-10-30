@@ -22,7 +22,7 @@ public partial class PdfDocumentVisualQualityTests {
             MarginLeft = global::OfficeIMO.OfficeLength.Points(72), MarginRight = global::OfficeIMO.OfficeLength.Points(72), MarginTop = global::OfficeIMO.OfficeLength.Points(72), MarginBottom = global::OfficeIMO.OfficeLength.Points(72)
         };
         var document = PdfDocument.Create(options);
-        var style = new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exactly(200) };
+        var style = new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(200)) };
         if (columns) document.Columns(flow => flow.Paragraph(p => p.Text("A"), style: style));
         else document.Paragraph(p => p.Text("A"), style: style);
         var exception = Assert.Throws<ArgumentException>(() => document.ToBytes());

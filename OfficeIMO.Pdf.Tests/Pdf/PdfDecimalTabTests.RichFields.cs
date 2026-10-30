@@ -11,8 +11,8 @@ public sealed class PdfDecimalRichFieldTests {
     [InlineData(PdfTextWhitespaceMode.Preserve, '.', "1234", false)]
     public void DecimalTabsAnchorCompleteMixedFontFieldsAtTheSelectedSeparatorOrFieldEnd(
         PdfTextWhitespaceMode whitespace, char separator, string number, bool hasSeparator) {
-        var style = new PdfParagraphStyle { TextWhitespaceMode = whitespace, SpacingAfter = 0D };
-        style.AddTabStop(200D, PdfTabAlignment.DecimalSeparator).DecimalSeparator = separator;
+        var style = new PdfParagraphStyle { TextWhitespaceMode = whitespace, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) };
+        style.AddTabStop(global::OfficeIMO.OfficeLength.Points(200D), PdfTabAlignment.DecimalSeparator).DecimalSeparator = separator;
         var options = new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(420D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D), MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
             MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D)
@@ -41,9 +41,9 @@ public sealed class PdfDecimalRichFieldTests {
     [InlineData(PdfTabAlignment.Center)]
     [InlineData(PdfTabAlignment.DecimalSeparator)]
     public void TabFieldsRemeasureWhenWrappingSelectsAnEarlierNonLeftStop(PdfTabAlignment alignment) {
-        var style = new PdfParagraphStyle { SpacingAfter = 0D };
-        style.AddTabStop(90D, alignment).DecimalSeparator = '.';
-        style.AddTabStop(170D, PdfTabAlignment.Left);
+        var style = new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) };
+        style.AddTabStop(global::OfficeIMO.OfficeLength.Points(90D), alignment).DecimalSeparator = '.';
+        style.AddTabStop(global::OfficeIMO.OfficeLength.Points(170D), PdfTabAlignment.Left);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(220D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D), MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
             MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D), DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D)

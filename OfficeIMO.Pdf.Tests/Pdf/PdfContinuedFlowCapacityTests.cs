@@ -145,6 +145,6 @@ public class PdfContinuedFlowCapacityTests {
     };
 
     private static PdfParagraphStyle Style(double height = 10D) => new() {
-        FontSize = 6, LineSpacing = PdfLineSpacing.Exactly(height), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false
+        FontSize = global::OfficeIMO.OfficeLength.Points(6), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(height)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
     };
 }

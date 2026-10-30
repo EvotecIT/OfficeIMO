@@ -108,7 +108,7 @@ public partial class PdfDocumentVisualQualityTests {
     };
 
     private static PdfParagraphStyle FragmentJustificationStyle(bool distributed = false) => new() {
-        FontSize = 8, LineSpacing = PdfLineSpacing.Exactly(10), SpacingBefore = 0, SpacingAfter = 0,
+        FontSize = global::OfficeIMO.OfficeLength.Points(8), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
         JustificationMode = distributed ? PdfJustificationMode.Characters : PdfJustificationMode.Words,
         JustifyExplicitLineBreaks = distributed, JustifyLastLine = distributed
     };

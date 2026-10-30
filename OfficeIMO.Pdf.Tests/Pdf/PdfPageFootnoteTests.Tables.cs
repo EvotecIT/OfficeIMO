@@ -114,7 +114,7 @@ public partial class PdfPageFootnoteTests {
         options.MaxGeneratedPages = 4;
         var document = PdfDocument.Create(options);
         var note = document.Content.DefineFootnote(body => body.Text("CannotFit", style: new PdfParagraphStyle {
-            FontSize = 8, LineSpacing = PdfLineSpacing.Exactly(110), SpacingBefore = 0, SpacingAfter = 0
+            FontSize = global::OfficeIMO.OfficeLength.Points(8), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(110)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         }));
         document.Content.Table(new[] { new[] {
             new PdfTableCell(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) })

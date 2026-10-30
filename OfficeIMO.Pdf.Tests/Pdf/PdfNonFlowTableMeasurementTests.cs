@@ -95,8 +95,8 @@ public sealed class PdfNonFlowTableMeasurementTests {
             content.Spacer(leadingSpace);
             void AddSequence(PdfContentBuilder flow) {
                 flow.Paragraph(paragraph => paragraph.Text("LEAD"), style: new PdfParagraphStyle {
-                    FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(12D),
-                    SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = true
+                    FontSize = global::OfficeIMO.OfficeLength.Points(10D), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12D)),
+                    SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepWithNext = true
                 });
                 flow.Table(new[] { new[] { "OVERLAY" } }, PdfAlign.Right, style);
                 flow.Paragraph(paragraph => paragraph.Text("FOLLOWING"), style: ParagraphStyle());
@@ -158,8 +158,8 @@ public sealed class PdfNonFlowTableMeasurementTests {
                 if (rowKeepsNext) columns.Style(new PdfRowStyle { KeepWithNext = true });
                 columns.PercentColumn(100D, flow => {
                     flow.Paragraph(paragraph => paragraph.Text("LEAD"), style: new PdfParagraphStyle {
-                        FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(12D),
-                        SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = !rowKeepsNext
+                        FontSize = global::OfficeIMO.OfficeLength.Points(10D), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12D)),
+                        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepWithNext = !rowKeepsNext
                     });
                     if (rowKeepsNext) flow.Table(new[] { new[] { "OVERLAY" } }, PdfAlign.Right, OverlayStyle(36D));
                     else flow.Panel(panel => panel.Table(new[] { new[] { "OVERLAY" } }, PdfAlign.Right, OverlayStyle(36D)),
@@ -188,7 +188,7 @@ public sealed class PdfNonFlowTableMeasurementTests {
     };
 
     private static PdfParagraphStyle ParagraphStyle() => new() {
-        FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(12D), SpacingBefore = 0, SpacingAfter = 0
+        FontSize = global::OfficeIMO.OfficeLength.Points(10D), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12D)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
     };
 
     private static PdfTableStyle OverlayStyle(double height) => new() {

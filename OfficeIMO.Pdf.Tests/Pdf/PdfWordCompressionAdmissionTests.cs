@@ -79,7 +79,7 @@ public sealed class PdfWordCompressionAdmissionTests {
         int noteCalls = 0, paragraphCalls = 0;
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => {
             noteCalls++;
-            body.Text("QualityNote", style: new PdfParagraphStyle { FontSize = 8D, LineSpacing = PdfLineSpacing.Exactly(10D) });
+            body.Text("QualityNote", style: new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8D), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10D)) });
         });
         document.Content.Paragraph(paragraph => {
             paragraphCalls++;
@@ -122,8 +122,8 @@ public sealed class PdfWordCompressionAdmissionTests {
         string text = separator == "tab" ? "Alpha\tbeta\tgamma" : "Alpha\u00a0beta\u00a0gamma";
         var style = new PdfParagraphStyle { UseWordJustificationSpacing = true, TextWhitespaceMode = PdfTextWhitespaceMode.Preserve };
         if (separator == "tab") {
-            style.TabStops.Add(new PdfTabStop(40D));
-            style.TabStops.Add(new PdfTabStop(80D));
+            style.TabStops.Add(new PdfTabStop(global::OfficeIMO.OfficeLength.Points(40D)));
+            style.TabStops.Add(new PdfTabStop(global::OfficeIMO.OfficeLength.Points(80D)));
         }
         byte[] wide = PdfDocument.Create(Options(300D)).Paragraph(p => p.Text(text), PdfAlign.Justify, style: style).ToBytes();
         double natural = Span(Assert.Single(Lines(wide, "separator-wide-" + separator)));
@@ -141,7 +141,7 @@ public sealed class PdfWordCompressionAdmissionTests {
         var document = PdfDocument.Create(options);
         document.Content.Columns(content => content.Paragraph(p => p.Text(string.Join("\n", Enumerable.Repeat("Alpha beta gamma", 8))),
                 PdfAlign.Justify, style: new PdfParagraphStyle { UseWordJustificationSpacing = true,
-                    TextWhitespaceMode = PdfTextWhitespaceMode.Preserve, LineSpacing = PdfLineSpacing.Exactly(18D) }),
+                    TextWhitespaceMode = PdfTextWhitespaceMode.Preserve, LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18D)) }),
             new PdfMultiColumnOptions { BalanceLastPage = false, ColumnDefinitions = new[] {
                 new PdfFlowColumn(PdfColumnWidth.Fixed(narrow), 20D), new PdfFlowColumn(PdfColumnWidth.Fixed(wide)) } });
         byte[] bytes = document.ToBytes();

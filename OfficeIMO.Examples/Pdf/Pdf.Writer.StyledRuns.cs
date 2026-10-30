@@ -43,7 +43,7 @@ namespace OfficeIMO.Examples.Pdf {
                     .Strikethrough("obsolete ")
                     .Color(global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80)).Text("and ")
                     .Color(global::OfficeIMO.OfficeColor.FromRgb(8, 28, 120)).Text("colors."),
-                    style: new PdfParagraphStyle { SpacingBefore = 14 })
+                    style: new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(14) })
                 .Paragraph(p => p
                     .Text("Underline respects color: ")
                     .Underlined("red", global::OfficeIMO.OfficeColor.FromRgb(200, 0, 0))

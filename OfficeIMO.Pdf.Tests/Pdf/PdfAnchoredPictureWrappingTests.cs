@@ -23,7 +23,7 @@ public sealed class PdfAnchoredPictureWrappingTests {
         style.LineSpacing = null;
         style.LineHeight = 1.2D;
         style.TextWhitespaceMode = whitespace;
-        style.AddTabStop(90D, leader: PdfTabLeaderStyle.Dots);
+        style.AddTabStop(global::OfficeIMO.OfficeLength.Points(90D), leader: PdfTabLeaderStyle.Dots);
         var content = new PdfPageCanvas();
         content.Image(PdfPngTestImages.CreateRgbPng(2, 2), 0D, 0D, 96D, 48D);
         style.AnchoredCanvas = new PdfCanvasBlock(new PdfCanvasItem[] {
@@ -83,10 +83,10 @@ public sealed class PdfAnchoredPictureWrappingTests {
     public void FragmentBarsAndTextTabsKeepParagraphCoordinatesAndTerminalSpacing() {
         PdfDocument Document(bool bar) {
             PdfParagraphStyle style = PictureStyle(PdfImageTextWrapKind.Square);
-            style.SpacingBefore = 6D;
-            style.SpacingAfter = 8D;
-            style.AddTabStop(240D);
-            if (bar) style.AddTabStop(36D, PdfTabAlignment.Bar);
+            style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(6D);
+            style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(8D);
+            style.AddTabStop(global::OfficeIMO.OfficeLength.Points(240D));
+            if (bar) style.AddTabStop(global::OfficeIMO.OfficeLength.Points(36D), PdfTabAlignment.Bar);
             return PdfDocument.Create(Options())
                 .Paragraph(p => p.Text("BEFORE"), style: TextStyle())
                 .Paragraph(p => p.Text(WideWord + "\nLEFT\tTAB"), style: style)
@@ -265,7 +265,7 @@ public sealed class PdfAnchoredPictureWrappingTests {
         var options = Options();
         options.CreateOutlineFromHeadings = true;
         var style = new PdfHeadingStyle {
-            FontSize = 12D, Bold = false, LineSpacing = PdfLineSpacing.Exactly(15D),
+            FontSize = 12D, Bold = false, LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(15D)),
             SpacingBefore = 0D, SpacingAfter = 0D, KeepWithNext = false,
             AnchoredCanvas = PictureStyle(topAndBottom ? PdfImageTextWrapKind.TopAndBottom :
                 PdfImageTextWrapKind.Square).AnchoredCanvas
@@ -304,7 +304,7 @@ public sealed class PdfAnchoredPictureWrappingTests {
     [InlineData(true, true)]
     public void NonConvergingRunningContentReportsOnlyUnstablePicturePlacement(bool withPicture, bool movingPicture) {
         const double headerDistance = 18D;
-        double tallHeader = Options().PageHeight - Options().MarginBottom - headerDistance - 2D * 15D;
+        double tallHeader = Options().PageHeight.ToPoints() - Options().MarginBottom.ToPoints() - headerDistance - 2D * 15D;
         PdfDocument Document(Func<PdfRunningContentContext, double> headerHeight) => PdfDocument.Create(pdf => {
             pdf.Section(page => page.Content(content => content.Paragraph(p => p.Text("ANCHOR"),
                 style: withPicture && !movingPicture
@@ -354,8 +354,8 @@ public sealed class PdfAnchoredPictureWrappingTests {
     };
 
     private static PdfParagraphStyle TextStyle() => new PdfParagraphStyle {
-        FontSize = 12D, LineSpacing = PdfLineSpacing.Exactly(15D),
-        SpacingBefore = 0D, SpacingAfter = 0D, WidowControl = false
+        FontSize = global::OfficeIMO.OfficeLength.Points(12D), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(15D)),
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D), WidowControl = false
     };
 
     private static PdfParagraphStyle PictureStyle(PdfImageTextWrapKind? kind, bool behind = false, bool paragraphY = true) {

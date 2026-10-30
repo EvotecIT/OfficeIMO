@@ -120,9 +120,16 @@ public class OfficeLengthTests {
         Assert.Throws<OverflowException>(() => OfficeLength.Emus(long.MaxValue) + OfficeLength.Emus(1));
         Assert.Throws<OverflowException>(() => OfficeLength.Emus(long.MinValue) - OfficeLength.Emus(1));
         Assert.Throws<OverflowException>(() => OfficeLength.Emus(long.MaxValue) * 2);
-        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeLength.Points(double.NaN));
         Assert.Throws<ArgumentOutOfRangeException>(() => a * double.PositiveInfinity);
         Assert.Throws<FormatException>(() => a.ToString("bogus", null));
+    }
+
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.NegativeInfinity)]
+    [InlineData(double.PositiveInfinity)]
+    public void NonfinitePhysicalInputsRejectAtConstruction(double value) {
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeLength.Points(value));
     }
 
     [Fact]

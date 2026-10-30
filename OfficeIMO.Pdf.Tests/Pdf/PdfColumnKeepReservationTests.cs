@@ -20,10 +20,10 @@ public sealed class PdfColumnKeepReservationTests {
             MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40), MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
             MaxGeneratedPages = 4 }).Columns(content => {
                 if (kind == "heading") content.H1("Heading001", style: new PdfHeadingStyle {
-                    FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0,
+                    FontSize = 12, LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = 0, SpacingAfter = 0,
                     KeepWithNext = true });
                 if (kind == "list") content.RichNumbered(Enumerable.Range(1, 3).Select(index => new PdfListItem($"Lead{index:D3}")),
-                    style: new PdfListStyle { LineSpacing = PdfLineSpacing.Exactly(20), ItemSpacing = 0,
+                    style: new PdfListStyle { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), ItemSpacing = 0,
                         SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = true });
                 else if (kind == "panel") content.Panel(panel => panel.Paragraph(p => p.Text("Lead001\nLead002\nLead003"), style: Style()),
                     new PdfPanelStyle { PaddingX = 0, PaddingY = 0, SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = true });
@@ -51,6 +51,6 @@ public sealed class PdfColumnKeepReservationTests {
         Assert.True(kind == "panel" ? lastLeaderX < 200 : lastLeaderX > 250);
     }
 
-    private static PdfParagraphStyle Style() => new() { LineSpacing = PdfLineSpacing.Exactly(20),
-        SpacingBefore = 0, SpacingAfter = 0, WidowControl = false };
+    private static PdfParagraphStyle Style() => new() { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)),
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false };
 }

@@ -66,11 +66,11 @@ namespace OfficeIMO.Word.Pdf {
                 PdfCore.PdfParagraphStyle? collapsedStyle = style;
                 if (style != null) {
                     collapsedStyle = style.Clone();
-                    collapsedStyle.SpacingBefore = CollapseSpacingBefore(style.SpacingBefore);
+                    collapsedStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(CollapseSpacingBefore(style.SpacingBefore.ToPoints()));
                 }
 
                 _inner.Paragraph(build, align, defaultColor, collapsedStyle);
-                _pendingSpacingAfter = style?.SpacingAfter;
+                _pendingSpacingAfter = style?.SpacingAfter?.ToPoints();
             }
 
             public void Panel(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfPanelStyle? style = null) {
@@ -92,7 +92,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 _inner.PanelParagraph(build, collapsedStyle, align, defaultColor, paragraphStyle);
-                _pendingSpacingAfter = paragraphStyle?.SpacingAfter ?? style?.SpacingAfter;
+                _pendingSpacingAfter = paragraphStyle?.SpacingAfter?.ToPoints() ?? style?.SpacingAfter;
             }
 
             public void Heading(int level, string text, Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfHeadingStyle? style) {

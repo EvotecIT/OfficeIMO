@@ -26,68 +26,68 @@ namespace OfficeIMO.Word.Pdf {
             double naturalLineHeight = ResolveNativeParagraphSingleLineHeight(paragraph, nativeDefaults, styleDefaults, nativeFontMap: nativeFontMap);
             NativeLineSpacing lineSpacing = ResolveNativeParagraphLineSpacing(paragraph, styleDefaults, nativeDefaults);
             double lineHeight = lineSpacing.Resolve(fontSize, naturalLineHeight) ?? nativeDefaults.ParagraphLineHeight;
-            style.FontSize = ResolveNativeParagraphLayoutFontSize(paragraph, nativeDefaults, styleDefaults);
+            style.FontSize = global::OfficeIMO.OfficeLength.Points(ResolveNativeParagraphLayoutFontSize(paragraph, nativeDefaults, styleDefaults));
             style.LineSpacing = lineSpacing.ToPdfLineSpacing(naturalLineHeight);
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
             var spacingInLines = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults);
             if (spacingInLines.Before.HasValue) {
-                style.SpacingBefore = spacingInLines.Before.Value;
+                style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingInLines.Before.Value);
             } else if (paragraph.LineSpacingBefore.HasValue) {
-                style.SpacingBefore = paragraph.LineSpacingBefore.Value.ToPoints();
+                style.SpacingBefore = paragraph.LineSpacingBefore.Value;
             } else if (GetNativeSpacingBeforePoints(directSpacing, fontSize, lineHeight) is { } directSpacingBefore) {
-                style.SpacingBefore = directSpacingBefore;
+                style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(directSpacingBefore);
             } else if (styleDefaults.SpacingBefore.HasValue) {
-                style.SpacingBefore = styleDefaults.SpacingBefore.Value;
+                style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(styleDefaults.SpacingBefore.Value);
             } else if (nativeDefaults.ParagraphSpacingBeforeDeclared) {
-                style.SpacingBefore = nativeDefaults.ParagraphSpacingBefore;
+                style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(nativeDefaults.ParagraphSpacingBefore);
             }
 
             if (spacingInLines.After.HasValue) {
-                style.SpacingAfter = spacingInLines.After.Value;
+                style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingInLines.After.Value);
             } else if (paragraph.LineSpacingAfter.HasValue) {
-                style.SpacingAfter = paragraph.LineSpacingAfter.Value.ToPoints();
+                style.SpacingAfter = paragraph.LineSpacingAfter.Value;
             } else if (GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) is { } directSpacingAfter) {
-                style.SpacingAfter = directSpacingAfter;
+                style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(directSpacingAfter);
             } else if (styleDefaults.SpacingAfter.HasValue) {
-                style.SpacingAfter = styleDefaults.SpacingAfter.Value;
+                style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(styleDefaults.SpacingAfter.Value);
             }
 
             if (paragraph.IndentationBefore.HasValue) {
-                style.LeftIndent = paragraph.IndentationBefore.Value.ToPoints();
+                style.LeftIndent = paragraph.IndentationBefore.Value;
             } else if (styleDefaults.LeftIndent.HasValue) {
-                style.LeftIndent = styleDefaults.LeftIndent.Value;
+                style.LeftIndent = global::OfficeIMO.OfficeLength.Points(styleDefaults.LeftIndent.Value);
             }
 
             if (paragraph.IndentationAfter.HasValue) {
-                style.RightIndent = paragraph.IndentationAfter.Value.ToPoints();
+                style.RightIndent = paragraph.IndentationAfter.Value;
             } else if (styleDefaults.RightIndent.HasValue) {
-                style.RightIndent = styleDefaults.RightIndent.Value;
+                style.RightIndent = global::OfficeIMO.OfficeLength.Points(styleDefaults.RightIndent.Value);
             }
 
             if (paragraph.IndentationFirstLine.HasValue) {
-                style.FirstLineIndent = paragraph.IndentationFirstLine.Value.ToPoints();
+                style.FirstLineIndent = paragraph.IndentationFirstLine.Value;
             } else if (styleDefaults.FirstLineIndent.HasValue) {
-                style.FirstLineIndent = styleDefaults.FirstLineIndent.Value;
+                style.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(styleDefaults.FirstLineIndent.Value);
             }
 
             if (paragraph.IndentationHanging.HasValue) {
                 double hangingIndent = paragraph.IndentationHanging.Value.ToPoints();
-                style.FirstLineIndent = -hangingIndent;
+                style.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(-hangingIndent);
             }
 
             style.LineHeight = lineHeight;
             if (nativeDefaults.DefaultTabStopWidth.HasValue) {
-                style.DefaultTabStopWidth = nativeDefaults.DefaultTabStopWidth.Value;
+                style.DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(nativeDefaults.DefaultTabStopWidth.Value);
             }
 
             if (!spacingInLines.After.HasValue && !paragraph.LineSpacingAfter.HasValue &&
                 GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) == null &&
                 !styleDefaults.SpacingAfter.HasValue) {
-                style.SpacingAfter = nativeDefaults.ParagraphSpacingAfter;
+                style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(nativeDefaults.ParagraphSpacingAfter);
             }
 
             foreach (PdfCore.PdfTabStop tabStop in ResolveNativeParagraphTabStops(
-                paragraph, style.LeftIndent, style.FirstLineIndent)) {
+                paragraph, style.LeftIndent.ToPoints(), style.FirstLineIndent.ToPoints())) {
                 style.TabStops.Add(tabStop);
             }
 

@@ -28,10 +28,10 @@ namespace OfficeIMO.Examples.Pdf {
                     #region Excerpt:executive-pdf-dashboard
                     document.Page(page => {
                         page.Size(PdfPageSizes.A4).Landscape().Margin(42, 38, 42, 42);
-                        page.DefaultParagraphStyle(new PdfParagraphStyle { LineHeight = 1.18, SpacingAfter = 5 });
+                        page.DefaultParagraphStyle(new PdfParagraphStyle { LineHeight = 1.18, SpacingAfter = global::OfficeIMO.OfficeLength.Points(5) });
                         page.Content(content => {
                             content.Item(item => item.H1("Quarterly operations dashboard", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42)));
-                            content.Item(item => item.Paragraph(p => p.Text("Service levels, resolved volume and the decisions needed for Q4."), style: new PdfParagraphStyle { SpacingAfter = 10 }));
+                            content.Item(item => item.Paragraph(p => p.Text("Service levels, resolved volume and the decisions needed for Q4."), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(10) }));
 
                             // Four KPI panels share the row width.
                             content.Row(row => {
@@ -99,7 +99,7 @@ namespace OfficeIMO.Examples.Pdf {
         }
 
         private static PdfParagraphStyle SectionLabel() {
-            return new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 4, LineHeight = 1.1 };
+            return new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(4), LineHeight = 1.1 };
         }
 
         private static OfficeDrawing CreateTrendDrawing() {

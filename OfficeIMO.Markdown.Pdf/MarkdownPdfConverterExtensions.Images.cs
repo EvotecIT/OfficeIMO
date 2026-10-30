@@ -147,7 +147,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 .FontSize(figureStyle.CaptionFontSizeSnapshot)
                 .Color(figureStyle.CaptionColorSnapshot)
                 .Text(caption!.Trim());
-        }, align: figureStyle.CaptionAlignSnapshot, defaultColor: figureStyle.CaptionColorSnapshot, style: new PdfCore.PdfParagraphStyle { SpacingBefore = 2, SpacingAfter = 2 });
+        }, align: figureStyle.CaptionAlignSnapshot, defaultColor: figureStyle.CaptionColorSnapshot, style: new PdfCore.PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(2), SpacingAfter = global::OfficeIMO.OfficeLength.Points(2) });
     }
 
     private static bool TryReadImageBytes(string path, MarkdownPdfExportOptions options, out byte[] bytes, out string sourceName, out string warningCode, out string warningMessage) {

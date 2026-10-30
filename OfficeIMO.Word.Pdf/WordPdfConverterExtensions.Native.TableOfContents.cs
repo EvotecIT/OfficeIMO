@@ -149,7 +149,7 @@ namespace OfficeIMO.Word.Pdf {
             if (renderTitle) {
                 string title = string.IsNullOrWhiteSpace(tableOfContent.Text) ? "Table of Contents" : tableOfContent.Text;
                 pdf.Paragraph(builder => builder.FontSize(11D).Text(NormalizeNativeDirectText(title)), PdfCore.PdfAlign.Left, null, new PdfCore.PdfParagraphStyle {
-                    SpacingAfter = 5D,
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(5D),
                     KeepWithNext = true
                 });
             }

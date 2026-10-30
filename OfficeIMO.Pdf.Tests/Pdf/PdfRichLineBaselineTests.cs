@@ -54,7 +54,7 @@ public sealed class PdfRichLineBaselineTests {
             MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8) };
         if (namedFont) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'B', 'C')));
-        var style = new PdfParagraphStyle { FontSize = 8, SpacingBefore = 0, SpacingAfter = 0,
+        var style = new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
             LineSpacing = PdfLineSpacing.Multiple(1.4) };
         Action<PdfParagraphBuilder> text = p => {
             if (namedFont) p.FontFamily(family);

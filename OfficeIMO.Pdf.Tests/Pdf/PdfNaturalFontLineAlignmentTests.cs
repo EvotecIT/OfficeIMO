@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests.Pdf {
                 ascentOnly.IsLineBoxStrut = strut;
                 ascentOnly.ContributesLineBoxDescent = false;
                 var style = new PdfParagraphStyle {
-                    FontSize = 11D, SpacingBefore = 0D, SpacingAfter = 0D,
+                    FontSize = global::OfficeIMO.OfficeLength.Points(11D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D),
                     LineSpacing = PdfLineSpacing.Multiple(1.5D).WithFontLineBoxBaseline(1.5D).WithLineGrid(18D)
                 };
                 return PdfDocument.Create(options)
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void AlignedNaturalLinesReserveTheirCombinedFontBox(bool minimum) {
             PdfCreateOptions options = new PdfCreateOptions();
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Natural line bounds", ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics()));
-            PdfLineSpacing spacing = (minimum ? PdfLineSpacing.AtLeast(1, 1D) : PdfLineSpacing.Multiple(1D))
+            PdfLineSpacing spacing = (minimum ? PdfLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(1), 1D) : PdfLineSpacing.Multiple(1D))
                 .WithFontLineBoxBaseline(1D).WithFontAlignment(PdfFontLineAlignment.Top, .12D);
             PdfDocument document = PdfDocument.Create(options);
             document.Compose(builder => builder.Content(content => content.Paragraph(paragraph => paragraph
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests.Pdf {
             PdfFontLineAlignment alignment = (PdfFontLineAlignment)Enum.Parse(typeof(PdfFontLineAlignment), alignmentName);
             PdfCreateOptions options = new PdfCreateOptions();
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Natural device metrics", ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics()));
-            PdfLineSpacing spacing = (minimum ? PdfLineSpacing.AtLeast(30, 1.2D) : PdfLineSpacing.Multiple(1.2D))
+            PdfLineSpacing spacing = (minimum ? PdfLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(30), 1.2D) : PdfLineSpacing.Multiple(1.2D))
                 .WithFontLineBoxBaseline(1.2D).WithFontAlignment(alignment, .12D);
             PdfDocument document = PdfDocument.Create(options);
             document.Paragraph(paragraph => paragraph.FontFamily("Natural device metrics").FontSize(8).Text("A")

@@ -454,7 +454,7 @@ public sealed class PdfLogicalTableContinuationContractTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9),
             // Seven 12.6-point lines with 3.78-point gaps place the native table near the page edge.
             DefaultParagraphStyle = new PdfParagraphStyle {
-                LineHeight = 1.4, SpacingBefore = 0, SpacingAfter = 3.78, WidowControl = false
+                LineHeight = 1.4, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(3.78), WidowControl = false
             }
         });
         for (int index = 0; index < 7; index++) {

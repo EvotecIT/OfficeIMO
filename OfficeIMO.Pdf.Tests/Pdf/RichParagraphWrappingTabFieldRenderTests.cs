@@ -9,8 +9,8 @@ public partial class RichParagraphWrappingTests {
     [InlineData(PdfTabAlignment.Right)]
     public void ParagraphTabs_CollapsedSpaceRetainsTabAndCompleteStyledField(PdfTabAlignment alignment) {
         const double margin = 36D, stop = 180D;
-        var style = new PdfParagraphStyle { TextWhitespaceMode = PdfTextWhitespaceMode.Collapse, SpacingAfter = 0D };
-        style.AddTabStop(stop, alignment, PdfTabLeaderStyle.Dots);
+        var style = new PdfParagraphStyle { TextWhitespaceMode = PdfTextWhitespaceMode.Collapse, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) };
+        style.AddTabStop(global::OfficeIMO.OfficeLength.Points(stop), alignment, PdfTabLeaderStyle.Dots);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(360D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D), MarginLeft = global::OfficeIMO.OfficeLength.Points(margin), MarginRight = global::OfficeIMO.OfficeLength.Points(margin),
             MarginTop = global::OfficeIMO.OfficeLength.Points(margin), MarginBottom = global::OfficeIMO.OfficeLength.Points(margin), DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D)
@@ -43,9 +43,9 @@ public partial class RichParagraphWrappingTests {
     [InlineData(PdfTabAlignment.Center, PdfTextWhitespaceMode.Preserve)]
     [InlineData(PdfTabAlignment.Right, PdfTextWhitespaceMode.Preserve)]
     public void ParagraphTabs_AlignCompleteStyledFieldsBeforeTheNextTab(PdfTabAlignment alignment, PdfTextWhitespaceMode whitespace) {
-        var style = new PdfParagraphStyle { TextWhitespaceMode = whitespace, SpacingAfter = 0 };
-        style.AddTabStop(180D, alignment);
-        style.AddTabStop(300D);
+        var style = new PdfParagraphStyle { TextWhitespaceMode = whitespace, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
+        style.AddTabStop(global::OfficeIMO.OfficeLength.Points(180D), alignment);
+        style.AddTabStop(global::OfficeIMO.OfficeLength.Points(300D));
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D), MarginLeft = global::OfficeIMO.OfficeLength.Points(40D), MarginRight = global::OfficeIMO.OfficeLength.Points(40D),
             MarginTop = global::OfficeIMO.OfficeLength.Points(40D), MarginBottom = global::OfficeIMO.OfficeLength.Points(40D), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D)

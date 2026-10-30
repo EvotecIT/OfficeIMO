@@ -3818,6 +3818,24 @@
       ],
       "applied": "phase-b-applied",
       "note": "All in-repository option assignments and numerical consumers are migrated; relative line height, raster pixel counts and density remain numeric."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "Numeric PDF paragraph font/indents/spacing, tab positions/widths and mixed-unit PdfLineSpacing.Value/Exactly",
+      "new": "Physical paragraph/tab lengths use OfficeLength; PdfLineSpacing.Exact/AtLeast take lengths and Height/MultipleValue distinguish units",
+      "reason": "Preserve signed indents/tabs, null inheritance, exact and minimum line spacing while keeping relative line multiples numeric. Native layout and serialization convert at their point boundaries.",
+      "files": [
+        "OfficeIMO.Pdf/Model/PdfParagraphStyle.cs",
+        "OfficeIMO.Pdf/Model/PdfTabStop.cs",
+        "OfficeIMO.Pdf/Model/PdfLineSpacing.cs"
+      ],
+      "applied": "phase-b-applied",
+      "note": "All direct in-repository consumers migrate without numeric wrappers. Old nonfinite paragraph/tab cases move to shared OfficeLength construction proof; meaningful finite negative spacing and zero tab-width guards remain at the PDF boundary. Compiler validation also migrated six Assert.IsType<PdfCreateOptions> font assignments and one numeric page-dimension expression missed by the earlier create-options consumer scan.",
+      "consumerFiles": [
+        "OfficeIMO.Pdf.Tests/Pdf/RtfNaturalFontLineBoxTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfAnchoredPictureWrappingTests.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

@@ -47,7 +47,7 @@ public class PdfDelimitedTokenFrameTests {
         };
         var document = PdfDocument.Create(options);
         if (route == 0) document.Content.Text(text, style: new PdfParagraphStyle {
-            FontSize = 10D, LineHeight = 1D, SpacingAfter = 0D
+            FontSize = global::OfficeIMO.OfficeLength.Points(10D), LineHeight = 1D, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D)
         });
         else {
             var style = new PdfTableStyle {

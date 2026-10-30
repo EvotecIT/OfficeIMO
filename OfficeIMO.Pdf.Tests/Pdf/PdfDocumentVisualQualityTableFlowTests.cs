@@ -646,7 +646,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 52
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(52)
             })
             .Table(new[] {
                 new[] { "KeepA", "Ready" },
@@ -686,7 +686,7 @@ public partial class PdfDocumentVisualQualityTests {
                         content.Row(row =>
                             row.PercentColumn(100, column => {
                                 column.Paragraph(p => p.Text("ColumnIntroMarker"), style: new PdfParagraphStyle {
-                                    SpacingAfter = 52
+                                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(52)
                                 });
                                 column.Table(new[] {
                                     new[] { "ColumnKeepA", "Ready" },

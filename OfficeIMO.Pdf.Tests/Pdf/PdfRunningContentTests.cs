@@ -25,7 +25,7 @@ public sealed class PdfRunningContentTests {
                 if (index > 0) paragraph.LineBreak();
                 paragraph.Text("A");
             }
-        }, style: new PdfParagraphStyle { FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(40), WidowControl = false });
+        }, style: new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(12), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(40)), WidowControl = false });
         for (int replay = 0; replay < 2; replay++) {
             using var pdf = PdfPigDocument.Open(document.ToBytes());
             Assert.Equal(3, pdf.NumberOfPages);
@@ -50,7 +50,7 @@ public sealed class PdfRunningContentTests {
         document.Footer(footer => footer.Content(content => content.Spacer(96), 36));
         document.Options.AllowRunningContentTextFallback(isHeader: true);
         document.Paragraph(paragraph => paragraph.Text("ALPHA").LineBreak().Text("BETA"), style: new PdfParagraphStyle {
-            FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(48), SpacingBefore = 0, SpacingAfter = 0,
+            FontSize = global::OfficeIMO.OfficeLength.Points(12), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(48)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
             WidowControl = false, AllowFirstLineOverlapWithRunningFooter = allowOverlap
         });
 
@@ -112,7 +112,7 @@ public sealed class PdfRunningContentTests {
         // Continuation admission uses this fixture's 1.4-line-height metrics, without widow grouping.
         var options = Options();
         options.DefaultParagraphStyle = new PdfParagraphStyle {
-            LineHeight = 1.4, SpacingBefore = 0, SpacingAfter = 0, WidowControl = false
+            LineHeight = 1.4, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
         };
         var document = PdfDocument.Create(options);
         document.Header(header => header.Text("TEXT").Content(content =>
@@ -165,7 +165,7 @@ public sealed class PdfRunningContentTests {
         // Continuation admission uses this fixture's 1.4-line-height metrics, without widow grouping.
         var options = Options();
         options.DefaultParagraphStyle = new PdfParagraphStyle {
-            LineHeight = 1.4, SpacingBefore = 0, SpacingAfter = 0, WidowControl = false
+            LineHeight = 1.4, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
         };
         var document = PdfDocument.Create(options);
         document.Header(header => header.Text("TEXT").Content(content =>

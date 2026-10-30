@@ -422,10 +422,10 @@ internal sealed class PdfTableCellParagraph {
     /// <summary>Projects the same captured cell paragraph into the shared contained-flow planner.</summary>
     internal RichParagraphBlock ToBlock() {
         var style = new PdfParagraphStyle {
-            FontSize = FontSize, LineSpacing = LineSpacing, LineHeight = LineHeight,
-            SpacingBefore = SpacingBefore, SpacingAfter = SpacingAfter,
-            LeftIndent = LeftIndent, RightIndent = RightIndent, FirstLineIndent = FirstLineIndent,
-            DefaultTabStopWidth = DefaultTabStopWidth, WidowControl = WidowControl ?? false,
+            FontSize = ((FontSize) is { } pdfLength27699 ? global::OfficeIMO.OfficeLength.Points(pdfLength27699) : (global::OfficeIMO.OfficeLength?)null), LineSpacing = LineSpacing, LineHeight = LineHeight,
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(SpacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(SpacingAfter),
+            LeftIndent = global::OfficeIMO.OfficeLength.Points(LeftIndent), RightIndent = global::OfficeIMO.OfficeLength.Points(RightIndent), FirstLineIndent = global::OfficeIMO.OfficeLength.Points(FirstLineIndent),
+            DefaultTabStopWidth = ((DefaultTabStopWidth) is { } pdfLength27966 ? global::OfficeIMO.OfficeLength.Points(pdfLength27966) : (global::OfficeIMO.OfficeLength?)null), WidowControl = WidowControl ?? false,
             KeepTogether = KeepTogether, KeepWithNext = KeepWithNext,
             JustificationMode = JustificationMode, JustifyExplicitLineBreaks = JustifyExplicitLineBreaks,
             JustifyLastLine = JustifyLastLine, UseWordJustificationSpacing = UseWordJustificationSpacing

@@ -68,10 +68,10 @@ public sealed class PdfWordSpaceExpansionTests {
             var style = new PdfParagraphStyle {
                 UseWordJustificationSpacing = true, JustificationMode = PdfJustificationMode.Words,
                 JustifyExplicitLineBreaks = true, JustifyLastLine = false,
-                LeftIndent = anchored ? 0D : 36D, LineSpacing = PdfLineSpacing.Exactly(36D),
+                LeftIndent = global::OfficeIMO.OfficeLength.Points(anchored ? 0D : 36D), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(36D)),
                 TextWhitespaceMode = PdfTextWhitespaceMode.Preserve
             };
-            if (anchored) style.AddTabStop(36D, PdfTabAlignment.Left);
+            if (anchored) style.AddTabStop(global::OfficeIMO.OfficeLength.Points(36D), PdfTabAlignment.Left);
             return PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(612D), PageHeight = global::OfficeIMO.OfficeLength.Points(792D), MarginLeft = global::OfficeIMO.OfficeLength.Points(72D), MarginRight = global::OfficeIMO.OfficeLength.Points(360D),
                 MarginTop = global::OfficeIMO.OfficeLength.Points(72D), MarginBottom = global::OfficeIMO.OfficeLength.Points(72D), DefaultFont = PdfStandardFont.Helvetica,

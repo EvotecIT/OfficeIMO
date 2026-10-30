@@ -167,7 +167,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                                 .Paragraph(p => p
                                     .Text("Prepared: 23/12/2025\n")
                                     .Text("Review by: 06/01/2026"),
-                                    style: new PdfParagraphStyle { SpacingAfter = 2 }))
+                                    style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(2) }))
                             .PercentColumn(42, column => column
                                 .Image(logo, 156, 54, PdfAlign.Right, fit: OfficeImageFit.Contain)));
 
@@ -181,12 +181,12 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                                 .H3("Prepared by")
                                 .HR(1.2, global::OfficeIMO.OfficeColor.Black, spacingBefore: 2, spacingAfter: 10)
                                 .Paragraph(p => p.Text("Syllabae Repraesentant\nOvum picem\nPrinceps avem distant, Linteum amicitia\nofficium21@aut statum.com\n881-306-3914"),
-                                    style: new PdfParagraphStyle { LineHeight = 1.25, SpacingAfter = 0 }))
+                                    style: new PdfParagraphStyle { LineHeight = 1.25, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }))
                             .PercentColumn(47, column => column
                                 .H3("Recipient")
                                 .HR(1.2, global::OfficeIMO.OfficeColor.Black, spacingBefore: 2, spacingAfter: 10)
                                 .Paragraph(p => p.Text("Ceciderit Original\nAurum currunt\nSolis multum platea, Cocus fuge fluvio\nsubsisto93@celeritate.com\n839-621-9110"),
-                                    style: new PdfParagraphStyle { LineHeight = 1.25, SpacingAfter = 0 })));
+                                    style: new PdfParagraphStyle { LineHeight = 1.25, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })));
 
                         content.Column(column => {
                             column.Item()

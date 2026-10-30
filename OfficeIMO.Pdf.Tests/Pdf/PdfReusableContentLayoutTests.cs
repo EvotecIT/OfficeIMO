@@ -152,7 +152,7 @@ public sealed class PdfReusableContentLayoutTests {
                     if (i > 0) p.LineBreak();
                     p.Text("Line");
                 }
-            }, style: new PdfParagraphStyle { SpacingBefore = 100, SpacingAfter = 0 }),
+            }, style: new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(100), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }),
             new PdfPanelStyle { PaddingY = 10, KeepTogether = true })));
         Assert.Throws<ArgumentException>(() => document.ToBytes());
     }

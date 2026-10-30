@@ -3,13 +3,13 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Invoicing.Pdf;
 
 public sealed partial class PdfInvoiceDocument {
-    private void Paragraph(PdfContentBuilder content, string text) { if (!string.IsNullOrWhiteSpace(text)) content.Paragraph(paragraph => paragraph.Text(text), style: _layout.CompactDetails ? new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 4 } : null); }
+    private void Paragraph(PdfContentBuilder content, string text) { if (!string.IsNullOrWhiteSpace(text)) content.Paragraph(paragraph => paragraph.Text(text), style: _layout.CompactDetails ? new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(4) } : null); }
     private void DetailGroup(PdfContentBuilder content, string title, string text, InvoicePdfTheme? theme = null) =>
         content.Flow(group => { DetailHeading(group, title, theme); Paragraph(group, text); }, new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
     private void TableGroup(PdfContentBuilder content, string title, IEnumerable<string[]> rows, InvoicePdfTheme? theme = null) =>
         content.Flow(group => { DetailHeading(group, title, theme); group.Table(rows, style: DetailTableStyle(theme)); }, new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
     private void DetailHeading(PdfContentBuilder content, string title, InvoicePdfTheme? theme) {
-        if (_layout.CompactDetails) content.Paragraph(paragraph => paragraph.Bold(title, theme?.Text), style: new PdfParagraphStyle { SpacingBefore = 4, SpacingAfter = 4 });
+        if (_layout.CompactDetails) content.Paragraph(paragraph => paragraph.Bold(title, theme?.Text), style: new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(4), SpacingAfter = global::OfficeIMO.OfficeLength.Points(4) });
         else content.H2(title, PdfAlign.Left, theme?.Text);
     }
     private void ComposeDetails(PdfContentBuilder content, InvoicePdfTheme? theme = null) {

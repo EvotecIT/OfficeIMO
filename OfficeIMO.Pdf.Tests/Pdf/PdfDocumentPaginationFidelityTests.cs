@@ -23,7 +23,7 @@ public class PdfDocumentPaginationFidelityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(paragraph => paragraph.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 45
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(45)
             })
             .Paragraph(paragraph => paragraph
                 .Text("BalancedLine1").LineBreak()
@@ -34,7 +34,7 @@ public class PdfDocumentPaginationFidelityTests {
                 .Text("BalancedLine6"), style: new PdfParagraphStyle {
                     MinimumOrphanLines = 3,
                     MinimumWidowLines = 3,
-                    SpacingAfter = 0
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                 })
             .ToBytes();
 
@@ -103,7 +103,7 @@ public class PdfDocumentPaginationFidelityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(paragraph => paragraph.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 50
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(50)
             })
             .Table(new[] {
                 new[] { "OrphanHeader", "Value" },

@@ -65,8 +65,8 @@ namespace OfficeIMO.Tests.Pdf {
             var result = InvokeWrapRichRuns(new[] {
                 new PdfTextRun("A\tB\tC")
             }, 240, 12, PdfStandardFont.Helvetica, tabStopWidth: 36, tabStops: new[] {
-                new PdfTabStop(90),
-                new PdfTabStop(150)
+                new PdfTabStop(global::OfficeIMO.OfficeLength.Points(90)),
+                new PdfTabStop(global::OfficeIMO.OfficeLength.Points(150))
             });
 
             var line = Assert.Single(ExtractLines(result));
@@ -80,8 +80,8 @@ namespace OfficeIMO.Tests.Pdf {
             var result = InvokeWrapRichRuns(new[] {
                 new PdfTextRun("A\tB\tWrapped")
             }, 115, 12, PdfStandardFont.Helvetica, tabStopWidth: 36, tabStops: new[] {
-                new PdfTabStop(60),
-                new PdfTabStop(120)
+                new PdfTabStop(global::OfficeIMO.OfficeLength.Points(60)),
+                new PdfTabStop(global::OfficeIMO.OfficeLength.Points(120))
             });
 
             var lines = ExtractLines(result);
@@ -94,8 +94,8 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ParagraphOffsetsExplicitTabStopsForFirstLineIndent() {
-            var style = new PdfParagraphStyle { FirstLineIndent = 24D };
-            style.AddTabStop(90D);
+            var style = new PdfParagraphStyle { FirstLineIndent = global::OfficeIMO.OfficeLength.Points(24D) };
+            style.AddTabStop(global::OfficeIMO.OfficeLength.Points(90D));
             byte[] bytes = PdfDocument.Create(new PdfCreateOptions { MarginLeft = global::OfficeIMO.OfficeLength.Points(20D) })
                 .Paragraph(paragraph => paragraph.Text("A\tB"), style: style).ToBytes();
             using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -111,7 +111,7 @@ namespace OfficeIMO.Tests.Pdf {
                 PdfTextRun.Tab(),
                 new PdfTextRun("123")
             }, 240, 12, PdfStandardFont.Helvetica, tabStops: new[] {
-                new PdfTabStop(180, PdfTabAlignment.Right, PdfTabLeaderStyle.Dots)
+                new PdfTabStop(global::OfficeIMO.OfficeLength.Points(180), PdfTabAlignment.Right, PdfTabLeaderStyle.Dots)
             });
 
             var line = Assert.Single(ExtractLines(result));

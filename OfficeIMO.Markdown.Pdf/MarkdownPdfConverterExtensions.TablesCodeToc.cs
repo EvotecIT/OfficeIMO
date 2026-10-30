@@ -455,7 +455,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }, style: new PdfCore.PdfParagraphStyle { TextWhitespaceMode = PdfCore.PdfTextWhitespaceMode.Preformatted }), visualTheme.CodeBlockPanelStyleSnapshot);
 
         if (!string.IsNullOrWhiteSpace(code.Caption)) {
-            pdf.Paragraph(builder => builder.Italic(code.Caption!), style: new PdfCore.PdfParagraphStyle { SpacingAfter = 8 });
+            pdf.Paragraph(builder => builder.Italic(code.Caption!), style: new PdfCore.PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(8) });
         }
     }
 
@@ -484,7 +484,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }, visualTheme.SemanticBlockPanelStyleSnapshot);
 
         if (!string.IsNullOrWhiteSpace(semantic.Caption)) {
-            pdf.Paragraph(builder => builder.Italic(semantic.Caption!), style: new PdfCore.PdfParagraphStyle { SpacingAfter = 8 });
+            pdf.Paragraph(builder => builder.Italic(semantic.Caption!), style: new PdfCore.PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(8) });
         }
     }
 
@@ -594,7 +594,7 @@ public static partial class MarkdownPdfConverterExtensions {
             } else if (footnote.ChildBlocks.Count == 0) {
                 AppendTextWithLineBreaks(builder, footnote.Text);
             }
-        }, style: new PdfCore.PdfParagraphStyle { SpacingBefore = 4, SpacingAfter = 4 });
+        }, style: new PdfCore.PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(4), SpacingAfter = global::OfficeIMO.OfficeLength.Points(4) });
 
         if (footnote.ChildBlocks.Count > 0) {
             int firstChild = footnote.ChildBlocks[0] is ParagraphBlock ? 1 : 0;

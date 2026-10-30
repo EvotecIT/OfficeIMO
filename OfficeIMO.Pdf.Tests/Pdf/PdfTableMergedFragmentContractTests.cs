@@ -93,9 +93,9 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTextRun[] first = { PdfTextRun.Normal(firstText) };
         PdfTextRun[] second = { PdfTextRun.Normal(secondText) };
         PdfTableCell cell = new(first.Concat(second), new[] {
-            new PdfTableCellParagraph(first, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(20),
+            new PdfTableCellParagraph(first, fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)),
                 keepTogether: rule == "together", keepWithNext: rule == "next", widowControl: rule == "widow"),
-            new PdfTableCellParagraph(second, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(20), widowControl: false)
+            new PdfTableCellParagraph(second, fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), widowControl: false)
         }, rowSpan: 3);
         PdfDocument document = PdfDocument.Create(Options(140));
         AddTable(document, new[] {
@@ -166,7 +166,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void MergedParagraphKeepUsesCapacityAfterTheRepeatedHeader(bool inRow, int lineCount, double spacingAfter) {
         PdfTextRun[] runs = { PdfTextRun.Normal(string.Join("\n", Enumerable.Range(1, lineCount).Select(n => $"Kept{n}"))) };
         PdfTableCell anchor = new(runs, new[] {
-            new PdfTableCellParagraph(runs, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(18), keepTogether: true, widowControl: false)
+            new PdfTableCellParagraph(runs, fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18)), keepTogether: true, widowControl: false)
         }, rowSpan: 3);
         PdfTableStyle style = Style();
         style.HeaderRowCount = 1;

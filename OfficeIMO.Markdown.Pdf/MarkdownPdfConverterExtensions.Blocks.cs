@@ -95,7 +95,7 @@ public static partial class MarkdownPdfConverterExtensions {
             pdf.Paragraph(builder => {
                 builder.Bold(true).FontSize(fontSize);
                 AppendInlines(builder, heading.Inlines, CreateInlineStyle(visualTheme, options.Anchors).With(bold: true, color: headingColor, fontSize: fontSize));
-            }, style: new PdfCore.PdfParagraphStyle { SpacingBefore = 8, SpacingAfter = 4, KeepWithNext = true });
+            }, style: new PdfCore.PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(8), SpacingAfter = global::OfficeIMO.OfficeLength.Points(4), KeepWithNext = true });
         }
     }
 

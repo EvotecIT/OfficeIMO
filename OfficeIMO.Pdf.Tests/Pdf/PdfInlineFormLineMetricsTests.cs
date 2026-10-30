@@ -75,8 +75,8 @@ public sealed class PdfInlineFormLineMetricsTests {
             content = PdfTextRun.Inline(widget);
         }
         var runs = new[] { PdfTextRun.Normal("P", fontSize: 10), content, PdfTextRun.Normal("\nB", fontSize: 10) };
-        PdfLineSpacing? spacing = exactSpacing ? PdfLineSpacing.Exactly(12) : null;
-        var style = new PdfParagraphStyle { FontSize = 10, SpacingBefore = 0, SpacingAfter = 0, LineSpacing = spacing };
+        PdfLineSpacing? spacing = exactSpacing ? PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12)) : null;
+        var style = new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(10), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), LineSpacing = spacing };
         var document = PdfDocument.Create(options);
         if (frame == "flow") document.Paragraph(paragraph => paragraph.Runs(runs), style: style);
         else if (frame == "column") document.Content.Row(row => row.RelativeColumn(column =>

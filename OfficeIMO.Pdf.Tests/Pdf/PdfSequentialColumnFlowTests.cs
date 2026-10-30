@@ -41,7 +41,7 @@ public class PdfSequentialColumnFlowTests {
     [Fact]
     public void Columns_UnequalContinuationPreservesParagraphTabs() {
         var style = Paragraph();
-        style.TabStops.Add(new PdfTabStop(50));
+        style.TabStops.Add(new PdfTabStop(global::OfficeIMO.OfficeLength.Points(50)));
         string text = string.Join("\n", Enumerable.Range(1, 16).Select(index => "Prelude" + index)) + "\nLeft\tRight";
         byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.Paragraph(p => p.Text(text), style: style), Unequal()).ToBytes();
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -54,9 +54,9 @@ public class PdfSequentialColumnFlowTests {
         string text = string.Join(" ", Enumerable.Range(1, 80).Select(index => "m" + index.ToString("D3")));
         var paragraphs = new[] {
             new PdfTableCellParagraph(new[] { PdfTextRun.Normal(text) }, spacingAfter: 6, leftIndent: 6, rightIndent: 4,
-                firstLineIndent: 10, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(20)),
+                firstLineIndent: 10, fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20))),
             new PdfTableCellParagraph(new[] { PdfTextRun.Normal("SecondA\nSecondB") }, spacingBefore: 10, leftIndent: 6,
-                firstLineIndent: 20, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(20))
+                firstLineIndent: 20, fontSize: 12, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)))
         };
         var cell = new PdfTableCell(new[] { PdfTextRun.Normal(text + "\nSecondA\nSecondB") }, paragraphs);
         byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.Table(new[] { new[] { cell } },
@@ -93,10 +93,10 @@ public class PdfSequentialColumnFlowTests {
         string text = string.Join(" ", Enumerable.Range(1, words).Select(index => "m" + index.ToString("D3")));
         byte[] bytes = PdfDocument.Create(Options()).Columns(content => {
             if (kind == "heading") content.H1(text, style: new PdfHeadingStyle {
-                FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = false
+                FontSize = 12, LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = false
             });
             if (kind == "list") content.RichNumbered(new[] { new PdfListItem(text) }, style: new PdfListStyle {
-                LineSpacing = PdfLineSpacing.Exactly(20), ItemSpacing = 0, SpacingAfter = 0
+                LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), ItemSpacing = 0, SpacingAfter = 0
             });
             if (kind == "table") content.Table(new[] { new[] { new PdfTableCell(text) } }, style: new PdfTableStyle {
                 HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0, FontSize = 12, LineHeight = 20D / 12D,
@@ -138,7 +138,7 @@ public class PdfSequentialColumnFlowTests {
     public void Columns_ListContinuesInTheNextColumnBeforeStartingAnotherPage() {
         byte[] bytes = PdfDocument.Create(Options()).Columns(content =>
             content.RichNumbered(Enumerable.Range(1, 24).Select(index => new PdfListItem("List" + index.ToString("D2"))),
-                style: new PdfListStyle { LineSpacing = PdfLineSpacing.Exactly(20), ItemSpacing = 0, SpacingAfter = 0 }),
+                style: new PdfListStyle { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), ItemSpacing = 0, SpacingAfter = 0 }),
             new PdfMultiColumnOptions { Gap = 20, BalanceLastPage = false }).ToBytes();
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal(1, read.NumberOfPages);
@@ -190,7 +190,7 @@ public class PdfSequentialColumnFlowTests {
     };
 
     private static PdfParagraphStyle Paragraph() => new() {
-        LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false
+        LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
     };
 
     private static double X(UglyToad.PdfPig.PdfDocument read, int page, string marker) {

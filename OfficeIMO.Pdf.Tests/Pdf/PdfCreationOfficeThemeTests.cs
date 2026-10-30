@@ -87,7 +87,7 @@ public sealed class PdfCreationOfficeThemeTests {
             DefaultTextColor = OfficeColor.FromRgb(12, 34, 56),
             DefaultHeadingStyles = headings,
             DefaultTableStyle = tableStyle,
-            DefaultParagraphStyle = new PdfParagraphStyle { SpacingAfter = 3 }
+            DefaultParagraphStyle = new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(3) }
         };
         using var document = PdfDocument.Create(options);
         document.Content.H1("OptionHeading")

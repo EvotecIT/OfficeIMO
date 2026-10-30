@@ -27,8 +27,8 @@ public sealed partial class PdfInvoiceDocument {
                 })
                 .PercentColumn(56D, column => {
                     column.Paragraph(p => p.FontSize(18D).Bold(DocumentTitle, theme.Text), PdfAlign.Right, style: new PdfParagraphStyle {
-                        SpacingBefore = 0D,
-                        SpacingAfter = 6D,
+                        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D),
+                        SpacingAfter = global::OfficeIMO.OfficeLength.Points(6D),
                         WidowControl = true
                     });
                     column.Paragraph(p => p
@@ -72,12 +72,12 @@ public sealed partial class PdfInvoiceDocument {
     private void PartyCard(PdfContentBuilder content, string label, InvoiceParty party, InvoicePdfTheme theme) {
         content.Panel(card => {
             card.Paragraph(p => p.Bold(label.ToUpperInvariant(), theme.Accent), style: new PdfParagraphStyle {
-                SpacingBefore = 0D,
-                SpacingAfter = 4D
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(4D)
             });
             card.Paragraph(p => p.Text(Party(party)), defaultColor: theme.Text, style: new PdfParagraphStyle {
-                SpacingBefore = 0D,
-                SpacingAfter = 0D,
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D),
                 LineHeight = 1.25D
             });
         }, CardStyle(theme));
@@ -221,14 +221,14 @@ public sealed partial class PdfInvoiceDocument {
             row.Style(new PdfRowStyle { Gap = 12D });
             foreach (InvoicePdfApproval approval in _layout.Approvals) {
                 row.RelativeColumn(column => column.Panel(card => {
-                    card.Paragraph(p => p.Text(approval.Label.ToUpperInvariant()), defaultColor: theme.MutedText, style: new PdfParagraphStyle { SpacingAfter = 9D });
+                    card.Paragraph(p => p.Text(approval.Label.ToUpperInvariant()), defaultColor: theme.MutedText, style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(9D) });
                     card.HR(0.8D, theme.Border, 0D, 6D);
                     card.Paragraph(p => p.Bold(approval.Name, theme.Text));
                     string detail = string.Join(" · ", new[] {
                         approval.Role,
                         approval.Date.HasValue ? Date(approval.Date) : null
                     }.Where(value => !string.IsNullOrWhiteSpace(value)));
-                    if (detail.Length > 0) card.Paragraph(p => p.Text(detail), defaultColor: theme.MutedText, style: new PdfParagraphStyle { SpacingAfter = 0D });
+                    if (detail.Length > 0) card.Paragraph(p => p.Text(detail), defaultColor: theme.MutedText, style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) });
                 }, CardStyle(theme)), 1D);
             }
         });

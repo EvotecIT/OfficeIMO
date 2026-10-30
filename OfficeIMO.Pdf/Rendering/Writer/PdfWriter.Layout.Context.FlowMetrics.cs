@@ -124,7 +124,7 @@ internal static partial class PdfWriter {
             RichParagraphBlock paragraph, double frameX, double frameWidth, double fontSize, bool suppressSpacingBefore = false,
             double closingPadding = 0D, bool reserveSingleLine = false) {
             PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph);
-            fontSize = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize.ToPoints();
+            fontSize = paragraphStyle?.FontSize?.ToPoints() ?? currentOpts.DefaultFontSize.ToPoints();
             double leading = GetParagraphLeading(paragraphStyle, fontSize);
             double spacingBefore = suppressSpacingBefore ? 0D : GetParagraphSpacingBefore(paragraphStyle);
             var textFrame = GetParagraphTextFrame(paragraphStyle, frameX, frameWidth);
@@ -331,7 +331,7 @@ internal static partial class PdfWriter {
             PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph);
             if (HasParagraphPictures(paragraphStyle) || HasPictureExclusions)
                 return MeasurePictureParagraph(paragraph, frameX, frameWidth, fontSize);
-            fontSize = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize.ToPoints();
+            fontSize = paragraphStyle?.FontSize?.ToPoints() ?? currentOpts.DefaultFontSize.ToPoints();
             double leading = GetParagraphLeading(paragraphStyle, fontSize);
             double spacingBefore = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(paragraphStyle));
             double spacingAfter = GetParagraphSpacingAfter(paragraphStyle, leading);

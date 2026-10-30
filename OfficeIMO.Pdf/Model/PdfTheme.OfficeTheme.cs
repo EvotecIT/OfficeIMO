@@ -26,8 +26,8 @@ public sealed partial class PdfTheme {
             },
             ParagraphStyle = new PdfParagraphStyle {
                 LineHeight = theme.TextStyle.LineSpacing,
-                SpacingBefore = theme.Spacing.ParagraphBefore.ToPoints(),
-                SpacingAfter = paragraphAfter,
+                SpacingBefore = theme.Spacing.ParagraphBefore,
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(paragraphAfter),
                 WidowControl = true
             },
             HeadingStyles = new PdfHeadingStyles {

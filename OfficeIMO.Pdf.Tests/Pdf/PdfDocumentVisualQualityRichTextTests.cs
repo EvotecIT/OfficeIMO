@@ -246,11 +246,11 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var paragraphStyle = new PdfParagraphStyle {
             LineHeight = 1.6,
-            LeftIndent = 4,
-            RightIndent = 5,
-            FirstLineIndent = 3,
-            SpacingBefore = 6,
-            SpacingAfter = 7,
+            LeftIndent = global::OfficeIMO.OfficeLength.Points(4),
+            RightIndent = global::OfficeIMO.OfficeLength.Points(5),
+            FirstLineIndent = global::OfficeIMO.OfficeLength.Points(3),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(6),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(7),
             KeepTogether = true,
             KeepWithNext = true,
             WidowControl = true
@@ -261,11 +261,11 @@ public partial class PdfDocumentVisualQualityTests {
         runs[0] = PdfTextRun.Normal("Mutated alpha");
         runs.Add(PdfTextRun.Normal("Late gamma"));
         paragraphStyle.LineHeight = 2.2;
-        paragraphStyle.LeftIndent = 20;
-        paragraphStyle.RightIndent = 21;
-        paragraphStyle.FirstLineIndent = 22;
-        paragraphStyle.SpacingBefore = 22;
-        paragraphStyle.SpacingAfter = 23;
+        paragraphStyle.LeftIndent = global::OfficeIMO.OfficeLength.Points(20);
+        paragraphStyle.RightIndent = global::OfficeIMO.OfficeLength.Points(21);
+        paragraphStyle.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(22);
+        paragraphStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(22);
+        paragraphStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(23);
         paragraphStyle.KeepTogether = false;
         paragraphStyle.KeepWithNext = false;
         paragraphStyle.WidowControl = false;
@@ -273,11 +273,11 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(new[] { "Stable alpha", "Stable beta" }, paragraph.Runs.Select(run => run.Text).ToArray());
         Assert.False(paragraph.Runs is List<PdfTextRun>);
         Assert.Equal(1.6, paragraph.Style!.LineHeight);
-        Assert.Equal(4, paragraph.Style.LeftIndent);
-        Assert.Equal(5, paragraph.Style.RightIndent);
-        Assert.Equal(3, paragraph.Style.FirstLineIndent);
-        Assert.Equal(6, paragraph.Style.SpacingBefore);
-        Assert.Equal(7, paragraph.Style.SpacingAfter);
+        Assert.Equal(4, paragraph.Style.LeftIndent.ToPoints());
+        Assert.Equal(5, paragraph.Style.RightIndent.ToPoints());
+        Assert.Equal(3, paragraph.Style.FirstLineIndent.ToPoints());
+        Assert.Equal(6, paragraph.Style.SpacingBefore.ToPoints());
+        Assert.Equal(7, (paragraph.Style.SpacingAfter?.ToPoints()));
         Assert.True(paragraph.Style.KeepTogether);
         Assert.True(paragraph.Style.KeepWithNext);
         Assert.True(paragraph.Style.WidowControl);

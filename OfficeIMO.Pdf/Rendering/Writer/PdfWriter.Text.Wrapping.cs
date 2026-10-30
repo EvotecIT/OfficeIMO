@@ -13,7 +13,7 @@ internal static partial class PdfWriter {
         }
 
         return tabStops
-            .Where(tabStop => tabStop.Alignment != PdfTabAlignment.Bar && !double.IsNaN(tabStop.Position) && !double.IsInfinity(tabStop.Position))
+            .Where(tabStop => tabStop.Alignment != PdfTabAlignment.Bar)
             .Select(tabStop => tabStop.ResolveFramePosition(frameWidth))
             .OrderBy(tabStop => tabStop.Position)
             .ToArray();
@@ -374,14 +374,14 @@ internal static partial class PdfWriter {
             }
             if (lineSpacing.LineGridPitch.HasValue)
                 ascent += lineSpacing.GetGridBaselineExpansion(ascent + descent);
-            else ascent = Math.Max(inlineAscent, ascent - bodyAscent * (1D - Math.Min(1D, lineSpacing.Value / natural)));
+            else ascent = Math.Max(inlineAscent, ascent - bodyAscent * (1D - Math.Min(1D, lineSpacing.MultipleValue!.Value / natural)));
             return Math.Min(advance, Math.Max(0D, ascent + descent));
         }
 
         PdfTabStop? ResolveNextExplicitTabStop() => TakeNextParagraphTabStop(explicitTabStops,
             CurrentLineOriginOffset() + lineWidth, ref nextExplicitTabStopIndex);
         PdfTabStop? ResolveRelativeTabStop(PdfTextRun? run) => run?.RelativeTabStop is { } relative
-            ? new PdfTabStop(Math.Max(0.001D, maxWidthPts * relative.Fraction + relative.Offset), run.TabAlignment, run.TabLeader)
+            ? new PdfTabStop(global::OfficeIMO.OfficeLength.Points(Math.Max(0.001D, maxWidthPts * relative.Fraction + relative.Offset)), run.TabAlignment, run.TabLeader)
             : null;
 
         void ResolvePendingLeadingTabForCurrentLine(double followingTextWidth, double spaceW, string followingText, PdfStandardFont followingFont, double followingFontSize, PdfTextBaseline followingBaseline, RichTabFieldMeasurement? field = null) {

@@ -22,8 +22,8 @@ public partial class PdfDocumentVisualQualityTests {
     public void ShortWidowParagraphMovesBeforeOpeningItsPanel(int lineCount, int orphanLines, double pageHeight, int wrapper) {
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(pageHeight), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
             MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) };
-        var paragraphStyle = new PdfParagraphStyle { FontSize = 10, LineHeight = 1, SpacingBefore = 0,
-            SpacingAfter = 0, MinimumOrphanLines = orphanLines, MinimumWidowLines = 2 };
+        var paragraphStyle = new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(10), LineHeight = 1, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), MinimumOrphanLines = orphanLines, MinimumWidowLines = 2 };
         var panelStyle = new PdfPanelStyle { PaddingY = 5, PaddingX = 5, SpacingBefore = 0,
             SpacingAfter = 0, RepeatFragmentDecoration = false };
         Action<PdfContentBuilder> paragraph = panel => panel.Paragraph(p => {
@@ -39,7 +39,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] referenceBytes = PdfDocument.Create(options).Panel(content, panelStyle).ToBytes();
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => { for (int i = 0; i < 16 - lineCount; i++) { if (i > 0) p.LineBreak(); p.Text("Lead" + i); } },
-                style: new PdfParagraphStyle { FontSize = 10, LineHeight = 1, SpacingAfter = 0 })
+                style: new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(10), LineHeight = 1, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .Panel(content, panelStyle).ToBytes();
         SavePaddedPaginationEvidence($"short-widow-{lineCount}-{pageHeight}-{wrapper}-reference", referenceBytes);
         SavePaddedPaginationEvidence($"short-widow-{lineCount}-{pageHeight}-{wrapper}", bytes);
@@ -60,9 +60,9 @@ public partial class PdfDocumentVisualQualityTests {
         var style = new PdfPanelStyle { PaddingY = 12, PaddingX = 5, KeepTogether = false, SpacingAfter = 0 };
         PdfDocument document = PdfDocument.Create(options);
         if (column) document.Compose(d => d.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, col => col.Panel(panel => panel
-            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .Shape(OfficeIMO.Drawing.OfficeShape.Rectangle(25, 185), style: new PdfDrawingStyle { SpacingAfter = 0 }), style))))));
-        else document.Panel(panel => panel.Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+        else document.Panel(panel => panel.Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .Shape(OfficeIMO.Drawing.OfficeShape.Rectangle(25, 185), style: new PdfDrawingStyle { SpacingAfter = 0 }), style);
         Assert.Throws<ArgumentException>(() => document.ToBytes());
     }
@@ -84,7 +84,7 @@ public partial class PdfDocumentVisualQualityTests {
         var imageStyle = new PdfImageStyle { ScaleDownToFit = true, SpacingAfter = 0 };
         PdfDocument document = PdfDocument.Create(options);
         Action<PdfContentBuilder> content = panel => {
-            if (!firstChild) panel.Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 });
+            if (!firstChild) panel.Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
             panel.Image(CreateMinimalRgbPng(), 25, 185, style: imageStyle, linkUri: "https://example.test/image");
         };
         Action<PdfContentBuilder> outerContent = nested
@@ -105,7 +105,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void PaddedRepeatedTableHeaderReservesTheWholeFixedRow() {
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(240), MarginLeft = global::OfficeIMO.OfficeLength.Points(25), MarginRight = global::OfficeIMO.OfficeLength.Points(25), MarginTop = global::OfficeIMO.OfficeLength.Points(25), MarginBottom = global::OfficeIMO.OfficeLength.Points(25), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) };
         byte[] bytes = PdfDocument.Create(options).Panel(panel => panel
-            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .Table(new[] { new[] { "Header" }, new[] { "First" }, new[] { "Final" } }, style: new PdfTableStyle {
                 HeaderRowCount = 1, RepeatHeaderRowCount = 1, CellPaddingY = 0,
                 FixedRowHeights = new System.Collections.Generic.List<double?> { 30, 30, 150 },
@@ -134,11 +134,11 @@ public partial class PdfDocumentVisualQualityTests {
         var outer = new PdfPanelStyle { PaddingY = 12, PaddingX = 8, KeepTogether = false, SpacingAfter = 0, Background = global::OfficeIMO.OfficeColor.FromRgb(235, 240, 248) };
         var inner = new PdfPanelStyle { PaddingY = 8, PaddingX = 5, KeepTogether = false, SpacingAfter = 0, BorderColor = global::OfficeIMO.OfficeColor.FromRgb(60, 90, 140) };
         byte[] bytes = PdfDocument.Create(options).TaggedPdfCatalogMarkers().Panel(panel => panel
-            .Paragraph(p => p.Text("Outer lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Paragraph(p => p.Text("Outer lead"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .Panel(nested => nested
-                .Paragraph(p => p.Text("Inner lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+                .Paragraph(p => p.Text("Inner lead"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
                 .H1(heading, linkUri: "https://example.test/heading", style: new PdfHeadingStyle { FontSize = 20, LineHeight = 1.15, SpacingBefore = 6, SpacingAfter = 0, KeepWithNext = false })
-                .Paragraph(p => p.Text("Following paragraph"), style: new PdfParagraphStyle { SpacingAfter = 0 }), inner), outer).ToBytes();
+                .Paragraph(p => p.Text("Following paragraph"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }), inner), outer).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.True(pdf.NumberOfPages > 2);
         string text = string.Join("", pdf.GetPages().Select(page => page.Text));
@@ -167,9 +167,9 @@ public partial class PdfDocumentVisualQualityTests {
     public void PaddedParagraphMakesProgressWhenOrphanPreferenceExceedsFrameCapacity() {
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(150), MarginLeft = global::OfficeIMO.OfficeLength.Points(25), MarginRight = global::OfficeIMO.OfficeLength.Points(25), MarginTop = global::OfficeIMO.OfficeLength.Points(25), MarginBottom = global::OfficeIMO.OfficeLength.Points(25), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) };
         byte[] bytes = PdfDocument.Create(options).Panel(panel => panel
-            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .Paragraph(p => { for (int i = 1; i <= 6; i++) { if (i > 1) p.LineBreak(); p.Text("Line" + i); } },
-                style: new PdfParagraphStyle { MinimumOrphanLines = 6, MinimumWidowLines = 2, SpacingAfter = 0 }),
+                style: new PdfParagraphStyle { MinimumOrphanLines = 6, MinimumWidowLines = 2, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }),
             new PdfPanelStyle { PaddingY = 30, PaddingX = 5, KeepTogether = false, SpacingAfter = 0 }).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.InRange(pdf.NumberOfPages, 2, 3);
@@ -182,9 +182,9 @@ public partial class PdfDocumentVisualQualityTests {
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(170), MarginLeft = global::OfficeIMO.OfficeLength.Points(25), MarginRight = global::OfficeIMO.OfficeLength.Points(25), MarginTop = global::OfficeIMO.OfficeLength.Points(25), MarginBottom = global::OfficeIMO.OfficeLength.Points(25), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) };
         byte[] bytes = PdfDocument.Create(options).Compose(document => document.Page(page => page.Content(content => content
             .Row(row => row.PercentColumn(100, column => column.Panel(panel => panel
-                .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+                .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
                 .Paragraph(p => { for (int i = 1; i <= 6; i++) { if (i > 1) p.LineBreak(); p.Text("Line" + i); } },
-                    style: new PdfParagraphStyle { MinimumOrphanLines = 6, MinimumWidowLines = 2, SpacingAfter = 0 }),
+                    style: new PdfParagraphStyle { MinimumOrphanLines = 6, MinimumWidowLines = 2, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }),
                 new PdfPanelStyle { PaddingY = 25, PaddingX = 5, KeepTogether = false, SpacingAfter = 0 })))))).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.InRange(pdf.NumberOfPages, 2, 3);
@@ -196,7 +196,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void OversizedPaddedTableLineCannotOverflowThePage() {
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(150), MarginLeft = global::OfficeIMO.OfficeLength.Points(25), MarginRight = global::OfficeIMO.OfficeLength.Points(25), MarginTop = global::OfficeIMO.OfficeLength.Points(25), MarginBottom = global::OfficeIMO.OfficeLength.Points(25), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) };
         PdfDocument document = PdfDocument.Create(options).Panel(panel => panel
-            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .Table(new[] { new[] { "A" } }, style: new PdfTableStyle { FontSize = 60, HeaderRowCount = 0, CellPaddingY = 0 }),
             new PdfPanelStyle { PaddingY = 30, PaddingX = 5, KeepTogether = false, SpacingAfter = 0 });
         Assert.Throws<ArgumentException>(() => document.ToBytes());
@@ -211,7 +211,7 @@ public partial class PdfDocumentVisualQualityTests {
         if (fixedHeight) style.FixedRowHeights = new System.Collections.Generic.List<double?> { 75 };
         else style.MinRowHeight = 75;
         PdfDocument document = PdfDocument.Create(options).Panel(panel => panel
-            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .Table(new[] { new[] { "A" } }, style: style),
             new PdfPanelStyle { PaddingY = 30, PaddingX = 5, KeepTogether = false, SpacingAfter = 0 });
         Assert.Throws<ArgumentException>(() => document.ToBytes());
@@ -221,8 +221,8 @@ public partial class PdfDocumentVisualQualityTests {
     public void NestedPaddedHeadingAccountsForCumulativePaddingAndRequiredSpacing() {
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(150), MarginLeft = global::OfficeIMO.OfficeLength.Points(25), MarginRight = global::OfficeIMO.OfficeLength.Points(25), MarginTop = global::OfficeIMO.OfficeLength.Points(25), MarginBottom = global::OfficeIMO.OfficeLength.Points(25), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) };
         PdfDocument document = PdfDocument.Create(options).Panel(panel => panel
-            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
-            .Panel(nested => nested.Paragraph(p => p.Text("Inner"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
+            .Panel(nested => nested.Paragraph(p => p.Text("Inner"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
                 .H1("A", style: new PdfHeadingStyle { FontSize = 50, LineHeight = 1, SpacingBefore = 25, ApplySpacingBeforeAtTop = true, SpacingAfter = 0, KeepWithNext = false }),
                 new PdfPanelStyle { PaddingY = 20, PaddingX = 5, KeepTogether = false, SpacingAfter = 0 }),
             new PdfPanelStyle { PaddingY = 10, PaddingX = 5, KeepTogether = false, SpacingAfter = 0 });
@@ -233,8 +233,8 @@ public partial class PdfDocumentVisualQualityTests {
     public void ParagraphAfterContentRejectsALineThatCannotFitThePaddedFrame() {
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(150), MarginLeft = global::OfficeIMO.OfficeLength.Points(25), MarginRight = global::OfficeIMO.OfficeLength.Points(25), MarginTop = global::OfficeIMO.OfficeLength.Points(25), MarginBottom = global::OfficeIMO.OfficeLength.Points(25), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) };
         PdfDocument document = PdfDocument.Create(options).Panel(panel => panel
-            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
-            .Paragraph(p => p.FontSize(55).Text("A"), style: new PdfParagraphStyle { SpacingAfter = 0 }),
+            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
+            .Paragraph(p => p.FontSize(55).Text("A"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }),
             new PdfPanelStyle { PaddingY = 30, PaddingX = 5, KeepTogether = false, SpacingAfter = 0 });
         Assert.Throws<ArgumentException>(() => document.ToBytes());
     }
@@ -243,7 +243,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void OversizedPaddedListCannotSilentlyDiscardText() {
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(150), MarginLeft = global::OfficeIMO.OfficeLength.Points(25), MarginRight = global::OfficeIMO.OfficeLength.Points(25), MarginTop = global::OfficeIMO.OfficeLength.Points(25), MarginBottom = global::OfficeIMO.OfficeLength.Points(25), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) };
         PdfDocument document = PdfDocument.Create(options).Panel(panel => panel
-            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .RichBullets(new[] { PdfListItem.Rich(new[] { PdfTextRun.Normal("A") }) }, style: new PdfListStyle { FontSize = 75, LineHeight = 1 }),
             new PdfPanelStyle { PaddingY = 30, PaddingX = 5, KeepTogether = false, SpacingAfter = 0 });
         Assert.Throws<ArgumentException>(() => document.ToBytes());
@@ -253,7 +253,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void OversizedPaddedRowHeadingIsRejectedAsUnrenderableInput() {
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(150), MarginLeft = global::OfficeIMO.OfficeLength.Points(25), MarginRight = global::OfficeIMO.OfficeLength.Points(25), MarginTop = global::OfficeIMO.OfficeLength.Points(25), MarginBottom = global::OfficeIMO.OfficeLength.Points(25), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) };
         PdfDocument document = PdfDocument.Create(options).Panel(panel => panel
-            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .Row(row => row.PercentColumn(100, column => column.H1("A", style: new PdfHeadingStyle { FontSize = 75, LineHeight = 1, SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = false }))),
             new PdfPanelStyle { PaddingY = 30, PaddingX = 5, KeepTogether = false, SpacingAfter = 0 });
         Assert.Throws<ArgumentException>(() => document.ToBytes());
@@ -263,7 +263,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void HeadingAfterContentRejectsALineThatCannotFitThePaddedFrame() {
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(150), MarginLeft = global::OfficeIMO.OfficeLength.Points(25), MarginRight = global::OfficeIMO.OfficeLength.Points(25), MarginTop = global::OfficeIMO.OfficeLength.Points(25), MarginBottom = global::OfficeIMO.OfficeLength.Points(25), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) };
         PdfDocument document = PdfDocument.Create(options).Panel(panel => panel
-            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .H1("A", style: new PdfHeadingStyle { FontSize = 75, LineHeight = 1, SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = false }),
             new PdfPanelStyle { PaddingY = 30, PaddingX = 5, KeepTogether = false, SpacingAfter = 0 });
         Assert.Throws<ArgumentException>(() => document.ToBytes());

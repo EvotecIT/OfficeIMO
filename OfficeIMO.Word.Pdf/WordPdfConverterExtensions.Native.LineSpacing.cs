@@ -22,10 +22,10 @@ namespace OfficeIMO.Word.Pdf {
                     spacing = OfficeIMO.Pdf.PdfLineSpacing.Multiple(Math.Max(0.01D, naturalLineHeight * Value.Value / 240D))
                         .WithFontLineBoxBaseline(naturalLineHeight);
                 else spacing = Rule == W.LineSpacingRuleValues.AtLeast
-                    ? OfficeIMO.Pdf.PdfLineSpacing.AtLeast(Value.Value / 20D, naturalLineHeight).WithFontLineBoxBaseline(naturalLineHeight)
+                    ? OfficeIMO.Pdf.PdfLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(Value.Value / 20D), naturalLineHeight).WithFontLineBoxBaseline(naturalLineHeight)
                     // Word's exact-height baseline is four fifths of the line
                     // box in body, column and table exports, regardless of font.
-                    : OfficeIMO.Pdf.PdfLineSpacing.Exactly(Value.Value / 20D)
+                    : OfficeIMO.Pdf.PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(Value.Value / 20D))
                         .WithFixedLineBoxBaseline(Value.Value / 20D * .8D);
                 if (GridPitch.HasValue) spacing = spacing.WithLineGrid(GridPitch.Value);
                 // The native PDF layout device uses 600 square pixels per inch.

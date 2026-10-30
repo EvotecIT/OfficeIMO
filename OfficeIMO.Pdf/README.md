@@ -273,19 +273,17 @@ Paragraphs can use a fallback font size independently of the document default:
 ```csharp
 var document = PdfDocument.Create(new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) });
 document.Content.Paragraph(p => p.Text("First line\nSecond line"), style: new PdfParagraphStyle {
-    FontSize = 8,
-    LineSpacing = PdfLineSpacing.Exactly(14),
-    SpacingAfter = 0
+    FontSize = global::OfficeIMO.OfficeLength.Points(8),
+    LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(14)),
+    SpacingAfter = global::OfficeIMO.OfficeLength.Zero
 });
 document.Save("fixed-spacing.pdf");
 ```
 
 `PdfLineSpacing.Multiple(1.25)` scales the advance with each line's font size.
-`Exactly(14)` keeps a fourteen-point advance even with larger runs or inline
-elements; their painted content can extend beyond the line box. `AtLeast(20,
-naturalMultiplier: 1.2)` uses twenty points for small text and expands when the
-natural text or inline-element height exceeds that minimum. The rule and value
-are readable from the immutable spacing object.
+`Exact(OfficeLength.Points(14))` keeps a fourteen-point advance even with larger runs or inline
+elements; their painted content can extend beyond the line box. `AtLeast(OfficeLength.Points(20), naturalMultiplier: 1.2)` uses twenty points for small text and expands when the
+natural text or inline-element height exceeds that minimum. The immutable object exposes `Rule`, a nullable physical `Height` for exact/minimum spacing, and a nullable `MultipleValue` for proportional spacing.
 
 `LineSpacing` overrides the existing `LineHeight` multiplier. Heading and list
 styles accept the same spacing object. Font size and spacing are snapshotted with
@@ -327,11 +325,14 @@ Paragraph fragments retain the source line policy across page, column and table-
 
 ## Paragraph tab stops
 
-Explicit tab positions are finite point coordinates relative to the paragraph's continuation text frame. Zero is that frame's origin; negative positions can be reached from a hanging first line. A line consumes only stops ahead of its current cursor and skips earlier stops after a line break.
+Explicit tab positions are physical lengths relative to the paragraph's continuation text frame. Zero is that frame's origin; negative positions can be reached from a hanging first line. A line consumes only stops ahead of its current cursor and skips earlier stops after a line break.
 
 ```csharp
-var style = new PdfParagraphStyle { LeftIndent = 36, FirstLineIndent = -36 };
-style.AddTabStop(-18);
+var style = new PdfParagraphStyle {
+    LeftIndent = global::OfficeIMO.OfficeLength.Points(36),
+    FirstLineIndent = global::OfficeIMO.OfficeLength.Points(-36)
+};
+style.AddTabStop(global::OfficeIMO.OfficeLength.Points(-18));
 PdfDocument.Create()
     .Compose(layout => layout.Content(content => content
         .Paragraph(paragraph => paragraph.Text("1.\tFirst field").LineBreak()
@@ -339,14 +340,14 @@ PdfDocument.Create()
     .Save("hanging-tabs.pdf");
 ```
 
-The negative stop is eighteen points before the continuation text origin. Following lines retain that origin and their default tab interval. NaN and infinite positions are rejected.
+The negative stop is eighteen points before the continuation text origin. Following lines retain that origin and their default tab interval. Length construction rejects NaN and infinite values before they reach the tab stop.
 
 Bar stops draw stationary vertical rules alongside the paragraph's lines:
 
 ```csharp
 var style = new PdfParagraphStyle();
-PdfTabStop rule = style.AddTabStop(72, PdfTabAlignment.Bar);
-rule.BarWidth = 0.5;
+PdfTabStop rule = style.AddTabStop(global::OfficeIMO.OfficeLength.Inches(1), PdfTabAlignment.Bar);
+rule.BarWidth = global::OfficeIMO.OfficeLength.Points(0.5);
 rule.BarColor = OfficeColor.Black;
 ```
 
@@ -358,7 +359,7 @@ An explicit decimal tab can select its decimal separator independently of groupi
 
 ```csharp
 var style = new PdfParagraphStyle();
-style.AddTabStop(180, PdfTabAlignment.DecimalSeparator).DecimalSeparator = '.';
+style.AddTabStop(global::OfficeIMO.OfficeLength.Points(180), PdfTabAlignment.DecimalSeparator).DecimalSeparator = '.';
 using var pdf = PdfDocument.Create(new PdfCreateOptions { TextWhitespaceMode = PdfTextWhitespaceMode.Preserve });
 pdf.Content.Paragraph(p => p.Text("Total\t1,234.56"), style: style);
 ```

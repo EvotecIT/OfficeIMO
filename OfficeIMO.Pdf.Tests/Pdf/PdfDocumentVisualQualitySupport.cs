@@ -344,7 +344,7 @@ public partial class PdfDocumentVisualQualityTests {
     private static byte[] CreatePanelSpacingProbe(PdfCreateOptions options, PdfPanelStyle style) {
         return PdfDocument.Create(options)
             .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 0
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
             .PanelParagraph(p => p.Text("PanelMarker"), style)
             .Paragraph(p => p.Text("AfterMarker"))
@@ -370,7 +370,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     private static byte[] CreateTopLevelFlowSpacingBeforeProbe(string blockKind, double spacingBefore) {
         var options = CreateFlowSpacingProbeOptions();
-        var paragraphStyle = new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0 };
+        var paragraphStyle = new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
         var doc = PdfDocument.Create(options);
 
         switch (blockKind) {
@@ -420,7 +420,7 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     private static void AddColumnFlowSpacingBeforeProbe(PdfContentBuilder column, string blockKind, double spacingBefore) {
-        var paragraphStyle = new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0 };
+        var paragraphStyle = new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
 
         switch (blockKind) {
             case "bullet-list":

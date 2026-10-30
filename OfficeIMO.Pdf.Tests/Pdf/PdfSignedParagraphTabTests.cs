@@ -9,9 +9,9 @@ public sealed class PdfSignedParagraphTabTests {
     [InlineData(0D)]
     public void SignedTabStopsApplyAheadOfAHangingFirstLineAndAreSkippedOnLaterLines(double position) {
         var style = new PdfParagraphStyle {
-            LeftIndent = 36D, FirstLineIndent = -36D, DefaultTabStopWidth = 36D, SpacingAfter = 0D
+            LeftIndent = global::OfficeIMO.OfficeLength.Points(36D), FirstLineIndent = global::OfficeIMO.OfficeLength.Points(-36D), DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(36D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D)
         };
-        style.AddTabStop(position);
+        style.AddTabStop(global::OfficeIMO.OfficeLength.Points(position));
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(300D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D), MarginLeft = global::OfficeIMO.OfficeLength.Points(30D), MarginRight = global::OfficeIMO.OfficeLength.Points(30D),
             MarginTop = global::OfficeIMO.OfficeLength.Points(30D), MarginBottom = global::OfficeIMO.OfficeLength.Points(30D), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D)
@@ -20,7 +20,7 @@ public sealed class PdfSignedParagraphTabTests {
         var page = Assert.Single(pdf.GetPages());
         var first = TabMarkerStart(page, "FIELD");
         var later = TabMarkerStart(page, "LATER");
-        double anchor = 30D + style.LeftIndent + position;
+        double anchor = 30D + style.LeftIndent.ToPoints() + position;
         Assert.InRange(first.StartBaseLine.X, anchor - .01D, anchor + .01D);
         Assert.InRange(later.StartBaseLine.X, 101.99D, 102.01D);
         Assert.True(later.StartBaseLine.Y < first.StartBaseLine.Y);
@@ -36,11 +36,4 @@ public sealed class PdfSignedParagraphTabTests {
         return letters[0];
     }
 
-    [Theory]
-    [InlineData(double.NaN)]
-    [InlineData(double.NegativeInfinity)]
-    [InlineData(double.PositiveInfinity)]
-    public void SignedTabStopsStillRejectNonfiniteCoordinates(double position) {
-        Assert.Throws<ArgumentException>(() => new PdfTabStop(position));
-    }
 }

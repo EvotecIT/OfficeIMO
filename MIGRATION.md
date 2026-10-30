@@ -4258,3 +4258,5 @@ For custom JSON persistence, store lengths with `ToEmus()` and restore them with
 Word character `Spacing` and `SetSpacing` now use nullable `OfficeLength`. Replace `SetSpacing(20)` with `SetSpacing(OfficeLength.Points(1))`. Negative spacing contracts text, zero remains explicit, and null removes the local value.
 
 Batch output names replace the final source extension: `Sales.docx` becomes `Sales.pdf`. Sources such as `Sales.docx` and `Sales.xlsx` now select the same destination. Use distinct stems or an explicit `OfficePublicationPolicy.Rename`/`Replace` conflict policy.
+
+PDF paragraph font sizes, indents, spacing and tab positions/widths now use `OfficeLength`. Replace `PdfLineSpacing.Exactly(18)` with `PdfLineSpacing.Exact(OfficeLength.Points(18))`. Read `Height` for exact/minimum spacing and `MultipleValue` for proportional spacing; the mixed-unit `Value` property is removed.

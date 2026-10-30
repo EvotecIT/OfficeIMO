@@ -89,7 +89,7 @@ public partial class PdfPageFootnoteTests {
             PdfListItem.Rich(new[] { PdfTextRun.Bolded(string.Join("\n", Enumerable.Range(0, 12).Select(index => $"ListLine{index:D2}"))) }),
             PdfListItem.Plain("SecondItem"), PdfListItem.Plain("ThirdItem")
         }, style: new PdfListStyle {
-            FontSize = 8, LineSpacing = PdfLineSpacing.Exactly(10), LeftIndent = 4,
+            FontSize = 8, LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10)), LeftIndent = 4,
             MarkerWidth = 12, MarkerGap = 3, ItemSpacing = 0, SpacingBefore = 0, SpacingAfter = 0
         }), new PdfPanelStyle { PaddingX = 6, PaddingY = 0, BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 0 }));
         document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
@@ -194,7 +194,7 @@ public partial class PdfPageFootnoteTests {
     }
 
     private static PdfParagraphStyle NoteLineStyle(double leading) => new() {
-        FontSize = 8, LineSpacing = PdfLineSpacing.Exactly(leading), WidowControl = false,
-        SpacingBefore = 0, SpacingAfter = 0
+        FontSize = global::OfficeIMO.OfficeLength.Points(8), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(leading)), WidowControl = false,
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
     };
 }

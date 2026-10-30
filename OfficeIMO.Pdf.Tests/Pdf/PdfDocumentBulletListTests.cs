@@ -435,12 +435,12 @@ public class PdfDocumentBulletListTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("BeforeList"), style: new PdfParagraphStyle {
-                SpacingAfter = 0
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
             .DefaultListStyle(style)
             .Bullets(new[] { "StyledBullet" })
             .Paragraph(p => p.Text("AfterList"), style: new PdfParagraphStyle {
-                SpacingAfter = 0
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
             .ToBytes();
 

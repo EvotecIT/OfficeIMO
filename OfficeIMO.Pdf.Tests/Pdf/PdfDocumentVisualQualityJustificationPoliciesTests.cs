@@ -125,7 +125,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void CharacterJustificationKeepsAnExplicitTabAnchorAndExpandsOnlyItsTrailingWordSeparators() {
         var style = CharacterJustificationPolicy();
-        style.TabStops.Add(new PdfTabStop(120));
+        style.TabStops.Add(new PdfTabStop(global::OfficeIMO.OfficeLength.Points(120)));
         byte[] bytes = PdfDocument.Create(JustificationPolicyOptions()).Paragraph(paragraph => paragraph.Text("Alpha one\tBeta last words"),
             PdfAlign.Justify, style: style).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);

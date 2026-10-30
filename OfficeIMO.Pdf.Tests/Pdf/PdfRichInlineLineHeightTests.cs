@@ -33,7 +33,7 @@ public sealed class PdfRichInlineLineHeightTests {
     [InlineData("column")]
     [InlineData("table")]
     public void ExactSpacingRetainsItsAuthoredAdvanceWithLoweredInlineBoxes(string frame) {
-        using var pdf = PdfPigDocument.Open(Render(frame, boxFirst: false, spacing: PdfLineSpacing.Exactly(10)));
+        using var pdf = PdfPigDocument.Open(Render(frame, boxFirst: false, spacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10))));
         var letters = pdf.GetPage(1).Letters;
         var first = Assert.Single(letters, letter => letter.Value == "A");
         var next = Assert.Single(letters, letter => letter.Value == "B");
@@ -44,7 +44,7 @@ public sealed class PdfRichInlineLineHeightTests {
     public void CompressedTextOnlySpacingRetainsItsAuthoredAdvance() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8) })
             .Paragraph(p => p.FontSize(24).Text("A\n").FontSize(8).Text("B"),
-                style: new PdfParagraphStyle { FontSize = 8, LineSpacing = PdfLineSpacing.Multiple(.5) }).ToBytes();
+                style: new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8), LineSpacing = PdfLineSpacing.Multiple(.5) }).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         var first = Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == "A");
         var next = Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == "B");
@@ -59,8 +59,8 @@ public sealed class PdfRichInlineLineHeightTests {
         var box = PdfTextRun.Inline(new PdfInlineBox(20, 32, background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2, .5, .8), baselineOffset: -20));
         var runs = boxFirst ? new[] { box, text, new PdfTextRun("\nB", fontSize: 8) }
             : new[] { text, box, new PdfTextRun("\nB", fontSize: 8) };
-        var style = new PdfParagraphStyle { FontSize = 8, LineSpacing = spacing ?? PdfLineSpacing.Multiple(1.4),
-            SpacingBefore = 0, SpacingAfter = 0 };
+        var style = new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8), LineSpacing = spacing ?? PdfLineSpacing.Multiple(1.4),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
         var document = PdfDocument.Create(options);
         if (frame == "flow") document.Paragraph(p => p.Runs(runs), style: style);
         else if (frame == "column") document.Content.Row(row => row.RelativeColumn(column => column.Paragraph(p => p.Runs(runs), style: style)));

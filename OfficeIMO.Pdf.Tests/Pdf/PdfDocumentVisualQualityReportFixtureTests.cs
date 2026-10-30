@@ -170,7 +170,7 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeWidth = 0.75;
 
         var paragraphStyle = new PdfParagraphStyle {
-            SpacingAfter = 10,
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(10),
             LineHeight = 1.25
         };
         var panelStyle = new PdfPanelStyle {

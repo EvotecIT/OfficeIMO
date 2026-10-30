@@ -80,8 +80,8 @@ public sealed class PdfContinuousRunningStoryTests {
         next.Header(header => header.Content(content => content.Spacer(20), 18));
         document.BeginRunningContentSection(1, next.Options);
         document.Paragraph(paragraph => paragraph.Text("NEXT_FRAME_BODY"), style: new PdfParagraphStyle {
-            FontSize = 12, SpacingBefore = 0, SpacingAfter = 0,
-            LineSpacing = PdfLineSpacing.Exactly(80), KeepTogether = true, WidowControl = false
+            FontSize = global::OfficeIMO.OfficeLength.Points(12), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
+            LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(80)), KeepTogether = true, WidowControl = false
         });
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -170,8 +170,8 @@ public sealed class PdfContinuousRunningStoryTests {
     };
 
     private static PdfParagraphStyle Style() => new() {
-        FontSize = 10, SpacingBefore = 0, SpacingAfter = 0,
-        LineSpacing = PdfLineSpacing.Exactly(24), WidowControl = false
+        FontSize = global::OfficeIMO.OfficeLength.Points(10), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
+        LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(24)), WidowControl = false
     };
 
     private static void Line(PdfDocument document, string value) =>

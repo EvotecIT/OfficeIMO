@@ -89,7 +89,7 @@ public partial class PdfDocumentVisualQualityTests {
         var options = new PdfCreateOptions {
             PageHeight = global::OfficeIMO.OfficeLength.Points(pageHeight), MarginTop = global::OfficeIMO.OfficeLength.Points(25), MarginBottom = global::OfficeIMO.OfficeLength.Points(25),
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(24),
-            DefaultParagraphStyle = new PdfParagraphStyle { LineHeight = 1.4, SpacingBefore = 0, SpacingAfter = 0 }
+            DefaultParagraphStyle = new PdfParagraphStyle { LineHeight = 1.4, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }
         };
         Assert.Throws<ArgumentException>(() => PdfDocument.Create(options).Paragraph(p => p.Text("Too tall")).ToBytes());
     }

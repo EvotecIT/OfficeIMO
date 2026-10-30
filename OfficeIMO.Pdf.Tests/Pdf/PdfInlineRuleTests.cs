@@ -180,7 +180,7 @@ public sealed class PdfInlineRuleTests {
     public void AlignedTabLookaheadMeasuresIntrinsicContentBeforeResolvingTheRule(
         PdfTabAlignment alignment, double expectedX, double expectedWidth) {
         var style = Style();
-        style.TabStops.Add(new PdfTabStop(60D, alignment));
+        style.TabStops.Add(new PdfTabStop(global::OfficeIMO.OfficeLength.Points(60D), alignment));
         byte[] bytes = Create(100D).Paragraph(p => p.Runs(new[] {
             PdfTextRun.Normal("A"), PdfTextRun.Tab(),
             PdfTextRun.Inline(new PdfInlineRule(.5D, RuleColor)), PdfTextRun.Normal("TAIL")
@@ -262,7 +262,7 @@ public sealed class PdfInlineRuleTests {
                     .WithAdditionalBand(.75D, AdditionalColor, baselineOffset: -2D), source) : source,
                 PdfTextRun.Normal("\nB", fontSize: 8D)
             }), style: new PdfParagraphStyle {
-                FontSize = 8D, LineSpacing = PdfLineSpacing.Multiple(1.4D), SpacingBefore = 0D, SpacingAfter = 0D
+                FontSize = global::OfficeIMO.OfficeLength.Points(8D), LineSpacing = PdfLineSpacing.Multiple(1.4D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D)
             }).ToBytes();
         }
 
@@ -291,7 +291,7 @@ public sealed class PdfInlineRuleTests {
     });
 
     private static PdfParagraphStyle Style() => new() {
-        FontSize = 10D, LineSpacing = PdfLineSpacing.Multiple(1.2D), SpacingBefore = 0D, SpacingAfter = 0D
+        FontSize = global::OfficeIMO.OfficeLength.Points(10D), LineSpacing = PdfLineSpacing.Multiple(1.2D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D)
     };
 
     private static byte[] RenderBuilderFontMetrics(bool rule, PdfStandardFont font, bool boldItalic,
@@ -336,7 +336,7 @@ public sealed class PdfInlineRuleTests {
         PdfTextRun[] runs = { rule ? PdfTextRun.Inline(new PdfInlineRule(.5D, RuleColor, 40D, 3D), source) : source,
             PdfTextRun.Normal("\nB", fontSize: 8D) };
         var document = Create(100D);
-        var style = new PdfParagraphStyle { FontSize = 8D, LineSpacing = PdfLineSpacing.Multiple(1.4D), SpacingBefore = 0D, SpacingAfter = 0D };
+        var style = new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8D), LineSpacing = PdfLineSpacing.Multiple(1.4D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) };
         if (frame == "flow") document.Paragraph(p => p.Runs(runs), style: style);
         else if (frame == "column") document.Content.Row(row => row.RelativeColumn(column => column.Paragraph(p => p.Runs(runs), style: style)));
         else document.Table(new[] { new[] { new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: 8D, lineSpacing: style.LineSpacing) }) } },

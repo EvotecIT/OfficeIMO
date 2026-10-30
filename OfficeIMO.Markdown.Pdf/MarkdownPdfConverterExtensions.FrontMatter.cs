@@ -61,7 +61,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 defaultColor: visualTheme.DocumentHeaderSubtitleColorSnapshot,
                 style: new PdfCore.PdfParagraphStyle {
                     LineHeight = 1.25,
-                    SpacingAfter = 4,
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(4),
                     KeepWithNext = true
                 });
         }
@@ -75,7 +75,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 defaultColor: visualTheme.DocumentHeaderMetadataColorSnapshot,
                 style: new PdfCore.PdfParagraphStyle {
                     LineHeight = 1.2,
-                    SpacingAfter = 6,
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(6),
                     KeepWithNext = true
                 });
         }

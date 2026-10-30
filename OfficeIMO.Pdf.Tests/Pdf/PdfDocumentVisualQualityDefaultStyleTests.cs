@@ -36,10 +36,10 @@ public partial class PdfDocumentVisualQualityTests {
     public void Options_SnapshotDefaultParagraphStyle() {
         var style = new PdfParagraphStyle {
             LineHeight = 1.7,
-            LeftIndent = 8,
-            FirstLineIndent = 4,
-            SpacingAfter = 9,
-            DefaultTabStopWidth = 72,
+            LeftIndent = global::OfficeIMO.OfficeLength.Points(8),
+            FirstLineIndent = global::OfficeIMO.OfficeLength.Points(4),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(9),
+            DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(72),
             WidowControl = true
         };
         var options = new PdfCreateOptions {
@@ -47,25 +47,25 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         style.LineHeight = 2.1;
-        style.LeftIndent = 20;
-        style.FirstLineIndent = 21;
-        style.SpacingAfter = 22;
-        style.DefaultTabStopWidth = 18;
+        style.LeftIndent = global::OfficeIMO.OfficeLength.Points(20);
+        style.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(21);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(22);
+        style.DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(18);
         style.WidowControl = false;
 
         PdfParagraphStyle readback = options.DefaultParagraphStyle!;
-        readback.LeftIndent = 30;
+        readback.LeftIndent = global::OfficeIMO.OfficeLength.Points(30);
 
         PdfCreateOptions clone = options.Clone();
 
         Assert.Equal(1.7, options.DefaultParagraphStyle!.LineHeight);
-        Assert.Equal(8, options.DefaultParagraphStyle.LeftIndent);
-        Assert.Equal(4, options.DefaultParagraphStyle.FirstLineIndent);
-        Assert.Equal(9, options.DefaultParagraphStyle.SpacingAfter);
-        Assert.Equal(72, options.DefaultParagraphStyle.DefaultTabStopWidth);
+        Assert.Equal(8, options.DefaultParagraphStyle.LeftIndent.ToPoints());
+        Assert.Equal(4, options.DefaultParagraphStyle.FirstLineIndent.ToPoints());
+        Assert.Equal(9, (options.DefaultParagraphStyle.SpacingAfter?.ToPoints()));
+        Assert.Equal(72, (options.DefaultParagraphStyle.DefaultTabStopWidth?.ToPoints()));
         Assert.True(options.DefaultParagraphStyle.WidowControl);
-        Assert.Equal(8, clone.DefaultParagraphStyle!.LeftIndent);
-        Assert.Equal(72, clone.DefaultParagraphStyle.DefaultTabStopWidth);
+        Assert.Equal(8, clone.DefaultParagraphStyle!.LeftIndent.ToPoints());
+        Assert.Equal(72, (clone.DefaultParagraphStyle.DefaultTabStopWidth?.ToPoints()));
     }
 
     [Fact]
@@ -316,8 +316,8 @@ public partial class PdfDocumentVisualQualityTests {
             Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
         };
         var paragraphStyle = new PdfParagraphStyle {
-            FirstLineIndent = 24,
-            SpacingAfter = 0
+            FirstLineIndent = global::OfficeIMO.OfficeLength.Points(24),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
         var tableStyle = PdfTableStyles.Minimal();
         tableStyle.CellPaddingX = 22;
@@ -369,7 +369,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         textStyle.FontSize = 8;
         textStyle.Color = global::OfficeIMO.OfficeColor.Black;
-        paragraphStyle.FirstLineIndent = 0;
+        paragraphStyle.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(0);
         tableStyle.CellPaddingX = 0;
         tableStyle.KeepWithNext = false;
         headingStyle.FontSize = 8;
@@ -396,7 +396,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(PdfStandardFont.Helvetica, options.DefaultFont);
         Assert.Equal(16, options.DefaultFontSize.ToPoints());
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30), options.DefaultTextColor);
-        Assert.Equal(24, options.DefaultParagraphStyle!.FirstLineIndent);
+        Assert.Equal(24, options.DefaultParagraphStyle!.FirstLineIndent.ToPoints());
         Assert.Equal(22, options.DefaultTableStyle!.CellPaddingX);
         Assert.True(options.DefaultTableStyle.KeepWithNext);
         Assert.Equal(19, options.DefaultHeadingStyles!.Level1!.FontSize);
@@ -418,7 +418,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(options.DefaultRowStyle.KeepTogether);
         Assert.True(options.DefaultRowStyle.KeepWithNext);
         Assert.Equal(16, clone.DefaultFontSize.ToPoints());
-        Assert.Equal(24, clone.DefaultParagraphStyle!.FirstLineIndent);
+        Assert.Equal(24, clone.DefaultParagraphStyle!.FirstLineIndent.ToPoints());
         Assert.Equal(22, clone.DefaultTableStyle!.CellPaddingX);
         Assert.True(clone.DefaultTableStyle.KeepWithNext);
         Assert.Equal(19, clone.DefaultHeadingStyles!.Level1!.FontSize);

@@ -92,12 +92,12 @@ internal static partial class PdfWriter {
                 var style = paragraph.Style?.Clone() ?? new PdfParagraphStyle();
                 if (style.AnchoredCanvas != null || paragraph.Runs.Any(run => run.FormField != null))
                     throw new NotSupportedException("Ordered cell paragraphs cannot contain anchored canvases or interactive form fields.");
-                style.FontSize ??= rows.Sizes[row];
+                style.FontSize ??= global::OfficeIMO.OfficeLength.Points(rows.Sizes[row]);
                 style.LineHeight ??= rows.Leadings[row] / rows.Sizes[row];
                 // SpacingBefore is a non-nullable captured value; its default
                 // already is zero. Only a missing after-spacing inherits zero
                 // from the ordinary cell contract rather than page defaults.
-                style.SpacingAfter ??= 0D;
+                style.SpacingAfter ??= global::OfficeIMO.OfficeLength.Points(0D);
                 return (IPdfBlock)new RichParagraphBlock(paragraph.Runs.Select(run => run.WithInheritedFontStyle(rows.Bold[row], false)),
                     paragraph.Align, paragraph.DefaultColor ?? (row < tableStyle.HeaderRowCount ? tableStyle.HeaderTextColor :
                         row >= rows.Heights.Length - tableStyle.FooterRowCount ? tableStyle.FooterTextColor : tableStyle.TextColor), style);

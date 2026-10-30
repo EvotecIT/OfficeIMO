@@ -15,10 +15,10 @@ namespace OfficeIMO.Tests.Pdf {
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
                 })
                 .Paragraph(p => p.Text("A B"), style: new PdfParagraphStyle {
-                    SpacingAfter = 0
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                 })
                 .Paragraph(p => p.Text("A\tB"), style: new PdfParagraphStyle {
-                    SpacingAfter = 0
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                 })
                 .ToBytes();
 
@@ -45,8 +45,8 @@ namespace OfficeIMO.Tests.Pdf {
             byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
                     DefaultParagraphStyle = new PdfParagraphStyle {
-                        DefaultTabStopWidth = 72,
-                        SpacingAfter = 0
+                        DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(72),
+                        SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                     }
                 })
                 .Paragraph(p => p.Text("A\tB"))
@@ -75,8 +75,8 @@ namespace OfficeIMO.Tests.Pdf {
                     MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
                     DefaultParagraphStyle = new PdfParagraphStyle {
-                        DefaultTabStopWidth = 216,
-                        SpacingAfter = 0
+                        DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(216),
+                        SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                     }
                 })
                 .Paragraph(p => p.Text("Revenue").Tab(PdfTabLeaderStyle.Dots).Text("12"))
@@ -107,8 +107,8 @@ namespace OfficeIMO.Tests.Pdf {
                     MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
                     DefaultParagraphStyle = new PdfParagraphStyle {
-                        DefaultTabStopWidth = 216,
-                        SpacingAfter = 0
+                        DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(216),
+                        SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                     }
                 })
                 .Paragraph(p => p.Text("Status").Tab(leaderStyle).Text("Ready"))
@@ -131,8 +131,8 @@ namespace OfficeIMO.Tests.Pdf {
                     MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
                     DefaultParagraphStyle = new PdfParagraphStyle {
-                        DefaultTabStopWidth = 216,
-                        SpacingAfter = 0
+                        DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(216),
+                        SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                     }
                 })
                 .Paragraph(p => p.Text("A").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right).Text("12"))
@@ -163,8 +163,8 @@ namespace OfficeIMO.Tests.Pdf {
                     MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
                     DefaultParagraphStyle = new PdfParagraphStyle {
-                        DefaultTabStopWidth = 216,
-                        SpacingAfter = 0
+                        DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(216),
+                        SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                     }
                 })
                 .Paragraph(p => p.Text("Tax").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator).Text("8.50"))
@@ -205,8 +205,8 @@ namespace OfficeIMO.Tests.Pdf {
                     MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
                     DefaultParagraphStyle = new PdfParagraphStyle {
-                        DefaultTabStopWidth = 216,
-                        SpacingAfter = 0
+                        DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(216),
+                        SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                     }
                 })
                 .Paragraph(p => p.Text("Tax").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator).Text("8.50"))
@@ -234,8 +234,8 @@ namespace OfficeIMO.Tests.Pdf {
                     MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
                     DefaultParagraphStyle = new PdfParagraphStyle {
-                        DefaultTabStopWidth = 216,
-                        SpacingAfter = 0
+                        DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(216),
+                        SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                     }
                 })
                 .Paragraph(p => p.Text("Milestone").Tab(PdfTabLeaderStyle.Hyphens, PdfTabAlignment.Right).Text("Q4"))

@@ -120,7 +120,7 @@ public sealed class PdfColumnPartialPageTableTests {
     private static byte[] Render(int lines, bool keepTogether, PdfTableStyle style) {
         var runs = new[] { PdfTextRun.Normal(string.Join("\n", Enumerable.Range(1, lines).Select(index => $"Cell{index:D3}"))) };
         var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: 12,
-            lineSpacing: PdfLineSpacing.Exactly(20), widowControl: false, keepTogether: keepTogether) });
+            lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), widowControl: false, keepTogether: keepTogether) });
         return RenderTable(new[] { new[] { cell } }, style);
     }
     private static byte[] RenderTable(PdfTableCell[][] rows, PdfTableStyle style) =>
@@ -138,8 +138,8 @@ public sealed class PdfColumnPartialPageTableTests {
         foreach (int index in Enumerable.Range(1, 12)) Assert.Single(words, word => word.Text == $"Before{index:D3}");
         Assert.Single(words, word => word.Text == "AfterColumns");
     }
-    private static PdfParagraphStyle ParagraphStyle() => new() { LineSpacing=PdfLineSpacing.Exactly(20),
-        SpacingBefore=0, SpacingAfter=0, WidowControl=false };
+    private static PdfParagraphStyle ParagraphStyle() => new() { LineSpacing=PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)),
+        SpacingBefore=global::OfficeIMO.OfficeLength.Points(0), SpacingAfter=global::OfficeIMO.OfficeLength.Points(0), WidowControl=false };
     private static PdfTableStyle TableStyle() => new() { HeaderRowCount=0, CellPaddingX=0, CellPaddingY=0,
         FontSize=12, LineHeight=20D/12D, BorderWidth=0, RowSeparatorWidth=0, SpacingBefore=0, SpacingAfter=0,
         MinimumBodyRowsOnFirstPage=0, MinimumBodyRowsOnLastPage=0 };

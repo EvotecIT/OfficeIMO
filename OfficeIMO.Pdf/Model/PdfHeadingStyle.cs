@@ -73,7 +73,7 @@ public sealed class PdfHeadingStyle {
 
     /// <summary>Adds a text stop or stationary bar rule at the specified finite position.</summary>
     public PdfTabStop AddTabStop(double position, PdfTabAlignment alignment = PdfTabAlignment.Left, PdfTabLeaderStyle leader = PdfTabLeaderStyle.None) {
-        var stop = new PdfTabStop(position, alignment, leader);
+        var stop = new PdfTabStop(global::OfficeIMO.OfficeLength.Points(position), alignment, leader);
         _tabStops.Add(stop);
         return stop;
     }
