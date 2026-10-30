@@ -47,7 +47,7 @@ public sealed class SavedConversionJobCmdletTests {
             Assert.False(Directory.Exists(output));
             Assert.False(Directory.Exists(checkpoint));
             shell.Commands.Clear();
-            string firstReportPath = Path.Combine(jobs, "first-run.json");
+            string firstReportPath = Path.Combine(jobs, "first[1]-run.json");
             shell.AddCommand("Invoke-OfficeConversionJob").AddParameter("Path", path).AddParameter("ReportPath", firstReportPath);
             var first = Assert.IsType<OfficeBatchSummary>(Assert.Single(shell.Invoke()).BaseObject);
             Assert.Equal(1, first.Completed);
@@ -56,7 +56,7 @@ public sealed class SavedConversionJobCmdletTests {
             byte[] firstBytes = File.ReadAllBytes(pdf);
             byte[] firstReportBytes = File.ReadAllBytes(firstReportPath);
             shell.Commands.Clear();
-            shell.AddCommand("Get-OfficeConversionJobReport").AddParameter("Path", firstReportPath);
+            shell.AddCommand("Import-OfficeConversionReport").AddParameter("LiteralPath", firstReportPath);
             var report = Assert.IsType<OfficeBatchReport>(Assert.Single(shell.Invoke()).BaseObject);
             Assert.Equal(1, report.Summary.Completed);
             Assert.Single(report.Items);
@@ -67,8 +67,24 @@ public sealed class SavedConversionJobCmdletTests {
             Assert.Equal(1, resumed.Reused);
             Assert.Same(resumed, runspace.SessionStateProxy.GetVariable("summary"));
             Assert.Equal(firstBytes, File.ReadAllBytes(pdf));
-            Assert.Equal(firstReportBytes, File.ReadAllBytes(firstReportPath));
+            shell.Commands.Clear();
+            shell.AddCommand("Import-OfficeConversionReport").AddParameter("Path", Path.Combine(jobs, "*-run.json"));
+            var imported = shell.Invoke().Select(item => Assert.IsType<OfficeBatchReport>(item.BaseObject)).ToArray();
             Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
+            Assert.Equal(2, imported.Length);
+            Assert.Contains(imported, item => item.Summary.Completed == 1);
+            Assert.Contains(imported, item => item.Summary.Reused == 1);
+            shell.Commands.Clear();
+            shell.AddCommand("Import-OfficeConversionReport");
+            var pipeline = shell.Invoke(new[] {
+                new FileInfo(firstReportPath), new FileInfo(Path.Combine(jobs, "resumed-run.json"))
+            }).Select(item => Assert.IsType<OfficeBatchReport>(item.BaseObject)).ToArray();
+            Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
+            Assert.Equal(2, pipeline.Length);
+            Assert.Contains(pipeline, item => item.Summary.Completed == 1);
+            Assert.Contains(pipeline, item => item.Summary.Reused == 1);
+            Assert.Equal(firstBytes, File.ReadAllBytes(pdf));
+            Assert.Equal(firstReportBytes, File.ReadAllBytes(firstReportPath));
         } finally {
             Directory.Delete(root, true);
         }
@@ -196,7 +212,7 @@ public sealed class SavedConversionJobCmdletTests {
         var state = InitialSessionState.CreateDefault();
         state.Commands.Add(new SessionStateCmdletEntry("Export-OfficeConversionJob", typeof(ExportOfficeConversionJobCommand), null));
         state.Commands.Add(new SessionStateCmdletEntry("Invoke-OfficeConversionJob", typeof(InvokeOfficeConversionJobCommand), null));
-        state.Commands.Add(new SessionStateCmdletEntry("Get-OfficeConversionJobReport", typeof(GetOfficeConversionJobReportCommand), null));
+        state.Commands.Add(new SessionStateCmdletEntry("Import-OfficeConversionReport", typeof(ImportOfficeConversionReportCommand), null));
         var runspace = RunspaceFactory.CreateRunspace(state);
         runspace.Open();
         return runspace;

@@ -62,7 +62,7 @@ foreach ($name in 'notes.txt.pdf', 'brief.html.pdf') {
         throw "The completed PDF could not be reopened: $path"
     }
 }
-$recorded = Get-OfficeConversionJobReport -Path $firstReportPath
+$recorded = Import-OfficeConversionReport -LiteralPath $firstReportPath
 if ($recorded.Batch.Summary.Completed -ne 2 -or $recorded.Batch.Items.Count -ne 2) {
     throw 'The first attempt did not retain both file outcomes.'
 }
