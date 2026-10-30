@@ -1,5 +1,6 @@
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc.Model;
@@ -38,6 +39,32 @@ public partial class Word {
         Assert.Equal(2, reopened.Tables.Count);
         Assert.Equal("First", reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
         Assert.Equal("Second", reopened.Tables[1].Rows[0].Cells[0].Paragraphs[0].Text);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LegacyDoc_TableSpacing_ManyBookmarksKeepTheFollowingBlockBoundary(bool nextIsTable) {
+        using WordDocument document = WordDocument.Create();
+        document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "First";
+        OpenXmlElement following;
+        if (nextIsTable) {
+            WordTable second = document.AddTable(1, 1);
+            second.Rows[0].Cells[0].Paragraphs[0].Text = "Second";
+            following = second._table;
+        } else {
+            following = document.AddParagraph("After")._paragraph;
+        }
+        Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+        for (int i = 0; i < 256; i++) {
+            var start = new BookmarkStart { Id = (i + 100).ToString(), Name = "Boundary" + i };
+            body.InsertBefore(start, following);
+            body.InsertAfter(new BookmarkEnd { Id = start.Id }, start);
+        }
+
+        byte[] bytes = document.ToBytes(WordFileFormat.Doc);
+        Assert.Equal(nextIsTable ? "First\a\a\rSecond\a\a\r" : "First\a\aAfter\r", ReadNativeTableSpacingStory(bytes));
+        Assert.Equal(256, LegacyDocDocument.Load(bytes).Bookmarks.Count);
     }
 
     [Theory]

@@ -47,6 +47,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private sealed class LegacyDocWritableBookmarksBuilder {
+            private const int MaximumStandardBookmarks = 0x3FFB;
             private readonly Dictionary<string, LegacyDocWritableBookmarkStart> _starts = new(StringComparer.Ordinal);
             private readonly List<LegacyDocWritableBookmark> _bookmarks = new();
             private readonly HashSet<string> _names = new(StringComparer.Ordinal);
@@ -55,6 +56,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal bool HasBookmarkMarkers => _starts.Count > 0 || _bookmarks.Count > 0;
 
             internal void AddStart(BookmarkStart bookmarkStart, int startCharacter) {
+                EnsureCapacity();
                 string id = ReadBookmarkId(bookmarkStart.Id?.Value, "start");
                 string name = ReadBookmarkName(bookmarkStart.Name?.Value);
                 if (!_names.Add(name)) {
@@ -97,6 +99,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             private void AddCompleted(string id, string name, int startCharacter, int endCharacter) {
+                EnsureCapacity();
                 if (!_names.Add(name)) {
                     throw new NotSupportedException($"Native DOC saving cannot write duplicate bookmark name '{name}'.");
                 }
@@ -112,6 +115,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 _bookmarks.Add(new LegacyDocWritableBookmark(id, name, startCharacter, endCharacter));
             }
 
+            private void EnsureCapacity() {
+                if (_ids.Count >= MaximumStandardBookmarks)
+                    throw new NotSupportedException("Native DOC saving supports at most 0x3FFB standard bookmarks.");
+            }
+
             internal LegacyDocWritableBookmarks Create() {
                 if (_starts.Count != 0) {
                     string names = string.Join(", ", _starts.Values.Select(start => start.Name).Take(5));
@@ -122,7 +130,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     return LegacyDocWritableBookmarks.Empty;
                 }
 
-                if (_bookmarks.Count > 0x3FFB) {
+                if (_bookmarks.Count > MaximumStandardBookmarks) {
                     throw new NotSupportedException("Native DOC saving supports at most 0x3FFB standard bookmarks.");
                 }
 
