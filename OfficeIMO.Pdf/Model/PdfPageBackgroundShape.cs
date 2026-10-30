@@ -47,6 +47,12 @@ public sealed class PdfPageBackgroundShape {
         }
     }
 
+    /// <summary>
+    /// When true, the shape is drawn on the first page only, such as a title band that would otherwise sit behind
+    /// body text on continuation pages.
+    /// </summary>
+    public bool FirstPageOnly { get; set; }
+
     /// <summary>Creates a rectangle background shape.</summary>
     public static PdfPageBackgroundShape Rectangle(double x, double y, double width, double height, PdfColor? fill = null, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) {
         var shape = OfficeShape.Rectangle(width, height);
@@ -127,7 +133,7 @@ public sealed class PdfPageBackgroundShape {
     }
 
     /// <summary>Creates a deep copy of this page background shape.</summary>
-    public PdfPageBackgroundShape Clone() => new PdfPageBackgroundShape(_shape, X, Y);
+    public PdfPageBackgroundShape Clone() => new PdfPageBackgroundShape(_shape, X, Y) { FirstPageOnly = FirstPageOnly };
 
     private static void ApplyColors(OfficeShape shape, PdfColor? fill, PdfColor? stroke, double strokeWidth, double? fillOpacity, double? strokeOpacity, OfficeLinearGradient? fillGradient) {
         if (fill.HasValue) {

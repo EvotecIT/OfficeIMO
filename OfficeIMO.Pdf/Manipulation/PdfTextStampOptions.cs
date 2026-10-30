@@ -10,6 +10,7 @@ public sealed class PdfTextStampOptions {
     private int[]? _pageNumbers;
     private double? _x;
     private double? _y;
+    private PdfAlign _align = PdfAlign.Left;
     private PdfStandardFont _font = PdfStandardFont.HelveticaBold;
     private double _fontSize = 24;
     private double _rotationDegrees;
@@ -58,6 +59,19 @@ public sealed class PdfTextStampOptions {
         set {
             ValidateOptionalFinite(value, nameof(X), "Text stamp X coordinate must be finite.");
             _x = value;
+        }
+    }
+
+    /// <summary>
+    /// Horizontal alignment of the text against <see cref="X"/>: <see cref="PdfAlign.Left"/> (the default) starts the
+    /// text at X, <see cref="PdfAlign.Center"/> centres it on X and <see cref="PdfAlign.Right"/> ends it at X. When X is
+    /// null, centred text uses the page centre and right-aligned text ends 36 points from the right page edge.
+    /// </summary>
+    public PdfAlign Align {
+        get => _align;
+        set {
+            Guard.LeftCenterRightAlign(value, nameof(Align), "Text stamp");
+            _align = value;
         }
     }
 
@@ -114,6 +128,14 @@ public sealed class PdfTextStampOptions {
     /// Places the new content stream before existing page content when true.
     /// </summary>
     public bool BehindContent { get; set; }
+
+    /// <summary>
+    /// When true (the default), the stamp text uses the installed font that backs <see cref="Font"/> in the default
+    /// theme, the same font documents created by OfficeIMO.Pdf use, embedded as a subset. When no such font is
+    /// installed, or it lacks a character of the text, the non-embedded standard font is written instead.
+    /// Set to false to always write the non-embedded standard font.
+    /// </summary>
+    public bool EmbedFont { get; set; } = PdfCreateOptions.EmbedDefaultFontsInitially;
 
     private static void ValidateOptionalFinite(double? value, string paramName, string message) {
         if (value.HasValue) {

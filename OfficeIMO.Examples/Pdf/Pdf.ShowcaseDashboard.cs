@@ -119,13 +119,15 @@ namespace OfficeIMO.Examples.Pdf {
                 textColor: OfficeColor.FromRgb(30, 41, 59),
                 mutedTextColor: OfficeColor.FromRgb(100, 116, 139),
                 valueAxisColor: OfficeColor.Transparent,
-                categoryAxisColor: OfficeColor.FromRgb(203, 213, 225));
+                categoryAxisColor: OfficeColor.FromRgb(203, 213, 225))
+                // Values sit in white at the foot of each bar, clear of the dashed target line across the bar tops.
+                .WithDataLabelTextColor(OfficeColor.White);
             var layout = new OfficeChartLayout(
                 legendPosition: OfficeChartLegendPosition.Top,
                 showDataLabels: true,
                 showDataLabelValues: true,
                 dataLabelSeriesIndexes: new[] { 0 },
-                dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd,
+                dataLabelPosition: OfficeChartDataLabelPosition.InsideBase,
                 verticalAxisNumberFormat: "#,##0");
             var chart = new OfficeChartSnapshot("Tickets resolved per month", null, OfficeChartKind.ColumnClustered, data,
                 widthPoints: TrendChartWidth, heightPoints: 180D, style: style, layout: layout);

@@ -58,16 +58,18 @@ namespace OfficeIMO.Examples.Pdf {
             merged.Pages.Extract(PdfPageRange.From(2, 2))
                 .Save(extractedPath);
             // The sources carry no page numbers; the merged pack is numbered once, after the merge,
-            // on the left margin and baseline the source footers would have used.
+            // right-aligned on the right margin like the footers of the other examples.
             PdfDocument stamped = merged;
             int pageCount = merged.Pages.Count;
+            var pageGeometry = new PdfCreateOptions();
             for (int page = 1; page <= pageCount; page++) {
                 stamped = stamped.Stamp.Text(
                     "OfficeIMO.Pdf examples \u00B7 Page " + page + " of " + pageCount,
                     new PdfTextStampOptions {
                         PageNumbers = new[] { page },
-                        X = 72,
+                        X = pageGeometry.PageWidth - pageGeometry.MarginRight,
                         Y = 36,
+                        Align = PdfAlign.Right,
                         Font = PdfStandardFont.Helvetica,
                         FontSize = 8.5,
                         Color = PdfColor.FromOfficeColor(OfficeTheme.Default.Palette.TextMuted)

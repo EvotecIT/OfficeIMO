@@ -1878,6 +1878,7 @@ public sealed partial class HtmlRenderingTests {
               @page { size:320px 180px; margin:32px; @top-center { content:element(chapter); } }
               .running { position:running(chapter); color:#225588; border-bottom:1px solid #225588; }
               .page { margin:0; height:80px; }
+              p { margin:0; }
             </style>
             <p>Before <span class="running">Nested Chapter</span> After</p>
             <div class="page" style="break-after:page">First body</div>

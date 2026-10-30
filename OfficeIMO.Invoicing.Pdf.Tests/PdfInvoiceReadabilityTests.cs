@@ -42,10 +42,10 @@ public class PdfInvoiceReadabilityTests {
 
     [Theory]
     [InlineData("1", "6", "1 hour", "/ 6 hours")]
-    [InlineData("6", "1", "6 hours", "/ 1 hour")]
-    [InlineData("7.5", "1", "7.5 hours", "/ 1 hour")]
+    [InlineData("6", "1", "6 hours", null)]
+    [InlineData("7.5", "1", "7.5 hours", null)]
     public void EnglishQuantityPhrasesUseTheirOwnAmountForUnitGrammar(
-        string quantity, string priceBase, string quantityText, string priceText) {
+        string quantity, string priceBase, string quantityText, string? priceText) {
         Invoice invoice = InvoiceFixture.Create();
         invoice.Lines[0].UnitCode = "HUR";
         invoice.Lines[0].Quantity = decimal.Parse(quantity, System.Globalization.CultureInfo.InvariantCulture);
@@ -54,7 +54,31 @@ public class PdfInvoiceReadabilityTests {
             .ToPresentationPdfBytes(Options());
         string text = Text(pdf);
         Assert.Contains(quantityText, text, StringComparison.Ordinal);
-        Assert.Contains(priceText, text, StringComparison.Ordinal);
+        // A price for one unit reads as an amount; its unit is the quantity's. Other price bases name theirs.
+        if (priceText == null) {
+            Assert.DoesNotContain("/ 1 hour", text, StringComparison.Ordinal);
+        } else {
+            Assert.Contains(priceText.Substring(0, 3), text, StringComparison.Ordinal);
+            Assert.Contains("hours", text, StringComparison.Ordinal);
+        }
+    }
+
+    [Theory]
+    [InlineData("pl-PL", "2", "2 godziny")]
+    [InlineData("pl-PL", "6", "6 godzin")]
+    [InlineData("pl-PL", "7.5", "7,5 godziny")]
+    [InlineData("de-DE", "6", "6 Stunden")]
+    [InlineData("cs-CZ", "3", "3 hodiny")]
+    [InlineData("cs-CZ", "6", "6 hodin")]
+    [InlineData("fr-FR", "1.5", "1,5 heure")]
+    [InlineData("fr-FR", "6", "6 heures")]
+    public void TranslatedQuantityPhrasesUseThePluralFormOfTheirLanguage(string culture, string quantity, string quantityText) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Lines[0].UnitCode = "HUR";
+        invoice.Lines[0].Quantity = decimal.Parse(quantity, System.Globalization.CultureInfo.InvariantCulture);
+        string text = Text(PdfInvoiceDocument.Create(invoice, Contract(), InvoicePdfLayoutOptions.ForCultures(culture))
+            .ToPresentationPdfBytes(Options()));
+        Assert.Contains(quantityText, text, StringComparison.Ordinal);
     }
 
     [Fact]

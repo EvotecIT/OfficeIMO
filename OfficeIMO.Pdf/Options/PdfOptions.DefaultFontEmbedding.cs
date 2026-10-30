@@ -116,6 +116,10 @@ public sealed partial class PdfCreateOptions {
         return false;
     }
 
+    /// <summary>Resolves the installed family that backs a standard font slot in the default theme, as native documents embed it.</summary>
+    internal static bool TryResolveDefaultEmbeddedFontFamily(PdfStandardFont slot, out PdfEmbeddedFontFamily? family) =>
+        TryResolveDefaultFontFamily(slot, standardMetrics: false, OfficeTheme.Default, out family);
+
     private static bool TryResolveDefaultFontFamily(PdfStandardFont slot, bool standardMetrics, OfficeTheme theme, out PdfEmbeddedFontFamily? family) {
         family = null;
         PdfEmbeddedFontFamily? first = null;
