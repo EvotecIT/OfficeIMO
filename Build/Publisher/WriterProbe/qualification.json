@@ -1,6 +1,6 @@
 {
   "schema": "officeimo.publisher.native-writer-feasibility.v1",
-  "scope": "Opt-in template-free modern-generation one-page writer feasibility; no public native creation/save API or general producer/fidelity qualification.",
+  "scope": "Opt-in modern-generation writer feasibility and bounded source-edit qualification; no public native creation/save API or general producer/fidelity qualification.",
   "generationSignature": "E8 AC 2C 00",
   "command": [
     "create",
@@ -198,5 +198,388 @@
       "sha256": "e51e9274ccf2d6081ed94345a24acda229922f4effaba1f67bb391c28a701e4a"
     }
   ],
-  "reproduction": "Build the opt-in probe with the pinned SDK, run the recorded create command with the repository image, then Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full on an isolated copy. Compare native inventories and both PDFs against the explicit candidate expectations. Native artifact hashes identify this observed run; a subsequent native save can include different metadata."
+  "reproduction": "Build the opt-in probe with the pinned SDK, run the recorded create command with the repository image, then Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full on an isolated copy. Compare native inventories and both PDFs against the explicit candidate expectations. Native artifact hashes identify this observed run; a subsequent native save can include different metadata.",
+  "sourceEditing": {
+    "scope": "Bounded single-story/single-paragraph text, size and bold edits; source splitting and matching-count re-edit, including after native resave.",
+    "codecCommit": "6a0c79187aa5f68f4003f8ddeafa1b2a4a1887d2",
+    "codecFiles": [
+      {
+        "path": "../../../OfficeIMO.Publisher/PublisherDocument.Native.cs",
+        "sha256": "053d8e9a929f41d9a6d99338af9db4f86452dbee3985112e968dd9e2c5a0f539"
+      },
+      {
+        "path": "../../../OfficeIMO.Publisher/Internal/PublisherNativeSource.cs",
+        "sha256": "e90d1146f9736f504d3bbd97320b3b0171625c5f273557281fe08ce0e05ea519"
+      },
+      {
+        "path": "../../../OfficeIMO.Publisher/Internal/PublisherNativePreparation.cs",
+        "sha256": "f7e4e77de7cb1347ad3a5c061811c271acc187083a623b3379529e9e645f34f6"
+      },
+      {
+        "path": "../../../OfficeIMO.Publisher/Internal/PublisherNativeWriter.cs",
+        "sha256": "193b0e548ba61bb449eef8b2007e65b39497cd39d311573c1e68f2a2aa30cff1"
+      },
+      {
+        "path": "../../../OfficeIMO.Publisher/Internal/PublisherNativeWriter.Compare.cs",
+        "sha256": "055b8be98d7e780c0b30e5ca7ae250281ca13b845d8cf4fb41864ec4e8646c7f"
+      },
+      {
+        "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillTextWriter.cs",
+        "sha256": "86ee1522f1cf8531c0c4e724b1fcce2e5c164d9e5a0c9b62cd13393a8bdd7670"
+      },
+      {
+        "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillCharacterStyleWriter.cs",
+        "sha256": "ab2e6972146d2fa254cc6125f7a3b0f999c9165b540ac00b19296237a5051dd0"
+      },
+      {
+        "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillFormattingPage.cs",
+        "sha256": "e51e9274ccf2d6081ed94345a24acda229922f4effaba1f67bb391c28a701e4a"
+      }
+    ],
+    "producer": {
+      "name": "Microsoft Publisher",
+      "version": "16.0",
+      "executableVersion": "16.0.20527.20088",
+      "automationSecurity": 3
+    },
+    "nativeExecutableSha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed",
+    "probeCommand": "edit-story <source.pub> <candidate.pub> 2 <runs.json>",
+    "validationCommand": "Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath <candidate.pub> -OutputDirectory <fresh-output>",
+    "qualifiedOperations": [
+      "ReadOnlyOpen",
+      "InitialInventory",
+      "InitialPdfExport",
+      "NativeSaveAs",
+      "ReadOnlyReopen",
+      "ResavedInventory",
+      "ResavedPdfExport"
+    ],
+    "fontSizeTolerancePoints": 0.1,
+    "cases": [
+      {
+        "name": "size",
+        "source": {
+          "kind": "IndependentNativeFixture",
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+          "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+        },
+        "storyId": 2,
+        "runs": [
+          {
+            "Text": "Publisher text",
+            "Bold": false,
+            "FontSize": 18
+          }
+        ],
+        "candidateSha256": "25dd20170cdf3ac1d27f09c1735ca2d644f5d8953f22b74278a6b2fec21beabf",
+        "nativeArtifacts": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "25dd20170cdf3ac1d27f09c1735ca2d644f5d8953f22b74278a6b2fec21beabf"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "cda3882ac49cc55217d26e31ac89b7b7f5c72c8af1f8f92f7aa3757d771ea03f"
+          },
+          {
+            "name": "native-resaved.pub",
+            "sha256": "b691eac2da2f9a098affa2d9b83a707ec2f7860ad023ee27bc5ef98584779d08"
+          },
+          {
+            "name": "native-resaved-inventory.json",
+            "sha256": "3015d79b84d78bcc8ddf3ca505c38edcc5cb2ab261a5a19a326288173f384872"
+          },
+          {
+            "name": "native-initial.pdf",
+            "sha256": "195b4accb7b1a218886e5a0201420fd6351e4aca5a24e3b7d9632d891006008a"
+          },
+          {
+            "name": "native-resaved.pdf",
+            "sha256": "e3985ad534ea116f8372b55ec9670d50436446faf22badecb3567ab7c343001e"
+          }
+        ],
+        "sourceUnchanged": true,
+        "nativeTextAndFrameBounds": true,
+        "nativeSizeAndBoldWithinTolerance": true,
+        "nativePixelsIdenticalBeforeAfterResave": true
+      },
+      {
+        "name": "bold",
+        "source": {
+          "kind": "IndependentNativeFixture",
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+          "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+        },
+        "storyId": 2,
+        "runs": [
+          {
+            "Text": "Publisher text",
+            "Bold": true,
+            "FontSize": 12
+          }
+        ],
+        "candidateSha256": "8a947d6e770a90dffa2f99a3d22e4ea4486fa2f76b2f7ca28e3415ca70f7a818",
+        "nativeArtifacts": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "8a947d6e770a90dffa2f99a3d22e4ea4486fa2f76b2f7ca28e3415ca70f7a818"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "50d2b2c31a12f89069eb92d29e2c387058d980cabbf80fc1efae873c4a959c24"
+          },
+          {
+            "name": "native-resaved.pub",
+            "sha256": "c8ab66d918bb16373443b5f01791141fb7c2ef0529bf1cd19553037d8c9676c6"
+          },
+          {
+            "name": "native-resaved-inventory.json",
+            "sha256": "f4ffbf50abdbf8def1d445ff3958e79821a2f8be8f1c47cf079c9cd877a397d3"
+          },
+          {
+            "name": "native-initial.pdf",
+            "sha256": "fdfa96c87f067f8da2149b2ec66faaa221b41a00db36bc5ee4f9616043d2547a"
+          },
+          {
+            "name": "native-resaved.pdf",
+            "sha256": "1519c57e339c7e881653cb763e2c37ce1d3bc6ef838f578e6d63c4ddfa234249"
+          }
+        ],
+        "sourceUnchanged": true,
+        "nativeTextAndFrameBounds": true,
+        "nativeSizeAndBoldWithinTolerance": true,
+        "nativePixelsIdenticalBeforeAfterResave": true
+      },
+      {
+        "name": "styled",
+        "source": {
+          "kind": "IndependentNativeFixture",
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+          "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+        },
+        "storyId": 2,
+        "runs": [
+          {
+            "Text": "Plain 12 | ",
+            "Bold": false,
+            "FontSize": 12
+          },
+          {
+            "Text": "Bold 18",
+            "Bold": true,
+            "FontSize": 18
+          },
+          {
+            "Text": " | Plain 12",
+            "Bold": false,
+            "FontSize": 12
+          }
+        ],
+        "candidateSha256": "c02bca2babd7459b2a5d89ca514981d951046c86bae22e562371e29dbf11f8f4",
+        "nativeArtifacts": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "c02bca2babd7459b2a5d89ca514981d951046c86bae22e562371e29dbf11f8f4"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "bec5c6820234b3d2863588d661e923742d83b8083a130eff8d864bffca3a154f"
+          },
+          {
+            "name": "native-resaved.pub",
+            "sha256": "14344deb3af5a0342d644b35d538a5f1370e097dff9464202d00b40cc01ddff1"
+          },
+          {
+            "name": "native-resaved-inventory.json",
+            "sha256": "254818377891e14595cf22ac0fd9f71451ca10d9eaf60a0bf44caad5040f9975"
+          },
+          {
+            "name": "native-initial.pdf",
+            "sha256": "0cd3c807db17256f7171ea896af524678a37829418d0bdfb6850b3533de5b3a6"
+          },
+          {
+            "name": "native-resaved.pdf",
+            "sha256": "ddd712fc756202207e18088e980aac2522c2975a1a65e073c0883dbae78c410f"
+          }
+        ],
+        "sourceUnchanged": true,
+        "nativeTextAndFrameBounds": true,
+        "nativeSizeAndBoldWithinTolerance": true,
+        "nativePixelsIdenticalBeforeAfterResave": true
+      },
+      {
+        "name": "tail-bold",
+        "source": {
+          "kind": "IndependentNativeFixture",
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+          "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+        },
+        "storyId": 2,
+        "runs": [
+          {
+            "Text": "Tail ",
+            "Bold": false,
+            "FontSize": 12
+          },
+          {
+            "Text": "bold 18",
+            "Bold": true,
+            "FontSize": 18
+          }
+        ],
+        "candidateSha256": "b113daaefbc0693dd1066a7010526105a88df44d19f120b9b1028ef053cd5d13",
+        "nativeArtifacts": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "b113daaefbc0693dd1066a7010526105a88df44d19f120b9b1028ef053cd5d13"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "f26ff6dd8b271ab12aa33e26629a7c419d2b1073468e3e23a7dd78b2600a428e"
+          },
+          {
+            "name": "native-resaved.pub",
+            "sha256": "5867b1e70b739d08d2997206d7239455666bf01117d5208e92879352cd877c49"
+          },
+          {
+            "name": "native-resaved-inventory.json",
+            "sha256": "482287961a1e0ce58c15c6c64ecfc47b906b621591e74089e3644e7ccf871f1d"
+          },
+          {
+            "name": "native-initial.pdf",
+            "sha256": "bcfb70e8edac29d2b55dce1007ee71aac0cc4440a5c541d9c7bd8235ee8a0da8"
+          },
+          {
+            "name": "native-resaved.pdf",
+            "sha256": "a809fa3ad3ab4d791d2157a8e135b20db61fe23b1b239229a9aac1b2913332b7"
+          }
+        ],
+        "sourceUnchanged": true,
+        "nativeTextAndFrameBounds": true,
+        "nativeSizeAndBoldWithinTolerance": true,
+        "nativePixelsIdenticalBeforeAfterResave": true
+      },
+      {
+        "name": "reedit",
+        "source": {
+          "kind": "OfficeIMOEdited",
+          "case": "styled",
+          "sha256": "c02bca2babd7459b2a5d89ca514981d951046c86bae22e562371e29dbf11f8f4"
+        },
+        "storyId": 2,
+        "runs": [
+          {
+            "Text": "Plain 12 | ",
+            "Bold": false,
+            "FontSize": 12
+          },
+          {
+            "Text": "Re-edited",
+            "Bold": false,
+            "FontSize": 20
+          },
+          {
+            "Text": " | Plain 12",
+            "Bold": false,
+            "FontSize": 12
+          }
+        ],
+        "candidateSha256": "811c8ff0c68ff382227d4d1e6bc014b4d2d582553d94f2e13b0331ce454677fe",
+        "nativeArtifacts": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "811c8ff0c68ff382227d4d1e6bc014b4d2d582553d94f2e13b0331ce454677fe"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "3d26e91bed812d491aa2bd538a37646b724471b5cb4430946975c03d37c4c52c"
+          },
+          {
+            "name": "native-resaved.pub",
+            "sha256": "72f4a4eea18a918ac9deaef6e58b6dee611f8c565de4959f42f7de27750becbf"
+          },
+          {
+            "name": "native-resaved-inventory.json",
+            "sha256": "a873c934bac4268ba3f07db5bb8c13433a7bcef1cbd08ddd99bf9f97b5bbdd89"
+          },
+          {
+            "name": "native-initial.pdf",
+            "sha256": "8a174fab62ba10980fefb87b792ee18f1f1cc036df8809da722f5128f7ecc826"
+          },
+          {
+            "name": "native-resaved.pdf",
+            "sha256": "b34a1349bbf753a548a7ab6192fb2d6c92828440c3eb40670825bee65a76a3a7"
+          }
+        ],
+        "sourceUnchanged": true,
+        "nativeTextAndFrameBounds": true,
+        "nativeSizeAndBoldWithinTolerance": true,
+        "nativePixelsIdenticalBeforeAfterResave": true
+      },
+      {
+        "name": "native-resaved-reedit",
+        "source": {
+          "kind": "NativeResaved",
+          "case": "styled",
+          "sha256": "14344deb3af5a0342d644b35d538a5f1370e097dff9464202d00b40cc01ddff1"
+        },
+        "storyId": 2,
+        "runs": [
+          {
+            "Text": "Plain 12 | ",
+            "Bold": false,
+            "FontSize": 12
+          },
+          {
+            "Text": "Re-edited",
+            "Bold": false,
+            "FontSize": 20
+          },
+          {
+            "Text": " | Plain 12",
+            "Bold": false,
+            "FontSize": 12
+          }
+        ],
+        "candidateSha256": "6ddf0be58d88db9ec212c2c75e0e4e6cdf255632997aab728758da6cc7e867b8",
+        "nativeArtifacts": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "6ddf0be58d88db9ec212c2c75e0e4e6cdf255632997aab728758da6cc7e867b8"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "5dab1d6b033ba17609f62dd997a8fae9b37d492cee71f15bbfd9288a6c97b043"
+          },
+          {
+            "name": "native-resaved.pub",
+            "sha256": "421bf71d8d14ee56e965d450f0d00414be7c5e36e1edd8e795c124fd7edcb710"
+          },
+          {
+            "name": "native-resaved-inventory.json",
+            "sha256": "d3a5418d9903a80654143a9547fa924219f4fde71c1084f381a65632b7f5accc"
+          },
+          {
+            "name": "native-initial.pdf",
+            "sha256": "b98cfb8605ef9dce43c725a74ff8ac9b7975a043884a8ca2d477e0d7157ee8eb"
+          },
+          {
+            "name": "native-resaved.pdf",
+            "sha256": "63240deb2be6aefd380b2cba7accb8b627b2dfcb2269a7dc88d2028aa0ff8a4d"
+          }
+        ],
+        "sourceUnchanged": true,
+        "nativeTextAndFrameBounds": true,
+        "nativeSizeAndBoldWithinTolerance": true,
+        "nativePixelsIdenticalBeforeAfterResave": true
+      }
+    ],
+    "limits": [
+      "Repair-free opening remains unassessed.",
+      "The native runner reads and resaves; native text mutation is a separate unexercised operation.",
+      "Opaque record semantics, cached preview freshness and broad native-layout fidelity remain unassessed.",
+      "The 20-point request renders at 20.04 points in these native PDFs, within the recorded tolerance.",
+      "Original controls and native-resaved derivatives retain their distinct provenance."
+    ]
+  }
 }

@@ -116,16 +116,28 @@ previews in other streams are retained and their freshness remains unassessed.
 Other formatting changes, run merges, multiple paragraphs/stories, tables, image replacement,
 page/master relationships, new objects and source-free publications have no writer in this path. Every
 current semantic family is compared with the import baseline before output;
-source-byte retention does not permit dropping unsupported edits. Prepared edit
-candidates report native acceptance, repair-free opening and opaque semantic
-preservation as unassessed. Managed reopening and stream comparisons are
-structural evidence, not Microsoft Publisher qualification.
+source-byte retention does not permit dropping unsupported edits. Each new
+candidate still requires native qualification; the recorded samples below
+establish only their listed operations. The preparer reports repair-free opening
+and opaque semantic preservation as unassessed. Managed reopening and stream
+comparisons supply structural evidence.
 
 When story text or formatting changes, the preparation result's
 `styleDependencies` retains the affected original story keys, native ranges,
 definition pairs and direct OPL spans. It refers to the imported source even
 after normal model edits. Unsupported changes return no candidate bytes; the
 bindings do not establish editable named styles or unknown metadata semantics.
+
+The `sourceEditing` section of the [qualification record](qualification.json)
+binds six edited files to their source fixture or earlier edited/native-resaved
+file, run specifications, codec source and native artifacts. All six passed
+read-only open, initial inventory/PDF export, native save-as, read-only reopen
+and a second inventory/PDF export. Native text, frame bounds and size/bold states
+match the requested values within 0.1 point, and native rendered pixels remain
+identical across resave. This includes re-editing a file after Microsoft
+Publisher resaved it. Native text mutation and repair-free opening remain
+separate, unexercised criteria; these samples do not qualify other profiles or
+opaque record semantics.
 
 ## Creation cases
 

@@ -103,6 +103,16 @@ repair-free opening, native edit acceptance or opaque semantic preservation and
 does not expose public native saving. The [writer probe](../Build/Publisher/WriterProbe/README.md#loaded-source-candidates)
 owns its use and qualification limits.
 
+Six exact edited specimens of this single-paragraph profile have native
+read-only open, PDF export, save-as and read-only reopen evidence in Microsoft
+Publisher 16.0.20527.20088. They include OfficeIMO re-editing a native-resaved
+styled file. Native text, frame bounds and size/bold states match the requests
+within the recorded 0.1-point font-size tolerance; native PDF pixels match before
+and after resave. These observations do not establish repair-free opening,
+native text mutation, other profiles or opaque-record semantics. The
+[qualification record](../Build/Publisher/WriterProbe/qualification.json)
+keeps source provenance, exact file hashes and operation boundaries.
+
 One retained Quill style catalog supplies the existing formatting resolver.
 It keeps native character/paragraph pair ordinals, nullable decoded values,
 whole indexed STSH entries and their inner definition spans, including when
