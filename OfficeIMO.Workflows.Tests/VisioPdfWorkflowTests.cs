@@ -175,12 +175,12 @@ public sealed class VisioPdfWorkflowTests {
             Assert.Equal(2, reused.Reused);
             var restored = Assert.Single(reusedItems, item => item.InputPath.EndsWith(".vdx", StringComparison.Ordinal));
             Assert.Contains(restored.Diagnostics, d => d.Code == "VDX_MODEL_PROFILE");
-            byte[] before = File.ReadAllBytes(Path.Combine(request.OutputDirectory, "source.vdx.pdf"));
+            byte[] before = File.ReadAllBytes(Path.Combine(request.OutputDirectory, "source.pdf"));
             request.MaximumXmlCharactersInPart = 64;
             var changed = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request);
             Assert.Equal(1, changed.Failed);
             Assert.Equal(1, changed.Reused);
-            Assert.Equal(before, File.ReadAllBytes(Path.Combine(request.OutputDirectory, "source.vdx.pdf")));
+            Assert.Equal(before, File.ReadAllBytes(Path.Combine(request.OutputDirectory, "source.pdf")));
         } finally { Directory.Delete(root, true); }
     }
 
@@ -203,11 +203,11 @@ public sealed class VisioPdfWorkflowTests {
             var rejected = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request, new InlineProgress(rejectedItems));
             Assert.Equal(1, rejected.Failed);
             Assert.Contains("ordinary batch without checkpoints", Assert.Single(rejectedItems).Summary, StringComparison.Ordinal);
-            Assert.False(File.Exists(Path.Combine(request.OutputDirectory, "source.vdx.pdf")));
+            Assert.False(File.Exists(Path.Combine(request.OutputDirectory, "source.pdf")));
             request.ResumeFrom = null;
             var ordinary = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request);
             Assert.Equal(1, ordinary.Completed);
-            Assert.True(File.Exists(Path.Combine(request.OutputDirectory, "source.vdx.pdf")));
+            Assert.True(File.Exists(Path.Combine(request.OutputDirectory, "source.pdf")));
         } finally { Directory.Delete(root, true); }
     }
 

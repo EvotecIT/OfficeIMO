@@ -78,7 +78,7 @@ public sealed class BookPublishingBatchTests {
         public Scope() => Directory.CreateDirectory(Input);
         public string Input => Path.Combine(_root, "input");
         public string Source => Path.Combine(Input, "book.oibook");
-        public string Output => Path.Combine(_root, "output", "book.oibook.epub");
+        public string Output => Path.Combine(_root, "output", "book.epub");
         public string Checkpoint => Path.Combine(_root, "checkpoint");
         public OfficeBatchOptions Request => new() { InputDirectory = Input, OutputDirectory = Path.GetDirectoryName(Output)!, TargetExtension = ".epub", MaxParallelism = 1 };
         public void Dispose() => Directory.Delete(_root, true);

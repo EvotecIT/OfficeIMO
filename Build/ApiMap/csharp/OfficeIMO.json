@@ -506,6 +506,21 @@
         "OfficeIMO.All.AotSmoke/ConversionBatchScenario.cs"
       ],
       "note": "Native .NET10 publish/run passes. The macOS .NET8 profile completes native code generation but Apple Xcode27.1 linking fails with too many large addends, including the size-optimization experiment. This is retained as an explicit qualification limit; target frameworks and trimming/AOT analyzers remain enabled. Unique source stems reflect the adopted extension-replacement batch naming contract."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Workflow batch fixtures expect appended source extensions such as one.txt.pdf.",
+      "new": "Expect one.pdf and use that destination in publication guards and durable-resume fixtures.",
+      "reason": "The adopted extension-replacement naming rule also applies to existing workflow consumers. Preserve receipt, tamper, cancellation, symlink and publication safety assertions.",
+      "files": [
+        "OfficeIMO.Workflows.Tests/BookPublishingBatchTests.cs",
+        "OfficeIMO.Workflows.Tests/DrawBatchWorkflowTests.cs",
+        "OfficeIMO.Workflows.Tests/OfficeConversionBatchExecutorTests.cs",
+        "OfficeIMO.Workflows.Tests/PublisherPdfWorkflowTests.cs",
+        "OfficeIMO.Workflows.Tests/VisioPdfWorkflowTests.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
