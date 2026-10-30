@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.InsertDataTableAsTable(table, includeHeaders: true, tableName: "Sales", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
+                sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { IncludeHeaders = true, Name = "Sales", Style = OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2 }, row: 1, column: 1);
                 sheet.ProtectTableEditing();
                 document.Save();
             }

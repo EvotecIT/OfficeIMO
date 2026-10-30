@@ -246,13 +246,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Update.ScatterCombo.xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Shared");
-            ExcelChart chart = sheet.AddChart(new ExcelChartData(
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(
                 new[] { "Q1", "Q2" },
                 new[] {
                     new ExcelChartSeries("Columns", new[] { 1D, 2D }, OfficeChartType.ColumnClustered),
                     new ExcelChartSeries("Trend", new[] { 2D, 3D }, OfficeChartType.Line)
-                }),
-                row: 1, column: 5, type: OfficeChartType.ColumnClustered);
+                }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5 });
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(() => chart.UpdateData(
                 new ExcelChartData(new[] { "Q1", "Q2" }, new[] {

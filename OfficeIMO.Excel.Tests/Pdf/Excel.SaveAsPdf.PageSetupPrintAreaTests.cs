@@ -168,8 +168,8 @@ public partial class Excel {
                 Height = OfficeIMO.OfficeLength.Pixels(12),
                 Name = "Outside image"
             });
-            sheet.AddChartFromRange("B2:C3", row: 3, column: 2, width: OfficeLength.Pixels(220), height: OfficeLength.Pixels(120), type: OfficeChartType.ColumnClustered, title: "Inside Chart");
-            sheet.AddChartFromRange("B2:C3", row: 10, column: 1, width: OfficeLength.Pixels(220), height: OfficeLength.Pixels(120), type: OfficeChartType.ColumnClustered, title: "Outside Chart");
+            sheet.AddChart(OfficeChartType.ColumnClustered, "B2:C3", new OfficeIMO.Excel.ExcelChartOptions { Row = 3, Column = 2, Width = OfficeLength.Pixels(220), Height = OfficeLength.Pixels(120), Title = "Inside Chart" });
+            sheet.AddChart(OfficeChartType.ColumnClustered, "B2:C3", new OfficeIMO.Excel.ExcelChartOptions { Row = 10, Column = 1, Width = OfficeLength.Pixels(220), Height = OfficeLength.Pixels(120), Title = "Outside Chart" });
             document.SetPrintArea(sheet, "B2:C3");
             document.Save();
 

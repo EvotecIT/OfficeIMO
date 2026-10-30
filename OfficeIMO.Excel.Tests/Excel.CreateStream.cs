@@ -185,11 +185,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Id", item => item.Id),
-                    ("Region", item => item.Region),
-                    ("CreatedOn", item => item.CreatedOn),
-                    ("Amount", item => item.Amount));
+                sheet.WriteData(rows, ("Id", item => item.Id), ("Region", item => item.Region), ("CreatedOn", item => item.CreatedOn), ("Amount", item => item.Amount));
                 sheet.AddTable("A1:D3", hasHeader: true, name: "SalesData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                 sheet.AutoFitColumns();
             }
@@ -236,11 +232,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
                 var sheet = document.AddSheet("Orders");
-                string range = sheet.InsertDataTableAsTable(
-                    orders,
-                    tableName: "OrdersExport",
-                    style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9,
-                    includeAutoFilter: true);
+                string range = sheet.AddTable(orders, new OfficeIMO.Excel.ExcelTableOptions { Name = "OrdersExport", Style = OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9, IncludeAutoFilter = true }, row: 1, column: 1).Range!;
                 sheet.AddAutoFilter(range, new Dictionary<uint, IEnumerable<string>> {
                     { 3U, new[] { "Open" } }
                 });
@@ -288,11 +280,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
                 var sheet = document.AddSheet("Sales");
-                sheet.InsertObjects(rows,
-                    ("Id", item => item.Id),
-                    ("Region", item => item.Region),
-                    ("CreatedOn", item => item.CreatedOn),
-                    ("Amount", item => item.Amount));
+                sheet.WriteData(rows, ("Id", item => item.Id), ("Region", item => item.Region), ("CreatedOn", item => item.CreatedOn), ("Amount", item => item.Amount));
                 sheet.SortUsedRangeByHeader("Amount", ascending: false);
                 sheet.AddTable("A1:D4", hasHeader: true, name: "SalesExport", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AddAutoFilter("A1:D4", new Dictionary<uint, IEnumerable<string>> {

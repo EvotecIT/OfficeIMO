@@ -21,13 +21,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 2, 12);
             sheet.CellValue(3, 1, "Closed");
             sheet.CellValue(3, 2, 30);
-            ExcelChart chart = sheet.AddChartFromRange(
-                "A1:B3",
-                row: 1,
-                column: 4,
-                width: OfficeLength.Pixels(360),
-                height: OfficeLength.Pixels(220),
-                title: "Ticket status");
+            ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Ticket status" });
             chart.Name = "TicketStatus";
 
             OfficeImageExportResult result = chart.ExportImage(format);
@@ -48,13 +42,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Open");
             sheet.CellValue(2, 2, 12);
-            ExcelChart chart = sheet.AddChartFromRange(
-                "A1:B2",
-                row: 1,
-                column: 4,
-                width: OfficeLength.Pixels(360),
-                height: OfficeLength.Pixels(220),
-                title: "Ticket status");
+            ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Ticket status" });
 
             byte[] result = chart.ToImage(new ExcelImageExportOptions { Format = OfficeImageExportFormat.Webp, Scale = 1.25D });
 
@@ -72,13 +60,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Open");
             sheet.CellValue(2, 2, 12);
-            ExcelChart chart = sheet.AddChartFromRange(
-                "A1:B2",
-                row: 1,
-                column: 4,
-                width: OfficeLength.Pixels(360),
-                height: OfficeLength.Pixels(220),
-                title: "Bounded chart");
+            ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Bounded chart" });
 
             byte[] result = chart.ToImage(new ExcelImageExportOptions {
                 Format = format, Scale = 2D, MaximumOutputWidth = 180, MaximumOutputHeight = 100
@@ -99,13 +81,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Open");
             sheet.CellValue(2, 2, 12);
-            ExcelChart chart = sheet.AddChartFromRange(
-                "A1:B2",
-                row: 1,
-                column: 4,
-                width: OfficeLength.Pixels(160),
-                height: OfficeLength.Pixels(90),
-                title: "Small chart");
+            ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(160), Height = OfficeLength.Pixels(90), Title = "Small chart" });
 
             OfficeImageExportResult result = chart.ExportImage(format);
 
@@ -121,13 +97,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Open");
             sheet.CellValue(2, 2, 12);
-            ExcelChart chart = sheet.AddChartFromRange(
-                "A1:B2",
-                row: 1,
-                column: 4,
-                width: OfficeLength.Pixels(320),
-                height: OfficeLength.Pixels(180),
-                title: "Transparent chart");
+            ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), Title = "Transparent chart" });
             chart.SetChartAreaStyle(noFill: true, noLine: true);
 
             string svg = Encoding.UTF8.GetString(chart.ExportImage(
@@ -149,13 +119,7 @@ namespace OfficeIMO.Tests {
                     sheet.CellValue(1, 2, "Value");
                     sheet.CellValue(2, 1, "Open");
                     sheet.CellValue(2, 2, 12);
-                    sheet.AddChartFromRange(
-                        "A1:B2",
-                        row: 1,
-                        column: 4,
-                        width: OfficeLength.Pixels(320),
-                        height: OfficeLength.Pixels(180),
-                        title: "Absolute chart");
+                    sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), Title = "Absolute chart" });
                     document.Save();
                 }
 

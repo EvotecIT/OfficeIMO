@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel {
             OfficeLength? width = null, OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) {
             width ??= OfficeLength.Pixels(720);
             height ??= OfficeLength.Pixels(320);
-            return AddChartFromRange(dataRangeA1, row, column, width.Value, height.Value, OfficeChartType.Line, hasHeaders, title, includeCachedData);
+            return AddChart(OfficeChartType.Line, dataRangeA1, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = width.Value, Height = height.Value, HasHeaders = hasHeaders, Title = title, IncludeCachedData = includeCachedData });
         }
 
         /// <summary>
@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
             OfficeLength? width = null, OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) {
             width ??= OfficeLength.Pixels(520);
             height ??= OfficeLength.Pixels(320);
-            return AddChartFromRange(dataRangeA1, row, column, width.Value, height.Value, OfficeChartType.Doughnut, hasHeaders, title, includeCachedData);
+            return AddChart(OfficeChartType.Doughnut, dataRangeA1, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = width.Value, Height = height.Value, HasHeaders = hasHeaders, Title = title, IncludeCachedData = includeCachedData });
         }
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel {
             OfficeLength? width = null, OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) {
             width ??= OfficeLength.Pixels(640);
             height ??= OfficeLength.Pixels(360);
-            return AddChartFromRange(dataRangeA1, row, column, width.Value, height.Value, OfficeChartType.BarClustered, hasHeaders, title, includeCachedData);
+            return AddChart(OfficeChartType.BarClustered, dataRangeA1, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = width.Value, Height = height.Value, HasHeaders = hasHeaders, Title = title, IncludeCachedData = includeCachedData });
         }
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel {
             OfficeLength? width = null, OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) {
             width ??= OfficeLength.Pixels(640);
             height ??= OfficeLength.Pixels(360);
-            return AddChartFromRange(dataRangeA1, row, column, width.Value, height.Value, OfficeChartType.ColumnClustered, hasHeaders, title, includeCachedData);
+            return AddChart(OfficeChartType.ColumnClustered, dataRangeA1, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = width.Value, Height = height.Value, HasHeaders = hasHeaders, Title = title, IncludeCachedData = includeCachedData });
         }
 
         /// <summary>
@@ -49,7 +49,7 @@ namespace OfficeIMO.Excel {
             OfficeLength? width = null, OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) {
             width ??= OfficeLength.Pixels(520);
             height ??= OfficeLength.Pixels(300);
-            ExcelChart chart = AddChartFromRange(dataRangeA1, row, column, width.Value, height.Value, OfficeChartType.ColumnClustered, hasHeaders, title, includeCachedData);
+            ExcelChart chart = AddChart(OfficeChartType.ColumnClustered, dataRangeA1, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = width.Value, Height = height.Value, HasHeaders = hasHeaders, Title = title, IncludeCachedData = includeCachedData });
             return ApplyKpiScorecardDefaults(chart);
         }
 
@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel {
             OfficeLength? width = null, OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) {
             width ??= OfficeLength.Pixels(520);
             height ??= OfficeLength.Pixels(320);
-            ExcelChart chart = AddChartFromRange(dataRangeA1, row, column, width.Value, height.Value, OfficeChartType.Doughnut, hasHeaders, title, includeCachedData);
+            ExcelChart chart = AddChart(OfficeChartType.Doughnut, dataRangeA1, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = width.Value, Height = height.Value, HasHeaders = hasHeaders, Title = title, IncludeCachedData = includeCachedData });
             return ApplyContributionChartDefaults(chart);
         }
 
@@ -71,7 +71,7 @@ namespace OfficeIMO.Excel {
             OfficeLength? width = null, OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) {
             width ??= OfficeLength.Pixels(720);
             height ??= OfficeLength.Pixels(360);
-            ExcelChart chart = AddChartFromRange(dataRangeA1, row, column, width.Value, height.Value, OfficeChartType.ColumnStacked, hasHeaders, title, includeCachedData);
+            ExcelChart chart = AddChart(OfficeChartType.ColumnStacked, dataRangeA1, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = width.Value, Height = height.Value, HasHeaders = hasHeaders, Title = title, IncludeCachedData = includeCachedData });
             return ApplyVarianceWaterfallDefaults(chart);
         }
 

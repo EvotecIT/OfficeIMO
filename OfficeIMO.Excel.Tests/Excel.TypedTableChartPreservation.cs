@@ -39,8 +39,8 @@ public sealed class ExcelTypedTableChartPreservationTests {
                         new[] { new OfficeSeries("Total", new[] { 12.5, 19.75 }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
                     break;
                 default:
-                    ExcelChart chart = sheet.AddChart(new ExcelChartData(new[] { "Northwind", "Contoso" },
-                        new[] { new ExcelChartSeries("Total", new[] { 12.5, 19.75 }) }), 1, 4);
+                    ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "Northwind", "Contoso" },
+                        new[] { new ExcelChartSeries("Total", new[] { 12.5, 19.75 }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
                     if (route == "NativeRename") chart.Name = "Order totals";
                     if (route == "NativeTitle") chart.SetTitle("Order totals");
                     if (route == "CustomProperty") book.SetCustomDocumentProperty("Review", "Complete");
@@ -86,8 +86,8 @@ public sealed class ExcelTypedTableChartPreservationTests {
         using var book = ExcelDocument.Create();
         ExcelSheet sheet = book.AddSheet("Orders");
         sheet.AddTable(new[] { new Order { Customer = "Northwind", Total = 12.5m } });
-        sheet.AddChart(new ExcelChartData(new[] { "Northwind" },
-            new[] { new ExcelChartSeries("Total", new[] { 12.5 }) }), 1, 4);
+        sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "Northwind" },
+            new[] { new ExcelChartSeries("Total", new[] { 12.5 }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
         if (remove) book.RemoveWorksheet("Orders");
         else book.CopyWorksheet(sheet, "Copied orders");
         using var saved = SpreadsheetDocument.Open(new MemoryStream(book.ToBytes()), false);

@@ -143,8 +143,8 @@ namespace OfficeIMO.Tests {
                 new[] { "1", "2", "3" },
                 new[] { new ExcelChartSeries("Series", new[] { 1d, 3d, 2d }) });
 
-            sheet.AddChart(data, 1, 5, type: OfficeChartType.Line);
-            sheet.AddChart(data, 18, 5, type: OfficeChartType.Scatter);
+            sheet.AddChart(OfficeChartType.Line, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5 });
+            sheet.AddChart(OfficeChartType.Scatter, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 18, Column = 5 });
 
             C.LineChartSeries line = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ChartParts
                 .SelectMany(part => part.ChartSpace.Descendants<C.LineChartSeries>()));

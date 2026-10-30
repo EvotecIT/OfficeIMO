@@ -20,8 +20,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 1, "value");
                 document.AddSheet("Other").CellValue(1, 1, "other");
             } else {
-                sheet.InsertObjects(new[] { "value" }, includeHeaders: true, startRow: 1,
-                    ("Text", static value => value));
+                sheet.WriteData(new[] { "value" }, includeHeaders: true, row: 1, ("Text", static value => value));
             }
 
             byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = sharedStrings });

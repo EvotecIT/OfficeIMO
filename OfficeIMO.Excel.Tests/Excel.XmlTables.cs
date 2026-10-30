@@ -88,7 +88,7 @@ public sealed class ExcelXmlTableTests {
         if (json) sheet.FromJson("[{\"Code\":\"00127\"}]", includeHeaders: false);
         else {
             using var table = new System.Data.DataTable(); table.Columns.Add("Code", typeof(string)); table.Rows.Add("00127");
-            sheet.InsertDataTable(table, includeHeaders: false);
+            sheet.WriteData(table, includeHeaders: false);
         }
         Assert.Equal("00127", sheet.CellAt(1, 1).GetFormattedText());
         Assert.Equal("00127", sheet.CellAt(1, 1).GetValue<string>());

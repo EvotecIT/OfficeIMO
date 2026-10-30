@@ -75,7 +75,7 @@ internal static class ExcelBenchmarkScenarioFactory {
     }
 
     public static void InsertOfficeImoObjects(ExcelSheet sheet, IReadOnlyList<SalesRecord> rows) {
-        sheet.InsertObjects(rows, SalesColumns);
+        sheet.WriteData(rows, SalesColumns);
     }
 
     public static void AddOfficeImoTable(ExcelSheet sheet, int rowCount) {

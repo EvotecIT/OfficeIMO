@@ -25,7 +25,7 @@ namespace OfficeIMO.Examples.Excel {
                         Address = new Address { City = "Paris", ZipCode = "75001" }
                     }
                 };
-                sheet.InsertObjects(people);
+                sheet.WriteData(people);
                 document.Save();
                 if (openExcel) document.OpenInApplication();
             }

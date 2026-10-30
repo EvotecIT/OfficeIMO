@@ -536,9 +536,15 @@ OfficeIMO.Excel.ExcelChartInfo.Style.get -> OfficeIMO.Drawing.OfficeChartStyle?
 OfficeIMO.Excel.ExcelChartInfo.Title.get -> string?
 OfficeIMO.Excel.ExcelChartInfo.Width.get -> OfficeIMO.OfficeLength
 OfficeIMO.Excel.ExcelChartOptions
+OfficeIMO.Excel.ExcelChartOptions.CachedData.get -> OfficeIMO.Excel.ExcelChartData?
+OfficeIMO.Excel.ExcelChartOptions.CachedData.set -> void
 OfficeIMO.Excel.ExcelChartOptions.Column.get -> int
 OfficeIMO.Excel.ExcelChartOptions.Column.set -> void
 OfficeIMO.Excel.ExcelChartOptions.ExcelChartOptions() -> void
+OfficeIMO.Excel.ExcelChartOptions.HasHeaders.get -> bool
+OfficeIMO.Excel.ExcelChartOptions.HasHeaders.set -> void
+OfficeIMO.Excel.ExcelChartOptions.IncludeCachedData.get -> bool
+OfficeIMO.Excel.ExcelChartOptions.IncludeCachedData.set -> void
 OfficeIMO.Excel.ExcelChartOptions.Row.get -> int
 OfficeIMO.Excel.ExcelChartOptions.Row.set -> void
 OfficeIMO.Excel.ExcelChartPlacement
@@ -3033,16 +3039,15 @@ OfficeIMO.Excel.ExcelSaveOptions.XlsbUseSharedStrings.set -> void
 OfficeIMO.Excel.ExcelSheet
 OfficeIMO.Excel.ExcelSheet.AddAutoFilter(string! range, System.Collections.Generic.Dictionary<uint, System.Collections.Generic.IEnumerable<string!>!>? filterCriteria = null) -> OfficeIMO.Excel.ExcelAutoFilter!
 OfficeIMO.Excel.ExcelSheet.AddBubbleChartFromRanges(System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelChartSeriesRange!>! seriesRanges, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? title = null) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.Excel.ExcelChartData! data, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, string? title = null) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.Excel.ExcelChartDataRange! dataRange, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, OfficeIMO.Excel.ExcelChartData? cachedData = null, string? title = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, OfficeIMO.OfficeChartOptions? options) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.OfficeChartType type, OfficeIMO.Excel.ExcelChartData! data, OfficeIMO.OfficeChartOptions? options = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.OfficeChartType type, OfficeIMO.Excel.ExcelChartDataRange! data, OfficeIMO.OfficeChartOptions? options = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.OfficeChartType type, string! rangeOrTable, OfficeIMO.OfficeChartOptions? options = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddChart<T, TCategory>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, System.Func<T, TCategory>! category, OfficeIMO.OfficeChartOptions? options, params OfficeIMO.OfficeSeries![]! series) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddChart<T, TCategory>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, System.Func<T, TCategory>! category, params OfficeIMO.OfficeSeries![]! series) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddChart<T>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, string! category, OfficeIMO.OfficeChartOptions? options, params string![]! series) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddChart<T>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, string! category, params string![]! series) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddChartFromRange(string! dataRangeA1, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, bool hasHeaders = true, string? title = null, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddChartFromTable(string! tableName, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, string? title = null, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddConditionalAboveAverageRule(string! range, bool aboveAverage = true, bool equalAverage = false, uint? standardDeviation = null, bool stopIfTrue = false, string? fillColor = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
 OfficeIMO.Excel.ExcelSheet.AddConditionalBeginsWithTextRule(string! range, string! text, string? fillColor = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
 OfficeIMO.Excel.ExcelSheet.AddConditionalBlanksRule(string! range, bool containsBlanks = true, bool stopIfTrue = false) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
@@ -3119,6 +3124,7 @@ OfficeIMO.Excel.ExcelSheet.AddStatusBreakdownChart(string! dataRangeA1, int row,
 OfficeIMO.Excel.ExcelSheet.AddSubtotalSummary(OfficeIMO.Excel.ExcelSubtotalOptions! options) -> OfficeIMO.Excel.ExcelSubtotalResult!
 OfficeIMO.Excel.ExcelSheet.AddTable(System.Data.DataTable! data, OfficeIMO.OfficeTableOptions? options = null, int row = 1, int column = 1) -> OfficeIMO.Excel.ExcelTable!
 OfficeIMO.Excel.ExcelSheet.AddTable(string! range, bool hasHeader = true, string? name = null, OfficeIMO.Excel.ExcelTableStyle style = OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, bool includeAutoFilter = true, OfficeIMO.Excel.ExcelTableNameValidationMode validationMode = OfficeIMO.Excel.ExcelTableNameValidationMode.Sanitize) -> OfficeIMO.Excel.ExcelTable!
+OfficeIMO.Excel.ExcelSheet.AddTable<T>(System.Collections.Generic.IEnumerable<T>! rows, (string! Header, System.Func<T, object?>! Selector)[]! columns, OfficeIMO.OfficeTableOptions? options = null, int row = 1, int column = 1) -> OfficeIMO.Excel.ExcelTable!
 OfficeIMO.Excel.ExcelSheet.AddTable<T>(System.Collections.Generic.IEnumerable<T>! rows, OfficeIMO.OfficeTableOptions? options = null, int row = 1, int column = 1) -> OfficeIMO.Excel.ExcelTable!
 OfficeIMO.Excel.ExcelSheet.AddThreadedComment(OfficeIMO.Excel.ExcelThreadedCommentOptions! options) -> OfficeIMO.Excel.ExcelThreadedCommentResult!
 OfficeIMO.Excel.ExcelSheet.AddThreadedComment(string! address, string! text, string! author = "OfficeIMO", string? parentId = null, bool done = false) -> OfficeIMO.Excel.ExcelThreadedCommentResult!
@@ -3379,11 +3385,6 @@ OfficeIMO.Excel.ExcelSheet.InsertCells(string! range, OfficeIMO.Excel.ExcelCellS
 OfficeIMO.Excel.ExcelSheet.InsertColumns(int firstColumn, int count = 1, OfficeIMO.Excel.ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Excel.ExcelMutationResult!
 OfficeIMO.Excel.ExcelSheet.InsertDataReader(System.Data.IDataReader! reader, int startRow = 1, int startColumn = 1, bool includeHeaders = true, string? tableName = null, OfficeIMO.Excel.ExcelTableStyle style = OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, bool includeAutoFilter = true, bool createTable = true, bool autoFit = false, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> string!
 OfficeIMO.Excel.ExcelSheet.InsertDataReaderWithResult(System.Data.IDataReader! reader, int startRow = 1, int startColumn = 1, bool includeHeaders = true, string? tableName = null, OfficeIMO.Excel.ExcelTableStyle style = OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, bool includeAutoFilter = true, bool createTable = true, bool autoFit = false, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> OfficeIMO.Excel.ExcelDataReaderInsertResult!
-OfficeIMO.Excel.ExcelSheet.InsertDataTable(System.Data.DataTable! table, int startRow = 1, int startColumn = 1, bool includeHeaders = true, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> void
-OfficeIMO.Excel.ExcelSheet.InsertDataTableAsTable(System.Data.DataTable! table, int startRow = 1, int startColumn = 1, bool includeHeaders = true, string? tableName = null, OfficeIMO.Excel.ExcelTableStyle style = OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, bool includeAutoFilter = true, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> string!
-OfficeIMO.Excel.ExcelSheet.InsertObjects<T>(System.Collections.Generic.IEnumerable<T>! items, bool includeHeaders = true, int startRow = 1) -> void
-OfficeIMO.Excel.ExcelSheet.InsertObjects<T>(System.Collections.Generic.IEnumerable<T>! items, bool includeHeaders, int startRow, params (string! Header, System.Func<T, object?>! Selector)[]! columns) -> void
-OfficeIMO.Excel.ExcelSheet.InsertObjects<T>(System.Collections.Generic.IEnumerable<T>! items, params (string! Header, System.Func<T, object?>! Selector)[]! columns) -> void
 OfficeIMO.Excel.ExcelSheet.InsertRows(int firstRow, int count = 1) -> void
 OfficeIMO.Excel.ExcelSheet.InsertRowsTransactional(int firstRow, int count = 1, OfficeIMO.Excel.ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Excel.ExcelMutationResult!
 OfficeIMO.Excel.ExcelSheet.InspectFormulas() -> OfficeIMO.Excel.ExcelFormulaInspection!
@@ -3575,6 +3576,10 @@ OfficeIMO.Excel.ExcelSheet.VeryHidden.get -> bool
 OfficeIMO.Excel.ExcelSheet.WrapCells(int fromRow, int toRow, int column) -> void
 OfficeIMO.Excel.ExcelSheet.WrapCells(int fromRow, int toRow, int column, OfficeIMO.Excel.ExcelColumnWidth targetColumnWidth) -> void
 OfficeIMO.Excel.ExcelSheet.WriteChartData(OfficeIMO.Excel.ExcelChartData! data, int startRow = 1, int startColumn = 1, string? categoryHeader = null, bool includeHeaderRow = true, bool numericCategories = false, OfficeIMO.Excel.ExcelChartDataOrientation orientation = OfficeIMO.Excel.ExcelChartDataOrientation.Vertical) -> OfficeIMO.Excel.ExcelChartDataRange!
+OfficeIMO.Excel.ExcelSheet.WriteData(System.Data.DataTable! data, int row = 1, int column = 1, bool includeHeaders = true, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
+OfficeIMO.Excel.ExcelSheet.WriteData<T>(System.Collections.Generic.IEnumerable<T>! data, bool includeHeaders = true, int row = 1) -> void
+OfficeIMO.Excel.ExcelSheet.WriteData<T>(System.Collections.Generic.IEnumerable<T>! data, bool includeHeaders, int row, params (string! Header, System.Func<T, object?>! Selector)[]! columns) -> void
+OfficeIMO.Excel.ExcelSheet.WriteData<T>(System.Collections.Generic.IEnumerable<T>! data, params (string! Header, System.Func<T, object?>! Selector)[]! columns) -> void
 OfficeIMO.Excel.ExcelSheet.ZeroValuesVisible.get -> bool
 OfficeIMO.Excel.ExcelSheetNameValidationMode
 OfficeIMO.Excel.ExcelSheetNameValidationMode.None = 0 -> OfficeIMO.Excel.ExcelSheetNameValidationMode
@@ -3876,7 +3881,13 @@ OfficeIMO.Excel.ExcelTableNameValidationMode
 OfficeIMO.Excel.ExcelTableNameValidationMode.Sanitize = 0 -> OfficeIMO.Excel.ExcelTableNameValidationMode
 OfficeIMO.Excel.ExcelTableNameValidationMode.Strict = 1 -> OfficeIMO.Excel.ExcelTableNameValidationMode
 OfficeIMO.Excel.ExcelTableOptions
+OfficeIMO.Excel.ExcelTableOptions.AutoFit.get -> bool
+OfficeIMO.Excel.ExcelTableOptions.AutoFit.set -> void
+OfficeIMO.Excel.ExcelTableOptions.CancellationToken.get -> System.Threading.CancellationToken
+OfficeIMO.Excel.ExcelTableOptions.CancellationToken.set -> void
 OfficeIMO.Excel.ExcelTableOptions.ExcelTableOptions() -> void
+OfficeIMO.Excel.ExcelTableOptions.ExecutionMode.get -> OfficeIMO.Excel.ExcelExecutionMode?
+OfficeIMO.Excel.ExcelTableOptions.ExecutionMode.set -> void
 OfficeIMO.Excel.ExcelTableOptions.IncludeAutoFilter.get -> bool
 OfficeIMO.Excel.ExcelTableOptions.IncludeAutoFilter.set -> void
 OfficeIMO.Excel.ExcelTableOptions.Projection.get -> OfficeIMO.Data.ObjectFlattenerOptions?

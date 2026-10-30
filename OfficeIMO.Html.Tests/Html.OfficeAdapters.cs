@@ -29,7 +29,7 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(4, 2, 140.00);
         sheet.CellFormula(5, 2, "SUM(B2:B4)");
         sheet.SetComment(2, 2, "Reviewed with finance", "OfficeIMO");
-        sheet.AddChartFromRange("A1:B4", row: 1, column: 5, width: OfficeLength.Pixels(280), height: OfficeLength.Pixels(180), type: OfficeChartType.ColumnClustered, title: "Revenue Trend");
+        sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(280), Height = OfficeLength.Pixels(180), Title = "Revenue Trend" });
         sheet.AddImage(7, 1, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
             Width = OfficeIMO.OfficeLength.Pixels(48),
             Height = OfficeIMO.OfficeLength.Pixels(48),
@@ -73,7 +73,7 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(3, 1, "Done");
         sheet.CellValue(3, 2, 18);
         sheet.SetComment(2, 2, "Visual comment proof", "OfficeIMO");
-        sheet.AddChartFromRange("A1:B3", row: 1, column: 4, width: OfficeLength.Pixels(240), height: OfficeLength.Pixels(150), type: OfficeChartType.ColumnClustered, title: "Visual Chart");
+        sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(150), Title = "Visual Chart" });
         sheet.AddImage(3, 3, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
             Width = OfficeIMO.OfficeLength.Pixels(36),
             Height = OfficeIMO.OfficeLength.Pixels(36),
@@ -130,7 +130,7 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(3, 2, 57);
         sheet.CellFormula(4, 2, "SUM(B2:B3)");
         sheet.SetComment(2, 2, "Gallery comment", "OfficeIMO");
-        sheet.AddChartFromRange("A1:B3", row: 1, column: 4, width: OfficeLength.Pixels(240), height: OfficeLength.Pixels(150), type: OfficeChartType.ColumnClustered, title: "Gallery Chart");
+        sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(150), Title = "Gallery Chart" });
         sheet.AddImage(6, 1, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
             Width = OfficeIMO.OfficeLength.Pixels(36),
             Height = OfficeIMO.OfficeLength.Pixels(36),
@@ -206,7 +206,7 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(4, 2, 140.00);
         sheet.CellFormula(5, 2, "SUM(B2:B4)");
         sheet.SetComment(2, 2, "Reviewed with finance", "OfficeIMO");
-        sheet.AddChartFromRange("A1:B4", row: 1, column: 5, width: OfficeLength.Pixels(280), height: OfficeLength.Pixels(180), type: OfficeChartType.ColumnClustered, title: "Revenue Trend");
+        sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(280), Height = OfficeLength.Pixels(180), Title = "Revenue Trend" });
         sheet.AddImage(7, 1, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
             Width = OfficeIMO.OfficeLength.Pixels(48),
             Height = OfficeIMO.OfficeLength.Pixels(48),
@@ -281,7 +281,7 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(2, 2, 10);
         sheet.CellValue(3, 1, "B");
         sheet.CellValue(3, 2, 20);
-        sheet.AddChartFromRange("A1:B3", row: 1, column: 4, width: OfficeLength.Pixels(240), height: OfficeLength.Pixels(140), type: OfficeChartType.ColumnClustered, title: "Layer base");
+        sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(140), Title = "Layer base" });
         ExcelImage image = sheet.AddImage(OfficeIMO.OfficeLength.Pixels(33), OfficeIMO.OfficeLength.Pixels(44), OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
             Width = OfficeIMO.OfficeLength.Pixels(52),
             Height = OfficeIMO.OfficeLength.Pixels(48),
@@ -686,7 +686,7 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(2, 1, "Visible");
         sheet.CellFormula(2, 2, "1+1");
         sheet.SetComment(2, 1, "Visible comment", "OfficeIMO");
-        sheet.AddChartFromRange("A1:B2", row: 2, column: 4, width: OfficeLength.Pixels(160), height: OfficeLength.Pixels(90), type: OfficeChartType.ColumnClustered, title: "Visible Chart");
+        sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Width = OfficeLength.Pixels(160), Height = OfficeLength.Pixels(90), Title = "Visible Chart" });
         sheet.AddImage(2, 3, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
             Width = OfficeIMO.OfficeLength.Pixels(24),
             Height = OfficeIMO.OfficeLength.Pixels(24),
@@ -698,7 +698,7 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(5, 1, "Also truncated");
         sheet.CellValue(5, 2, 25);
         sheet.SetComment(4, 1, "Truncated comment", "OfficeIMO");
-        sheet.AddChartFromRange("A4:B5", row: 4, column: 4, width: OfficeLength.Pixels(160), height: OfficeLength.Pixels(90), type: OfficeChartType.ColumnClustered, title: "Truncated Chart");
+        sheet.AddChart(OfficeChartType.ColumnClustered, "A4:B5", new OfficeIMO.Excel.ExcelChartOptions { Row = 4, Column = 4, Width = OfficeLength.Pixels(160), Height = OfficeLength.Pixels(90), Title = "Truncated Chart" });
         sheet.AddImage(4, 3, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
             Width = OfficeIMO.OfficeLength.Pixels(24),
             Height = OfficeIMO.OfficeLength.Pixels(24),
@@ -787,7 +787,7 @@ public partial class HtmlOfficeAdapters {
         var data = new ExcelChartData(
             new[] { "1.5", "2.5" },
             new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1.5D, 2.5D }, OfficeChartType.Scatter) });
-        sheet.AddChart(data, row: 1, column: 1, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(180), type: OfficeChartType.Scatter, title: "Scatter");
+        sheet.AddChart(OfficeChartType.Scatter, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), Title = "Scatter" });
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
@@ -815,7 +815,7 @@ public partial class HtmlOfficeAdapters {
                 new ExcelChartSeries("Forecast", new[] { 10D, 20D, 30D }, new[] { 1D, 2D, 3D }, OfficeChartType.Scatter),
                 new ExcelChartSeries("Outliers", new[] { 40D, 50D }, new[] { 4D, 5D }, OfficeChartType.Scatter)
             });
-        sheet.AddChart(data, row: 1, column: 1, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(180), type: OfficeChartType.Scatter, title: "Scatter");
+        sheet.AddChart(OfficeChartType.Scatter, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), Title = "Scatter" });
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
@@ -840,7 +840,7 @@ public partial class HtmlOfficeAdapters {
         var data = new ExcelChartData(
             new[] { "1", "2" },
             new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1D, 2D }, OfficeChartType.Scatter) });
-        ExcelChart chart = sheet.AddChart(data, row: 1, column: 5, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(180), type: OfficeChartType.Scatter, title: "Scatter");
+        ExcelChart chart = sheet.AddChart(OfficeChartType.Scatter, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), Title = "Scatter" });
         ExcelChartDataRange range = chart.DataRange!;
         ExcelSheet dataSheet = workbook[range.SheetName];
 
@@ -865,7 +865,7 @@ public partial class HtmlOfficeAdapters {
                 new ExcelChartSeries("Sales", new[] { 10D, 20D }, OfficeChartType.ColumnClustered),
                 new ExcelChartSeries("Trend", new[] { 12D, 22D }, OfficeChartType.Line)
             });
-        sheet.AddChart(data, row: 1, column: 1, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(180), type: OfficeChartType.ColumnClustered, title: "Combo");
+        sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), Title = "Combo" });
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
@@ -888,9 +888,9 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_OmitsMixedRadialChartBeforeCreatingNativeArtifact() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Mixed");
-        sheet.AddChart(new ExcelChartData(new[] { "A", "B" }, new[] {
+        sheet.AddChart(OfficeChartType.Pie, new ExcelChartData(new[] { "A", "B" }, new[] {
             new ExcelChartSeries("Slice", new[] { 2D, 3D }, OfficeChartType.Pie)
-        }), row: 1, column: 1, type: OfficeChartType.Pie, title: "Mixed chart");
+        }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1, Title = "Mixed chart" });
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
         });
@@ -910,9 +910,9 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_OmitsRadialSeriesUnderNonRadialChartBeforeCreatingNativeArtifact() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Mixed");
-        sheet.AddChart(new ExcelChartData(new[] { "A", "B" }, new[] {
+        sheet.AddChart(OfficeChartType.Line, new ExcelChartData(new[] { "A", "B" }, new[] {
             new ExcelChartSeries("Slice", new[] { 2D, 3D }, OfficeChartType.Line)
-        }), row: 1, column: 1, type: OfficeChartType.Line, title: "Mixed chart");
+        }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1, Title = "Mixed chart" });
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
         });

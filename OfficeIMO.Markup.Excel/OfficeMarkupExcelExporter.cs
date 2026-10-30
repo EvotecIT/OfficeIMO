@@ -114,7 +114,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
             var (sourceSheet, source) = ResolveChartSource(context, sheet, chart.Source!);
             if (source.IndexOf(':') >= 0) {
                 var range = CreateChartDataRange(sourceSheet.Name, source);
-                var excelChart = sheet.AddChart(range, row, column, OfficeLength.Pixels(width), OfficeLength.Pixels(height), type, title: chart.Title);
+                var excelChart = sheet.AddChart(type, range, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = OfficeLength.Pixels(width), Height = OfficeLength.Pixels(height), Title = chart.Title });
                 ApplyChartStyle(context, excelChart, chart, range.SeriesCount);
             } else {
                 var tableRange = sourceSheet.GetTableRange(source);
@@ -123,7 +123,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
                 }
 
                 var range = CreateChartDataRange(sourceSheet.Name, tableRange!);
-                var excelChart = sheet.AddChart(range, row, column, OfficeLength.Pixels(width), OfficeLength.Pixels(height), type, title: chart.Title);
+                var excelChart = sheet.AddChart(type, range, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = OfficeLength.Pixels(width), Height = OfficeLength.Pixels(height), Title = chart.Title });
                 ApplyChartStyle(context, excelChart, chart, range.SeriesCount);
             }
 
@@ -132,7 +132,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
 
         if (chart.Data.Count > 1) {
             var data = ToChartData(chart);
-            var excelChart = sheet.AddChart(data, row, column, OfficeLength.Pixels(width), OfficeLength.Pixels(height), type, chart.Title);
+            var excelChart = sheet.AddChart(type, data, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = OfficeLength.Pixels(width), Height = OfficeLength.Pixels(height), Title = chart.Title });
             ApplyChartStyle(context, excelChart, chart, data.Series.Count);
         }
     }

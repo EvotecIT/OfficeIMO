@@ -1534,7 +1534,7 @@ namespace OfficeIMO.Tests {
                 table.Columns.Add("Owner");
                 table.Rows.Add("Closed", "Bob");
 
-                loadedSheet.InsertDataTable(table, startRow: 1, startColumn: 1, includeHeaders: true, mode: ExcelExecutionMode.Parallel);
+                loadedSheet.WriteData(table, row: 1, column: 1, includeHeaders: true, mode: ExcelExecutionMode.Parallel);
 
                 var refreshedMap = loadedSheet.GetHeaderMap();
                 Assert.False(refreshedMap.ContainsKey("OldStatus"));

@@ -195,12 +195,7 @@ namespace OfficeIMO.Tests
                 data.CellAt(2, 2).SetValue(10);
                 data.CellAt(3, 1).SetValue("Second");
                 data.CellAt(3, 2).SetValue(20);
-                data.AddChartFromRange(
-                    "A1:B3",
-                    row: 1,
-                    column: 4,
-                    type: OfficeChartType.ColumnClustered,
-                    title: "Values");
+                data.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Title = "Values" });
 
                 ChartPart chartPart = data.WorksheetPart.DrawingsPart!.ChartParts.Single();
                 Assert.Contains(
@@ -381,7 +376,7 @@ namespace OfficeIMO.Tests
             document.SetNamedRange("Bottom", $"'Data'!A{ExcelA1.MaxRows}", save: false);
             sheet.Range("C1").Validation.CustomFormula($"A{ExcelA1.MaxRows}>0");
             DataValidation validation = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<DataValidation>());
-            sheet.AddChartFromRange("A1:B2", row: 4, column: 4);
+            sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 4, Column = 4 });
             C.Formula chartFormula = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single().ChartSpace.Descendants<C.Formula>().First();
             chartFormula.Text = $"'Data'!$A${ExcelA1.MaxRows}";
             sheet.AddPivotTable("A1:B2", "E5", options: new ExcelPivotTableOptions { RowFields = new[] { "Keep" }, DataFields = new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum) } });

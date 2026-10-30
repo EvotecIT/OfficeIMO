@@ -35,9 +35,7 @@ public class ExcelAllSeverityBatch21Tests {
     public void DirectHeaderStylingHonorsCustomHeaderConversion() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.InsertObjects(
-            new[] { new HeaderRow("Alpha") },
-            ("RawHeader", row => row.Value));
+        sheet.WriteData(new[] { new HeaderRow("Alpha") }, ("RawHeader", row => row.Value));
         ExcelReaderOptions options = new() {
             CellValueConverter = _ => new ExcelCellValue("ConvertedHeader")
         };

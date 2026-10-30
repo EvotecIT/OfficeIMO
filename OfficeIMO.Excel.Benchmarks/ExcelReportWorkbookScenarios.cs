@@ -85,7 +85,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Data");
-            sheet.InsertObjects(rows);
+            sheet.WriteData(rows);
             ApplyOfficeImoReportWorkbookCore(sheet, rows.Count);
             AddOfficeImoReportWorkbookChart(sheet, rows.Count);
             AddOfficeImoReportWorkbookPivotTable(sheet, rows.Count);
@@ -102,7 +102,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Data");
-            sheet.InsertObjects(rows);
+            sheet.WriteData(rows);
             ApplyOfficeImoReportWorkbookCore(sheet, rows.Count);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "report workbook core");
@@ -118,7 +118,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Data");
-            sheet.InsertDataTable(dataTable);
+            sheet.WriteData(dataTable);
             ApplyOfficeImoReportWorkbookCore(sheet, dataTable.Rows.Count);
             AddOfficeImoReportWorkbookChart(sheet, dataTable.Rows.Count);
             AddOfficeImoReportWorkbookPivotTable(sheet, dataTable.Rows.Count);
@@ -135,7 +135,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Data");
-            sheet.InsertDataTable(dataTable);
+            sheet.WriteData(dataTable);
             ApplyOfficeImoReportWorkbookCore(sheet, dataTable.Rows.Count);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "report workbook DataTable core");
@@ -262,7 +262,7 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static void AddOfficeImoReportWorkbookChart(ExcelSheet sheet, int rowCount) {
         int lastRow = rowCount + 1;
-        sheet.AddChartFromRange($"F1:G{lastRow.ToString(CultureInfo.InvariantCulture)}", row: 2, column: 12, width: OfficeLength.Pixels(720), height: OfficeLength.Pixels(320), type: OfficeChartType.ColumnClustered, title: "Score by Created", includeCachedData: false);
+        sheet.AddChart(OfficeChartType.ColumnClustered, $"F1:G{lastRow.ToString(CultureInfo.InvariantCulture)}", new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 12, Width = OfficeLength.Pixels(720), Height = OfficeLength.Pixels(320), Title = "Score by Created", IncludeCachedData = false });
     }
 
     private static void AddOfficeImoReportWorkbookPivotTable(ExcelSheet sheet, int rowCount) {

@@ -979,7 +979,7 @@ namespace OfficeIMO.Tests
                     sheet.AddPivotTable("A1:C4", "F2", pivotOptions1);
                 }
 
-                sheet.AddChartFromRange("A1:C4", row: 12, column: 1, width: OfficeLength.Pixels(640), height: OfficeLength.Pixels(360), title: "Sales", includeCachedData: true, type: OfficeChartType.ColumnClustered, hasHeaders: true);
+                sheet.AddChart(OfficeChartType.ColumnClustered, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 12, Column = 1, Width = OfficeLength.Pixels(640), Height = OfficeLength.Pixels(360), Title = "Sales", IncludeCachedData = true, HasHeaders = true });
                 document.Save();
             }
 

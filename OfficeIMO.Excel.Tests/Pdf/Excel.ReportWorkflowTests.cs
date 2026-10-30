@@ -38,7 +38,7 @@ public partial class Excel
                 Assert.True(sheet.TryGetCachedFormulaValue(3, 4, out string? eastMargin));
                 Assert.Equal("70", eastMargin);
                 sheet.AddTable("A2:D4", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4);
-                sheet.AddChartFromRange("A2:D4", row: 6, column: 1, width: OfficeLength.Pixels(420), height: OfficeLength.Pixels(240), type: OfficeChartType.ColumnClustered, title: "Revenue and Margin");
+                sheet.AddChart(OfficeChartType.ColumnClustered, "A2:D4", new OfficeIMO.Excel.ExcelChartOptions { Row = 6, Column = 1, Width = OfficeLength.Pixels(420), Height = OfficeLength.Pixels(240), Title = "Revenue and Margin" });
                 sheet.AddPivotTable("A2:D4", "F2", options: new ExcelPivotTableOptions { Name = "RevenuePivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Revenue", ExcelPivotDataFunction.Sum, "Total Revenue") }, PivotStyleName = "PivotStyleMedium9" });
                 ExcelFeatureReport report = document.InspectFeatures();
                 Assert.True(report.Can(ExcelPreflightCapability.BindTemplate));

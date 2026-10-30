@@ -10,7 +10,7 @@ using ChartIndex = DocumentFormat.OpenXml.Drawing.Charts.Index;
 namespace OfficeIMO.Excel {
     internal static partial class ExcelChartUtils {
         internal static void PopulateChart(ChartPart chartPart, OfficeChartType type, ExcelChartDataRange range,
-            ExcelChartData? data, string? title = null) {
+            ExcelChartData? data, string? title = null, IReadOnlyList<string>? nativeSeriesNames = null) {
             if (chartPart == null) {
                 throw new ArgumentNullException(nameof(chartPart));
             }
@@ -262,6 +262,23 @@ namespace OfficeIMO.Excel {
             chart.Append(new DisplayBlanksAs { Val = DisplayBlanksAsValues.Gap });
             chart.Append(new ShowDataLabelsOverMaximum { Val = false });
 
+            // Table names remain available independently of optional numeric caches.
+            // Series indexes identify the same columns across native chart families and groups.
+            if (nativeSeriesNames != null) {
+                foreach (SeriesText text in plotArea.Descendants<SeriesText>()) {
+                    uint? index = text.Parent?.GetFirstChild<ChartIndex>()?.Val?.Value;
+                    if (index.HasValue && index.Value < (uint)nativeSeriesNames.Count) {
+                        string name = nativeSeriesNames[(int)index.Value];
+                        if (range.HasHeaderRow && text.GetFirstChild<StringReference>() is StringReference reference) {
+                            reference.RemoveAllChildren<StringCache>();
+                            reference.Append(CreateSingleStringCache(name));
+                        } else {
+                            text.RemoveAllChildren();
+                            text.Append(new NumericValue { Text = name });
+                        }
+                    }
+                }
+            }
             chartSpace.Append(chart);
             chartPart.ChartSpace = chartSpace;
         }

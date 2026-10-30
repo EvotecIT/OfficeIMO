@@ -134,12 +134,7 @@ namespace OfficeIMO.Tests
             try {
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddSheet("Dashboard");
-                sheet.AddChart(
-                    new ExcelChartData(new[] { "A", "B" }, new[] { new ExcelChartSeries("Sales", new[] { 2d, 5d }) }),
-                    row: 2,
-                    column: 4,
-                    type: OfficeChartType.ColumnClustered,
-                    title: "Sales");
+                sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "A", "B" }, new[] { new ExcelChartSeries("Sales", new[] { 2d, 5d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Title = "Sales" });
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
 
@@ -165,12 +160,7 @@ namespace OfficeIMO.Tests
                         $"Series {seriesIndex}",
                         Enumerable.Range(1, categories.Length).Select(value => (double)(value + seriesIndex)).ToArray()))
                     .ToArray();
-                sheet.AddChart(
-                    new ExcelChartData(categories, series),
-                    row: 2,
-                    column: 4,
-                    type: OfficeChartType.ColumnClustered,
-                    title: "Large chart");
+                sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(categories, series), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Title = "Large chart" });
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
                 GoogleSheetsAddChartRequest chart = Assert.Single(batch.Requests.OfType<GoogleSheetsAddChartRequest>());
@@ -220,14 +210,9 @@ namespace OfficeIMO.Tests
             try {
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddSheet("Dashboard");
-                sheet.AddChart(
-                    new ExcelChartData(
+                sheet.AddChart(OfficeChartType.Scatter, new ExcelChartData(
                         Array.Empty<string>(),
-                        new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1D, 4D }, OfficeChartType.Scatter) }),
-                    row: 2,
-                    column: 4,
-                    type: OfficeChartType.Scatter,
-                    title: "Scatter");
+                        new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1D, 4D }, OfficeChartType.Scatter) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Title = "Scatter" });
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
 
@@ -253,17 +238,12 @@ namespace OfficeIMO.Tests
             try {
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddSheet("Dashboard");
-                sheet.AddChart(
-                    new ExcelChartData(
+                sheet.AddChart(OfficeChartType.Scatter, new ExcelChartData(
                         Array.Empty<string>(),
                         new[] {
                             new ExcelChartSeries("First", new[] { 10D, 20D }, new[] { 1D, 4D }, OfficeChartType.Scatter),
                             new ExcelChartSeries("Second", new[] { 30D, 40D }, new[] { 2D, 8D }, OfficeChartType.Scatter),
-                        }),
-                    row: 2,
-                    column: 4,
-                    type: OfficeChartType.Scatter,
-                    title: "Different domains");
+                        }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Title = "Different domains" });
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
 
@@ -314,12 +294,7 @@ namespace OfficeIMO.Tests
                 using (var document = ExcelDocument.Create(path)) {
                     ExcelSheet dashboard = document.AddSheet("ChartData");
                     dashboard.CellValue(1, 1, "User content");
-                    dashboard.AddChart(
-                        new ExcelChartData(new[] { "A", "B" }, new[] { new ExcelChartSeries("Sales", new[] { 2d, 5d }) }),
-                        row: 2,
-                        column: 4,
-                        type: OfficeChartType.ColumnClustered,
-                        title: "Sales");
+                    dashboard.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "A", "B" }, new[] { new ExcelChartSeries("Sales", new[] { 2d, 5d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Title = "Sales" });
                     document.Save();
                 }
                 using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {

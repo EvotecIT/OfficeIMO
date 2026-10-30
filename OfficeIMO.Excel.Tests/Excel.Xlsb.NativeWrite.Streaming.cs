@@ -70,8 +70,7 @@ namespace OfficeIMO.Tests {
                 (3, null, null),
             };
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddSheet("Data").InsertObjects(rows, includeHeaders, startRow: 1,
-                ("Id", static row => row.Id), ("Value", static row => row.Value), ("Enabled", static row => row.Enabled));
+            document.AddSheet("Data").WriteData(rows, includeHeaders, row: 1, ("Id", static row => row.Id), ("Value", static row => row.Value), ("Enabled", static row => row.Enabled));
 
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = false });
 

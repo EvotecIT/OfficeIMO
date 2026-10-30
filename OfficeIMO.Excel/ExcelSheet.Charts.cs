@@ -153,7 +153,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Adds a chart to the worksheet using the provided data. Data is stored on a hidden chart data sheet.
         /// </summary>
-        public ExcelChart AddChart(ExcelChartData data, int row, int column, OfficeLength? width = null, OfficeLength? height = null,
+        private ExcelChart AddChart(ExcelChartData data, int row, int column, OfficeLength? width = null, OfficeLength? height = null,
             OfficeChartType type = OfficeChartType.ColumnClustered, string? title = null) {
             width ??= OfficeLength.Pixels(640);
             height ??= OfficeLength.Pixels(360);
@@ -193,7 +193,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Adds a chart to the worksheet using an existing data range.
         /// </summary>
-        public ExcelChart AddChart(ExcelChartDataRange dataRange, int row, int column, OfficeLength? width = null, OfficeLength? height = null,
+        private ExcelChart AddChart(ExcelChartDataRange dataRange, int row, int column, OfficeLength? width = null, OfficeLength? height = null,
             OfficeChartType type = OfficeChartType.ColumnClustered, ExcelChartData? cachedData = null, string? title = null) {
             width ??= OfficeLength.Pixels(640);
             height ??= OfficeLength.Pixels(360);
@@ -206,8 +206,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Adds a chart using an A1 range on this sheet.
         /// </summary>
-        public ExcelChart AddChartFromRange(string dataRangeA1, int row, int column, OfficeLength? width = null, OfficeLength? height = null,
-            OfficeChartType type = OfficeChartType.ColumnClustered, bool hasHeaders = true, string? title = null, bool includeCachedData = true) {
+        private ExcelChart AddChartFromRange(string dataRangeA1, int row, int column, OfficeLength? width = null, OfficeLength? height = null,
+            OfficeChartType type = OfficeChartType.ColumnClustered, bool hasHeaders = true, string? title = null, bool includeCachedData = true,
+            IReadOnlyList<string>? nativeSeriesNames = null) {
             width ??= OfficeLength.Pixels(640);
             height ??= OfficeLength.Pixels(360);
             if (string.IsNullOrWhiteSpace(dataRangeA1)) throw new ArgumentNullException(nameof(dataRangeA1));
@@ -223,13 +224,14 @@ namespace OfficeIMO.Excel {
 
             var range = new ExcelChartDataRange(Name, r1, c1, categoryCount, seriesCount, hasHeaderRow: hasHeaders);
             ExcelChartData? data = includeCachedData ? ExcelChartUtils.TryReadChartData(this, range) : null;
-            return AddChartInternal(range, row, column, width.Value, height.Value, type, data, title);
+            return AddChartInternal(range, row, column, width.Value, height.Value, type, data, title,
+                nativeSeriesNames: nativeSeriesNames);
         }
 
         /// <summary>
         /// Adds a chart from a table name on this sheet.
         /// </summary>
-        public ExcelChart AddChartFromTable(string tableName, int row, int column, OfficeLength? width = null, OfficeLength? height = null,
+        private ExcelChart AddChartFromTable(string tableName, int row, int column, OfficeLength? width = null, OfficeLength? height = null,
             OfficeChartType type = OfficeChartType.ColumnClustered, string? title = null, bool includeCachedData = true) {
             width ??= OfficeLength.Pixels(640);
             height ??= OfficeLength.Pixels(360);
@@ -242,7 +244,16 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException($"Table '{tableName}' was not found on sheet '{Name}'.");
             }
 
-            return AddChartFromRange(table.Reference.Value, row, column, width.Value, height.Value, type, hasHeaders: true, title, includeCachedData);
+            bool hasHeaders = (table.HeaderRowCount?.Value ?? 1U) > 0;
+            var (firstRow, firstColumn, lastRow, lastColumn) = ExcelA1.ParseRange(table.Reference.Value);
+            int totals = checked((int)(table.TotalsRowCount?.Value ?? 0U));
+            string sourceRange = ExcelA1.CellReference(firstRow, firstColumn) + ":" +
+                ExcelA1.CellReference(lastRow - totals, lastColumn);
+            IReadOnlyList<string>? nativeSeriesNames = hasHeaders && includeCachedData ? null : table.TableColumns?
+                .Elements<DocumentFormat.OpenXml.Spreadsheet.TableColumn>()
+                .Skip(1).Select(field => field.Name?.Value ?? string.Empty).ToArray();
+            return AddChartFromRange(sourceRange, row, column, width.Value, height.Value, type, hasHeaders, title,
+                includeCachedData, nativeSeriesNames);
         }
 
         /// <summary>
@@ -374,7 +385,7 @@ namespace OfficeIMO.Excel {
         }
 
         private ExcelChart AddChartInternal(ExcelChartDataRange range, int row, int column, OfficeLength width, OfficeLength height,
-            OfficeChartType type, ExcelChartData? data, string? title, bool preserveDeferredDataSetCandidate = false) {
+            OfficeChartType type, ExcelChartData? data, string? title, bool preserveDeferredDataSetCandidate = false, IReadOnlyList<string>? nativeSeriesNames = null) {
             ValidateChartTypes(type, data);
             ValidateChartPlacement(row, column, width, height);
             if (data != null && !preserveDeferredDataSetCandidate) {
@@ -410,7 +421,7 @@ namespace OfficeIMO.Excel {
                 ReportChartTiming(stageWatch, "AddChartInternal.AddChartPart");
 
                 stageWatch?.Restart();
-                ExcelChartUtils.PopulateChart(chartPart, type, range, data, title);
+                ExcelChartUtils.PopulateChart(chartPart, type, range, data, title, nativeSeriesNames);
                 ReportChartTiming(stageWatch, "AddChartInternal.PopulateChart");
 
                 if (_excelDocument.DefaultChartStylePreset != null) {

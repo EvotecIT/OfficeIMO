@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             sheet.CellAt(1, 2).SetValue("Value");
             sheet.CellAt(2, 1).SetValue("One");
             sheet.CellAt(2, 2).SetValue(1);
-            sheet.AddChartFromRange("A1:B2", row: 5, column: 4);
+            sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
             ChartPart chartPart = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ChartParts);
             C.Formula formula = chartPart.ChartSpace.Descendants<C.Formula>().First();
             formula.Text = $"A{ExcelA1.MaxRows}";
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
             sheet.CellAt(1, 2).SetValue("Value");
             sheet.CellAt(2, 1).SetValue("One");
             sheet.CellAt(2, 2).SetValue(1);
-            sheet.AddChartFromRange("A1:B2", row: 5, column: 4);
+            sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
 
             Xdr.WorksheetDrawing drawing = sheet.WorksheetPart.DrawingsPart!.WorksheetDrawing!;
             Xdr.OneCellAnchor oneCellAnchor = Assert.Single(drawing.Elements<Xdr.OneCellAnchor>());
@@ -170,7 +170,7 @@ namespace OfficeIMO.Tests {
             sheet.CellAt(1, 2).SetValue("Value");
             sheet.CellAt(2, 1).SetValue("One");
             sheet.CellAt(2, 2).SetValue(1);
-            sheet.AddChartFromRange("A1:B2", row: 5, column: 4);
+            sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
             ChartPart chartPart = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ChartParts);
             var extensionFormula = new C15.Formula("A5:A6");
             chartPart.ChartSpace.Append(

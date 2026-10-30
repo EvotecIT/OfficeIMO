@@ -96,8 +96,7 @@ namespace OfficeIMO.Tests
                         new ExcelChartSeries("Target", new[] { 12d, 22d, 24d, 32d })
                     });
 
-                sheet.AddChart(data, row: 1, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Quarterly");
+                sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Quarterly" });
                 document.Save();
             }
 
@@ -130,8 +129,7 @@ namespace OfficeIMO.Tests
                         new ExcelChartSeries("Sales", new[] { 10d, 20d, 15d })
                     });
 
-                ExcelChart chart = sheet.AddChart(data, row: 1, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Quarterly");
+                ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Quarterly" });
 
                 chart.SetDataPointColor("Sales", pointIndex: 1, fillColor: OfficeColor.Parse("#C00000"), lineColor: OfficeColor.Parse("#7030A0"), lineWidth: OfficeLength.Points(1.25));
                 document.Save();
@@ -196,7 +194,7 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(3, 1, "Q2");
                 sheet.CellValue(3, 2, 20);
                 sheet.CellValue(3, 3, 22);
-                sheet.AddChartFromRange("A1:C3", row: 1, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320), title: "Quarterly", includeCachedData: true, type: OfficeChartType.Line, hasHeaders: true);
+                sheet.AddChart(OfficeChartType.Line, "A1:C3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Quarterly", IncludeCachedData = true, HasHeaders = true });
                 document.Save();
             }
 
@@ -232,7 +230,7 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(4, 1, "Identity");
                 sheet.CellValue(4, 2, 2);
                 sheet.CellValue(4, 3, 5);
-                var chart = sheet.AddChartFromRange("A1:C4", row: 1, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "Coverage", includeCachedData: true, type: OfficeChartType.Radar, hasHeaders: true);
+                var chart = sheet.AddChart(OfficeChartType.Radar, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "Coverage", IncludeCachedData = true, HasHeaders = true });
                 chart.UpdateData(new ExcelChartData(new[] { "Mail", "DNS", "Identity", "Device" }, new[] { new ExcelChartSeries("Current", new[] { 4d, 3d, 5d, 2d }, OfficeChartType.Radar), new ExcelChartSeries("Target", new[] { 5d, 5d, 5d, 4d }, OfficeChartType.Radar) }));
                 chart.SetSeriesLineColor("Current", OfficeColor.Parse("2563EB"), width: OfficeLength.Points(1.25)).SetSeriesMarker("Target", OfficeChartMarkerShape.Circle, size: OfficeLength.Points(6), fillColor: OfficeColor.Parse("F97316"), lineColor: OfficeColor.Parse("7C2D12"));
                 document.Save();
@@ -296,7 +294,7 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(4, 3, 116);
                 sheet.CellValue(4, 4, 106);
                 sheet.CellValue(4, 5, 113);
-                var chart = sheet.AddChartFromRange("A1:E4", row: 1, column: 7, width: OfficeLength.Pixels(560), height: OfficeLength.Pixels(340), title: "Price Range", includeCachedData: true, type: OfficeChartType.Stock, hasHeaders: true);
+                var chart = sheet.AddChart(OfficeChartType.Stock, "A1:E4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 7, Width = OfficeLength.Pixels(560), Height = OfficeLength.Pixels(340), Title = "Price Range", IncludeCachedData = true, HasHeaders = true });
                 chart.UpdateData(new ExcelChartData(new[] { "2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04" }, new[] { new ExcelChartSeries("Open", new[] { 102d, 105d, 109d, 112d }, OfficeChartType.Stock), new ExcelChartSeries("High", new[] { 108d, 111d, 116d, 118d }, OfficeChartType.Stock), new ExcelChartSeries("Low", new[] { 99d, 101d, 106d, 110d }, OfficeChartType.Stock), new ExcelChartSeries("Close", new[] { 105d, 109d, 113d, 116d }, OfficeChartType.Stock) }));
                 chart.SetSeriesLineColor("Close", OfficeColor.Parse("2563EB"), width: OfficeLength.Points(1.25));
                 document.Save();
@@ -355,7 +353,7 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(4, 2, 14);
                 sheet.CellValue(4, 3, 20);
                 sheet.CellValue(4, 4, 27);
-                var chart = sheet.AddChartFromRange("A1:D4", row: 1, column: 6, width: OfficeLength.Pixels(560), height: OfficeLength.Pixels(340), title: "Surface", includeCachedData: true, type: OfficeChartType.Surface, hasHeaders: true);
+                var chart = sheet.AddChart(OfficeChartType.Surface, "A1:D4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(560), Height = OfficeLength.Pixels(340), Title = "Surface", IncludeCachedData = true, HasHeaders = true });
                 chart.UpdateData(new ExcelChartData(new[] { "North", "Central", "South", "West" }, new[] { new ExcelChartSeries("Low", new[] { 11d, 15d, 13d, 17d }, OfficeChartType.Surface), new ExcelChartSeries("Mid", new[] { 18d, 22d, 19d, 23d }, OfficeChartType.Surface), new ExcelChartSeries("High", new[] { 25d, 30d, 28d, 32d }, OfficeChartType.Surface) }));
                 chart.SetSeriesFillColor("High", OfficeColor.Parse("22C55E"));
                 document.Save();
@@ -413,11 +411,11 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(4, 2, 12);
                 sheet.CellValue(4, 3, 20);
                 sheet.CellValue(4, 4, 28);
-                var wireframeChart = sheet.AddChartFromRange("A1:D4", row: 1, column: 6, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "Wireframe Surface", includeCachedData: true, type: OfficeChartType.SurfaceWireframe, hasHeaders: true);
+                var wireframeChart = sheet.AddChart(OfficeChartType.SurfaceWireframe, "A1:D4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "Wireframe Surface", IncludeCachedData = true, HasHeaders = true });
                 wireframeChart.UpdateData(new ExcelChartData(new[] { "North", "East", "South", "West" }, new[] { new ExcelChartSeries("Low", new[] { 11d, 15d, 13d, 17d }, OfficeChartType.SurfaceWireframe), new ExcelChartSeries("Mid", new[] { 18d, 22d, 19d, 23d }, OfficeChartType.SurfaceWireframe), new ExcelChartSeries("High", new[] { 25d, 30d, 28d, 32d }, OfficeChartType.SurfaceWireframe) }));
                 wireframeChart.SetSeriesFillColor("High", OfficeColor.Parse("22C55E"));
-                sheet.AddChartFromRange("A1:D4", row: 18, column: 6, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "Contour Surface", includeCachedData: true, type: OfficeChartType.SurfaceContour, hasHeaders: true);
-                sheet.AddChartFromRange("A1:D4", row: 35, column: 6, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "Wireframe Contour", includeCachedData: true, type: OfficeChartType.SurfaceContourWireframe, hasHeaders: true);
+                sheet.AddChart(OfficeChartType.SurfaceContour, "A1:D4", new OfficeIMO.Excel.ExcelChartOptions { Row = 18, Column = 6, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "Contour Surface", IncludeCachedData = true, HasHeaders = true });
+                sheet.AddChart(OfficeChartType.SurfaceContourWireframe, "A1:D4", new OfficeIMO.Excel.ExcelChartOptions { Row = 35, Column = 6, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "Wireframe Contour", IncludeCachedData = true, HasHeaders = true });
                 document.Save();
             }
 
@@ -474,7 +472,7 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(3, 2, 28);
                 sheet.CellValue(4, 1, "Identity");
                 sheet.CellValue(4, 2, 30);
-                var chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "Workload Mix", includeCachedData: true, type: OfficeChartType.Pie3D, hasHeaders: true);
+                var chart = sheet.AddChart(OfficeChartType.Pie3D, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "Workload Mix", IncludeCachedData = true, HasHeaders = true });
                 chart.UpdateData(new ExcelChartData(new[] { "Mail", "DNS", "Identity", "Device" }, new[] { new ExcelChartSeries("Share", new[] { 40d, 24d, 26d, 10d }, OfficeChartType.Pie3D) }));
                 chart.SetDataLabels(showValue: true, showCategoryName: true, showSeriesName: false, showLegendKey: false, showPercent: false).SetSeriesFillColor("Share", OfficeColor.Parse("2563EB"));
                 document.Save();
@@ -525,10 +523,10 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(4, 2, 26);
                 sheet.CellValue(5, 1, "Other");
                 sheet.CellValue(5, 2, 10);
-                var pieChart = sheet.AddChartFromRange("A1:B5", row: 1, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "Pie of Pie", includeCachedData: true, type: OfficeChartType.PieOfPie, hasHeaders: true);
+                var pieChart = sheet.AddChart(OfficeChartType.PieOfPie, "A1:B5", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "Pie of Pie", IncludeCachedData = true, HasHeaders = true });
                 pieChart.UpdateData(new ExcelChartData(new[] { "Core", "Growth", "Services", "Other", "Legacy" }, new[] { new ExcelChartSeries("Share", new[] { 38d, 25d, 24d, 9d, 4d }, OfficeChartType.PieOfPie) }));
                 pieChart.SetDataLabels(showValue: true, showCategoryName: true, showSeriesName: false, showLegendKey: false, showPercent: false).SetSeriesFillColor("Share", OfficeColor.Parse("2563EB"));
-                sheet.AddChartFromRange("A1:B5", row: 18, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "Bar of Pie", includeCachedData: true, type: OfficeChartType.BarOfPie, hasHeaders: true);
+                sheet.AddChart(OfficeChartType.BarOfPie, "A1:B5", new OfficeIMO.Excel.ExcelChartOptions { Row = 18, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "Bar of Pie", IncludeCachedData = true, HasHeaders = true });
                 document.Save();
             }
 
@@ -585,10 +583,10 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(4, 1, "Q3");
                 sheet.CellValue(4, 2, 24);
                 sheet.CellValue(4, 3, 26);
-                var columnChart = sheet.AddChartFromRange("A1:C4", row: 1, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "100% Stacked Columns", includeCachedData: true, type: OfficeChartType.ColumnStacked100, hasHeaders: true);
+                var columnChart = sheet.AddChart(OfficeChartType.ColumnStacked100, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "100% Stacked Columns", IncludeCachedData = true, HasHeaders = true });
                 columnChart.UpdateData(new ExcelChartData(new[] { "Q1", "Q2", "Q3", "Q4" }, new[] { new ExcelChartSeries("Sales", new[] { 12d, 19d, 25d, 31d }, OfficeChartType.ColumnStacked100), new ExcelChartSeries("Target", new[] { 14d, 21d, 28d, 34d }, OfficeChartType.ColumnStacked100) }));
                 columnChart.SetSeriesFillColor("Sales", OfficeColor.Parse("2563EB")).SetDataLabels(showValue: true);
-                sheet.AddChartFromRange("A1:C4", row: 18, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "100% Stacked Bars", includeCachedData: true, type: OfficeChartType.BarStacked100, hasHeaders: true);
+                sheet.AddChart(OfficeChartType.BarStacked100, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 18, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "100% Stacked Bars", IncludeCachedData = true, HasHeaders = true });
                 document.Save();
             }
 
@@ -642,12 +640,12 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(4, 1, "Q3");
                 sheet.CellValue(4, 2, 24);
                 sheet.CellValue(4, 3, 26);
-                var columnChart = sheet.AddChartFromRange("A1:C4", row: 1, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "3D Columns", includeCachedData: true, type: OfficeChartType.Column3DClustered, hasHeaders: true);
+                var columnChart = sheet.AddChart(OfficeChartType.Column3DClustered, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "3D Columns", IncludeCachedData = true, HasHeaders = true });
                 columnChart.UpdateData(new ExcelChartData(new[] { "Q1", "Q2", "Q3", "Q4" }, new[] { new ExcelChartSeries("Sales", new[] { 12d, 19d, 25d, 31d }, OfficeChartType.Column3DClustered), new ExcelChartSeries("Target", new[] { 14d, 21d, 28d, 34d }, OfficeChartType.Column3DClustered) }));
                 columnChart.SetSeriesFillColor("Sales", OfficeColor.Parse("2563EB")).SetDataLabels(showValue: true);
-                sheet.AddChartFromRange("A1:C4", row: 18, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "3D Bars", includeCachedData: true, type: OfficeChartType.Bar3DStacked, hasHeaders: true);
-                sheet.AddChartFromRange("A1:C4", row: 35, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "3D 100% Columns", includeCachedData: true, type: OfficeChartType.Column3DStacked100, hasHeaders: true);
-                sheet.AddChartFromRange("A1:C4", row: 52, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "3D 100% Bars", includeCachedData: true, type: OfficeChartType.Bar3DStacked100, hasHeaders: true);
+                sheet.AddChart(OfficeChartType.Bar3DStacked, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 18, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "3D Bars", IncludeCachedData = true, HasHeaders = true });
+                sheet.AddChart(OfficeChartType.Column3DStacked100, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 35, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "3D 100% Columns", IncludeCachedData = true, HasHeaders = true });
+                sheet.AddChart(OfficeChartType.Bar3DStacked100, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 52, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "3D 100% Bars", IncludeCachedData = true, HasHeaders = true });
                 document.Save();
             }
 
@@ -711,10 +709,10 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(4, 1, "Mar");
                 sheet.CellValue(4, 2, 20);
                 sheet.CellValue(4, 3, 23);
-                var stackedChart = sheet.AddChartFromRange("A1:C4", row: 1, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "Stacked Line", includeCachedData: true, type: OfficeChartType.LineStacked, hasHeaders: true);
+                var stackedChart = sheet.AddChart(OfficeChartType.LineStacked, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "Stacked Line", IncludeCachedData = true, HasHeaders = true });
                 stackedChart.UpdateData(new ExcelChartData(new[] { "Jan", "Feb", "Mar", "Apr" }, new[] { new ExcelChartSeries("Actual", new[] { 11d, 16d, 22d, 27d }, OfficeChartType.LineStacked), new ExcelChartSeries("Plan", new[] { 12d, 18d, 24d, 29d }, OfficeChartType.LineStacked) }));
                 stackedChart.SetSeriesLineColor("Actual", OfficeColor.Parse("2563EB"), width: OfficeLength.Points(1.25)).SetSeriesMarker("Plan", OfficeChartMarkerShape.Circle, size: OfficeLength.Points(6), fillColor: OfficeColor.Parse("F97316"), lineColor: OfficeColor.Parse("7C2D12")).SetDataLabels(showValue: true);
-                sheet.AddChartFromRange("A1:C4", row: 18, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "100% Stacked Line", includeCachedData: true, type: OfficeChartType.LineStacked100, hasHeaders: true);
+                sheet.AddChart(OfficeChartType.LineStacked100, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 18, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "100% Stacked Line", IncludeCachedData = true, HasHeaders = true });
                 document.Save();
             }
 
@@ -773,7 +771,7 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(4, 3, 30);
 
                 var exception = Assert.Throws<NotSupportedException>(() =>
-                    sheet.AddChartFromRange("A1:C4", row: 1, column: 5, type: type));
+                    sheet.AddChart(type, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5 }));
                 Assert.Contains(chartName, exception.Message, StringComparison.OrdinalIgnoreCase);
                 Assert.Contains("exactly one series", exception.Message, StringComparison.OrdinalIgnoreCase);
             }
@@ -798,7 +796,7 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(4, 1, "Mar");
                 sheet.CellValue(4, 2, 20);
                 sheet.CellValue(4, 3, 23);
-                var chart = sheet.AddChartFromRange("A1:C4", row: 1, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "3D Line", includeCachedData: true, type: OfficeChartType.Line3D, hasHeaders: true);
+                var chart = sheet.AddChart(OfficeChartType.Line3D, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "3D Line", IncludeCachedData = true, HasHeaders = true });
                 chart.UpdateData(new ExcelChartData(new[] { "Jan", "Feb", "Mar", "Apr" }, new[] { new ExcelChartSeries("Actual", new[] { 11d, 16d, 22d, 27d }, OfficeChartType.Line3D), new ExcelChartSeries("Plan", new[] { 12d, 18d, 24d, 29d }, OfficeChartType.Line3D) }));
                 chart.SetSeriesLineColor("Actual", OfficeColor.Parse("2563EB"), width: OfficeLength.Points(1.25)).SetSeriesMarker("Plan", OfficeChartMarkerShape.Circle, size: OfficeLength.Points(6), fillColor: OfficeColor.Parse("F97316"), lineColor: OfficeColor.Parse("7C2D12")).SetDataLabels(showValue: true);
                 document.Save();
@@ -853,10 +851,10 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(4, 1, "Mar");
                 sheet.CellValue(4, 2, 48);
                 sheet.CellValue(4, 3, 29);
-                var stackedChart = sheet.AddChartFromRange("A1:C4", row: 1, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "Stacked Area", includeCachedData: true, type: OfficeChartType.AreaStacked, hasHeaders: true);
+                var stackedChart = sheet.AddChart(OfficeChartType.AreaStacked, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "Stacked Area", IncludeCachedData = true, HasHeaders = true });
                 stackedChart.UpdateData(new ExcelChartData(new[] { "Jan", "Feb", "Mar", "Apr" }, new[] { new ExcelChartSeries("Services", new[] { 36d, 44d, 50d, 54d }, OfficeChartType.AreaStacked), new ExcelChartSeries("Licenses", new[] { 19d, 25d, 31d, 34d }, OfficeChartType.AreaStacked) }));
                 stackedChart.SetSeriesFillColor("Services", OfficeColor.Parse("2563EB")).SetDataLabels(showValue: true);
-                sheet.AddChartFromRange("A1:C4", row: 18, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "100% Stacked Area", includeCachedData: true, type: OfficeChartType.AreaStacked100, hasHeaders: true);
+                sheet.AddChart(OfficeChartType.AreaStacked100, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 18, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "100% Stacked Area", IncludeCachedData = true, HasHeaders = true });
                 document.Save();
             }
 
@@ -909,11 +907,11 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(4, 1, "Mar");
                 sheet.CellValue(4, 2, 21);
                 sheet.CellValue(4, 3, 24);
-                var areaChart = sheet.AddChartFromRange("A1:C4", row: 1, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "3D Area", includeCachedData: true, type: OfficeChartType.Area3D, hasHeaders: true);
+                var areaChart = sheet.AddChart(OfficeChartType.Area3D, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "3D Area", IncludeCachedData = true, HasHeaders = true });
                 areaChart.UpdateData(new ExcelChartData(new[] { "Jan", "Feb", "Mar", "Apr" }, new[] { new ExcelChartSeries("Actual", new[] { 11d, 17d, 22d, 28d }, OfficeChartType.Area3D), new ExcelChartSeries("Plan", new[] { 13d, 19d, 25d, 31d }, OfficeChartType.Area3D) }));
                 areaChart.SetSeriesFillColor("Actual", OfficeColor.Parse("2563EB")).SetDataLabels(showValue: true);
-                sheet.AddChartFromRange("A1:C4", row: 18, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "3D Stacked Area", includeCachedData: true, type: OfficeChartType.Area3DStacked, hasHeaders: true);
-                sheet.AddChartFromRange("A1:C4", row: 35, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(340), title: "3D 100% Stacked Area", includeCachedData: true, type: OfficeChartType.Area3DStacked100, hasHeaders: true);
+                sheet.AddChart(OfficeChartType.Area3DStacked, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 18, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "3D Stacked Area", IncludeCachedData = true, HasHeaders = true });
+                sheet.AddChart(OfficeChartType.Area3DStacked100, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 35, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "3D 100% Stacked Area", IncludeCachedData = true, HasHeaders = true });
                 document.Save();
             }
 
@@ -1054,7 +1052,7 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(3, 1, "Medium");
                 sheet.CellValue(3, 2, 3);
 
-                sheet.AddChartFromRange("A1:B3", row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(300), type: OfficeChartType.Pie, title: "Status")
+                sheet.AddChart(OfficeChartType.Pie, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(300), Title = "Status" })
                     .SetDataLabels(
                         showValue: false,
                         showCategoryName: true,
@@ -1089,7 +1087,7 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(3, 1, "Medium");
                 sheet.CellValue(3, 2, 3);
 
-                sheet.AddChartFromRange("A1:B3", row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(300), type: OfficeChartType.Pie, title: "Status")
+                sheet.AddChart(OfficeChartType.Pie, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(300), Title = "Status" })
                     .SetDataLabels(
                         showValue: false,
                         showCategoryName: true,
@@ -1124,8 +1122,7 @@ namespace OfficeIMO.Tests
                         new ExcelChartSeries("Costs", new[] { 85d, 94d, 132d, 150d })
                     });
 
-                var chart = sheet.AddChart(data, row: 1, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Quarterly");
+                var chart = sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Quarterly" });
                 chart.SetSeriesFillColor(0, OfficeColor.Parse("2563EB"))
                     .SetSeriesLineColor(1, OfficeColor.Parse("F97316"), width: OfficeLength.Points(0.5));
                 document.Save();
@@ -1158,8 +1155,7 @@ namespace OfficeIMO.Tests
                     new[] { "Jan", "Feb" },
                     new[] { new ExcelChartSeries("Sales", new[] { 1d, 2d }) });
 
-                var chart = sheet.AddChart(data, row: 2, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.Line, title: "Monthly");
+                var chart = sheet.AddChart(OfficeChartType.Line, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Monthly" });
 
                 var updated = new ExcelChartData(
                     new[] { "Jan", "Feb", "Mar" },
@@ -1204,8 +1200,7 @@ namespace OfficeIMO.Tests
                     (12, 2, (object)3d)
                 });
 
-                var chart = sheet.AddChartFromRange("A10:B12", row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, hasHeaders: false, title: "No Headers");
+                var chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A10:B12", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), HasHeaders = false, Title = "No Headers" });
 
                 var updated = new ExcelChartData(
                     new[] { "D", "E", "F" },
@@ -1250,8 +1245,7 @@ namespace OfficeIMO.Tests
                 sheet.Cell(2, 2, 1d);
                 sheet.Cell(3, 2, 2d);
 
-                var chart = sheet.AddChartFromRange("A1:B3", row: 2, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.Line, hasHeaders: true, title: "Monthly");
+                var chart = sheet.AddChart(OfficeChartType.Line, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), HasHeaders = true, Title = "Monthly" });
 
                 var updated = new ExcelChartData(
                     new[] { "Jan", "Feb", "Mar" },
@@ -1295,8 +1289,7 @@ namespace OfficeIMO.Tests
                     new[] { "1", "2", "3" },
                     new[] { new ExcelChartSeries("Series 1", new[] { 2d, 4d, 6d }, OfficeChartType.Scatter) });
 
-                sheet.AddChart(data, row: 1, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.Scatter, title: "Scatter");
+                sheet.AddChart(OfficeChartType.Scatter, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Scatter" });
                 document.Save();
             }
 
@@ -1325,8 +1318,7 @@ namespace OfficeIMO.Tests
                     new[] { "1", "2", "3" },
                     new[] { new ExcelChartSeries("Series 1", new[] { 2d, 4d, 6d }, OfficeChartType.Scatter) });
 
-                sheet.AddChart(data, row: 1, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.Scatter, title: "Scatter");
+                sheet.AddChart(OfficeChartType.Scatter, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Scatter" });
                 document.Save();
             }
 
@@ -1379,8 +1371,7 @@ namespace OfficeIMO.Tests
                         new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d, 35d }, OfficeChartType.Line, OfficeChartAxisGroup.Secondary)
                     });
 
-                var comboChart = sheet.AddChart(comboData, row: 2, column: 6, width: OfficeLength.Pixels(640), height: OfficeLength.Pixels(360),
-                    type: OfficeChartType.ColumnClustered, title: "Sales vs Trend");
+                var comboChart = sheet.AddChart(OfficeChartType.ColumnClustered, comboData, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(640), Height = OfficeLength.Pixels(360), Title = "Sales vs Trend" });
                 comboChart.ApplyStylePreset()
                           .SetSeriesMarker(1, OfficeChartMarkerShape.Circle, size: OfficeLength.Points(6), lineColor: OfficeColor.Parse("4472C4"));
                 comboChart.SetValueAxisNumberFormat("0.00", sourceLinked: false, axisGroup: OfficeChartAxisGroup.Secondary)
@@ -1426,8 +1417,7 @@ namespace OfficeIMO.Tests
                     new[] { "1", "2", "3", "4" },
                     new[] { new ExcelChartSeries("Points", new[] { 2d, 4d, 3d, 5d }, OfficeChartType.Scatter) });
 
-                var scatterChart = sheet.AddChart(scatterData, row: 22, column: 6, width: OfficeLength.Pixels(640), height: OfficeLength.Pixels(360),
-                    type: OfficeChartType.Scatter, title: "Scatter Sample");
+                var scatterChart = sheet.AddChart(OfficeChartType.Scatter, scatterData, new OfficeIMO.Excel.ExcelChartOptions { Row = 22, Column = 6, Width = OfficeLength.Pixels(640), Height = OfficeLength.Pixels(360), Title = "Scatter Sample" });
                 scatterChart.SetScatterXAxisScale(minimum: 1, maximum: 10, majorUnit: 1, logScale: true);
                 scatterChart.SetScatterYAxisScale(minimum: 0, maximum: 6, majorUnit: 1);
                 scatterChart.SetScatterYAxisCrossing(OfficeChartAxisCrossingPosition.Minimum, crossesAt: 2d);
@@ -1516,8 +1506,7 @@ namespace OfficeIMO.Tests
                         new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d }, OfficeChartType.Line, OfficeChartAxisGroup.Secondary)
                     });
 
-                sheet.AddChart(data, row: 1, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Combo");
+                sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Combo" });
                 document.Save();
             }
 
@@ -1547,8 +1536,7 @@ namespace OfficeIMO.Tests
                     new ExcelChartSeries("Sales", new[] { 10d, 20d }, OfficeChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
                     new ExcelChartSeries("Trend", new[] { 12d, 18d }, OfficeChartType.Line, OfficeChartAxisGroup.Secondary)
                 });
-                sheet.AddChart(data, row: 1, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Combo");
+                sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Combo" });
                 document.Save();
             }
 
@@ -1580,8 +1568,7 @@ namespace OfficeIMO.Tests
                         new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d }, OfficeChartType.Line, OfficeChartAxisGroup.Secondary)
                     });
 
-                var chart = sheet.AddChart(data, row: 1, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Combo");
+                var chart = sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Combo" });
                 chart.SetValueAxisNumberFormat("0.00", sourceLinked: false, axisGroup: OfficeChartAxisGroup.Secondary)
                      .SetSeriesDataLabels(1, showValue: true, position: OfficeChartDataLabelPosition.Top, numberFormat: "0.0");
                 document.Save();
@@ -1696,8 +1683,7 @@ namespace OfficeIMO.Tests
                     new[] { "Q1", "Q2" },
                     new[] { new ExcelChartSeries("Sales", new[] { 1d, 2d }) });
 
-                sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Styled");
+                sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Styled" });
                 document.Save();
             }
 
@@ -1719,8 +1705,7 @@ namespace OfficeIMO.Tests
                     new[] { "Q1", "Q2" },
                     new[] { new ExcelChartSeries("Sales", new[] { 1d, 2d }) });
 
-                var chart = sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Labels");
+                var chart = sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Labels" });
                 chart.SetSeriesDataLabels(0, showValue: true)
                      .SetSeriesDataLabelTextStyle(0, fontSize: OfficeLength.Points(12), bold: true, color: OfficeColor.Parse("FF0000"), fontName: "Calibri");
                 document.Save();
@@ -1755,8 +1740,7 @@ namespace OfficeIMO.Tests
                     new[] { "Q1", "Q2" },
                     new[] { new ExcelChartSeries("Sales", new[] { 1d, 2d }) });
 
-                var chart = sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Label Shapes");
+                var chart = sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Label Shapes" });
                 chart.SetSeriesDataLabels(0, showValue: true)
                      .SetSeriesDataLabelShapeStyle(0, fillColor: OfficeColor.Parse("FFFFCC"), lineColor: OfficeColor.Parse("000000"), lineWidth: OfficeLength.Points(1.5));
                 document.Save();
@@ -1788,8 +1772,7 @@ namespace OfficeIMO.Tests
                     new[] { "Q1", "Q2" },
                     new[] { new ExcelChartSeries("Sales", new[] { 1d, 2d }) });
 
-                var chart = sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.Pie, title: "Leader Lines");
+                var chart = sheet.AddChart(OfficeChartType.Pie, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Leader Lines" });
                 chart.SetSeriesDataLabels(0, showValue: true)
                      .SetSeriesDataLabelLeaderLines(0, showLeaderLines: true, lineColor: OfficeColor.Parse("000000"), lineWidth: OfficeLength.Points(1));
                 document.Save();
@@ -1821,8 +1804,7 @@ namespace OfficeIMO.Tests
                     new[] { "Q1", "Q2" },
                     new[] { new ExcelChartSeries("Sales", new[] { 1d, 2d }) });
 
-                var chart = sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Styled");
+                var chart = sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Styled" });
                 chart.SetLegend(OfficeChartLegendPosition.Right)
                      .SetTitleTextStyle(fontSize: OfficeLength.Points(14), bold: true, color: OfficeColor.Parse("1F4E79"))
                      .SetLegendTextStyle(fontSize: OfficeLength.Points(9), italic: true, color: OfficeColor.Parse("404040"), fontName: "Calibri");
@@ -1872,8 +1854,7 @@ namespace OfficeIMO.Tests
                     new[] { "Q1", "Q2" },
                     new[] { new ExcelChartSeries("Sales", new[] { 1d, 2d }) });
 
-                var chart = sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Axis Styles");
+                var chart = sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Axis Styles" });
                 chart.SetCategoryAxisTitle("Quarter")
                      .SetValueAxisTitle("Revenue")
                      .SetCategoryAxisTitleTextStyle(fontSize: OfficeLength.Points(11), bold: true, color: OfficeColor.Parse("006100"))
@@ -1941,8 +1922,7 @@ namespace OfficeIMO.Tests
                     new[] { "Q1", "Q2", "Q3" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }) });
 
-                var chart = sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Gridlines");
+                var chart = sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Gridlines" });
                 chart.SetValueAxisGridlines(showMajor: true, showMinor: true, lineColor: OfficeColor.Parse("C0C0C0"), lineWidth: OfficeLength.Points(0.75))
                      .SetCategoryAxisLabelRotation(45)
                      .SetValueAxisTickLabelPosition(OfficeChartAxisTickLabelPosition.Low);
@@ -1986,8 +1966,7 @@ namespace OfficeIMO.Tests
                     new[] { "Q1", "Q2", "Q3" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }) });
 
-                var chart = sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Axis Crossing");
+                var chart = sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Axis Crossing" });
                 chart.SetValueAxisCrossing(OfficeChartAxisCrossingPosition.Maximum)
                      .SetCategoryAxisCrossing(OfficeChartAxisCrossingPosition.Minimum)
                      .SetValueAxisCrossBetween(OfficeChartAxisCrossBetween.Between)
@@ -2024,8 +2003,7 @@ namespace OfficeIMO.Tests
                     new[] { "Q1", "Q2", "Q3" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }) });
 
-                var chart = sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Axis Crossing At");
+                var chart = sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Axis Crossing At" });
                 chart.SetValueAxisCrossing(OfficeChartAxisCrossingPosition.AutoZero, crossesAt: 2.5);
                 document.Save();
             }
@@ -2051,8 +2029,7 @@ namespace OfficeIMO.Tests
                     new[] { "Q1", "Q2", "Q3" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }) });
 
-                var chart = sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Axis Scale");
+                var chart = sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Axis Scale" });
                 chart.SetValueAxisScale(minimum: 0, maximum: 100, majorUnit: 25, minorUnit: 5, reverseOrder: true);
                 document.Save();
             }
@@ -2082,8 +2059,7 @@ namespace OfficeIMO.Tests
                     new[] { "1", "2", "3", "4" },
                     new[] { new ExcelChartSeries("Points", new[] { 2d, 4d, 3d, 5d }, OfficeChartType.Scatter) });
 
-                var chart = sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.Scatter, title: "Scatter Axis");
+                var chart = sheet.AddChart(OfficeChartType.Scatter, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Scatter Axis" });
                 chart.SetScatterXAxisScale(minimum: 1, maximum: 10, majorUnit: 1, logScale: true);
                 document.Save();
             }
@@ -2113,8 +2089,7 @@ namespace OfficeIMO.Tests
                     new[] { "1", "2", "3", "4" },
                     new[] { new ExcelChartSeries("Points", new[] { 2d, 4d, 3d, 5d }, OfficeChartType.Scatter) });
 
-                var chart = sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.Scatter, title: "Scatter Axis");
+                var chart = sheet.AddChart(OfficeChartType.Scatter, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Scatter Axis" });
                 chart.SetScatterYAxisScale(minimum: 0, maximum: 6, majorUnit: 1);
                 document.Save();
             }
@@ -2143,8 +2118,7 @@ namespace OfficeIMO.Tests
                     new[] { "1", "2", "3" },
                     new[] { new ExcelChartSeries("Points", new[] { 2d, 4d, 3d }, OfficeChartType.Scatter) });
 
-                var chart = sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.Scatter, title: "Scatter Crossing");
+                var chart = sheet.AddChart(OfficeChartType.Scatter, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Scatter Crossing" });
                 chart.SetScatterXAxisScale(minimum: 1, maximum: 10, logScale: true);
 
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -2162,8 +2136,7 @@ namespace OfficeIMO.Tests
                     new[] { "1", "2", "3" },
                     new[] { new ExcelChartSeries("Points", new[] { 2d, 4d, 3d }, OfficeChartType.Scatter) });
 
-                var chart = sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.Scatter, title: "Scatter Crossing");
+                var chart = sheet.AddChart(OfficeChartType.Scatter, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Scatter Crossing" });
                 chart.SetScatterYAxisCrossing(OfficeChartAxisCrossingPosition.Minimum, crossesAt: 2d);
                 document.Save();
             }
@@ -2190,8 +2163,7 @@ namespace OfficeIMO.Tests
                     new[] { "Q1", "Q2", "Q3" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }) });
 
-                var chart = sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Label Template");
+                var chart = sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Label Template" });
                 var template = new ExcelChartDataLabelTemplate {
                     ShowValue = true,
                     Position = OfficeChartDataLabelPosition.Top,
@@ -2258,8 +2230,7 @@ namespace OfficeIMO.Tests
                         new ExcelChartSeries("Second", new[] { 30d, 40d })
                     });
 
-                ExcelChart chart = sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Series Style Index");
+                ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Series Style Index" });
                 chart.SetSeriesFillColor(0, OfficeColor.Parse("FF0000"))
                      .SetSeriesFillColor(1, OfficeColor.Parse("0000FF"));
                 document.Save();
@@ -2299,8 +2270,7 @@ namespace OfficeIMO.Tests
                     new[] { "Q1", "Q2", "Q3" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }) });
 
-                sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Sparse cache");
+                sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Sparse cache" });
                 document.Save();
             }
 
@@ -2362,8 +2332,7 @@ namespace OfficeIMO.Tests
                     seriesCount: 1,
                     hasHeaderRow: true,
                     ExcelChartDataOrientation.Horizontal);
-                sheet.AddChart(range, row: 5, column: 1, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Non-adjacent row");
+                sheet.AddChart(OfficeChartType.ColumnClustered, range, new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 1, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Non-adjacent row" });
                 document.Save();
             }
 
@@ -2406,8 +2375,7 @@ namespace OfficeIMO.Tests
                     new[] { "Q1", "Q2", "Q3" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }) });
 
-                var chart = sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.Line, title: "Trendline");
+                var chart = sheet.AddChart(OfficeChartType.Line, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Trendline" });
                 chart.SetSeriesTrendline(0, OfficeChartTrendlineType.Polynomial, order: 2,
                     displayEquation: true, displayRSquared: true, lineColor: OfficeColor.Parse("FF0000"), lineWidth: OfficeLength.Points(1.5));
                 document.Save();
@@ -2444,8 +2412,7 @@ namespace OfficeIMO.Tests
                     new[] { "Q1", "Q2" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) });
 
-                var chart = sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(320),
-                    type: OfficeChartType.ColumnClustered, title: "Area Style");
+                var chart = sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Area Style" });
                 chart.SetChartAreaStyle(fillColor: OfficeColor.Parse("F2F2F2"), lineColor: OfficeColor.Parse("404040"), lineWidth: OfficeLength.Points(1.25))
                      .SetPlotAreaStyle(fillColor: OfficeColor.Parse("FFFFFF"), lineColor: OfficeColor.Parse("00B0F0"), lineWidth: OfficeLength.Points(0.5));
                 document.Save();

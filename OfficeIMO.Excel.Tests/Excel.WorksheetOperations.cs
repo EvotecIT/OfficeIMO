@@ -564,7 +564,7 @@ namespace OfficeIMO.Tests {
                 table.Columns.Add("Count", typeof(int));
                 table.Rows.Add("Alpha", 1);
                 table.Rows.Add("Beta", 2);
-                source.InsertDataTableAsTable(table, tableName: "Items");
+                source.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "Items" }, row: 1, column: 1);
 
                 targetDocument.CopyWorksheetFrom(sourceDocument, "Source", "Imported", ExcelSheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
                     CopyMode = ExcelWorksheetCopyMode.Package

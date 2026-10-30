@@ -28,8 +28,8 @@ public partial class ExcelSheet {
         }
         var table = new ExcelTable(this, AddTableAndGetName(range, headers, options?.Name ?? "Table",
             excelOptions?.Style ?? ExcelTableStyle.TableStyleMedium2,
-            excelOptions?.IncludeAutoFilter ?? true, headerNames: projection.ColumnNames));
-        ApplyTableAlignments(table, options);
+            excelOptions?.IncludeAutoFilter ?? true, headerNames: GetTypedTableColumnNames(projection.ColumnNames, headers, excelOptions)));
+        FinalizeTypedTable(table, options);
         return table;
     }
 
@@ -47,13 +47,15 @@ public partial class ExcelSheet {
         data = projected ?? data;
         if (data.Columns.Count > ExcelA1.MaxColumns - column + 1)
             throw new ArgumentException("The data table is empty or exceeds the native worksheet bounds.", nameof(data));
-        InsertDataTable(data, row, column, headers);
+        InsertDataTable(data, row, column, headers, (options as ExcelTableOptions)?.ExecutionMode,
+            (options as ExcelTableOptions)?.CancellationToken ?? default);
         string range = ExcelA1.CellReference(row, column) + ":" + ExcelA1.CellReference(row + count - 1, column + data.Columns.Count - 1);
         var table = new ExcelTable(this, AddTableAndGetName(range, headers, options?.Name ?? data.TableName,
             (options as ExcelTableOptions)?.Style ?? ExcelTableStyle.TableStyleMedium2,
             (options as ExcelTableOptions)?.IncludeAutoFilter ?? true,
-            headerNames: data.Columns.Cast<DataColumn>().Select(field => field.ColumnName).ToArray()));
-        ApplyTableAlignments(table, options);
+            headerNames: GetTypedTableColumnNames(data.Columns.Cast<DataColumn>().Select(field => field.ColumnName).ToArray(),
+                headers, options as ExcelTableOptions)));
+        FinalizeTypedTable(table, options);
         return table;
     }
 

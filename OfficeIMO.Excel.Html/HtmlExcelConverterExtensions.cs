@@ -507,9 +507,9 @@ public static partial class HtmlExcelConverterExtensions {
             try {
                 ExcelChart chart;
                 if (hasSemanticData) {
-                    chart = sheet.AddChart(chartData!, row: row, column: column, width: chartWidth, height: chartHeight, type: type, title: title.Length == 0 ? null : title);
+                    chart = sheet.AddChart(type, chartData!, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = chartWidth, Height = chartHeight, Title = title.Length == 0 ? null : title });
                 } else {
-                    chart = sheet.AddChartFromRange(range, row: row, column: column, width: chartWidth, height: chartHeight, type: type, title: title.Length == 0 ? null : title);
+                    chart = sheet.AddChart(type, range, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = chartWidth, Height = chartHeight, Title = title.Length == 0 ? null : title });
                 }
                 if (isRadial) chart.SetRadialLayout(radialLayout);
 

@@ -536,8 +536,7 @@ namespace OfficeIMO.Tests
                         new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }, OfficeChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
                         new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d }, OfficeChartType.Line, OfficeChartAxisGroup.Secondary)
                     });
-                sheet.AddChart(data, row: 1, column: 5, width: OfficeLength.Pixels(360), height: OfficeLength.Pixels(220),
-                    type: OfficeChartType.ColumnClustered, title: "Combo Chart");
+                sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Combo Chart" });
                 document.Save();
             }
 
@@ -564,8 +563,7 @@ namespace OfficeIMO.Tests
                         new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }, OfficeChartType.ColumnClustered),
                         new ExcelChartSeries("Target", new[] { 12d, 18d, 28d }, OfficeChartType.ColumnStacked)
                     });
-                sheet.AddChart(data, row: 1, column: 5, width: OfficeLength.Pixels(360), height: OfficeLength.Pixels(220),
-                    type: OfficeChartType.ColumnClustered, title: "Column Combo Chart");
+                sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Column Combo Chart" });
                 document.Save();
             }
 
@@ -622,8 +620,7 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(2, 2, 10d);
                 sheet.CellValue(3, 1, "South");
                 sheet.CellValue(3, 2, 12d);
-                sheet.AddChartFromRange("A1:B3", row: 1, column: 5, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(180),
-                    type: OfficeChartType.ColumnClustered, title: "Literal Chart");
+                sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), Title = "Literal Chart" });
                 document.Save();
             }
 
@@ -653,8 +650,7 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(2, 2, 10d);
                 sheet.CellValue(3, 1, "South");
                 sheet.CellValue(3, 2, 12d);
-                ExcelChart chart = sheet.AddChartFromRange("A1:B3", row: 1, column: 5, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(180),
-                    type: OfficeChartType.ColumnClustered, title: "Dangling Chart");
+                ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), Title = "Dangling Chart" });
                 chart.Name = "Dangling chart frame";
                 document.Save();
             }

@@ -303,7 +303,7 @@
     },
     {
       "fluent": "ChartBuilder 3-D/stacked/100% variants",
-      "objectModel": "AddChart(OfficeChartType ...) with Excel-only variants in ExcelChartOptions (Stacking, ThreeD); OfficeChartType from Core M1"
+      "objectModel": "AddChart(OfficeChartType type, native/shared data or rangeOrTable, OfficeChartOptions options); 3D/stacked/100% variants already reside in OfficeChartType. ExcelChartOptions carries placement, A1 headers and native caches; explicit series-range APIs preserve scatter/bubble X/Y/size links."
     },
     {
       "fluent": "PivotTableBuilder (Sum/Count/Average/Min/Max, DateGroup, NumberGroup, CalculatedField, layout/subtotal options)",
@@ -317,7 +317,7 @@
     },
     {
       "fluent": "SheetBuilder.RowsFrom<T>, Table, HeaderRow, AutoFilter, Freeze, ConditionalColorScale/DataBar, AutoFit",
-      "objectModel": "AddTable<T>, Freeze, AddConditional*, AutoFit* exist on ExcelSheet"
+      "objectModel": "AddTable<T>, AddTable(DataTable) and AddTable<T>(rows, selectorColumns, options) return attached ExcelTable objects. WriteData preserves plain cells, runtime flattening, AOT selectors and duplicate/blank display headers. Freeze, AddConditional* and AutoFit* remain native sheet capabilities."
     },
     {
       "fluent": "SheetIndex.Add / AddBackLinks",
@@ -1774,103 +1774,103 @@
       "old": "OfficeIMO.Excel.ExcelSheet.AddChart(ExcelChartData data, int row, int column, int widthPixels = 640, int heightPixels = 360, ExcelChartType type = ColumnClustered, string title = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddChart(OfficeChartType type, string rangeOrTable | IEnumerable<T> data, ..., OfficeLength? width = null, OfficeLength? height = null) : ExcelChart",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddChart(OfficeChartType type, ExcelChartData data, OfficeChartOptions? options = null) : ExcelChart",
       "reason": "Typed AddChart with the shared OfficeChartType; sizes in OfficeLength.",
       "file": "OfficeIMO.Excel/ExcelSheet.Charts.cs",
       "category": "authoring",
-      "notes": "ExcelChartType becomes OfficeChartType; widthPixels/heightPixels become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddChart(... OfficeLength ...)",
+      "notes": "3D/stacked/100% shared kinds native per-series kinds and axis groups hidden worksheet links and caches styles and explicit per-series X values",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Chart sizes use OfficeLength on native chart-data and shared-data entry points. The range/table authoring consolidation and shared chart options/order remain pending."
+      "applied": "phase-b-applied",
+      "note": "Native AddChart accepts the shared type, source and OfficeChartOptions. Structured AddTable returns the attached table; WriteData retains plain-cell insertion. Column selectors apply projection before reads and native bounds, check cancellation before formatting, and preserve single enumeration. Typed table columns fit by default without replacing explicit widths; PowerShell retains its AutoFit switch behavior. Native headerless series names survive independently of numeric caches and TryGetData retains them after reload. Focused native regression coverage passes on net10.0; other framework and module qualification is tracked separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddChart(ExcelChartDataRange dataRange, int row, int column, int widthPixels = 640, int heightPixels = 360, ExcelChartType type = ColumnClustered, ExcelChartData cachedData = null, string title = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddChart(OfficeChartType type, string rangeOrTable | IEnumerable<T> data, ..., OfficeLength? width = null, OfficeLength? height = null) : ExcelChart",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddChart(OfficeChartType type, ExcelChartDataRange data, OfficeChartOptions? options = null) : ExcelChart",
       "reason": "Typed AddChart with the shared OfficeChartType; sizes in OfficeLength.",
       "file": "OfficeIMO.Excel/ExcelSheet.Charts.cs",
       "category": "authoring",
-      "notes": "ExcelChartType becomes OfficeChartType; widthPixels/heightPixels become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddChart(... OfficeLength ...)",
+      "notes": "cross-sheet formulas horizontal/vertical descriptors headerless descriptors ExcelChartOptions.CachedData; null retains a formula-only source",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Chart sizes use OfficeLength on native chart-data and shared-data entry points. The range/table authoring consolidation and shared chart options/order remain pending."
+      "applied": "phase-b-applied",
+      "note": "Native AddChart accepts the shared type, source and OfficeChartOptions. Structured AddTable returns the attached table; WriteData retains plain-cell insertion. Column selectors apply projection before reads and native bounds, check cancellation before formatting, and preserve single enumeration. Typed table columns fit by default without replacing explicit widths; PowerShell retains its AutoFit switch behavior. Native headerless series names survive independently of numeric caches and TryGetData retains them after reload. Focused native regression coverage passes on net10.0; other framework and module qualification is tracked separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddChartFromRange(string dataRangeA1, int row, int column, int widthPixels = 640, int heightPixels = 360, ExcelChartType type = ColumnClustered, bool hasHeaders = True, string title = null, bool includeCachedData = True)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddChart(OfficeChartType type, string rangeOrTable | IEnumerable<T> data, ..., OfficeLength? width = null, OfficeLength? height = null) : ExcelChart",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddChart(OfficeChartType type, string rangeOrTable, OfficeChartOptions? options = null) : ExcelChart",
       "reason": "Typed AddChart with the shared OfficeChartType; sizes in OfficeLength.",
       "file": "OfficeIMO.Excel/ExcelSheet.Charts.cs",
       "category": "authoring",
-      "notes": "ExcelChartType becomes OfficeChartType; widthPixels/heightPixels become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddChartFromRange(... OfficeLength ...)",
+      "notes": "live A1/table links HasHeaders for A1; native schema for tables IncludeCachedData title and physical placement",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Chart sizes use OfficeLength on native chart-data and shared-data entry points. The range/table authoring consolidation and shared chart options/order remain pending."
+      "applied": "phase-b-applied",
+      "note": "Native AddChart accepts the shared type, source and OfficeChartOptions. Structured AddTable returns the attached table; WriteData retains plain-cell insertion. Column selectors apply projection before reads and native bounds, check cancellation before formatting, and preserve single enumeration. Typed table columns fit by default without replacing explicit widths; PowerShell retains its AutoFit switch behavior. Native headerless series names survive independently of numeric caches and TryGetData retains them after reload. Focused native regression coverage passes on net10.0; other framework and module qualification is tracked separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddChartFromTable(string tableName, int row, int column, int widthPixels = 640, int heightPixels = 360, ExcelChartType type = ColumnClustered, string title = null, bool includeCachedData = True)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddChart(OfficeChartType type, string rangeOrTable | IEnumerable<T> data, ..., OfficeLength? width = null, OfficeLength? height = null) : ExcelChart",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddChart(OfficeChartType type, string rangeOrTable, OfficeChartOptions? options = null) : ExcelChart",
       "reason": "Typed AddChart with the shared OfficeChartType; sizes in OfficeLength.",
       "file": "OfficeIMO.Excel/ExcelSheet.Charts.cs",
       "category": "authoring",
-      "notes": "ExcelChartType becomes OfficeChartType; widthPixels/heightPixels become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddChartFromTable(... OfficeLength ...)",
+      "notes": "live A1/table links HasHeaders for A1; native schema for tables IncludeCachedData title and physical placement Headerless native tables retain TableColumns series names independently of numeric caches; linked formulas and totals offsets remain unchanged. Remediation source awaits primary qualification.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Chart sizes use OfficeLength on native chart-data and shared-data entry points. The range/table authoring consolidation and shared chart options/order remain pending."
+      "applied": "phase-b-applied",
+      "note": "Native AddChart accepts the shared type, source and OfficeChartOptions. Structured AddTable returns the attached table; WriteData retains plain-cell insertion. Column selectors apply projection before reads and native bounds, check cancellation before formatting, and preserve single enumeration. Typed table columns fit by default without replacing explicit widths; PowerShell retains its AutoFit switch behavior. Native headerless series names survive independently of numeric caches and TryGetData retains them after reload. Focused native regression coverage passes on net10.0; other framework and module qualification is tracked separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.InsertDataTable(DataTable table, int startRow = 1, int startColumn = 1, bool includeHeaders = True, ExcelExecutionMode? mode = null, CancellationToken ct = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddTable(DataTable table, OfficeTableOptions options = null) : ExcelTable",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddTable(DataTable data, OfficeTableOptions? options = null, int row = 1, int column = 1) : ExcelTable; WriteData(DataTable data, int row = 1, int column = 1, bool includeHeaders = true, ExcelExecutionMode? mode = null, CancellationToken cancellationToken = default) : void",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.DataTable.cs",
       "category": "authoring",
-      "notes": "InsertDataTable returns void; InsertDataTableAsTable returns the table name.",
+      "notes": "structured AddTable returns attached ExcelTable plain-cell WriteData preserves offsets, headers, types, policy and cancellation The old method creates no table. Data-only callers must select WriteData rather than silently receiving styling, native table structure, filter or freeze defaults.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Native AddChart accepts the shared type, source and OfficeChartOptions. Structured AddTable returns the attached table; WriteData retains plain-cell insertion. Column selectors apply projection before reads and native bounds, check cancellation before formatting, and preserve single enumeration. Typed table columns fit by default without replacing explicit widths; PowerShell retains its AutoFit switch behavior. Native headerless series names survive independently of numeric caches and TryGetData retains them after reload. Focused native regression coverage passes on net10.0; other framework and module qualification is tracked separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.InsertDataTableAsTable(DataTable table, int startRow = 1, int startColumn = 1, bool includeHeaders = True, string tableName = null, ExcelTableStyle style = TableStyleMedium2, bool includeAutoFilter = True, ExcelExecutionMode? mode = null, CancellationToken ct = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddTable(DataTable table, OfficeTableOptions options = null) : ExcelTable",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddTable(DataTable data, OfficeTableOptions? options = null, int row = 1, int column = 1) : ExcelTable",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Excel/ExcelSheet.DataTable.Tables.cs",
       "category": "authoring",
-      "notes": "InsertDataTable returns void; InsertDataTableAsTable returns the table name.",
+      "notes": "attached table, NameOrRange and Range headers, name, native style and filter ExcelTableOptions.ExecutionMode and CancellationToken ExcelTableOptions.AutoFit defaults to true. Mechanical PowerShell callers set AutoFit=false and use the internal default-headerless-column-name path, preserving their existing switch gates and positional append contract. Remediation source awaits primary qualification.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Native AddChart accepts the shared type, source and OfficeChartOptions. Structured AddTable returns the attached table; WriteData retains plain-cell insertion. Column selectors apply projection before reads and native bounds, check cancellation before formatting, and preserve single enumeration. Typed table columns fit by default without replacing explicit widths; PowerShell retains its AutoFit switch behavior. Native headerless series names survive independently of numeric caches and TryGetData retains them after reload. Focused native regression coverage passes on net10.0; other framework and module qualification is tracked separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageAt(int row, int column, byte[] imageBytes, string contentType = image/png, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0)",
@@ -2132,52 +2132,52 @@
       "old": "OfficeIMO.Excel.ExcelSheet.InsertObjects<T>(IEnumerable<T> items, bool includeHeaders = True, int startRow = 1)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) : ExcelTable",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions? options = null, int row = 1, int column = 1) : ExcelTable; WriteData<T>(IEnumerable<T> data, bool includeHeaders = true, int row = 1) : void",
       "reason": "Typed data in, styled output out.",
       "file": "OfficeIMO.Excel/ExcelSheet.ObjectInsertion.cs",
       "category": "authoring",
-      "notes": "InsertObjects writes a plain range without a table; a plain-range mode can be OfficeTableOptions/ExcelTableOptions.AsRange if still needed.",
+      "notes": "typed/flattened structured tables through AddTable old runtime flattening, dictionary/PowerShell graph handling and plain writes through WriteData Use the existing typed-table owner for structured authoring. Keep the runtime plain-cell owner rather than discarding flattening or forcing tables on data-only consumers.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Native AddChart accepts the shared type, source and OfficeChartOptions. Structured AddTable returns the attached table; WriteData retains plain-cell insertion. Column selectors apply projection before reads and native bounds, check cancellation before formatting, and preserve single enumeration. Typed table columns fit by default without replacing explicit widths; PowerShell retains its AutoFit switch behavior. Native headerless series names survive independently of numeric caches and TryGetData retains them after reload. Focused native regression coverage passes on net10.0; other framework and module qualification is tracked separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.InsertObjects<T>(IEnumerable<T> items, ValueTuple<string, Func<T, object>>[] columns)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) : ExcelTable",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddTable<T>(IEnumerable<T> rows, (string Header, Func<T, object?> Selector)[] columns, OfficeTableOptions? options = null, int row = 1, int column = 1) : ExcelTable; WriteData<T>(IEnumerable<T> data, params (string Header, Func<T, object?> Selector)[] columns) : void",
       "reason": "Typed data in, styled output out.",
       "file": "OfficeIMO.Excel/ExcelSheet.ObjectInsertion.cs",
       "category": "authoring",
-      "notes": "InsertObjects writes a plain range without a table; a plain-range mode can be OfficeTableOptions/ExcelTableOptions.AsRange if still needed.",
+      "notes": "AOT-safe explicit selectors single enumeration headerless/offset plain writes duplicate/blank display headers and null/DBNull/empty-string distinctions through WriteData Selectors survive under structured AddTable and plain WriteData. Native table headers must be named uniquely; plain-cell headers remain unrestricted. Resolve Include/Exclude/Order before selector reads and bounds; retain original member keys for downstream headers and formatting exactly once. Bounded source enumeration observes the supplied cancellation token between MoveNext calls. Remediation source awaits primary qualification.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Native AddChart accepts the shared type, source and OfficeChartOptions. Structured AddTable returns the attached table; WriteData retains plain-cell insertion. Column selectors apply projection before reads and native bounds, check cancellation before formatting, and preserve single enumeration. Typed table columns fit by default without replacing explicit widths; PowerShell retains its AutoFit switch behavior. Native headerless series names survive independently of numeric caches and TryGetData retains them after reload. Focused native regression coverage passes on net10.0; other framework and module qualification is tracked separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.InsertObjects<T>(IEnumerable<T> items, bool includeHeaders, int startRow, ValueTuple<string, Func<T, object>>[] columns)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) : ExcelTable",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddTable<T>(IEnumerable<T> rows, (string Header, Func<T, object?> Selector)[] columns, OfficeTableOptions? options = null, int row = 1, int column = 1) : ExcelTable; WriteData<T>(IEnumerable<T> data, bool includeHeaders, int row, params (string Header, Func<T, object?> Selector)[] columns) : void",
       "reason": "Typed data in, styled output out.",
       "file": "OfficeIMO.Excel/ExcelSheet.ObjectInsertion.cs",
       "category": "authoring",
-      "notes": "InsertObjects writes a plain range without a table; a plain-range mode can be OfficeTableOptions/ExcelTableOptions.AsRange if still needed.",
+      "notes": "AOT-safe explicit selectors single enumeration headerless/offset plain writes duplicate/blank display headers and null/DBNull/empty-string distinctions through WriteData Selectors survive under structured AddTable and plain WriteData. Native table headers must be named uniquely; plain-cell headers remain unrestricted. Resolve Include/Exclude/Order before selector reads and bounds; retain original member keys for downstream headers and formatting exactly once. Bounded source enumeration observes the supplied cancellation token between MoveNext calls. Remediation source awaits primary qualification.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Native AddChart accepts the shared type, source and OfficeChartOptions. Structured AddTable returns the attached table; WriteData retains plain-cell insertion. Column selectors apply projection before reads and native bounds, check cancellation before formatting, and preserve single enumeration. Typed table columns fit by default without replacing explicit widths; PowerShell retains its AutoFit switch behavior. Native headerless series names survive independently of numeric caches and TryGetData retains them after reload. Focused native regression coverage passes on net10.0; other framework and module qualification is tracked separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddChart(OfficeChartKind chartKind, OfficeChartData data, int row, int column, int widthPixels = 640, int heightPixels = 360, string title = null)",
@@ -6301,6 +6301,38 @@
       "file": "OfficeIMO.Excel/ExcelImageOptions.cs",
       "applied": "phase-b-applied",
       "note": "Copied/transposed native images use private native writers and preserve signed offsets, crop, flip and hyperlink relationships.13newnativecasesand516relatedcases pass net10.0. Compiled PowerShell names/parameters/aliases remain unchanged; single-cell Range is normalized to an explicit same-cell range before forwarding."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "ExcelSheet.AddTable<T>/AddTable(DataTable) leaves typed table columns at default worksheet widths",
+      "new": "Fit projected table columns while preserving existing explicit native widths; apply explicit table alignments last",
+      "reason": "Default typed table output keeps long header/body text visible without resizing unrelated columns.",
+      "files": [
+        "OfficeIMO.Excel/ExcelSheet.TypedTableDefaults.cs",
+        "OfficeIMO.Excel/ExcelSheet.TypedTables.cs"
+      ],
+      "applied": "phase-b-applied",
+      "note": "Fit only the projected table columns under the existing workbook write lock. Explicit stored widths remain authoritative; prior best-fit widths remain eligible. Native typed-table/default-width and table-then-chart preservation suite: 13 passed on net10.0. Preserve the shared print-default owner at integration."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "mapExtraChange": true,
+      "subject": "Excel native authoring review remediation",
+      "new": "ExcelTableOptions.AutoFit defaults to true; internal positional-name wiring preserves migrated PowerShell semantics; cancellation fixtures use the existing unfitted/deferred insertion owner.",
+      "files": [
+        "OfficeIMO.Excel/ExcelTableOptions.cs",
+        "OfficeIMO.Excel/ExcelSheet.TypedTableDefaults.cs",
+        "OfficeIMO.Excel/ExcelSheet.TypedTables.cs",
+        "OfficeIMO.Excel.Tests/Excel.AutoFit.Cancellation.cs",
+        "OfficeIMO.Excel.Tests/Excel.ColumnDefinitions.Cancellation.cs",
+        "OfficeIMO.Excel.Tests/Excel.DataTableInsert.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelTableCommand.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelCommand.cs"
+      ],
+      "applied": "phase-b-pending",
+      "note": "Six source-reviewed findings remediated in the primary worktree. New regression source and two expanded native cases are prepared; no remediation build, restore, test or review confirmation has run. Prior 38 green cases predate these fixes."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

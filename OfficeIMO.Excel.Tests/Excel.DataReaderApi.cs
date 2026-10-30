@@ -829,10 +829,7 @@ public partial class Excel {
     public void CreateDataReader_PreCancelledOpenDocumentDoesNotMaterializeDeferredRows() {
         using var document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.InsertObjects(
-            new[] { new { Name = "North", Score = 10 } },
-            ("Name", row => row.Name),
-            ("Score", row => row.Score));
+        sheet.WriteData(new[] { new { Name = "North", Score = 10 } }, ("Name", row => row.Name), ("Score", row => row.Score));
         Assert.True(document.HasDeferredDirectDataSetImport);
 
         using var cancellation = new CancellationTokenSource();

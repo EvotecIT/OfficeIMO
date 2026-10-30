@@ -459,7 +459,7 @@ namespace OfficeIMO.Tests
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
-                document.Sheets[0].InsertDataTable(table, startRow: 2, startColumn: 1);
+                document.Sheets[0].WriteData(table, row: 2, column: 1);
                 document.Save();
             }
 
@@ -549,7 +549,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertDataTable(table);
+                sheet.WriteData(table);
 
                 document.Save(memory);
 
@@ -612,7 +612,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
                 sheet.CellValues(seedCells);
-                sheet.InsertObjects(rows);
+                sheet.WriteData(rows);
 
                 document.Save(memory);
             }
@@ -995,7 +995,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertDataTable(table);
+                sheet.WriteData(table);
 
                 document.Save(memory);
 
@@ -2586,8 +2586,8 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertDataTable(CreateSingleColumnDataTable("First", "Alpha"));
-                sheet.InsertDataTable(CreateSingleColumnDataTable("Second", "Beta"), startRow: 3, includeHeaders: false);
+                sheet.WriteData(CreateSingleColumnDataTable("First", "Alpha"));
+                sheet.WriteData(CreateSingleColumnDataTable("Second", "Beta"), row: 3, includeHeaders: false);
 
                 document.Save(memory);
 
@@ -2608,7 +2608,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertDataTable(CreateSingleColumnDataTable("Items", "Alpha"));
+                sheet.WriteData(CreateSingleColumnDataTable("Items", "Alpha"));
 
                 Assert.True(sheet.TryGetColumnIndexByHeader("Name", out int columnIndex));
                 Assert.Equal(1, columnIndex);
@@ -2629,8 +2629,8 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertDataTable(CreateSingleColumnDataTable("First", "Alpha"));
-                sheet.InsertDataTable(CreateSingleColumnDataTable("Second", "Beta"), startRow: 3, includeHeaders: false, mode: ExcelExecutionMode.Parallel);
+                sheet.WriteData(CreateSingleColumnDataTable("First", "Alpha"));
+                sheet.WriteData(CreateSingleColumnDataTable("Second", "Beta"), row: 3, includeHeaders: false, mode: ExcelExecutionMode.Parallel);
 
                 document.Save(memory);
 
@@ -2651,7 +2651,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertDataTable(CreateSingleColumnDataTable("First", "Alpha"));
+                sheet.WriteData(CreateSingleColumnDataTable("First", "Alpha"));
                 using var reader = CreateSingleColumnDataTable("Second", "Beta").CreateDataReader();
                 sheet.InsertDataReader(reader, startRow: 3, includeHeaders: false, createTable: false);
 
@@ -2955,10 +2955,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
 
                 document.Save(memory);
 
@@ -2985,10 +2982,7 @@ namespace OfficeIMO.Tests
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
 
                 document.Save(memory);
 
@@ -3006,9 +3000,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score));
 
                 rows[0].Name = "Changed";
                 rows[0].Score = 99;
@@ -3035,7 +3027,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("", row => row.Name));
+                sheet.WriteData(rows, ("", row => row.Name));
 
                 Assert.True(sheet.TryGetCellText(1, 1, out string? header));
                 Assert.Equal(string.Empty, header);
@@ -3062,7 +3054,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows);
+                sheet.WriteData(rows);
 
                 Assert.True(sheet.TryGetCellText(1, 1, out string? header));
                 Assert.Equal(" ", header);
@@ -3100,7 +3092,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows);
+                sheet.WriteData(rows);
                 rows[0]["Name"] = "Changed after InsertObjects";
                 rows[1]["Score"] = 99;
                 rows[1]["Active"] = false;
@@ -3144,7 +3136,7 @@ namespace OfficeIMO.Tests
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AddSheet("Data").InsertObjects(rows);
+                document.AddSheet("Data").WriteData(rows);
                 rows[0]["Name"] = "Changed after InsertObjects";
                 rows[1]["Score"] = 99;
 
@@ -3178,7 +3170,7 @@ namespace OfficeIMO.Tests
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AddSheet("Data").InsertObjects(rows);
+                document.AddSheet("Data").WriteData(rows);
                 document.Save(memory);
 
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
@@ -3207,7 +3199,7 @@ namespace OfficeIMO.Tests
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AddSheet("Data").InsertObjects(rows);
+                document.AddSheet("Data").WriteData(rows);
                 document.Save(memory);
             }
 
@@ -3243,7 +3235,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows);
+                sheet.WriteData(rows);
                 sheet.AutoFitColumnsFor(new[] { 1, 3 });
 
                 document.Save(memory);
@@ -3288,7 +3280,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows);
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -3323,7 +3315,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows);
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -3357,7 +3349,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows);
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -3388,7 +3380,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows);
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -3418,7 +3410,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows);
+                sheet.WriteData(rows);
 
                 rows[0].Name = "Changed";
                 rows[0].Score = 99;
@@ -3447,7 +3439,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
                 sheet.CellValue(5, 5, "Manual edit");
-                sheet.InsertObjects(rows);
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -3478,7 +3470,7 @@ namespace OfficeIMO.Tests
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows);
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -3496,10 +3488,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.CellValue(4, 1, "Manual edit");
 
                 document.Save(memory);
@@ -3524,10 +3513,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C3", hasHeader: true, name: "Object Sales", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
 
                 document.Save(memory);
@@ -3561,10 +3547,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C3", hasHeader: true, name: "Object Sales", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AutoFitColumns();
 
@@ -3599,10 +3582,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AutoFitColumnsFor(new[] { 1, 2, 3 });
 
                 document.Save(memory);
@@ -3636,10 +3616,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AutoFitColumnsFor(new[] { 1, 3 });
 
                 document.Save(memory);
@@ -3674,10 +3651,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AutoFitColumn(2);
 
                 document.Save(memory);
@@ -3732,7 +3706,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows);
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -3777,7 +3751,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows);
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -3817,7 +3791,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows);
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -3867,7 +3841,7 @@ namespace OfficeIMO.Tests
                 document.Execution.OnDecision = (operation, _, mode) => {
                     if (operation == "InsertObjects.PowerShellProjection") decidedMode = mode;
                 };
-                document.AddSheet("Data").InsertObjects(rows);
+                document.AddSheet("Data").WriteData(rows);
                 document.Save(memory);
             }
 
@@ -3898,7 +3872,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows);
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -3946,7 +3920,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows);
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -3975,7 +3949,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows);
+                sheet.WriteData(rows);
 
                 document.Save(memory);
 
@@ -4006,10 +3980,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AutoFitColumnsFor(new[] { 1 });
 
                 document.Save(memory);
@@ -4040,10 +4011,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddConditionalRule("B2:B4", ExcelConditionalFormattingOperator.GreaterThan, "15");
                 sheet.AddConditionalColorScale("B2:B4", OfficeIMO.OfficeColor.LightPink, OfficeIMO.OfficeColor.LightGreen);
                 sheet.AddConditionalDataBar("B2:B4", OfficeIMO.OfficeColor.SteelBlue);
@@ -4088,10 +4056,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
                 sheet.SetGridlinesVisible(false);
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.Freeze(topRows: 1, leftCols: 1);
 
                 document.Save(memory);
@@ -4123,15 +4088,12 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 var chartData = new ExcelChartData(
                     rows.Select(row => row.Name),
                     new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
 
-                sheet.AddChart(chartData, row: 6, column: 5, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(280), type: OfficeChartType.ColumnClustered, title: "Scores");
+                sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 6, Column = 5, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(280), Title = "Scores" });
 
                 document.Save(memory);
 
@@ -4163,9 +4125,9 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream()))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
-                sheet.AddChartFromRange("A1:B4", row: 2, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(280), type: OfficeChartType.ColumnClustered, title: "Scores", includeCachedData: false);
+                sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(280), Title = "Scores", IncludeCachedData = false });
                 sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 document.Save(memory);
                 Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
@@ -4198,9 +4160,9 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream()))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 var chartData = new ExcelChartData(rows.Select(row => row.Name), new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
-                sheet.AddChart(chartData, row: 2, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(280), type: OfficeChartType.ColumnClustered, title: "Scores");
+                sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(280), Title = "Scores" });
                 sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 document.Save(memory);
                 Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
@@ -4228,11 +4190,11 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream()))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 var chartData = new ExcelChartData(rows.Select(row => row.Name), new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
-                sheet.AddChart(chartData, row: 2, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(280), type: OfficeChartType.ColumnClustered, title: "Scores");
+                sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(280), Title = "Scores" });
                 sheet.CellValue(rows.Length + 4, 1, "Manual note after report features");
                 document.Save(memory);
                 Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
@@ -4259,10 +4221,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
 
                 var relationship = sheet.WorksheetPart.AddHyperlinkRelationship(new Uri("https://example.org/deferred"), true);
@@ -4282,7 +4241,7 @@ namespace OfficeIMO.Tests
                 var chartData = new ExcelChartData(
                     rows.Select(row => row.Name),
                     new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
-                sheet.AddChart(chartData, row: 2, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(280), type: OfficeChartType.ColumnClustered, title: "Scores");
+                sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(280), Title = "Scores" });
 
                 document.Save(memory);
             }
@@ -4314,7 +4273,7 @@ namespace OfficeIMO.Tests
                 var customPart = document._spreadSheetDocument.AddCustomFilePropertiesPart();
                 customPart.Properties = new DocumentFormat.OpenXml.CustomProperties.Properties(new DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty(new Vt.VTLPWSTR("preserved")) { FormatId = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}", PropertyId = 2, Name = "OfficeIMOReview" });
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 sheet.CellValue(2, 4, 123.45d);
@@ -4345,10 +4304,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
 
                 Assert.True(document.HasDeferredDirectDataSetImport);
 
@@ -4383,10 +4339,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.CellValue(2, 4, 123.45d);
                 sheet.CellAt(2, 4).SetNumberFormat("0.00");
                 sheet.CellValue(2, 5, 45000d);
@@ -4433,10 +4386,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.CellValue(2, 4, "Styled side note");
 
                 uint styleIndex = AddBoldCellStyle(document._spreadSheetDocument);
@@ -4462,10 +4412,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.CellValue(2, 4, "Styled side note");
 
                 uint styleIndex = AddBoldCellStyle(document._spreadSheetDocument);
@@ -4490,10 +4437,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.CellValue(2, 4, "Styled side note");
 
                 uint styleIndex = AddBoldCellStyle(document._spreadSheetDocument);
@@ -4503,7 +4447,7 @@ namespace OfficeIMO.Tests
                 var chartData = new ExcelChartData(
                     rows.Select(row => row.Name),
                     new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
-                sheet.AddChart(chartData, row: 2, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(280), type: OfficeChartType.ColumnClustered, title: "Scores");
+                sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(280), Title = "Scores" });
 
                 document.Save(memory);
             }
@@ -4523,10 +4467,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.CellValue(2, 4, "Manual");
 
                 document.Save(firstMemory);
@@ -4562,7 +4503,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream()))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 sheet.CellValue(10, 4, "Manual");
@@ -4596,7 +4537,7 @@ namespace OfficeIMO.Tests
                 using (var document = ExcelDocument.Create(new MemoryStream()))
                 {
                     var sheet = document.AddSheet("Data");
-                    sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                    sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                     sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                     sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                     document.Save(path, null);
@@ -4633,7 +4574,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream()))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 document.Save(stream);
@@ -4671,9 +4612,9 @@ namespace OfficeIMO.Tests
                 chartSheet.CellValue(3, 2, 20);
                 chartSheet.CellValue(4, 1, "East");
                 chartSheet.CellValue(4, 2, 30);
-                chartSheet.AddChartFromRange("A1:B4", row: 2, column: 5, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(280), type: OfficeChartType.ColumnClustered, title: "Scores", includeCachedData: false);
+                chartSheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 5, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(280), Title = "Scores", IncludeCachedData = false });
                 var dataSheet = document.AddSheet("Data");
-                dataSheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                dataSheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 dataSheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 dataSheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 document.Save(memory);
@@ -4708,7 +4649,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream()))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
@@ -4747,7 +4688,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream()))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 sheet.CellValue(2, 4, string.Empty);
@@ -4788,7 +4729,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream()))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 sheet.CellValue(2, 4, "Compact side note");
@@ -4823,7 +4764,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream()))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 sheet.CellValue(2, 2, 42);
@@ -4939,15 +4880,12 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 var chartData = new ExcelChartData(
                     rows.Select(row => row.Name),
                     new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
 
-                sheet.AddChart(chartData, row: 1, column: 6, width: OfficeLength.Pixels(360), height: OfficeLength.Pixels(240), type: OfficeChartType.ColumnClustered, title: "Styled");
+                sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(240), Title = "Styled" });
 
                 document.Save(memory);
 
@@ -4986,10 +4924,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C3", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AutoFitColumns();
                 sheet.Freeze(topRows: 1, leftCols: 1);
@@ -5034,10 +4969,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C3", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AutoFitColumns();
                 sheet.Freeze(topRows: 1, leftCols: 1);
@@ -5081,10 +5013,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C3", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AutoFitColumns();
                 sheet.ColumnStyleByHeader("Score").NumberFormat("#,##0.000");
@@ -5115,10 +5044,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.ColumnStyleByHeader("Score").NumberFormat("#,##0.000");
                 sheet.AddTable("A1:C3", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AutoFitColumns();
@@ -5148,7 +5074,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("Total   Amount ", row => row.Score));
+                sheet.WriteData(rows, ("Total   Amount ", row => row.Score));
                 sheet.ColumnStyleByHeader("Total Amount").NumberFormat("0.00");
 
                 document.Save(memory);
@@ -5213,10 +5139,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.ColumnStyleByHeader("Score", includeHeader: true).NumberFormat("#,##0.000");
 
                 document.Save(memory);
@@ -5242,15 +5165,12 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 var chartData = new ExcelChartData(
                     rows.Select(row => row.Name),
                     new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
-                sheet.AddChart(chartData, row: 2, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(280), type: OfficeChartType.ColumnClustered, title: "Scores");
+                sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(280), Title = "Scores" });
                 sheet.ColumnStyleByHeader("Score").NumberFormat("#,##0.000");
 
                 document.Save(memory);
@@ -5308,10 +5228,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C3", hasHeader: true, name: "FilteredReport", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AddAutoFilter("A1:C3", new Dictionary<uint, IEnumerable<string>> {
                     { 0U, new[] { "Alpha" } }
@@ -5343,10 +5260,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C3", hasHeader: true, name: "FilteredReport", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: false);
                 sheet.AddAutoFilter("A1:C3");
 
@@ -5375,10 +5289,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 var worksheet = sheet.WorksheetPart.Worksheet;
                 worksheet.InsertBefore(new SheetFormatProperties {
                     DefaultRowHeight = 21D,
@@ -5409,10 +5320,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.3D), OfficeLength.Inches(0.3D));
                 sheet.SetOrientation(OfficePageOrientation.Landscape);
                 sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
@@ -5447,7 +5355,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream()))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddPivotTable("A1:C4", "E2", options: new ExcelPivotTableOptions { Name = "ScorePivot", RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 document.Save(memory);
                 Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
@@ -5486,7 +5394,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream()))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddPivotTable("A1:C4", "E2", options: new ExcelPivotTableOptions { Name = "ScorePivot", RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 var relationship = sheet.WorksheetPart.AddHyperlinkRelationship(new Uri("https://example.org/pivot-fallback"), true);
                 var hyperlinks = sheet.WorksheetPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
@@ -5528,7 +5436,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream()))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Note", row => row.Note));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Note", row => row.Note));
                 sheet.AddPivotTable("A1:C3", "E2", options: new ExcelPivotTableOptions { SaveSourceData = true, Name = "ScorePivot", RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") }, CalculatedFields = new[] { new ExcelPivotCalculatedField("DoubleScore", "'Score' * 2") } });
                 document.Save(memory);
             }
@@ -5555,7 +5463,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream()))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddPivotTable("A1:C5001", "E2", options: new ExcelPivotTableOptions { Name = "ScorePivot", RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 document.Save(memory);
             }
@@ -5590,7 +5498,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream()))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.CellValue(2, 4, 0);
                 sheet.CellValue(2, 5, 0);
                 var cells = sheet.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
@@ -5627,7 +5535,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream()))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddPivotTable("A1:C4", "E2", options: new ExcelPivotTableOptions { Name = "ScorePivot", RowFields = new[] { "Score" }, DataFields = new[] { new ExcelPivotDataField("Name", ExcelPivotDataFunction.Count, "Name Count") } });
                 document.Save(memory);
             }
@@ -5656,7 +5564,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream()))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddPivotTable("A1:C4", "E2", options: new ExcelPivotTableOptions { Name = "CreatedPivot", RowFields = new[] { "Created" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") }, Groupings = new[] { ExcelPivotGrouping.DateHierarchy("Created", ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Months) } });
                 document.Save(memory);
             }
@@ -5716,7 +5624,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream()))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddPivotTable("A1:C51", "E2", options: new ExcelPivotTableOptions { Name = "ScorePivot", RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 document.Save(memory);
             }
@@ -5740,9 +5648,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Name", row => row.Score));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Name", row => row.Score));
                 sheet.AddTable("A1:B2", hasHeader: true, name: "DuplicateHeaders", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
 
                 document.Save(memory);
@@ -5807,10 +5713,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score),
-                    ("Created", row => row.Created));
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C2", hasHeader: true, name: "ObjectSales", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.CellValue(4, 1, "Manual edit");
 
@@ -6074,9 +5977,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertDataTable(
-                    table,
-                    mode: requestParallel ? ExcelExecutionMode.Parallel : null);
+                sheet.WriteData(table, mode: requestParallel ? ExcelExecutionMode.Parallel : null);
 
                 document.Save(memory);
 
@@ -6107,7 +6008,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertDataTable(table);
+                sheet.WriteData(table);
 
                 document.Save(memory);
 
@@ -6134,7 +6035,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertDataTable(table);
+                sheet.WriteData(table);
                 sheet.CellValue(5, 1, "Manual edit");
 
                 document.Save(memory);
@@ -6162,7 +6063,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertDataTable(table, includeHeaders: false);
+                sheet.WriteData(table, includeHeaders: false);
 
                 document.Save(memory);
 
@@ -6190,7 +6091,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertDataTable(table, includeHeaders: false);
+                sheet.WriteData(table, includeHeaders: false);
                 sheet.AddTable("A1:B1", hasHeader: false, name: "HeaderlessSales", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9, includeAutoFilter: true);
 
                 document.Save(memory);
@@ -6222,9 +6123,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertDataTable(
-                    table,
-                    mode: requestParallel ? ExcelExecutionMode.Parallel : null);
+                sheet.WriteData(table, mode: requestParallel ? ExcelExecutionMode.Parallel : null);
                 table.Rows[0]["Name"] = "Changed";
                 table.Rows.Add("Late", 20);
 
@@ -6252,7 +6151,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertDataTable(table, mode: ExcelExecutionMode.Parallel);
+                sheet.WriteData(table, mode: ExcelExecutionMode.Parallel);
                 mutableValue.Clear().Append("Changed");
 
                 document.Save(memory);
@@ -6280,7 +6179,7 @@ namespace OfficeIMO.Tests
             var sheet = document.AddSheet("Data");
 
             var exception = Assert.Throws<InvalidOperationException>(() =>
-                sheet.InsertDataTable(table, mode: ExcelExecutionMode.Parallel));
+                sheet.WriteData(table, mode: ExcelExecutionMode.Parallel));
 
             Assert.Equal("Synthetic conversion failure.", exception.Message);
             Assert.Equal(1, value.InvocationCount);
@@ -6296,7 +6195,7 @@ namespace OfficeIMO.Tests
             var sheet = document.AddSheet("Data");
 
             var exception = Assert.Throws<ArgumentException>(() =>
-                sheet.InsertDataTable(table, mode: ExcelExecutionMode.Parallel));
+                sheet.WriteData(table, mode: ExcelExecutionMode.Parallel));
 
             Assert.Equal("value", exception.ParamName);
         }
@@ -6311,7 +6210,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertDataTable(table);
+                sheet.WriteData(table);
                 sheet.CellValue(5, 1, "Manual edit");
 
                 document.Save(memory);
@@ -6336,7 +6235,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
                 sheet.SetHidden(true);
-                sheet.InsertDataTable(table);
+                sheet.WriteData(table);
 
                 document.Save(memory);
 

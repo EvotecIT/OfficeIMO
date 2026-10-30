@@ -1671,7 +1671,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Data");
-            sheet.InsertDataTable(dataTable);
+            sheet.WriteData(dataTable);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "DataTable comparison");
         }
@@ -1686,7 +1686,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Data");
-            sheet.InsertDataTableAsTable(dataTable, tableName: "SalesData", style: ExcelTableStyle.TableStyleMedium2);
+            sheet.AddTable(dataTable, new OfficeIMO.Excel.ExcelTableOptions { Name = "SalesData", Style = ExcelTableStyle.TableStyleMedium2 }, row: 1, column: 1);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "DataTable table comparison");
         }
@@ -1842,7 +1842,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Data");
-            sheet.InsertObjects(rows);
+            sheet.WriteData(rows);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "2023 blog-style 20 string column comparison");
         }
@@ -1948,7 +1948,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Data");
-            sheet.InsertObjects(rows);
+            sheet.WriteData(rows);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "InsertObjects flat dictionary comparison");
         }
@@ -1995,7 +1995,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using (var document = ExcelDocument.Create(stream)) {
             document.Execution.SaveWorksheetAfterAutoFit = false;
             var sheet = document.AddSheet("Data");
-            sheet.InsertObjects(rows);
+            sheet.WriteData(rows);
             sheet.AutoFitColumnsFor(Enumerable.Range(1, 8));
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "InsertObjects flat dictionary AutoFitColumnsFor comparison");
@@ -2011,7 +2011,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Data");
-            sheet.InsertObjects(rows);
+            sheet.WriteData(rows);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "InsertObjects PowerShell mixed comparison");
         }
@@ -2026,7 +2026,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Data");
-            sheet.InsertObjects(rows);
+            sheet.WriteData(rows);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "InsertObjects PSObject mixed comparison");
         }
@@ -2041,7 +2041,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Data");
-            sheet.InsertObjects(rows);
+            sheet.WriteData(rows);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "InsertObjects PSObject wide comparison");
         }

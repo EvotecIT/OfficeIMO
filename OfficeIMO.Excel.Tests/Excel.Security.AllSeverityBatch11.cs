@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
             ExcelSheet sheet = document.AddSheet("Sales");
-            sheet.InsertDataTableAsTable(CreateSalesTable(), tableName: "SalesTable");
+            sheet.AddTable(CreateSalesTable(), new OfficeIMO.Excel.ExcelTableOptions { Name = "SalesTable" }, row: 1, column: 1);
 
             SheetData sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             sheetData.Append(new Row { RowIndex = uint.MaxValue });
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
             ExcelSheet sheet = document.AddSheet("Sales");
-            sheet.InsertDataTableAsTable(CreateSalesTable(), tableName: "SalesTable");
+            sheet.AddTable(CreateSalesTable(), new OfficeIMO.Excel.ExcelTableOptions { Name = "SalesTable" }, row: 1, column: 1);
             sheet.WorksheetPart.Worksheet.AppendChild(new Hyperlinks(new Hyperlink { Reference = "A3" }));
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
             ExcelSheet sheet = document.AddSheet("Sales");
-            sheet.InsertDataTableAsTable(CreateSalesTable(), tableName: "SalesTable");
+            sheet.AddTable(CreateSalesTable(), new OfficeIMO.Excel.ExcelTableOptions { Name = "SalesTable" }, row: 1, column: 1);
 
             var hostileRow = new Row(new Cell {
                 CellReference = "A3",

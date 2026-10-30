@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
                 if (route == "dataset") document.InsertDataSet(dataSet, ct: cancellation.Token);
                 else if (route == "replace-table") sheet.InsertDataTableAsTable(next, ct: cancellation.Token);
                 else if (route == "append-table") sheet.AppendDataTableToTable(next, "Existing", ct: cancellation.Token);
-                else sheet.InsertDataTable(next, startRow: route == "append" ? 10 : 1, ct: cancellation.Token);
+                else sheet.WriteData(next, row: route == "append" ? 10 : 1, cancellationToken: cancellation.Token);
             });
 
             Assert.Equal(cancellation.Token, error.CancellationToken);
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
             using var prior = new DataTable("Prior");
             prior.Columns.Add("Original", typeof(string));
             prior.Rows.Add("Existing deferred value");
-            sheet.InsertDataTable(prior);
+            sheet.WriteData(prior);
             using DataTable table = Dates();
             table.Columns.Add("Description", typeof(string));
             for (int row = 0; row < table.Rows.Count; row++) table.Rows[row][1] = "Later cell " + row;

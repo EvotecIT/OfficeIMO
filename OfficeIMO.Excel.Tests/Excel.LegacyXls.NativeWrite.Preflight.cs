@@ -1867,7 +1867,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 2, 10d);
                 sheet.CellValue(3, 1, "Feb");
                 sheet.CellValue(3, 2, 15d);
-                sheet.AddChartFromRange("A1:B3", 1, 4, type: OfficeChartType.ColumnClustered, hasHeaders: true, title: "Chart");
+                sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, HasHeaders = true, Title = "Chart" });
             });
         }
 

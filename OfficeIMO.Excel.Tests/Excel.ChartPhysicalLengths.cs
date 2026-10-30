@@ -14,9 +14,8 @@ public sealed class ExcelChartPhysicalLengthTests {
         using var bytes = new MemoryStream();
         using (var book = ExcelDocument.Create()) {
             var sheet = book.AddSheet("Markers");
-            var chart = sheet.AddChart(new ExcelChartData(new[] { "First", "Next" },
-                new[] { new ExcelChartSeries("Revenue", new[] { 12.5, 19.75 }) }), 1, 1,
-                type: OfficeChartType.Line);
+            var chart = sheet.AddChart(OfficeChartType.Line, new ExcelChartData(new[] { "First", "Next" },
+                new[] { new ExcelChartSeries("Revenue", new[] { 12.5, 19.75 }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
             chart.SetSeriesMarker(0, OfficeChartMarkerShape.Circle, OfficeLength.Points(8),
                 fillColor: OfficeColor.Transparent, lineColor: OfficeColor.Transparent);
             book.Save(bytes);
@@ -44,9 +43,8 @@ public sealed class ExcelChartPhysicalLengthTests {
             var sheet = book.AddSheet("Report");
             sheet.SetMargins(OfficeLength.Centimeters(2.54), OfficeLength.Inches(0.5),
                 OfficeLength.Points(36), OfficeLength.Points(18));
-            var chart = sheet.AddChart(new ExcelChartData(new[] { "First", "Next" },
-                new[] { new ExcelChartSeries("Revenue", new[] { 12.5, 19.75 }) }), 2, 4,
-                OfficeLength.Emus(4750001), OfficeLength.Points(150.25), type: OfficeChartType.Line, title: "Revenue");
+            var chart = sheet.AddChart(OfficeChartType.Line, new ExcelChartData(new[] { "First", "Next" },
+                new[] { new ExcelChartSeries("Revenue", new[] { 12.5, 19.75 }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Width = OfficeLength.Emus(4750001), Height = OfficeLength.Points(150.25), Title = "Revenue" });
             chart.SetTitleTextStyle(fontSize: OfficeLength.Points(12.345), color: OfficeColor.Accent1);
             chart.SetSeriesLineColor(0, OfficeColor.FromRgba(12, 34, 56, 128), OfficeLength.Emus(19051));
             chart.SetSeriesMarker(0, OfficeChartMarkerShape.Circle, OfficeLength.Points(8.5));

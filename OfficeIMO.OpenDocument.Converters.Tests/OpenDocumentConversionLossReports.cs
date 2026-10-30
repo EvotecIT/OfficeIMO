@@ -79,16 +79,9 @@ public sealed class OpenDocumentConversionLossReportTests {
             Name = "SalesPivot",
             RowFields = new[] { "Region" }
         });
-        data.AddChart(
-            new ExcelChartData(
+        data.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(
                 new[] { "East" },
-                new[] { new ExcelChartSeries("Sales", new[] { 10d }) }),
-            row: 8,
-            column: 1,
-            width: OfficeLength.Pixels(500),
-            height: OfficeLength.Pixels(300),
-            type: OfficeChartType.ColumnClustered,
-            title: "Sales");
+                new[] { new ExcelChartSeries("Sales", new[] { 10d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 8, Column = 1, Width = OfficeLength.Pixels(500), Height = OfficeLength.Pixels(300), Title = "Sales" });
         source.AddWorkbookSlicerCache(new ExcelSlicerCacheOptions {
             Name = "RegionSlicer",
             SourceName = "Region"

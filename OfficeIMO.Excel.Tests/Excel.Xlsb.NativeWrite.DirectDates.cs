@@ -102,8 +102,7 @@ namespace OfficeIMO.Tests {
                 dataSet.Tables.Add(table);
                 document.InsertDataSet(dataSet, createTables: false, includeAutoFilter: false);
             } else {
-                document.AddSheet("Data").InsertObjects(rows,
-                    ("Name", static row => row.Name), ("When", static row => row.When), ("Value", static row => row.Value));
+                document.AddSheet("Data").WriteData(rows, ("Name", static row => row.Name), ("When", static row => row.When), ("Value", static row => row.Value));
             }
             return document;
         }

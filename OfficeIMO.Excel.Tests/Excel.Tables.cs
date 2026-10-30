@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.GetOrCreateSheet("Data", ExcelSheetNameValidationMode.Sanitize);
-                string range = sheet.InsertDataTableAsTable(table, tableName: "Sales", style: ExcelTableStyle.TableStyleMedium9);
+                string range = sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "Sales", Style = ExcelTableStyle.TableStyleMedium9 }, row: 1, column: 1).Range!;
                 sheet.SetTableStyle(
                     range,
                     ExcelTableStyle.TableStyleMedium9,

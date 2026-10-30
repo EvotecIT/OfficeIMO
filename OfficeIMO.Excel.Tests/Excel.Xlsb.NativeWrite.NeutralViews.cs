@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             table.Columns.Add("Label", typeof(string));
             table.Columns.Add("Count", typeof(int));
             table.Rows.Add("Retained label", 42);
-            sheet.InsertDataTable(table, includeHeaders: true);
+            sheet.WriteData(table, includeHeaders: true);
 
             byte[] bytes;
             if (route == 0) {

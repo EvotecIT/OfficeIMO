@@ -83,8 +83,8 @@ namespace OfficeIMO.Excel {
             int colorStyleId = options.ColorStyleId ?? preset.ColorStyleId;
 
             ExcelChart chart = !string.IsNullOrWhiteSpace(options.TableName)
-                ? AddChartFromTable(options.TableName!, options.Row, options.Column, width, height, chartType, options.Title, options.IncludeCachedData)
-                : AddChartFromRange(options.Range!, options.Row, options.Column, width, height, chartType, options.HasHeaders, options.Title, options.IncludeCachedData);
+                ? AddChart(chartType, options.TableName!, new OfficeIMO.Excel.ExcelChartOptions { Row = options.Row, Column = options.Column, Width = width, Height = height, Title = options.Title, IncludeCachedData = options.IncludeCachedData })
+                : AddChart(chartType, options.Range!, new OfficeIMO.Excel.ExcelChartOptions { Row = options.Row, Column = options.Column, Width = width, Height = height, HasHeaders = options.HasHeaders, Title = options.Title, IncludeCachedData = options.IncludeCachedData });
 
             chart.ApplyStylePreset(styleId, colorStyleId);
             if (preset.HideLegend) {

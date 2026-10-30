@@ -77,7 +77,7 @@ public sealed class OfficeTypedChartAuthoringTests {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Trend");
         var data = new ExcelChartData(new[] { "First", "Next" }, new[] { new ExcelChartSeries("Revenue", new[] { 1d, 2d }) });
-        Assert.Throws<NotSupportedException>(() => sheet.AddChart(data, 1, 1, type: type));
+        Assert.Throws<NotSupportedException>(() => sheet.AddChart(type, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 }));
         Assert.Single(document.Sheets);
         Assert.Empty(document.Inspect().Worksheets.Single().Cells);
         using var output = new MemoryStream();

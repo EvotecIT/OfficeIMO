@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
             table.Columns.Add("Value", typeof(int));
             table.Rows.Add(99);
             Assert.Throws<InvalidOperationException>(() =>
-                sheet.InsertDataTable(table, startRow: 2, startColumn: 8, includeHeaders: false));
+                sheet.WriteData(table, row: 2, column: 8, includeHeaders: false));
             document.RecalculateSupportedFormulas();
             Assert.True(sheet.TryGetCellText(2, 8, out var child));
             Assert.Equal("4", child);

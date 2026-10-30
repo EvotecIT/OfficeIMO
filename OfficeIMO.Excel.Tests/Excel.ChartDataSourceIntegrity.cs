@@ -13,7 +13,7 @@ public sealed class ExcelChartDataSourceIntegrityTests {
     [InlineData(OfficeChartType.Pie)]
     public void Update_ReplacesNumericCategoriesAndRestoresMissingValuesInSchemaOrder(OfficeChartType kind) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelChart chart = document.AddSheet("Summary").AddChart(Data(kind), row: 1, column: 6, type: kind);
+        ExcelChart chart = document.AddSheet("Summary").AddChart(kind, Data(kind), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6 });
         var part = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single(p => p.DrawingsPart != null).DrawingsPart!.ChartParts.Single();
         var series = part.ChartSpace.Descendants<OpenXmlCompositeElement>().Single(e => e.LocalName == "ser");
         series.AddChild(new C.SeriesText(new C.NumericValue { Text = "Literal title" }), true);
@@ -36,7 +36,7 @@ public sealed class ExcelChartDataSourceIntegrityTests {
     [InlineData(true)]
     public void ScatterUpdate_ReplacesStringXChoiceAndRestoresSourcesBeforeTrailingMetadata(bool missingX) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelChart chart = document.AddSheet("Summary").AddChart(Data(OfficeChartType.Scatter), row: 1, column: 6, type: OfficeChartType.Scatter);
+        ExcelChart chart = document.AddSheet("Summary").AddChart(OfficeChartType.Scatter, Data(OfficeChartType.Scatter), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6 });
         var part = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single(p => p.DrawingsPart != null).DrawingsPart!.ChartParts.Single();
         var series = part.ChartSpace.Descendants<C.ScatterChartSeries>().Single();
         series.AddChild(new C.SeriesText(new C.NumericValue { Text = "Literal title" }), true);

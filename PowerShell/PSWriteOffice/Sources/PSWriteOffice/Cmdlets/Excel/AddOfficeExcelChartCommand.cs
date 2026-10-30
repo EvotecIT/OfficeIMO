@@ -109,11 +109,11 @@ public sealed class AddOfficeExcelChartCommand : PSCmdlet
                 throw new InvalidOperationException($"Table '{TableName}' was not found on sheet '{sheet.Name}'.");
             }
 
-            chart = sheet.AddChartFromRange(tableRange!, Row, Column, OfficeLength.Pixels(WidthPixels), OfficeLength.Pixels(HeightPixels), Type, hasHeaders: true, Title, IncludeCachedData);
+            chart = sheet.AddChart(Type, tableRange!, new OfficeIMO.Excel.ExcelChartOptions { Row = Row, Column = Column, Width = OfficeLength.Pixels(WidthPixels), Height = OfficeLength.Pixels(HeightPixels), HasHeaders = true, Title = Title, IncludeCachedData = IncludeCachedData });
         }
         else
         {
-            chart = sheet.AddChartFromRange(Range, Row, Column, OfficeLength.Pixels(WidthPixels), OfficeLength.Pixels(HeightPixels), Type, HasHeaders, Title, IncludeCachedData);
+            chart = sheet.AddChart(Type, Range, new OfficeIMO.Excel.ExcelChartOptions { Row = Row, Column = Column, Width = OfficeLength.Pixels(WidthPixels), Height = OfficeLength.Pixels(HeightPixels), HasHeaders = HasHeaders, Title = Title, IncludeCachedData = IncludeCachedData });
         }
 
         if (PassThru.IsPresent)

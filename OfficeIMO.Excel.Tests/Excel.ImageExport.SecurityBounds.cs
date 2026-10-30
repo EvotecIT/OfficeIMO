@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Only");
             sheet.CellValue(2, 2, 1);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B2", row: 1, column: 3);
+            ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 3 });
             X.Row invalidRow = new X.Row();
             invalidRow.SetAttribute(new OpenXmlAttribute("r", string.Empty, "invalid"));
             sheet.WorksheetPart.Worksheet!.GetFirstChild<X.SheetData>()!.Append(invalidRow);
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Only");
             sheet.CellValue(2, 2, 1);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B2", row: 1, column: 3);
+            ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 3 });
             ReplaceChartAnchorWithTwoCell(
                 document,
                 new Xdr.FromMarker(new Xdr.ColumnId("0"), new Xdr.ColumnOffset("0"), new Xdr.RowId("0"), new Xdr.RowOffset("0")),

@@ -1001,11 +1001,26 @@ record RevenueTrend(string Week, decimal Revenue);
 ```csharp
 sheet.SetMargins(OfficeLength.Inches(0.7), OfficeLength.Inches(0.7),
     OfficeLength.Inches(0.75), OfficeLength.Inches(0.75));
-ExcelChart styledChart = sheet.AddChartFromRange("A1:B5", row: 1, column: 5,
-    width: OfficeLength.Centimeters(16), height: OfficeLength.Centimeters(9), title: "Revenue");
+ExcelChart styledChart = sheet.AddChart(OfficeChartType.Column, "A1:B5", new ExcelChartOptions {
+    Row = 1, Column = 5, Width = OfficeLength.Centimeters(16),
+    Height = OfficeLength.Centimeters(9), Title = "Revenue"
+});
 styledChart.SetTitleTextStyle(fontSize: OfficeLength.Points(12), color: OfficeColor.Text)
     .SetValueAxisGridlines(lineColor: OfficeColor.Accent1, lineWidth: OfficeLength.Points(0.5));
 ```
+
+Native chart data and `ExcelChartDataRange` descriptors use the same `AddChart(type, data, options)` order.
+`ExcelChartOptions.HasHeaders` controls A1 sources, and `IncludeCachedData` controls automatic
+range/table caches without removing worksheet links. `CachedData` supplies an explicit cache
+for a range descriptor. Native series retain combo kinds, secondary axes and explicit X values;
+3D, stacked and 100% families use `OfficeChartType`. Explicit scatter/bubble series-range APIs
+keep their X/Y/size links.
+
+`AddTable(data, options)` returns an attached `ExcelTable` for typed rows or a `DataTable`.
+Explicit selector tables use `AddTable(rows, columns, options)`, where `columns` is a tuple array
+of headers and value selectors. `WriteData` writes plain cells without a table, filter or table
+layout defaults; it also accepts DataTable data, flattened objects or explicit selectors.
+Duplicate/blank display headers remain supported by the plain selector route.
 
 Omitted chart sizes retain each operation's defaults; omitted header/footer margins
 are 0.3 inches. Geometry snapshots expose physical sizes and offsets without a
@@ -1901,7 +1916,7 @@ output.Position = 0;
 
 Both synchronous and asynchronous sources support tables. Inline text is the
 default. Shared-string planning and automatic column sizing use the editable
-workbook API, such as `sheet.InsertDataReader(...)` or `sheet.InsertDataTable(...)`
+workbook API, such as `sheet.InsertDataReader(...)` or `sheet.WriteData(...)`
 followed by `document.Save(...)`; the bounded writer rejects those settings.
 
 Declare styles before writing when rows or columns need default formatting:
@@ -2077,8 +2092,8 @@ Excel layout, print-title, page-setup, and header/footer composition stays in `O
 Charts use the same managed image contract and preserve their anchored dimensions:
 
 ```csharp
-ExcelChart chart = sheet.AddChartFromTable("RevenueTable", row: 1, column: 5,
-    title: "Revenue trend");
+ExcelChart chart = sheet.AddChart(OfficeChartType.Column, "RevenueTable",
+    new ExcelChartOptions { Row = 1, Column = 5, Title = "Revenue trend" });
 
 chart.SaveAsImage("revenue-chart.png", new ExcelImageExportOptions {
     BackgroundColor = OfficeIMO.OfficeColor.White

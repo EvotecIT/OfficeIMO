@@ -44,7 +44,7 @@ public sealed class ExcelWorksheetTableInspectionTests {
     public void WorksheetSnapshotIncludesDeferredDataTableDefinition() {
         using var workbook = ExcelDocument.Create();
         var sheet = workbook.AddSheet("Orders");
-        sheet.InsertDataTableAsTable(CreateOrders(), tableName: "OrderItems");
+        sheet.AddTable(CreateOrders(), new OfficeIMO.Excel.ExcelTableOptions { Name = "OrderItems" }, row: 1, column: 1);
         var table = Assert.Single(sheet.GetTables());
         Assert.Equal("OrderItems", table.Name);
         Assert.Equal("A1:B2", table.Range);

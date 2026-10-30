@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(3, 2, 12);
                 sheet.CellValue(4, 1, "Mar");
                 sheet.CellValue(4, 2, 18);
-                sheet.AddChartFromRange("A1:B4", row: 1, column: 5, width: OfficeLength.Pixels(640), height: OfficeLength.Pixels(360), title: "Trend", includeCachedData: true, type: OfficeChartType.Line, hasHeaders: true).SetCategoryAxisScale(majorUnit: 2, minorUnit: 1, reverseOrder: true);
+                sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(640), Height = OfficeLength.Pixels(360), Title = "Trend", IncludeCachedData = true, HasHeaders = true }).SetCategoryAxisScale(majorUnit: 2, minorUnit: 1, reverseOrder: true);
                 document.Save();
             }
 
@@ -209,7 +209,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Sales", style: ExcelTableStyle.TableStyleMedium2);
+                sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { IncludeHeaders = true, Name = "Sales", Style = ExcelTableStyle.TableStyleMedium2 }, row: 1, column: 1);
 
                 var plan = new ExcelColumnFormatPlan()
                     .Text("Id")
@@ -332,7 +332,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Counts", style: ExcelTableStyle.TableStyleMedium2);
+                sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { IncludeHeaders = true, Name = "Counts", Style = ExcelTableStyle.TableStyleMedium2 }, row: 1, column: 1);
 
                 IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(
                     new ExcelColumnFormatPlan().Add("Count", ExcelNumberPreset.Integer));
@@ -361,7 +361,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Rows", style: ExcelTableStyle.TableStyleMedium2);
+                sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { IncludeHeaders = true, Name = "Rows", Style = ExcelTableStyle.TableStyleMedium2 }, row: 1, column: 1);
                 sheet.CellValue(1, 2, "Score");
                 sheet.CellValue(2, 2, 42);
 
@@ -392,7 +392,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Rows", style: ExcelTableStyle.TableStyleMedium2);
+                sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { IncludeHeaders = true, Name = "Rows", Style = ExcelTableStyle.TableStyleMedium2 }, row: 1, column: 1);
                 Assert.True(sheet.TryGetCellText(2, 1, out _));
 
                 IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(
@@ -422,7 +422,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Rows", style: ExcelTableStyle.TableStyleMedium2);
+                sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { IncludeHeaders = true, Name = "Rows", Style = ExcelTableStyle.TableStyleMedium2 }, row: 1, column: 1);
 
                 IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(
                     new ExcelColumnFormatPlan()

@@ -22,8 +22,7 @@ namespace OfficeIMO.Examples.Excel {
                         new ExcelChartSeries("Target", new[] { 12d, 22d, 24d, 32d })
                     });
 
-                sheet.AddChart(data, row: 2, column: 6, width: OfficeLength.Pixels(640), height: OfficeLength.Pixels(360),
-                    type: OfficeChartType.ColumnClustered, title: "Quarterly Sales");
+                sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(640), Height = OfficeLength.Pixels(360), Title = "Quarterly Sales" });
 
                 document.Save();
                 if (openExcel) document.OpenInApplication();
@@ -44,8 +43,7 @@ namespace OfficeIMO.Examples.Excel {
                         new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d, 35d }, OfficeChartType.Line, OfficeChartAxisGroup.Secondary)
                     });
 
-                var comboChart = sheet.AddChart(comboData, row: 2, column: 6, width: OfficeLength.Pixels(640), height: OfficeLength.Pixels(360),
-                    type: OfficeChartType.ColumnClustered, title: "Sales vs Trend");
+                var comboChart = sheet.AddChart(OfficeChartType.ColumnClustered, comboData, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(640), Height = OfficeLength.Pixels(360), Title = "Sales vs Trend" });
                 comboChart.ApplyStylePreset()
                           .SetSeriesMarker(1, OfficeChartMarkerShape.Circle, size: OfficeLength.Points(6), lineColor: OfficeColor.Parse("4472C4"));
                 comboChart.SetValueAxisNumberFormat("0.00", sourceLinked: false, axisGroup: OfficeChartAxisGroup.Secondary)
@@ -91,8 +89,7 @@ namespace OfficeIMO.Examples.Excel {
                     new[] { "1", "2", "3", "4" },
                     new[] { new ExcelChartSeries("Points", new[] { 2d, 4d, 3d, 5d }, OfficeChartType.Scatter) });
 
-                var scatterChart = sheet.AddChart(scatterData, row: 22, column: 6, width: OfficeLength.Pixels(640), height: OfficeLength.Pixels(360),
-                    type: OfficeChartType.Scatter, title: "Scatter Sample");
+                var scatterChart = sheet.AddChart(OfficeChartType.Scatter, scatterData, new OfficeIMO.Excel.ExcelChartOptions { Row = 22, Column = 6, Width = OfficeLength.Pixels(640), Height = OfficeLength.Pixels(360), Title = "Scatter Sample" });
                 scatterChart.SetScatterXAxisScale(minimum: 1, maximum: 10, majorUnit: 1, logScale: true);
                 scatterChart.SetScatterYAxisScale(minimum: 0, maximum: 6, majorUnit: 1);
                 scatterChart.SetScatterYAxisCrossing(OfficeChartAxisCrossingPosition.Minimum, crossesAt: 2d);

@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                     }
                 };
 
-                sheet.InsertObjects(rows);
+                sheet.WriteData(rows);
                 string range = sheet.UsedRangeA1;
                 Assert.Equal("A1:D3", range);
                 sheet.AddTable(range, hasHeader: true, name: "Sales", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9, includeAutoFilter: true);
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
                     }
                 };
 
-                sheet.InsertObjects(rows);
+                sheet.WriteData(rows);
                 sheet.CellValue(10, 5, "note");
 
                 Assert.Equal("A1:E10", sheet.UsedRangeA1);

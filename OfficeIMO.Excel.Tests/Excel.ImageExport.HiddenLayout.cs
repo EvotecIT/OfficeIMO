@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                 Height = OfficeIMO.OfficeLength.Pixels(10),
                 Name = "HiddenLogo"
             });
-            sheet.AddChartFromRange("A1:C3", row: 2, column: 3, width: OfficeLength.Pixels(160), height: OfficeLength.Pixels(90), type: OfficeChartType.ColumnClustered, title: "Hidden Chart");
+            sheet.AddChart(OfficeChartType.ColumnClustered, "A1:C3", new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 3, Width = OfficeLength.Pixels(160), Height = OfficeLength.Pixels(90), Title = "Hidden Chart" });
 
             ExcelRange range = sheet.Range("A1:C3");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();

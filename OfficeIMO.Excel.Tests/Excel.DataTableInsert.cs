@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
                 third["Date"] = DBNull.Value;
                 table.Rows.Add(third);
 
-                sheet.InsertDataTable(table, includeHeaders: true);
+                sheet.WriteData(table, includeHeaders: true);
                 document.Save();
             }
 
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
                 table.Rows.Add("Build", TimeSpan.FromMinutes(90));
                 table.Rows.Add("QA", new TimeSpan(2, 15, 30));
 
-                sheet.InsertDataTable(table, includeHeaders: true);
+                sheet.WriteData(table, includeHeaders: true);
                 document.Save();
             }
 
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
                 table.Columns.Add("Amount", typeof(int));
                 table.Rows.Add("Alpha", 10);
 
-                sheet.InsertDataTable(table, includeHeaders: true);
+                sheet.WriteData(table, includeHeaders: true);
 
                 Assert.True(sheet.TryGetCellText(1, 1, out var header));
                 Assert.Equal("Name", header);
@@ -504,7 +504,7 @@ namespace OfficeIMO.Tests {
                 table.Rows.Add("NA", 100);
                 table.Rows.Add("EMEA", 120);
 
-                Assert.Equal("A1:B3", sheet.InsertDataTableAsTable(table, tableName: "SalesTable"));
+                Assert.Equal("A1:B3", sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "SalesTable" }, row: 1, column: 1).Range!);
 
                 var append = new DataTable();
                 append.Columns.Add("Revenue", typeof(int));
@@ -548,7 +548,7 @@ namespace OfficeIMO.Tests {
                 table.Columns.Add("Region", typeof(string));
                 table.Columns.Add("Revenue", typeof(int));
                 table.Rows.Add("NA", 100);
-                sheet.InsertDataTableAsTable(table, tableName: "SalesTable");
+                sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "SalesTable" }, row: 1, column: 1);
 
                 var append = new DataTable();
                 append.Columns.Add("Region", typeof(string));
@@ -573,7 +573,7 @@ namespace OfficeIMO.Tests {
                 table.Columns.Add("Region", typeof(string));
                 table.Columns.Add("Revenue", typeof(int));
                 table.Rows.Add("NA", 100);
-                sheet.InsertDataTableAsTable(table, tableName: "SalesTable");
+                sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "SalesTable" }, row: 1, column: 1);
 
                 var append = new DataTable();
                 append.Columns.Add("Region", typeof(string));
@@ -599,7 +599,7 @@ namespace OfficeIMO.Tests {
                 table.Columns.Add("Revenue", typeof(int));
                 table.Rows.Add("NA", 100);
 
-                Assert.Equal("A1:B1", sheet.InsertDataTableAsTable(table, includeHeaders: false, tableName: "HeaderlessSales"));
+                Assert.Equal("A1:B1", sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { IncludeHeaders = false, Name = "HeaderlessSales" }, row: 1, column: 1).Range!);
 
                 var append = new DataTable();
                 append.Columns.Add("Region", typeof(string));
@@ -641,7 +641,7 @@ namespace OfficeIMO.Tests {
                 table.Columns.Add("Region", typeof(string));
                 table.Columns.Add("Revenue", typeof(int));
                 table.Rows.Add("NA", 100);
-                sheet.InsertDataTableAsTable(table, includeHeaders: false, tableName: "HeaderlessSales");
+                sheet.InsertDataTableAsTable(table, startRow: 1, startColumn: 1, includeHeaders: false, tableName: "HeaderlessSales");
 
                 var append = new DataTable();
                 append.Columns.Add("Column2", typeof(string));
@@ -672,7 +672,7 @@ namespace OfficeIMO.Tests {
                 table.Columns.Add("Region", typeof(string));
                 table.Columns.Add("Revenue", typeof(int));
                 table.Rows.Add("NA", 100);
-                sheet.InsertDataTableAsTable(table, tableName: "HiddenHeaderSales");
+                sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "HiddenHeaderSales" }, row: 1, column: 1);
                 document.Save();
             }
 
@@ -715,7 +715,7 @@ namespace OfficeIMO.Tests {
                 table.Columns.Add("Region", typeof(string));
                 table.Columns.Add("Revenue", typeof(int));
                 table.Rows.Add("NA", 100);
-                sheet.InsertDataTableAsTable(table, tableName: "HiddenHeaderSales");
+                sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "HiddenHeaderSales" }, row: 1, column: 1);
                 document.Save();
             }
 
@@ -783,7 +783,7 @@ namespace OfficeIMO.Tests {
                 table.Columns.Add("Revenue", typeof(int));
                 table.Rows.Add("NA", 100);
 
-                sheet.InsertDataTableAsTable(table, tableName: "SalesTable");
+                sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "SalesTable" }, row: 1, column: 1);
 
                 var append = new DataTable();
                 append.Columns.Add("Revenue", typeof(int));
@@ -813,7 +813,7 @@ namespace OfficeIMO.Tests {
                 table.Columns.Add("Region", typeof(string));
                 table.Columns.Add("Revenue", typeof(int));
                 table.Rows.Add("NA", 100);
-                sheet.InsertDataTableAsTable(table, tableName: "SalesTable");
+                sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "SalesTable" }, row: 1, column: 1);
 
                 sheet.CellFormula(3, 2, "SUM(B2:B2)");
 
@@ -840,7 +840,7 @@ namespace OfficeIMO.Tests {
                 table.Columns.Add("Region", typeof(string));
                 table.Columns.Add("Revenue", typeof(int));
                 table.Rows.Add("NA", 100);
-                sheet.InsertDataTableAsTable(table, tableName: "SalesTable");
+                sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "SalesTable" }, row: 1, column: 1);
                 document.Save();
             }
 
@@ -883,7 +883,7 @@ namespace OfficeIMO.Tests {
                 table.Columns.Add("Region", typeof(string));
                 table.Columns.Add("Revenue", typeof(int));
                 table.Rows.Add("NA", 100);
-                sheet.InsertDataTableAsTable(table, tableName: "SalesTable");
+                sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "SalesTable" }, row: 1, column: 1);
                 document.Save();
             }
 
@@ -918,7 +918,7 @@ namespace OfficeIMO.Tests {
                 table.Columns.Add("Region", typeof(string));
                 table.Columns.Add("Revenue", typeof(int));
                 table.Rows.Add("NA", 100);
-                sheet.InsertDataTableAsTable(table, tableName: "SalesTable");
+                sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "SalesTable" }, row: 1, column: 1);
                 document.Save();
             }
 
@@ -953,7 +953,7 @@ namespace OfficeIMO.Tests {
                 table.Columns.Add("Region", typeof(string));
                 table.Columns.Add("Revenue", typeof(int));
                 table.Rows.Add("NA", 100);
-                sheet.InsertDataTableAsTable(table, tableName: "SalesTable");
+                sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "SalesTable" }, row: 1, column: 1);
 
                 sheet.CellValue(3, 1, "Existing");
 

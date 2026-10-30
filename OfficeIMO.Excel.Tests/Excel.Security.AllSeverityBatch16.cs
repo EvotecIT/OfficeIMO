@@ -12,7 +12,7 @@ public sealed class ExcelAllSeverityBatch16SecurityTests {
         row["Self"] = row;
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            sheet.InsertObjects(new[] { row }));
+            sheet.WriteData(new[] { row }));
 
         Assert.Contains("reference cycle", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -23,7 +23,7 @@ public sealed class ExcelAllSeverityBatch16SecurityTests {
         ExcelSheet sheet = document.AddSheet("Data");
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            sheet.InsertObjects(TwoRows(), includeHeaders: false, startRow: 1_048_576));
+            sheet.WriteData(TwoRows(), includeHeaders: false, row: 1_048_576));
 
         Assert.Contains("1-row worksheet limit", exception.Message, StringComparison.Ordinal);
     }
@@ -33,7 +33,7 @@ public sealed class ExcelAllSeverityBatch16SecurityTests {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddSheet("Data");
 
-        sheet.InsertObjects(new EscalatingCountReadOnlyList(), includeHeaders: false, startRow: 1_048_576);
+        sheet.WriteData(new EscalatingCountReadOnlyList(), includeHeaders: false, row: 1_048_576);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class ExcelAllSeverityBatch16SecurityTests {
         ExcelSheet sheet = document.AddSheet("Data");
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            sheet.InsertObjects(new object[] { new ExpandingReadOnlyDictionary() }, includeHeaders: false));
+            sheet.WriteData(new object[] { new ExpandingReadOnlyDictionary() }, includeHeaders: false));
 
         Assert.Contains("16384-column limit", exception.Message, StringComparison.Ordinal);
     }
@@ -55,7 +55,7 @@ public sealed class ExcelAllSeverityBatch16SecurityTests {
             .ToDictionary(index => $"Column{index}", index => (object?)index);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            sheet.InsertObjects(Enumerable.Repeat<object>(row, 4_096)));
+            sheet.WriteData(Enumerable.Repeat<object>(row, 4_096)));
 
         Assert.Contains("cell safety limit", exception.Message, StringComparison.OrdinalIgnoreCase);
     }

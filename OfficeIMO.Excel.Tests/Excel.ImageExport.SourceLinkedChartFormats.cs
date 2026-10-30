@@ -14,7 +14,7 @@ public class ExcelSourceLinkedChartFormatTests {
         var sheet = document.AddSheet("Named");
         sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
         sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, .94); sheet.CellAt(2, 2).Percent(0);
-        sheet.AddChartFromRange("A1:B2", row: 1, column: 4);
+        sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
 
         var stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
         stylesheet.CellStyleFormats!.Append(new DocumentFormat.OpenXml.Spreadsheet.CellFormat { NumberFormatId = 9U });
@@ -39,7 +39,7 @@ public class ExcelSourceLinkedChartFormatTests {
         var sheet = document.AddSheet("Unknown");
         sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
         sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, .94); sheet.CellAt(2, 2).Percent(0);
-        var chart = sheet.AddChartFromRange("A1:B2", row: 1, column: 4);
+        var chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
         chart.SetValueAxisNumberFormat("0%", sourceLinked: true);
         document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!.CellFormats!.Elements<DocumentFormat.OpenXml.Spreadsheet.CellFormat>().Last().NumberFormatId = id;
         var snapshot = sheet.Range("A1:J12").CreateVisualSnapshot();
@@ -56,7 +56,7 @@ public class ExcelSourceLinkedChartFormatTests {
         var sheet = document.AddSheet("Overflow");
         sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
         sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, .94); sheet.CellAt(2, 2).Percent(0);
-        sheet.AddChartFromRange("A1:B2", row: 1, column: 4);
+        sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
         var stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
         var id = new DocumentFormat.OpenXml.UInt32Value { InnerText = "4294967296" };
         if (custom) {
@@ -84,7 +84,7 @@ public class ExcelSourceLinkedChartFormatTests {
         cell.StyleIndex = precedence == 2 ? 0U : null;
         worksheet.AddChild(new DocumentFormat.OpenXml.Spreadsheet.Columns(new DocumentFormat.OpenXml.Spreadsheet.Column { Min = 2, Max = 2, Style = precedence is 0 or 3 ? percentage : 0U }), true);
         if (precedence > 0) { row.StyleIndex = precedence == 3 ? 0U : percentage; row.CustomFormat = precedence != 3; }
-        sheet.AddChartFromRange("A1:B2", row: 1, column: 4);
+        sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
         var visual = Assert.Single(sheet.Range("A1:J12").CreateVisualSnapshot().Charts).Snapshot;
         Assert.Equal(precedence == 2 ? "General" : "0%", visual.Layout!.VerticalAxisNumberFormat);
     }
@@ -95,7 +95,7 @@ public class ExcelSourceLinkedChartFormatTests {
         var sheet = document.AddSheet("Implicit");
         sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
         sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, .94); sheet.CellAt(2, 2).Percent(0);
-        sheet.AddChartFromRange("A1:B2", row: 1, column: 4);
+        sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
         var row = sheet.WorksheetPart.Worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetData>()!
             .Elements<DocumentFormat.OpenXml.Spreadsheet.Row>().Single(item => item.RowIndex!.Value == 2);
         var cell = row.Elements<DocumentFormat.OpenXml.Spreadsheet.Cell>()
@@ -114,7 +114,7 @@ public class ExcelSourceLinkedChartFormatTests {
         sheet.CellValue(1, 1, "Fraction"); sheet.CellValue(1, 2, "Count");
         sheet.CellValue(2, 1, .94); sheet.CellAt(2, 1).Percent(0); sheet.CellValue(2, 2, 2);
         sheet.CellValue(3, 1, .82); sheet.CellValue(3, 2, 3);
-        sheet.AddChartFromRange("A1:B3", row: 1, column: 4);
+        sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
         var category = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single().ChartSpace!.Descendants<DocumentFormat.OpenXml.Drawing.Charts.CategoryAxisData>().Single();
         category.RemoveAllChildren();
         category.Append(new DocumentFormat.OpenXml.Drawing.Charts.NumberReference(new DocumentFormat.OpenXml.Drawing.Charts.Formula("Categories!$A$2:$A$3"),
@@ -131,7 +131,7 @@ public class ExcelSourceLinkedChartFormatTests {
         var sheet = document.AddSheet("Styles");
         sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
         sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, .94); sheet.CellAt(2, 2).Percent(0);
-        sheet.AddChartFromRange("A1:B2", row: 1, column: 4);
+        sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
         var formats = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!.CellFormats!;
         for (int index = formats.ChildElements.Count; index <= 100_000; index++)
             formats.Append(new DocumentFormat.OpenXml.Spreadsheet.CellFormat { NumberFormatId = 9 });
@@ -145,7 +145,7 @@ public class ExcelSourceLinkedChartFormatTests {
         sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
         sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, .94); sheet.CellAt(2, 2).Percent(0);
         sheet.CellValue(3, 1, "South"); sheet.CellValue(3, 2, .82);
-        sheet.AddChartFromRange("A1:B3", row: 1, column: 4);
+        sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
         var result = sheet.Range("A1:J12").ExportImage(OfficeImageExportFormat.Svg);
         Assert.Contains(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartAxisNumberFormatApproximation);
     }
@@ -159,7 +159,7 @@ public class ExcelSourceLinkedChartFormatTests {
         sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
         sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, .94); sheet.CellAt(2, 2).Percent(0);
         sheet.CellValue(3, 1, "South"); sheet.CellValue(3, 2, .82); sheet.CellAt(3, 2).Percent(0);
-        var chart = sheet.AddChartFromRange("A1:B3", row: 1, column: 4, type: kind);
+        var chart = sheet.AddChart(kind, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
         chart.SetValueAxisNumberFormat("General", sourceLinked);
         var visual = Assert.Single(sheet.Range("A1:J12").CreateVisualSnapshot().Charts).Snapshot;
         string? format = kind == OfficeChartType.BarClustered ? visual.Layout!.HorizontalAxisNumberFormat : visual.Layout!.VerticalAxisNumberFormat;

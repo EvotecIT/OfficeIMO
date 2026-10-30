@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Alpha", 2, "Beta");
             using var cancellation = new CancellationTokenSource();
 
-            sheet.InsertDataTable(table, mode: mode, ct: cancellation.Token);
+            sheet.WriteData(table, mode: mode, cancellationToken: cancellation.Token);
             byte[] package = document.ToBytes(format);
 
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { SheetName = "Data" });
@@ -104,9 +104,7 @@ namespace OfficeIMO.Tests {
         public void TabularImport_ProjectedObjects_PreserveNullAndDbNullAsMissing(ExcelFileFormat format, bool standardWriter) {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.InsertObjects(new[] { 1, 2, 3 },
-                ("Id", (Func<int, object?>)(id => id)),
-                ("Text", id => id == 1 ? null : id == 2 ? DBNull.Value : string.Empty));
+            sheet.WriteData(new[] { 1, 2, 3 }, ("Id", (Func<int, object?>)(id => id)), ("Text", id => id == 1 ? null : id == 2 ? DBNull.Value : string.Empty));
 
             byte[] package = document.ToBytes(format, new ExcelSaveOptions { DisableFastPackageWriter = standardWriter });
 
@@ -134,7 +132,7 @@ namespace OfficeIMO.Tests {
             table.Columns.Add("Empty", typeof(string));
             table.Rows.Add(DBNull.Value, DBNull.Value, string.Empty);
 
-            sheet.InsertDataTable(table, includeHeaders: false, mode: mode);
+            sheet.WriteData(table, includeHeaders: false, mode: mode);
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx,  DisableFastPackageWriter = true });
 
             AssertMissingTabularDefaultStyles(package, "A1", "B1");
@@ -172,9 +170,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Data");
             document.AddSheet("Other");
             if (overwrite) sheet.CellFormula(2, 2, "123");
-            sheet.InsertObjects(Enumerable.Range(1, 20),
-                ("Id", (Func<int, object?>)(id => id)),
-                ("Text", id => id == 1 ? null : id == 2 ? DBNull.Value : string.Empty));
+            sheet.WriteData(Enumerable.Range(1, 20), ("Id", (Func<int, object?>)(id => id)), ("Text", id => id == 1 ? null : id == 2 ? DBNull.Value : string.Empty));
 
             byte[] package = document.ToBytes(format);
 
@@ -270,7 +266,7 @@ namespace OfficeIMO.Tests {
                 table.Rows.Add(string.Empty);
                 using ExcelDocument document = ExcelDocument.Create();
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.InsertDataTable(table);
+                sheet.WriteData(table);
                 sheet.CellFormula(1, 2, "ISBLANK(A2)");
                 sheet.CellFormula(1, 3, "ISTEXT(A3)");
                 document.Save(path, new ExcelSaveOptions { XlsbUseSharedStrings = true, DisableFastPackageWriter = true });

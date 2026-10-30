@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests
                 data.AddAutoFilter("A1:D4");
                 data.AddTable("A1:D4", hasHeader: true, name: "DataTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9, includeAutoFilter: true);
                 data.AddSparklines("C2:D4", "E2:E4", displayMarkers: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#FF0000"));
-                data.AddChartFromRange("A1:B4", row: 7, column: 1, width: OfficeLength.Pixels(360), height: OfficeLength.Pixels(220));
+                data.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 7, Column = 1, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220) });
                 data.AddPivotTable("A1:B4", "G2", options: new ExcelPivotTableOptions { Name = "DataPivot" });
                 document.Save(filePath, new ExcelSaveOptions { SafePreflight = true, SafeRepairDefinedNames = true, ValidateOpenXml = true });
             }

@@ -88,18 +88,10 @@ namespace OfficeIMO.Tests {
                 };
                 document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(
-                    rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score));
-                sheet.AddChart(
-                    new ExcelChartData(
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score));
+                sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(
                         rows.Select(row => row.Name),
-                        new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) }),
-                    row: 1,
-                    column: 5,
-                    type: OfficeChartType.ColumnClustered,
-                    title: "Scores");
+                        new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Title = "Scores" });
 
                 var packageStreamField = typeof(ExcelDocument).GetField("_packageStream", BindingFlags.Instance | BindingFlags.NonPublic);
                 var packageStream = Assert.IsAssignableFrom<Stream>(packageStreamField!.GetValue(document));

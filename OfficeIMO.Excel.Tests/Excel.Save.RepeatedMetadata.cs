@@ -21,10 +21,8 @@ public sealed class ExcelRepeatedMetadataSaveTests {
             using var document = ExcelDocument.Create();
             ExcelSheet retainedSheet = document.AddSheet("Report");
             retainedSheet.CellValue(1, 1, 42);
-            retainedSheet.AddChart(new ExcelChartData(new[] { "Value" },
-                    new[] { new ExcelChartSeries("Series", new[] { 42d }) }),
-                row: 4, column: 1, width: OfficeLength.Pixels(300), height: OfficeLength.Pixels(180),
-                type: OfficeChartType.ColumnClustered, title: "Metadata chart");
+            retainedSheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "Value" },
+                    new[] { new ExcelChartSeries("Series", new[] { 42d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 4, Column = 1, Width = OfficeLength.Pixels(300), Height = OfficeLength.Pixels(180), Title = "Metadata chart" });
             string outputPath = Path.Combine(directory, "report.xlsx");
 
             if (failFirstCommit) {

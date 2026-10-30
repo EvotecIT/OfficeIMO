@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             document.DateTimeOffsetWriteStrategy = value => value.UtcDateTime;
             ExcelSheet sheet = document.AddSheet("Data");
             using DataTable table = Dates();
-            sheet.InsertDataTableAsTable(table);
+            sheet.InsertDataTableAsTable(table, startRow: 1, startColumn: 1);
             if (autoFit) sheet.AutoFitColumns();
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             document.DateTimeOffsetWriteStrategy = value => value.UtcDateTime;
             ExcelSheet sheet = document.AddSheet("Data");
             using DataTable table = Dates();
-            sheet.InsertDataTableAsTable(table);
+            sheet.InsertDataTableAsTable(table, startRow: 1, startColumn: 1);
             using var cancellation = new CancellationTokenSource();
             int convertedDates = 0;
             document.DateTimeOffsetWriteStrategy = value => {

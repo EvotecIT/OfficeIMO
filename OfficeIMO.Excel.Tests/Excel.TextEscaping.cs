@@ -48,7 +48,7 @@ public class ExcelTextEscapingTests {
         using var stream = new MemoryStream();
         if (sharedStrings) {
             using var document = ExcelDocument.Create();
-            document.AddSheet("Data & '\"").InsertDataTable(table);
+            document.AddSheet("Data & '\"").WriteData(table);
             document.Save(stream);
         }
         else {
@@ -128,9 +128,7 @@ public class ExcelTextEscapingTests {
         using (var document = ExcelDocument.Create(new MemoryStream())) {
             var sheet = document.AddSheet("Text");
             sheet.CellValue(1, 1, value);
-            sheet.AddChart(
-                new ExcelChartData(new[] { "One" }, new[] { new ExcelChartSeries("Values", new[] { 1.0 }) }),
-                row: 2, column: 3, type: OfficeChartType.ColumnClustered, title: "Values");
+            sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "One" }, new[] { new ExcelChartSeries("Values", new[] { 1.0 }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 3, Title = "Values" });
             document.Save(stream);
             Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
         }
@@ -159,9 +157,7 @@ public class ExcelTextEscapingTests {
             cells["C1"].DataType = CellValues.String;
             cells["C1"].CellValue = new CellValue(value);
             cells["D1"].DataType = CellValues.Error;
-            sheet.AddChart(
-                new ExcelChartData(new[] { "One" }, new[] { new ExcelChartSeries("Values", new[] { 1.0 }) }),
-                row: 2, column: 3, type: OfficeChartType.ColumnClustered, title: "Values");
+            sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "One" }, new[] { new ExcelChartSeries("Values", new[] { 1.0 }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 3, Title = "Values" });
             sheet.MarkRequiresSavePreparation();
             document.Save(stream);
             Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);

@@ -224,7 +224,7 @@ namespace OfficeIMO.Tests {
                 var data = new ExcelChartData(
                     new[] { "A", "B" },
                     new[] { new ExcelChartSeries("Value", new[] { 1d, 2d }, seriesColorArgb: "4F46E5") });
-                sheet.AddChart(data, 1, 1, OfficeLength.Pixels(500), OfficeLength.Pixels(300), OfficeChartType.ColumnClustered, "Loaded outline")
+                sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1, Width = OfficeLength.Pixels(500), Height = OfficeLength.Pixels(300), Title = "Loaded outline" })
                     .SetSeriesNoFill(0, noLine: false);
                 document.Save();
             }
@@ -291,7 +291,7 @@ namespace OfficeIMO.Tests {
                 var data = new ExcelChartData(
                     new[] { "A", "B" },
                     new[] { new ExcelChartSeries("Value", new[] { 1d, 2d }, seriesColorArgb: "4F46E5") });
-                sheet.AddChart(data, 1, 1, OfficeLength.Pixels(500), OfficeLength.Pixels(300), OfficeChartType.ColumnClustered, "Effect ordering")
+                sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1, Width = OfficeLength.Pixels(500), Height = OfficeLength.Pixels(300), Title = "Effect ordering" })
                     .SetSeriesNoFill(0, noLine: false);
                 document.Save();
             }
@@ -349,7 +349,7 @@ namespace OfficeIMO.Tests {
                         new ExcelChartSeries("First", new[] { 1d, 2d }, seriesColorArgb: "4F46E5"),
                         new ExcelChartSeries("Second", new[] { 2d, 3d }, seriesColorArgb: "16A34A")
                     });
-                ExcelChart chart = sheet.AddChart(data, 1, 1, OfficeLength.Pixels(500), OfficeLength.Pixels(300), OfficeChartType.ColumnClustered, "Line normalization");
+                ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1, Width = OfficeLength.Pixels(500), Height = OfficeLength.Pixels(300), Title = "Line normalization" });
                 chart.SetSeriesNoFill(0).SetSeriesLineColor(0, OfficeColor.Parse("DC2626"), OfficeLength.Points(1.5d));
                 chart.SetSeriesLineColor(1, OfficeColor.Parse("16A34A"));
                 document.Save();

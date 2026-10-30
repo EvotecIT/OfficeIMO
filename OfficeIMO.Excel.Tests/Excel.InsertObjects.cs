@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
                         Address = new Address { City = "Paris", Zip = "75001" }
                     }
                 };
-                sheet.InsertObjects(people);
+                sheet.WriteData(people);
                 document.Save();
             }
 
@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests {
                         { "Address", new Dictionary<string, object> { { "City", "Paris" }, { "Zip", "75001" } } }
                     }
                 };
-                sheet.InsertObjects(items);
+                sheet.WriteData(items);
                 document.Save();
             }
 
@@ -182,7 +182,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.InsertObjects(nodes);
+                sheet.WriteData(nodes);
                 document.Save();
             }
 

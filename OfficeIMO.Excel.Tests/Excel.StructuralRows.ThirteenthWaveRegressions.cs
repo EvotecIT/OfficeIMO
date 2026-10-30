@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
             summary.CellAt(1, 2).SetValue("Value");
             summary.CellAt(2, 1).SetValue("One");
             summary.CellAt(2, 2).SetValue(1);
-            summary.AddChartFromRange("A1:B2", row: 5, column: 4);
+            summary.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
             ChartPart chartPart = Assert.Single(summary.WorksheetPart.DrawingsPart!.ChartParts);
             var extensionFormula = new C15.Formula("Data!A5:A6");
             chartPart.ChartSpace.Append(

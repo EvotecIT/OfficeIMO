@@ -523,7 +523,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 2, 12);
             sheet.CellValue(5, 1, "South");
             sheet.CellValue(5, 2, 18);
-            sheet.AddChartFromRange("A3:B5", row: 1, column: 2, width: OfficeLength.Pixels(140), height: OfficeLength.Pixels(70), type: OfficeChartType.ColumnClustered, title: "Overlay");
+            sheet.AddChart(OfficeChartType.ColumnClustered, "A3:B5", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 2, Width = OfficeLength.Pixels(140), Height = OfficeLength.Pixels(70), Title = "Overlay" });
 
             ExcelRange range = sheet.Range("A1:C2");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
@@ -2924,7 +2924,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(220), height: OfficeLength.Pixels(120), type: OfficeChartType.ColumnClustered, title: "Revenue Trend");
+            sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(220), Height = OfficeLength.Pixels(120), Title = "Revenue Trend" });
 
             ExcelRange range = sheet.Range("A1:G8");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -2958,7 +2958,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(260), height: OfficeLength.Pixels(160), type: OfficeChartType.ColumnClustered, title: "Revenue Trend");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(260), Height = OfficeLength.Pixels(160), Title = "Revenue Trend" });
             chart.SetChartAreaStyle(fillColor: OfficeColor.Parse("F2F2F2"), lineColor: OfficeColor.Parse("404040"), lineWidth: OfficeLength.Points(1));
             chart.SetPlotAreaStyle(fillColor: OfficeColor.Parse("FFFFFF"), lineColor: OfficeColor.Parse("00B0F0"), lineWidth: OfficeLength.Points(1D));
             chart.SetLegendTextStyle(bold: true, fontName: "Aptos Legend");
@@ -3049,7 +3049,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(260), height: OfficeLength.Pixels(160), type: OfficeChartType.ColumnClustered, title: "Area Lines");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(260), Height = OfficeLength.Pixels(160), Title = "Area Lines" });
             chart.SetChartAreaStyle(fillColor: OfficeColor.Parse("F2F2F2"), lineColor: OfficeColor.Parse("404040"), lineWidth: OfficeLength.Points(3D));
             chart.SetPlotAreaStyle(fillColor: OfficeColor.Parse("FFFFFF"), lineColor: OfficeColor.Parse("00B0F0"), lineWidth: OfficeLength.Points(2D));
             SetFirstChartAreaDash(document, A.PresetLineDashValues.DashDot);
@@ -3102,7 +3102,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.ColumnClustered, title: "Title Color");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Title Color" });
             chart.SetTitleTextStyle(color: OfficeColor.Parse("BE123C"));
 
             ExcelRange range = sheet.Range("A1:H9");
@@ -3144,7 +3144,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.ColumnClustered, title: "Title Typography");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Title Typography" });
             chart.SetTitleTextStyle(fontSize: OfficeLength.Points(16D), bold: false, italic: true, color: OfficeColor.Parse("BE123C"), fontName: "Aptos Display");
 
             ExcelRange range = sheet.Range("A1:H9");
@@ -3179,7 +3179,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.ColumnClustered, title: "Title Style");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Title Style" });
             chart.SetTitleTextStyle(color: OfficeColor.Parse("BE123C"));
             AddFirstChartTitleTextEffect(document);
 
@@ -3208,7 +3208,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
             sheet.CellValue(4, 3, 130);
-            ExcelChart chart = sheet.AddChartFromRange("A1:C4", row: 1, column: 5, width: OfficeLength.Pixels(280), height: OfficeLength.Pixels(170), type: OfficeChartType.ColumnClustered, title: "Series Colors");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(280), Height = OfficeLength.Pixels(170), Title = "Series Colors" });
             chart.SetSeriesFillColor(0, OfficeColor.Parse("22C55E"));
             chart.SetSeriesFillColor(1, OfficeColor.Parse("F97316"));
 
@@ -3262,7 +3262,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.ColumnClustered, title: "Point Colors");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Point Colors" });
             chart.SetSeriesFillColor(0, OfficeColor.Parse("22C55E"));
             chart.SetSeriesPointFillColor(0, 1, OfficeColor.Parse("A855F7"));
 
@@ -3305,7 +3305,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.Line, title: "Marker Fill");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Marker Fill" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"));
             chart.SetSeriesMarker(0, OfficeChartMarkerShape.Circle, fillColor: OfficeColor.Parse("F97316"));
 
@@ -3349,7 +3349,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.Line, title: "No Markers");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "No Markers" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"));
             GetFirstChartPart(document).ChartSpace.Descendants<C.LineChartSeries>().First().RemoveAllChildren<C.Marker>();
 
@@ -3376,7 +3376,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.Line, title: "No Series Line");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "No Series Line" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"));
             SetFirstChartSeriesNoLine(document);
 
@@ -3399,7 +3399,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.Line, title: "Series Order");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Series Order" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"));
             SetFirstChartSeriesIndex(document, 1U);
 
@@ -3442,7 +3442,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 2, 120);
                 sheet.CellValue(3, 1, "Feb");
                 sheet.CellValue(3, 2, 180);
-                sheet.AddChartFromRange("A1:B3", row: 4, column: 6, width: OfficeLength.Pixels(260), height: OfficeLength.Pixels(160), type: OfficeChartType.ColumnClustered, title: "Absolute Chart");
+                sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 4, Column = 6, Width = OfficeLength.Pixels(260), Height = OfficeLength.Pixels(160), Title = "Absolute Chart" });
                 document.Save();
             }
 
@@ -3469,7 +3469,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "Item");
                 sheet.CellValue(2, 2, 1);
-                sheet.AddChartFromRange("A1:B2", row: 1, column: 3, width: OfficeLength.Pixels(240), height: OfficeLength.Pixels(140), type: OfficeChartType.ColumnClustered);
+                sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 3, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(140) });
                 document.Save();
             }
 
@@ -3497,7 +3497,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 5);
             sheet.CellValue(4, 1, "Cost");
             sheet.CellValue(4, 2, 8);
-            sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.Radar, title: "Radar");
+            sheet.AddChart(OfficeChartType.Radar, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Radar" });
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:H9").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
@@ -3518,7 +3518,7 @@ namespace OfficeIMO.Tests {
             }
 
             sheet.Range("A1:H10").SetFillColor("22C55E");
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.Line, title: "Transparent");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Transparent" });
             chart.SetPlotAreaStyle(fillColor: OfficeColor.Parse("FFFFFF"));
             SetFirstChartAreaNoFill(document);
 
@@ -3550,7 +3550,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.Line, title: "Marker Size");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Marker Size" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"));
             chart.SetSeriesMarker(0, OfficeChartMarkerShape.Circle, size: OfficeLength.Points(12), fillColor: OfficeColor.Parse("F97316"));
 
@@ -3592,7 +3592,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.Line, title: "Marker Shape");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Marker Shape" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"));
             chart.SetSeriesMarker(0, OfficeChartMarkerShape.Diamond, size: OfficeLength.Points(12), fillColor: OfficeColor.Parse("F97316"));
 
@@ -3635,7 +3635,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.Line, title: "Marker X");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Marker X" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"));
             chart.SetSeriesMarker(0, OfficeChartMarkerShape.X, size: OfficeLength.Points(14), lineColor: OfficeColor.Parse("7C3AED"), lineWidth: OfficeLength.Points(2D));
 
@@ -3688,7 +3688,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 2, 160);
             sheet.CellValue(4, 3, 130);
             sheet.CellValue(4, 4, 150);
-            ExcelChart chart = sheet.AddChartFromRange("A1:D4", row: 1, column: 6, width: OfficeLength.Pixels(310), height: OfficeLength.Pixels(185), type: OfficeChartType.Line, title: "Marker Symbols");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:D4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(310), Height = OfficeLength.Pixels(185), Title = "Marker Symbols" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("CBD5E1"));
             chart.SetSeriesLineColor(1, OfficeColor.Parse("CBD5E1"));
             chart.SetSeriesLineColor(2, OfficeColor.Parse("CBD5E1"));
@@ -3764,7 +3764,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.Line, title: "Marker Outline");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Marker Outline" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"));
             chart.SetSeriesMarker(0, OfficeChartMarkerShape.Circle, size: OfficeLength.Points(16), fillColor: OfficeColor.Parse("F97316"), lineColor: OfficeColor.Parse("7C2D12"), lineWidth: OfficeLength.Points(3D));
 
@@ -3808,7 +3808,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.Line, title: "Series Width");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Series Width" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"), width: OfficeLength.Points(4D));
 
             ExcelRange range = sheet.Range("A1:H9");
@@ -3851,7 +3851,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.Line, title: "Series Dash");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Series Dash" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"), width: OfficeLength.Points(4D));
             SetFirstChartSeriesDash(document, A.PresetLineDashValues.Dash);
 
@@ -3897,7 +3897,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.Line, title: "Gridlines");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Gridlines" });
             chart.SetCategoryAxisGridlines(showMajor: true, showMinor: false, lineColor: OfficeColor.Parse("DC2626"));
             chart.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: OfficeColor.Parse("A855F7"));
 
@@ -3973,7 +3973,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.ColumnClustered, title: "Minor Gridlines");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Minor Gridlines" });
             chart.SetValueAxisGridlines(showMajor: false, showMinor: true, lineColor: OfficeColor.Parse("14B8A6"), lineWidth: OfficeLength.Points(1.5D));
 
             ExcelRange range = sheet.Range("A1:H9");
@@ -4019,7 +4019,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.ColumnClustered, title: "Gridline Width");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Gridline Width" });
             chart.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: OfficeColor.Parse("A855F7"), lineWidth: OfficeLength.Points(2D));
 
             ExcelRange range = sheet.Range("A1:H9");
@@ -4064,7 +4064,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.ColumnClustered, title: "Gridline Dash");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Gridline Dash" });
             chart.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: OfficeColor.Parse("A855F7"), lineWidth: OfficeLength.Points(2D));
             SetFirstChartValueGridlineDash(document, A.PresetLineDashValues.Dash);
 
@@ -4111,7 +4111,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.ColumnClustered, title: "No Gridlines");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "No Gridlines" });
             chart.SetValueAxisGridlines(showMajor: false);
 
             ExcelRange range = sheet.Range("A1:H9");
@@ -4139,7 +4139,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.ColumnClustered, title: "Axis Color");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Axis Color" });
             chart.SetCategoryAxisLine(lineColor: OfficeColor.Parse("DC2626"));
             chart.SetValueAxisLine(lineColor: OfficeColor.Parse("2563EB"));
 
@@ -4208,7 +4208,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.ColumnClustered, title: "No Axis Lines");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "No Axis Lines" });
             chart.SetCategoryAxisLine(noLine: true);
             chart.SetValueAxisLine(noLine: true);
 
@@ -4236,7 +4236,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.ColumnClustered, title: "Axis Width");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Axis Width" });
             chart.SetValueAxisLine(lineColor: OfficeColor.Parse("DC2626"), lineWidth: OfficeLength.Points(2D));
 
             ExcelRange range = sheet.Range("A1:H9");
@@ -4280,7 +4280,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(250), height: OfficeLength.Pixels(165), type: OfficeChartType.ColumnClustered, title: "Axis Dash");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Axis Dash" });
             chart.SetValueAxisLine(lineColor: OfficeColor.Parse("DC2626"), lineWidth: OfficeLength.Points(2D));
             SetFirstChartValueAxisDash(document, A.PresetLineDashValues.Dot);
 
@@ -4326,7 +4326,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, width: OfficeLength.Pixels(240), height: OfficeLength.Pixels(150), type: OfficeChartType.Line, title: "Trendline");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(150), Title = "Trendline" });
             chart.SetSeriesTrendline(0, OfficeChartTrendlineType.Linear, displayEquation: true, displayRSquared: true, lineColor: OfficeColor.Parse("FF0000"), lineWidth: OfficeLength.Points(1));
 
             OfficeImageExportResult png = sheet.Range("A1:H9").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });

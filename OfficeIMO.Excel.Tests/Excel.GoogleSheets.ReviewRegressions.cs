@@ -45,11 +45,7 @@ namespace OfficeIMO.Tests
                 conditional.AddConditionalRule("B2:AB2002", ExcelConditionalFormattingOperator.GreaterThan, "10");
 
                 ExcelSheet charts = document.AddSheet("Charts");
-                charts.AddChart(
-                    new ExcelChartData(new[] { "A" }, new[] { new ExcelChartSeries("Sales", new[] { 1d }) }),
-                    row: 2003,
-                    column: 29,
-                    type: OfficeChartType.ColumnClustered);
+                charts.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "A" }, new[] { new ExcelChartSeries("Sales", new[] { 1d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2003, Column = 29 });
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
 

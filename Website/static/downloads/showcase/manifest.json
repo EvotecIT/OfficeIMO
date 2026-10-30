@@ -541,8 +541,8 @@
     {
       "id": "source-officeimo-examples-excel-reportworkflow-cs",
       "path": "/downloads/showcase/source/Excel/ReportWorkflow.cs.txt",
-      "bytes": 8406,
-      "sha256": "650413985ee42acc086e746fdd18d158f222c9b508e46abccedbfe0b5a19f3bc",
+      "bytes": 8438,
+      "sha256": "7e9b92f3e566af880e7c76b9e7098ddba007e57098cc8c749c50c814dfd8d12c",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
@@ -869,8 +869,8 @@
     {
       "id": "source-officeimo-examples-showcase-documentfeatureshowcase-excel-cs",
       "path": "/downloads/showcase/source/Showcase/DocumentFeatureShowcase.Excel.cs.txt",
-      "bytes": 7818,
-      "sha256": "5382dfeb142eff837c5814079b5a42e010b2c6a728e4820234cfb792104fe3b5",
+      "bytes": 7838,
+      "sha256": "f40afcf44c7592c516c775fd8e48aa5c6dc2f66faf358920238a4cc8a9153156",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
@@ -2101,8 +2101,8 @@
     {
       "id": "excel-operational-trends-source",
       "path": "/downloads/showcase/workflows/excel-operational-trends/OperationalTrends.cs.txt",
-      "bytes": 1974,
-      "sha256": "aaa334f379963ebe75ce79358625e279543342072f74ea86929959ce982d7557",
+      "bytes": 1994,
+      "sha256": "676d02af5f885ebb7243196831173bf23951b8deb017baac027b8a6bb2dee075",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },

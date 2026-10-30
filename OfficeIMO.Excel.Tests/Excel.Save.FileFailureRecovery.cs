@@ -93,8 +93,7 @@ namespace OfficeIMO.Tests {
             if (writer == "extended") {
                 var chart = new ExcelChartData(new[] { "Before file failure" },
                     new[] { new ExcelChartSeries("Value", new[] { 1d }) });
-                retainedSheet.AddChart(chart, row: 4, column: 1, width: OfficeLength.Pixels(300), height: OfficeLength.Pixels(180),
-                    type: OfficeChartType.ColumnClustered, title: "Retained chart");
+                retainedSheet.AddChart(OfficeChartType.ColumnClustered, chart, new OfficeIMO.Excel.ExcelChartOptions { Row = 4, Column = 1, Width = OfficeLength.Pixels(300), Height = OfficeLength.Pixels(180), Title = "Retained chart" });
             }
             return document;
         }

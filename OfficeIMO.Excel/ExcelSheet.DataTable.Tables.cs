@@ -126,7 +126,7 @@ namespace OfficeIMO.Excel {
         /// Inserts a DataTable and immediately creates an Excel Table over the written range.
         /// Returns the A1-style range of the created table.
         /// </summary>
-        public string InsertDataTableAsTable(
+        internal string InsertDataTableAsTable(
             DataTable table,
             int startRow = 1,
             int startColumn = 1,

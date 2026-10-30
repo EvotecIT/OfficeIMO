@@ -278,8 +278,7 @@ namespace OfficeIMO.Tests
                     new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d, 35d }, OfficeChartType.Line, OfficeChartAxisGroup.Secondary)
                 });
 
-            ExcelChart chart = sheet.AddChart(data, row: 2, column: 6, width: OfficeLength.Pixels(640), height: OfficeLength.Pixels(360),
-                type: OfficeChartType.ColumnClustered, title: "Sales vs Trend");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(640), Height = OfficeLength.Pixels(360), Title = "Sales vs Trend" });
             chart.SetSeriesDataLabels(1, showValue: true, position: OfficeChartDataLabelPosition.Top)
                  .SetSeriesDataLabelForPoint(1, 2, showValue: true, position: OfficeChartDataLabelPosition.OutsideEnd);
 

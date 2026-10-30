@@ -41,8 +41,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     truncated = true;
                     continue;
                 }
-                ExcelChart convertedChart = excelSheet.AddChart(data!, row, column, width, height,
-                    chartType, chart.Title);
+                ExcelChart convertedChart = excelSheet.AddChart(chartType, data!, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = width, Height = height, Title = chart.Title });
                 if (data.Series.Any(item => item.PointStyles != null)) {
                     convertedChart.ApplySharedPointStyles(data.Series.Select(item =>
                         new OfficeSeries(item.Name, item.Values)

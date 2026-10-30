@@ -163,14 +163,7 @@ public sealed class AddOfficeExcelTableCommand : PSCmdlet
         }
 
         var resolvedTableName = ResolveTableName(table);
-        var range = sheet.InsertDataTableAsTable(
-            table,
-            startRow: StartRow,
-            startColumn: StartColumn,
-            includeHeaders: !NoHeader.IsPresent,
-            tableName: resolvedTableName,
-            style: TableStyle,
-            includeAutoFilter: !NoAutoFilter.IsPresent);
+        var range = sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { AutoFit = false, UseDefaultHeaderlessColumnNames = true, IncludeHeaders = !NoHeader.IsPresent, Name = resolvedTableName, Style = TableStyle, IncludeAutoFilter = !NoAutoFilter.IsPresent }, row: StartRow, column: StartColumn).Range!;
         ExcelTableStyleOptionService.Apply(
             sheet,
             range,

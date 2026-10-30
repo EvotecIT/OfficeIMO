@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
                 new DefinedName("OFFSET(Data!$A$1,0,0,COUNTA(Data!$A:$A),1)") {
                     Name = "SeriesData"
                 });
-            sheet.AddChartFromRange("A1:B3", row: 5, column: 4);
+            sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
             ChartPart chartPart = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ChartParts);
             C.Formula formula = chartPart.ChartSpace.Descendants<C.Formula>()
                 .First(item => item.Parent!.ChildElements.Any(element =>

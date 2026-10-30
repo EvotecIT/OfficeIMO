@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests {
             table.Rows.Add(2, DBNull.Value, "Next");
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.InsertDataTable(table);
+            sheet.WriteData(table);
             sheet.ColumnStyleByHeader("Amount").NumberFormat("0.0000");
             byte[] bytes = document.ToBytes(format, new ExcelSaveOptions { DisableFastPackageWriter = standardWriter });
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(bytes);
@@ -165,7 +165,7 @@ namespace OfficeIMO.Tests {
                 set.Tables.Add(table);
                 document.InsertDataSet(set, createTables: false, includeHeaders: false, includeAutoFilter: false);
             } else {
-                document.AddSheet("Data").InsertDataTable(table, includeHeaders: false);
+                document.AddSheet("Data").WriteData(table, includeHeaders: false);
             }
             byte[] bytes = document.ToBytes(format, new ExcelSaveOptions { DisableFastPackageWriter = standardWriter });
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(bytes, new ExcelReaderOptions { HasHeaderRow = false });
@@ -187,7 +187,7 @@ namespace OfficeIMO.Tests {
             table.Columns.Add("B", typeof(string));
             table.Columns.Add("C", typeof(string));
             table.Rows.Add(DBNull.Value, DBNull.Value, DBNull.Value);
-            sheet.InsertDataTable(table, includeHeaders: false, mode: ExcelExecutionMode.Parallel);
+            sheet.WriteData(table, includeHeaders: false, mode: ExcelExecutionMode.Parallel);
             sheet.ClearRange("A1:C1", ExcelClearOptions.Values);
             byte[] missing = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls,  DisableFastPackageWriter = true });
             using (ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(missing, new ExcelReaderOptions { HasHeaderRow = false })) {

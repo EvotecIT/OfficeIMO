@@ -234,7 +234,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(6, 2, 180);
             sheet.CellValue(2, 4, "Review");
             sheet.SetComment("D2", "This note should avoid the chart when rendered.", "Reviewer");
-            sheet.AddChartFromRange("A4:B6", row: 1, column: 5, width: OfficeLength.Pixels(260), height: OfficeLength.Pixels(120), type: OfficeChartType.ColumnClustered, title: "Trend");
+            sheet.AddChart(OfficeChartType.ColumnClustered, "A4:B6", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(260), Height = OfficeLength.Pixels(120), Title = "Trend" });
 
             var options = new ExcelImageExportOptions {
                 ShowGridlines = false,

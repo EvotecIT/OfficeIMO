@@ -49,7 +49,7 @@ public sealed class ExcelChartSeriesPaintTests
         sheet.CellValue(2, 2, 2);
         sheet.CellValue(3, 1, "B");
         sheet.CellValue(3, 2, 4);
-        var chart = sheet.AddChartFromRange("A1:B3", row: 1, column: 4, width: OfficeLength.Pixels(640), height: OfficeLength.Pixels(360), title: null, includeCachedData: true, type: OfficeChartType.Line3D, hasHeaders: true);
+        var chart = sheet.AddChart(OfficeChartType.Line3D, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(640), Height = OfficeLength.Pixels(360), Title = null, IncludeCachedData = true, HasHeaders = true });
         chart.SetSeriesFillColor(0, OfficeColor.Parse("0000FF")).SetSeriesLineColor(0, OfficeColor.Parse("FF0000"), OfficeLength.Points(3));
         if (!fill)
             chart.SetSeriesNoFill(0, noLine: !outline);

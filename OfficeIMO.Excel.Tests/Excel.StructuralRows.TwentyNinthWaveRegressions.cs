@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_MutationPlanRejectsPreservedFastSaveRowsWithoutMaterializing() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.InsertDataTable(CreateDataTable());
+            sheet.WriteData(CreateDataTable());
             document.PreserveDeferredDataSetFastSaveModelAndClearCandidate();
             Assert.False(document.HasDeferredDirectDataSetImport);
             Assert.True(document.HasUnmaterializedDirectDataSetRows);
@@ -131,7 +131,7 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
             ExcelRowMutationPlan plan = sheet.PlanInsertRows(2);
-            sheet.InsertDataTable(CreateDataTable());
+            sheet.WriteData(CreateDataTable());
             document.PreserveDeferredDataSetFastSaveModelAndClearCandidate();
             Assert.True(document.HasUnmaterializedDirectDataSetRows);
 

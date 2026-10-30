@@ -40,32 +40,29 @@ namespace OfficeIMO.Tests {
                     sheet = document.Sheets[0];
                 } else {
                     sheet = document.AddSheet("Data");
-                    sheet.InsertDataTable(table, mode: source == "ParallelDataTable" ? ExcelExecutionMode.Parallel : ExcelExecutionMode.Sequential);
+                    sheet.WriteData(table, mode: source == "ParallelDataTable" ? ExcelExecutionMode.Parallel : ExcelExecutionMode.Sequential);
                 }
             } else {
                 sheet = document.AddSheet("Data");
                 if (source == "Projected") {
-                    sheet.InsertObjects(new[] { 1, 2 },
-                        ("Id", (Func<int, object?>)(id => id == 1 ? 1 : null)),
-                        ("Amount", _ => null),
-                        ("Text", id => id == 1 ? string.Empty : null));
+                    sheet.WriteData(new[] { 1, 2 }, ("Id", (Func<int, object?>)(id => id == 1 ? 1 : null)), ("Amount", _ => null), ("Text", id => id == 1 ? string.Empty : null));
                 } else if (source == "Objects") {
-                    sheet.InsertObjects(new[] {
+                    sheet.WriteData(new[] {
                         new MissingStyleRow { Id = 1, Text = string.Empty },
                         new MissingStyleRow()
                     });
                 } else if (source == "ReadOnlyDictionary") {
-                    sheet.InsertObjects(new IReadOnlyDictionary<string, object?>[] {
+                    sheet.WriteData(new IReadOnlyDictionary<string, object?>[] {
                         new System.Collections.ObjectModel.ReadOnlyDictionary<string, object?>(new Dictionary<string, object?> { ["Id"] = 1, ["Amount"] = null, ["Text"] = string.Empty }),
                         new System.Collections.ObjectModel.ReadOnlyDictionary<string, object?>(new Dictionary<string, object?> { ["Id"] = null, ["Amount"] = DBNull.Value, ["Text"] = null })
                     });
                 } else if (source == "LegacyDictionary") {
-                    sheet.InsertObjects(new System.Collections.IDictionary[] {
+                    sheet.WriteData(new System.Collections.IDictionary[] {
                         new System.Collections.Specialized.OrderedDictionary { ["Id"] = 1, ["Amount"] = null, ["Text"] = string.Empty },
                         new System.Collections.Specialized.OrderedDictionary { ["Id"] = null, ["Amount"] = DBNull.Value, ["Text"] = null }
                     });
                 } else {
-                    sheet.InsertObjects(new[] {
+                    sheet.WriteData(new[] {
                         new Dictionary<string, object?> { ["Id"] = 1, ["Amount"] = null, ["Text"] = string.Empty },
                         new Dictionary<string, object?> { ["Id"] = null, ["Amount"] = DBNull.Value, ["Text"] = null }
                     });
@@ -172,13 +169,11 @@ namespace OfficeIMO.Tests {
                 table.Columns.Add("Inline", typeof(string));
                 table.Rows.Add(string.Empty, string.Empty);
                 table.Rows.Add("Next", "Next");
-                sheet.InsertDataTable(table, mode: mode);
+                sheet.WriteData(table, mode: mode);
             } else if (source is "Projected" or "SmallProjected") {
-                sheet.InsertObjects(Enumerable.Range(1, source == "SmallProjected" ? 2 : 20),
-                    ("Formula", (Func<int, object?>)(id => id == 1 ? string.Empty : "Next")),
-                    ("Inline", id => id == 1 ? string.Empty : "Next"));
+                sheet.WriteData(Enumerable.Range(1, source == "SmallProjected" ? 2 : 20), ("Formula", (Func<int, object?>)(id => id == 1 ? string.Empty : "Next")), ("Inline", id => id == 1 ? string.Empty : "Next"));
             } else if (source is "Objects" or "SmallObjects") {
-                sheet.InsertObjects(Enumerable.Range(1, source == "SmallObjects" ? 2 : 20).Select(id => new OverwriteRow {
+                sheet.WriteData(Enumerable.Range(1, source == "SmallObjects" ? 2 : 20).Select(id => new OverwriteRow {
                     Formula = id == 1 ? string.Empty : "Next",
                     Inline = id == 1 ? string.Empty : "Next"
                 }));
@@ -230,10 +225,9 @@ namespace OfficeIMO.Tests {
                 var table = new DataTable();
                 table.Columns.Add("Value", typeof(string));
                 table.Rows.Add(rejected);
-                Assert.Throws<ArgumentException>(() => sheet.InsertDataTable(table, mode: ExcelExecutionMode.Sequential));
+                Assert.Throws<ArgumentException>(() => sheet.WriteData(table, mode: ExcelExecutionMode.Sequential));
             } else {
-                Assert.Throws<ArgumentException>(() => sheet.InsertObjects(new[] { 1, 2 },
-                    ("Value", (Func<int, object?>)(_ => rejected))));
+                Assert.Throws<ArgumentException>(() => sheet.WriteData(new[] { 1, 2 }, ("Value", (Func<int, object?>)(_ => rejected))));
             }
 
             Assert.Equal(original, existing.OuterXml);
@@ -251,7 +245,7 @@ namespace OfficeIMO.Tests {
         public void TabularImport_HeaderlessStyledMissingRows_PreserveAllColumns(string source, bool standardWriter) {
             using ExcelDocument document = ExcelDocument.Create();
             if (source == "Objects") {
-                document.AddSheet("Data").InsertObjects(new[] {
+                document.AddSheet("Data").WriteData(new[] {
                     new HeaderlessDateStyleRow(), new HeaderlessDateStyleRow()
                 }, includeHeaders: false);
             } else {
@@ -266,8 +260,7 @@ namespace OfficeIMO.Tests {
                     dataSet.Tables.Add(table);
                     document.InsertDataSet(dataSet, createTables: false, includeHeaders: false, includeAutoFilter: false);
                 } else {
-                    document.AddSheet("Data").InsertDataTable(table, includeHeaders: false,
-                        mode: source == "ParallelDataTable" ? ExcelExecutionMode.Parallel : ExcelExecutionMode.Sequential);
+                    document.AddSheet("Data").WriteData(table, includeHeaders: false, mode: source == "ParallelDataTable" ? ExcelExecutionMode.Parallel : ExcelExecutionMode.Sequential);
                 }
             }
 

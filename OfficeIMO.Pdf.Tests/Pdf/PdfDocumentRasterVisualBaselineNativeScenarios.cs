@@ -296,7 +296,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 summary.Cell(13, 1, "Mar");
                 summary.Cell(13, 2, 24);
                 summary.Cell(13, 3, 20);
-                summary.AddChartFromRange("A10:C13", row: 7, column: 1, width: OfficeLength.Pixels(300), height: OfficeLength.Pixels(140), type: OfficeChartType.ColumnClustered, title: "Revenue Chart");
+                summary.AddChart(OfficeChartType.ColumnClustered, "A10:C13", new OfficeIMO.Excel.ExcelChartOptions { Row = 7, Column = 1, Width = OfficeLength.Pixels(300), Height = OfficeLength.Pixels(140), Title = "Revenue Chart" });
                 summary.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
                 summary.SetColumnWidth(2, ExcelColumnWidth.Characters(18));
                 summary.SetColumnWidth(3, ExcelColumnWidth.Characters(28));

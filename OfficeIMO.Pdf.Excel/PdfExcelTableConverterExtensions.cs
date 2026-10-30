@@ -104,12 +104,7 @@ namespace OfficeIMO.Pdf.Excel {
                     rows,
                     options);
                 ExcelSheet sheet = workbook.AddSheet(BuildSheetName(options.SheetNamePrefix, extraction, i), ExcelSheetNameValidationMode.Sanitize, options.CancellationToken);
-                string range = sheet.InsertDataTableAsTable(
-                    dataTable,
-                    tableName: requestedTableName,
-                    style: options.TableStyle,
-                    includeAutoFilter: options.IncludeAutoFilter,
-                    ct: options.CancellationToken);
+                string range = sheet.AddTable(dataTable, new OfficeIMO.Excel.ExcelTableOptions { Name = requestedTableName, Style = options.TableStyle, IncludeAutoFilter = options.IncludeAutoFilter, CancellationToken = options.CancellationToken }, row: 1, column: 1).Range!;
                 ApplyTypedColumnFormats(
                     sheet,
                     dataTable,

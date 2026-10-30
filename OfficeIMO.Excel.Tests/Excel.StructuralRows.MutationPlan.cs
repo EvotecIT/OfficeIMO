@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
             table.Columns.Add("Score", typeof(int));
             table.Rows.Add("North", 10);
             table.Rows.Add("South", 20);
-            sheet.InsertDataTable(table);
+            sheet.WriteData(table);
             Assert.True(document.HasDeferredDirectDataSetImport);
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
@@ -445,7 +445,7 @@ namespace OfficeIMO.Tests {
             summary.CellAt(1, 2).SetValue("Value");
             summary.CellAt(2, 1).SetValue("One");
             summary.CellAt(2, 2).SetValue(1);
-            summary.AddChartFromRange("A1:B2", row: 5, column: 4);
+            summary.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
             ChartPart chartPart = Assert.Single(summary.WorksheetPart.DrawingsPart!.ChartParts);
             C.Formula formula = chartPart.ChartSpace.Descendants<C.Formula>().First();
             formula.Text = "Data!A5:A6";

@@ -22,8 +22,7 @@ public partial class Excel {
             Width = OfficeIMO.OfficeLength.Pixels(24),
             Height = OfficeIMO.OfficeLength.Pixels(16)
         });
-        sheet.AddChart(new ExcelChartData(new[] { "One", "Two" }, new[] { new ExcelChartSeries("Values", new double[] { 1, 2 }) }),
-            3, anchorColumn, width: OfficeLength.Pixels(120), height: OfficeLength.Pixels(80), title: "RetainedChart");
+        sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "One", "Two" }, new[] { new ExcelChartSeries("Values", new double[] { 1, 2 }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 3, Column = anchorColumn, Width = OfficeLength.Pixels(120), Height = OfficeLength.Pixels(80), Title = "RetainedChart" });
         document.SetPrintArea(sheet, "A1:F4");
         document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 3, lastCol: 3);
         sheet.AddManualColumnPageBreak(2);

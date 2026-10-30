@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
             sheet.CellAt(1, 2).SetValue("Value");
             sheet.CellAt(2, 1).SetValue("One");
             sheet.CellAt(2, 2).SetValue(1);
-            sheet.AddChartFromRange("A1:B2", row: 5, column: 4);
+            sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
             return sheet;
         }
     }

@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "One");
             sheet.CellValue(2, 2, 1);
-            sheet.AddChartFromRange("A1:B2", row: 5, column: 4);
+            sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
             return sheet;
         }
 

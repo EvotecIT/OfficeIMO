@@ -60,7 +60,7 @@ public sealed class HtmlExcelNamedTableLossTests {
         var options = new ExcelHtmlSaveOptions { ExportProfile = profile };
         if (worksheetOnly) {
             var sheet = workbook.AddSheet("Orders");
-            sheet.InsertDataTableAsTable(table, tableName: "OrderItems");
+            sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "OrderItems" }, row: 1, column: 1);
             result = sheet.ToHtmlResult(options);
         } else {
             workbook.InsertDataSet(data, createTables: true);

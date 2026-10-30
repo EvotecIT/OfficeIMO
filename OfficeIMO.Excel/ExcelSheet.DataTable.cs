@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel {
         /// <param name="includeHeaders">Whether to write column headers.</param>
         /// <param name="mode">Optional execution mode override.</param>
         /// <param name="ct">Cancellation token.</param>
-        public void InsertDataTable(DataTable table, int startRow = 1, int startColumn = 1, bool includeHeaders = true,
+        internal void InsertDataTable(DataTable table, int startRow = 1, int startColumn = 1, bool includeHeaders = true,
             ExcelExecutionMode? mode = null, CancellationToken ct = default) {
             InsertDataTableCore(table, startRow, startColumn, includeHeaders, mode, ct, copyDirectSaveTable: true);
         }

@@ -22,7 +22,7 @@ namespace OfficeIMO.Examples.Excel {
                 table.Rows.Add("Implementation", TimeSpan.FromHours(1.5));
                 table.Rows.Add("Testing", new TimeSpan(2, 10, 0));
 
-                sheet.InsertDataTable(table, includeHeaders: true);
+                sheet.WriteData(table, includeHeaders: true);
 
                 document.Save();
                 if (openExcel) document.OpenInApplication();

@@ -572,7 +572,11 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            if (typedSeries.Count == 0) {
+            var literalNames = GetChartSeries(plotArea, data.Series.Count)
+                .Select((item, index) => new { index, Name = item.GetFirstChild<SeriesText>()?.GetFirstChild<NumericValue>()?.Text })
+                .Where(item => item.Name != null)
+                .ToDictionary(item => item.index, item => item.Name!);
+            if (typedSeries.Count == 0 && literalNames.Count == 0) {
                 return data;
             }
 
@@ -586,12 +590,15 @@ namespace OfficeIMO.Excel {
                 ExcelChartSeries current = data.Series[i];
                 OfficeChartType? seriesType = current.ChartType;
                 OfficeChartAxisGroup axisGroup = current.AxisGroup;
+                // Literal names also belong to native chart families whose type
+                // projection is unsupported. Linked headers use current sheet data.
+                string name = literalNames.TryGetValue(i, out string? literalName) ? literalName : current.Name;
                 if (seriesTypes.TryGetValue(i, out var authoredSeries)) {
                     seriesType = authoredSeries.ChartType;
                     axisGroup = authoredSeries.AxisGroup;
                 }
 
-                series.Add(new ExcelChartSeries(current.Name, current.Values, seriesType, axisGroup).WithXValues(current.XValues));
+                series.Add(new ExcelChartSeries(name, current.Values, seriesType, axisGroup).WithXValues(current.XValues));
             }
 
             return new ExcelChartData(data.Categories, series);

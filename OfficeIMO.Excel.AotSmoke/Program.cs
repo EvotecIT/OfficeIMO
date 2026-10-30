@@ -52,7 +52,7 @@ try
         }
 
         ExcelSheet sheet = document.AddSheet("NativeAOT data");
-        string range = sheet.InsertDataTableAsTable(sales, tableName: "Sales");
+        string range = sheet.AddTable(sales, new OfficeIMO.Excel.ExcelTableOptions { Name = "Sales" }, row: 1, column: 1).Range!;
         if (range != "A1:D3")
         {
             throw new InvalidOperationException($"The Excel table used the unexpected range '{range}'.");

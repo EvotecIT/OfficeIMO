@@ -515,16 +515,9 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 2, 10);
                 sheet.CellValue(3, 1, "Q2");
                 sheet.CellValue(3, 2, 20);
-                sheet.AddChart(
-                    new ExcelChartData(
+                sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(
                         new[] { "Q1", "Q2" },
-                        new[] { new ExcelChartSeries("Sales", new[] { 10D, 20D }) }),
-                    row: 1,
-                    column: 4,
-                    width: OfficeLength.Pixels(280),
-                    height: OfficeLength.Pixels(180),
-                    type: OfficeChartType.ColumnClustered,
-                    title: "Quarterly sales");
+                        new[] { new ExcelChartSeries("Sales", new[] { 10D, 20D }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(280), Height = OfficeLength.Pixels(180), Title = "Quarterly sales" });
                 document.Save();
             }
 
@@ -571,16 +564,9 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
                 ExcelSheet sheet = document.AddSheet("Visual");
                 sheet.CellValue(1, 1, "Source payload");
-                sheet.AddChart(
-                    new ExcelChartData(
+                sheet.AddChart(OfficeChartType.Pie, new ExcelChartData(
                         new[] { "A", "B" },
-                        new[] { new ExcelChartSeries("Value", new[] { 3D, 7D }) }),
-                    row: 2,
-                    column: 2,
-                    width: OfficeLength.Pixels(220),
-                    height: OfficeLength.Pixels(140),
-                    type: OfficeChartType.Pie,
-                    title: "Preserved chart");
+                        new[] { new ExcelChartSeries("Value", new[] { 3D, 7D }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 2, Width = OfficeLength.Pixels(220), Height = OfficeLength.Pixels(140), Title = "Preserved chart" });
                 document.Save();
             }
             byte[] sourceBytes = File.ReadAllBytes(sourcePath);
