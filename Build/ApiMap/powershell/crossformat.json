@@ -5650,7 +5650,7 @@
           ]
         }
       ],
-      "notes": "Was Get-OfficeConversionJobReport. Import- is the approved verb for reading a data file into objects. The report type is OfficeConversionJobRunReport today and OfficeBatchReport after the C# rename.",
+      "notes": "Was Get-OfficeConversionJobReport. Import- reads a saved report into an OfficeBatchReport with State, Summary and Items properties.",
       "examples": [
         {
           "title": "Read a saved run report",

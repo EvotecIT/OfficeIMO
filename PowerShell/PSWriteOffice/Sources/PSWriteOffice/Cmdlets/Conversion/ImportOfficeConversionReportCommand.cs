@@ -8,7 +8,7 @@ namespace PSWriteOffice.Cmdlets.Conversion;
 /// <summary>Reads saved conversion run reports without executing jobs or changing outputs.</summary>
 /// <para>Reports describe an earlier attempt; checkpoint receipts and current source/output validation determine whether artifacts can be reused.</para>
 /// <example><summary>Read the conversion runs in a directory.</summary>
-/// <code>Import-OfficeConversionReport -Path ./runs/*.json | Select-Object Status, Summary</code></example>
+/// <code>Import-OfficeConversionReport -Path ./runs/*.json | Select-Object State, Summary</code></example>
 /// <example><summary>Read reports from FileInfo objects, preserving literal filenames.</summary>
 /// <code>Get-ChildItem ./runs -Filter *.json -File | Import-OfficeConversionReport</code></example>
 [Cmdlet(VerbsData.Import, "OfficeConversionReport", DefaultParameterSetName = "Path")]

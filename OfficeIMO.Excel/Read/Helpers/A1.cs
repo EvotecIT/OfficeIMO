@@ -174,7 +174,7 @@ namespace OfficeIMO.Excel {
         /// <returns>(r1, c1, r2, c2) 1-based coordinates.</returns>
         /// <exception cref="ArgumentException">Thrown when the input is not a valid A1 range.</exception>
         /// <example>
-        /// var (r1, c1, r2, c2) = A1.ParseRange("B2:D10");
+        /// var (r1, c1, r2, c2) = ExcelA1.ParseRange("B2:D10");
         /// // r1=2, c1=2, r2=10, c2=4
         /// </example>
         public static (int r1, int c1, int r2, int c2) ParseRange(string a1Range) {
@@ -422,8 +422,8 @@ namespace OfficeIMO.Excel {
         /// <param name="index">1-based column index.</param>
         /// <returns>Excel column letters; returns "A" for non-positive inputs.</returns>
         /// <example>
-        /// string col = A1.ColumnIndexToLetters(28); // "AB"
-        /// int idx = A1.ColumnLettersToIndex("AB"); // 28
+        /// string col = ExcelA1.ColumnIndexToLetters(28); // "AB"
+        /// int idx = ExcelA1.ColumnLettersToIndex("AB"); // 28
         /// </example>
         public static string ColumnIndexToLetters(int index) {
             if (index <= 0) return "A";
