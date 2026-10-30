@@ -53,4 +53,30 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Contains(page.ListItems, item => item.Text.IndexOf("Approve the second-source budget", StringComparison.Ordinal) >= 0);
         Assert.Contains(page.ListItems, item => item.Text.IndexOf("Confirm the hedging policy change", StringComparison.Ordinal) >= 0);
     }
+
+    [Fact]
+    public void WrappedTitleIsOneHeadingButAShortHeadingAboveALongerOneStaysSeparate() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        var options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Executive security", "F1", 28D, 64D, 740D, 233D),
+            new PdfTextSpan("summary", "F1", 28D, 64D, 709D, 120D),
+            new PdfTextSpan("A first-party report body line that runs across most of the page width here.", "F1", 11D, 64D, 680D, 480D),
+            new PdfTextSpan("A second body line keeps the page body at eleven points for this test case.", "F1", 11D, 64D, 665D, 480D),
+            new PdfTextSpan("ShortTerm (3)", "F1", 16D, 64D, 620D, 90D),
+            new PdfTextSpan("Domain Controller - Credential Posture finding #1", "F1", 16D, 64D, 600D, 380D),
+            new PdfTextSpan("Closing body line set in the ordinary body size for the page.", "F1", 11D, 64D, 575D, 400D),
+            new PdfTextSpan("Further body text continues the finding with ordinary sentences.", "F1", 11D, 64D, 560D, 400D),
+            new PdfTextSpan("More body text describes the recommended action for the reader.", "F1", 11D, 64D, 545D, 400D),
+            new PdfTextSpan("The last body line closes the paragraph about the finding here.", "F1", 11D, 64D, 530D, 400D)
+        });
+
+        PdfLogicalPage page = Assert.Single(Read(pdf, options).Pages);
+
+        PdfLogicalHeading title = Assert.Single(page.Headings, heading => heading.Text.StartsWith("Executive", StringComparison.Ordinal));
+        Assert.Equal("Executive security summary", title.Text);
+        Assert.Equal(2, title.Lines.Count);
+        Assert.Contains(page.Headings, heading => heading.Text == "ShortTerm (3)");
+        Assert.Contains(page.Headings, heading => heading.Text.StartsWith("Domain Controller", StringComparison.Ordinal));
+    }
 }

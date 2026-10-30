@@ -565,7 +565,7 @@ public static partial class PdfAdvancedUnderstandingStages {
 
         /// <summary>
         /// A display title that wraps (beside a logo, or in a narrow column) continues on the next line in the same
-        /// size and margin at single line spacing, and the line before does not end a sentence.
+        /// size and margin at single line spacing; the line before does not end a sentence and is not shorter.
         /// </summary>
         private static bool IsWrappedHeadingContinuation(List<PdfUnderstandingLine> current, PdfUnderstandingLine line) {
             if (current.Count >= 3) return false;
@@ -574,6 +574,8 @@ public static partial class PdfAdvancedUnderstandingStages {
             if (Math.Abs(previous.XStart - line.XStart) > Math.Max(2D, line.FontSize * 0.25D)) return false;
             double gap = previous.BaselineY - line.BaselineY;
             if (gap <= 0D || gap > line.FontSize * 1.45D) return false;
+            // Wrapping fills the first line; a short line over a longer one is a separate heading above it.
+            if (previous.XEnd - previous.XStart < (line.XEnd - line.XStart) * 0.8D) return false;
             string text = previous.Text.Trim();
             return text.Length > 0 && !ContentStructureExtractor.EndsWithSentenceTerminal(text);
         }

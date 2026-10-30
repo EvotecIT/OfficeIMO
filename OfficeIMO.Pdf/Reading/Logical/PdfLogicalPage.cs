@@ -775,6 +775,16 @@ public sealed partial class PdfLogicalPage {
         return JoinWrappedHeadingLines(result, resultSemantics);
     }
 
+    private static bool IsWrappedHeadingLine(PdfLogicalTextBlock previous, PdfLogicalTextBlock line, double maximumSpacing) {
+        double gap = previous.BaselineY - line.BaselineY;
+        double size = Math.Max(previous.FontSize, line.FontSize);
+        if (gap <= 0D || size <= 0D || gap > size * maximumSpacing || Math.Abs(previous.FontSize - line.FontSize) > 0.5D) return false;
+        if (Math.Abs(previous.XStart - line.XStart) > Math.Max(2D, size * 0.25D)) return false;
+        // Wrapping fills the first line; a short line over a longer one is a separate heading above it.
+        if (previous.XEnd - previous.XStart < (line.XEnd - line.XStart) * 0.8D) return false;
+        return !ContentStructureExtractor.EndsWithSentenceTerminal(previous.Text);
+    }
+
     /// <summary>
     /// A heading region that wraps onto several lines ("Executive security" / "summary" beside a logo) is one
     /// heading. Lines are joined when they come from the same semantic region and follow each other.
@@ -791,7 +801,11 @@ public sealed partial class PdfLogicalPage {
             if (result.Count > 0 && semantic is not null && ReferenceEquals(semantic, previousSemantic) &&
                 semantic.Region.Lines.Count > 1) {
                 PdfLogicalHeading previous = result[result.Count - 1];
-                if (previous.Level == heading.Level && previous.Line.BaselineY > heading.Line.BaselineY) {
+                // A tagged heading keeps the producer's line spacing, so only its geometry is relaxed.
+                bool tagged = semantic.Evidence.Any(static evidence =>
+                    string.Equals(evidence.Code, "semantic-tagged-pdf-role", StringComparison.Ordinal));
+                if (previous.Level == heading.Level &&
+                    IsWrappedHeadingLine(previous.Lines[previous.Lines.Count - 1], heading.Line, tagged ? 2.2D : 1.45D)) {
                     result[result.Count - 1] = previous.WithContinuation(heading);
                     continue;
                 }
