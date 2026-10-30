@@ -75,19 +75,18 @@ public sealed partial class XpsPage {
     }
     internal bool HasNamedTarget(string name) => _markup.DescendantsAndSelf().Any(e => (string?)e.Attribute("Name") == name && !e.Ancestors().Any(a => a.Name.LocalName == "VisualBrush.Visual"));
     internal byte[] Serialize() => XpsPackage.Serialize(_markup);
-    internal IEnumerable<string> ResourceReferences(XElement? markup, Func<string, XElement?> dictionaryReader) {
+    internal IEnumerable<string> ResourceReferences(XElement? markup, Func<string, IReadOnlyList<string>?> dictionaryReferences) {
         var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var pending = new Queue<(XElement Markup, string Part)>();
-        pending.Enqueue((markup ?? _markup, PartName));
+        var pending = new Queue<IReadOnlyList<string>>();
+        pending.Enqueue(XpsResourceSyntax.References(markup ?? _markup)
+            .Select(uri => XpsPackage.Resolve(PartName, uri)).ToArray());
         while (pending.Count != 0) {
-            var current = pending.Dequeue();
-            foreach (string uri in XpsResourceSyntax.References(current.Markup)) {
-                string name = XpsPackage.Resolve(current.Part, uri);
+            foreach (string name in pending.Dequeue()) {
                 if (!visited.Add(name)) continue;
                 if (visited.Count > 100000) throw new InvalidDataException("XPS resource reference budget exceeded.");
                 yield return name;
-                var dictionary = dictionaryReader(name);
-                if (dictionary != null) pending.Enqueue((dictionary, name));
+                IReadOnlyList<string>? references = dictionaryReferences(name);
+                if (references != null) pending.Enqueue(references);
             }
         }
     }
