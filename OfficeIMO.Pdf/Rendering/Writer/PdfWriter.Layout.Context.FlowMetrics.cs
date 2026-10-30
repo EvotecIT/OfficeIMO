@@ -688,8 +688,15 @@ internal static partial class PdfWriter {
         }
 
         private void ConsumeSpacer(double height) {
+            // A single imported dimension must not request an effectively unbounded
+            // number of page or column transitions when no page limit was configured.
+            if (height / currentOpts.PageHeight > 1000D)
+                throw new InvalidDataException("PDF spacer exceeds the page traversal bound.");
             double remaining = height;
+            int traversals = 0;
             while (remaining > 0.001D) {
+                if (++traversals > 1000)
+                    throw new InvalidDataException("PDF spacer exceeds the page traversal bound.");
                 double available = y - FootnoteBodyBottom;
                 double closingPadding = GetClosingContainerPadding();
                 if (remaining <= available && remaining + closingPadding > available) available -= closingPadding;
@@ -723,7 +730,10 @@ internal static partial class PdfWriter {
                 double consumed = Math.Min(remaining, available);
                 if (consumed > 0D) RecordRunningContentSection();
                 y -= consumed;
-                remaining -= consumed;
+                double nextRemaining = remaining - consumed;
+                if (nextRemaining >= remaining)
+                    throw new InvalidDataException("PDF spacer could not make numerical progress.");
+                remaining = nextRemaining;
                 if (remaining > 0.001D) {
                     NewPage();
                 }
