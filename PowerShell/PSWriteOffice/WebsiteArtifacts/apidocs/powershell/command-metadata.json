@@ -1691,8 +1691,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/CloseOfficeExcelCommand.cs",
-      "sourceLine": 23,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/CloseOfficeExcelCommand.cs#L23"
+      "sourceLine": 13,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/CloseOfficeExcelCommand.cs#L13"
     },
     {
       "name": "Close-OfficePowerPoint",
@@ -3792,6 +3792,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/NewOfficeExcelPdfOptionsCommand.cs#L18"
     },
     {
+      "name": "New-OfficeExcelSaveOptions",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/NewOfficeExcelSaveOptionsCommand.cs",
+      "sourceLine": 13,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/NewOfficeExcelSaveOptionsCommand.cs#L13"
+    },
+    {
       "name": "New-OfficeExcelWorkbookImageOptions",
       "kind": "Cmdlet",
       "aliases": [],
@@ -4372,8 +4380,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SaveOfficeExcelCommand.cs",
-      "sourceLine": 19,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SaveOfficeExcelCommand.cs#L19"
+      "sourceLine": 18,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SaveOfficeExcelCommand.cs#L18"
     },
     {
       "name": "Save-OfficeLatex",

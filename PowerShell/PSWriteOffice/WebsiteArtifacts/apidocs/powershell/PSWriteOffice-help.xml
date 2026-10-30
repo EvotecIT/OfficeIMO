@@ -64359,61 +64359,19 @@ cells. This keeps existing-document editing simple without forcing callers back 
       <command:verb>Close</command:verb>
       <command:noun>OfficeExcel</command:noun>
       <maml:description>
-        <maml:para>Closes an Excel workbook and optionally saves it.</maml:para>
+        <maml:para>Closes a live Excel workbook without saving pending changes.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Convenience wrapper so scripts do not need to call Save or Dispose directly.</maml:para>
+      <maml:para>Use Save-OfficeExcel before closing to retain changes. Workbooks with SaveOnDispose are rejected so disposal cannot publish a file.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="__AllParameterSets">
         <maml:name>Close-OfficeExcel</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ClearCachedFormulaResults</maml:name>
-          <maml:description>
-            <maml:para>Remove cached formula results before saving.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>DateSystem</maml:name>
-          <maml:description>
-            <maml:para>Workbook date system for Excel date serials.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">1900</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">1904</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">NineteenHundred</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">NineteenFour</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>DisableFastPackageWriter</maml:name>
-          <maml:description>
-            <maml:para>Disable OfficeIMO fast package writers for this save.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>Document</maml:name>
           <maml:description>
-            <maml:para>Workbook to close.</maml:para>
+            <maml:para>Explicit-persistence workbook to close.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">ExcelDocument</command:parameterValue>
           <dev:type>
@@ -64422,299 +64380,17 @@ cells. This keeps existing-document editing simple without forcing callers back 
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>EvaluateFormulas</maml:name>
-          <maml:description>
-            <maml:para>Evaluate supported formulas and write cached values before saving.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ForceFullCalculationOnOpen</maml:name>
-          <maml:description>
-            <maml:para>Request a full workbook recalculation when opened in Excel-compatible applications.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MarkFormulasDirty</maml:name>
-          <maml:description>
-            <maml:para>Mark formula cells dirty before saving.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Show">
-          <maml:name>Open</maml:name>
-          <maml:description>
-            <maml:para>Open the workbook after saving. Requires -Save or -Path.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Password</maml:name>
-          <maml:description>
-            <maml:para>Password used to save the workbook as an encrypted package.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Path</maml:name>
-          <maml:description>
-            <maml:para>Optional output path when saving.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SafePreflight</maml:name>
-          <maml:description>
-            <maml:para>Run OfficeIMO worksheet preflight cleanup before saving.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SafeRepairDefinedNames</maml:name>
-          <maml:description>
-            <maml:para>Repair common defined-name issues before saving.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Save</maml:name>
-          <maml:description>
-            <maml:para>Persist changes before closing.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ValidateOpenXml</maml:name>
-          <maml:description>
-            <maml:para>Validate the saved package with OpenXmlValidator and throw on errors.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>ClearCachedFormulaResults</maml:name>
-        <maml:description>
-          <maml:para>Remove cached formula results before saving.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>DateSystem</maml:name>
-        <maml:description>
-          <maml:para>Workbook date system for Excel date serials.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <command:parameterValueGroup>
-          <command:parameterValue required="false" variableLength="false">1900</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">1904</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">NineteenHundred</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">NineteenFour</command:parameterValue>
-        </command:parameterValueGroup>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>DisableFastPackageWriter</maml:name>
-        <maml:description>
-          <maml:para>Disable OfficeIMO fast package writers for this save.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
         <maml:name>Document</maml:name>
         <maml:description>
-          <maml:para>Workbook to close.</maml:para>
+          <maml:para>Explicit-persistence workbook to close.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">ExcelDocument</command:parameterValue>
         <dev:type>
           <maml:name>ExcelDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>EvaluateFormulas</maml:name>
-        <maml:description>
-          <maml:para>Evaluate supported formulas and write cached values before saving.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>ForceFullCalculationOnOpen</maml:name>
-        <maml:description>
-          <maml:para>Request a full workbook recalculation when opened in Excel-compatible applications.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>MarkFormulasDirty</maml:name>
-        <maml:description>
-          <maml:para>Mark formula cells dirty before saving.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Show">
-        <maml:name>Open</maml:name>
-        <maml:description>
-          <maml:para>Open the workbook after saving. Requires -Save or -Path.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Password</maml:name>
-        <maml:description>
-          <maml:para>Password used to save the workbook as an encrypted package.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Path</maml:name>
-        <maml:description>
-          <maml:para>Optional output path when saving.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SafePreflight</maml:name>
-        <maml:description>
-          <maml:para>Run OfficeIMO worksheet preflight cleanup before saving.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SafeRepairDefinedNames</maml:name>
-        <maml:description>
-          <maml:para>Repair common defined-name issues before saving.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Save</maml:name>
-        <maml:description>
-          <maml:para>Persist changes before closing.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>ValidateOpenXml</maml:name>
-        <maml:description>
-          <maml:para>Validate the saved package with OpenXmlValidator and throw on errors.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -64735,20 +64411,11 @@ cells. This keeps existing-document editing simple without forcing callers back 
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Save, validate, and close an open workbook.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>New-OfficeExcel -Path .\report.xlsx {
-                Add-OfficeExcelSheet -Name Data {
-                    Set-OfficeExcelRow -Row 1 -Values 'Region', 'Revenue'
-                    Set-OfficeExcelRow -Row 2 -Values 'EMEA', 98000
-                }
-            }
-            $workbook = Get-OfficeExcel -Path .\report.xlsx
-            $workbook | Close-OfficeExcel -Save -Path .\report-final.xlsx -SafePreflight -ValidateOpenXml</dev:code>
+        <maml:title>Save edits explicitly, then close.</maml:title>
+        <dev:code>$workbook | Save-OfficeExcel
+            $workbook | Close-OfficeExcel</dev:code>
         <dev:remarks>
-          <maml:para>Saves pending changes through OfficeIMO's normal save path, validates the package, and releases the workbook.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -157966,6 +157633,248 @@ document for Document input. Native merge options determine which content is imp
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
+      <command:name>New-OfficeExcelSaveOptions</command:name>
+      <command:verb>New</command:verb>
+      <command:noun>OfficeExcelSaveOptions</command:noun>
+      <maml:description>
+        <maml:para>Creates native workbook save settings.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Creates native workbook save settings.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Default">
+        <maml:name>New-OfficeExcelSaveOptions</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ClearCachedFormulaResults</maml:name>
+          <maml:description>
+            <maml:para>Remove cached formula results unless evaluation is requested.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>EvaluateFormulas</maml:name>
+          <maml:description>
+            <maml:para>Evaluate supported formulas and write their cached results.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>FullCalculationOnOpen</maml:name>
+          <maml:description>
+            <maml:para>Request a full recalculation when the workbook is opened.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MarkFormulasDirty</maml:name>
+          <maml:description>
+            <maml:para>Mark formulas dirty for the next application open.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoFastPackageWriter</maml:name>
+          <maml:description>
+            <maml:para>Use the standard package finalization path.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Preflight</maml:name>
+          <maml:description>
+            <maml:para>Run native worksheet preflight cleanup before saving.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>RepairDefinedNames</maml:name>
+          <maml:description>
+            <maml:para>Repair common defined-name issues before saving.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>ValidateOpenXml</maml:name>
+          <maml:description>
+            <maml:para>Validate the saved package against the Open XML schema.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>ClearCachedFormulaResults</maml:name>
+        <maml:description>
+          <maml:para>Remove cached formula results unless evaluation is requested.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>EvaluateFormulas</maml:name>
+        <maml:description>
+          <maml:para>Evaluate supported formulas and write their cached results.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>FullCalculationOnOpen</maml:name>
+        <maml:description>
+          <maml:para>Request a full recalculation when the workbook is opened.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>MarkFormulasDirty</maml:name>
+        <maml:description>
+          <maml:para>Mark formulas dirty for the next application open.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoFastPackageWriter</maml:name>
+        <maml:description>
+          <maml:para>Use the standard package finalization path.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Preflight</maml:name>
+        <maml:description>
+          <maml:para>Run native worksheet preflight cleanup before saving.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>RepairDefinedNames</maml:name>
+        <maml:description>
+          <maml:para>Repair common defined-name issues before saving.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>ValidateOpenXml</maml:name>
+        <maml:description>
+          <maml:para>Validate the saved package against the Open XML schema.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>None</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Excel.ExcelSaveOptions</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Validate and recalculate a workbook on save.</maml:title>
+        <dev:code>$options = New-OfficeExcelSaveOptions -Preflight -EvaluateFormulas -FullCalculationOnOpen -ValidateOpenXml
+            Save-OfficeExcel -Document $workbook -SaveOptions $options</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
       <command:name>New-OfficeExcelWorkbookImageOptions</command:name>
       <command:verb>New</command:verb>
       <command:noun>OfficeExcelWorkbookImageOptions</command:noun>
@@ -182529,49 +182438,19 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <command:verb>Save</command:verb>
       <command:noun>OfficeExcel</command:noun>
       <maml:description>
-        <maml:para>Saves an Excel workbook without disposing it.</maml:para>
+        <maml:para>Saves a live Excel workbook without closing it.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Saves an Excel workbook without disposing it.</maml:para>
+      <maml:para>Omitted Password preserves loaded encryption; an explicit null removes it. SaveOptions accepts native options or a hashtable. PassThru returns the saved FileInfo. The workbook must use explicit persistence.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="__AllParameterSets">
         <maml:name>Save-OfficeExcel</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ClearCachedFormulaResults</maml:name>
+          <maml:name>AllowLoss</maml:name>
           <maml:description>
-            <maml:para>Remove cached formula results before saving.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>DateSystem</maml:name>
-          <maml:description>
-            <maml:para>Workbook date system for Excel date serials.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">1900</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">1904</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">NineteenHundred</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">NineteenFour</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>DisableFastPackageWriter</maml:name>
-          <maml:description>
-            <maml:para>Disable OfficeIMO fast package writers for this save.</maml:para>
+            <maml:para>Explicitly accept reported native-save reductions; overrides SaveOptions when supplied.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -182583,7 +182462,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>Document</maml:name>
           <maml:description>
-            <maml:para>Workbook to save.</maml:para>
+            <maml:para>Live workbook to save.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">ExcelDocument</command:parameterValue>
           <dev:type>
@@ -182593,57 +182472,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>EvaluateFormulas</maml:name>
-          <maml:description>
-            <maml:para>Evaluate supported formulas and write cached values before saving.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ForceFullCalculationOnOpen</maml:name>
-          <maml:description>
-            <maml:para>Request a full workbook recalculation when opened in Excel-compatible applications.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MarkFormulasDirty</maml:name>
-          <maml:description>
-            <maml:para>Mark formula cells dirty before saving.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Show">
-          <maml:name>Open</maml:name>
-          <maml:description>
-            <maml:para>Open the workbook after saving.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Emit the workbook for further processing.</maml:para>
+            <maml:para>Return the saved FileInfo.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -182655,11 +182486,11 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Password</maml:name>
           <maml:description>
-            <maml:para>Password used to save the workbook as an encrypted package.</maml:para>
+            <maml:para>Override the output password; omission retains loaded encryption.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -182667,7 +182498,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Path</maml:name>
           <maml:description>
-            <maml:para>Optional save-as path.</maml:para>
+            <maml:para>Optional new destination; omission uses the associated path.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -182677,33 +182508,21 @@ options retain their owner password, permission mask, algorithm, metadata settin
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SafePreflight</maml:name>
+          <maml:name>SaveOptions</maml:name>
           <maml:description>
-            <maml:para>Run OfficeIMO worksheet preflight cleanup before saving.</maml:para>
+            <maml:para>Native save settings, or a hashtable using the save-option factory's names.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ExcelSaveOptions</command:parameterValue>
           <dev:type>
-            <maml:name>SwitchParameter</maml:name>
+            <maml:name>ExcelSaveOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SafeRepairDefinedNames</maml:name>
+          <maml:name>Show</maml:name>
           <maml:description>
-            <maml:para>Repair common defined-name issues before saving.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ValidateOpenXml</maml:name>
-          <maml:description>
-            <maml:para>Validate the saved package with OpenXmlValidator and throw on errors.</maml:para>
+            <maml:para>Open the saved file in its registered default application.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -182716,39 +182535,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
     </command:syntax>
     <command:parameters>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>ClearCachedFormulaResults</maml:name>
+        <maml:name>AllowLoss</maml:name>
         <maml:description>
-          <maml:para>Remove cached formula results before saving.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>DateSystem</maml:name>
-        <maml:description>
-          <maml:para>Workbook date system for Excel date serials.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <command:parameterValueGroup>
-          <command:parameterValue required="false" variableLength="false">1900</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">1904</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">NineteenHundred</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">NineteenFour</command:parameterValue>
-        </command:parameterValueGroup>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>DisableFastPackageWriter</maml:name>
-        <maml:description>
-          <maml:para>Disable OfficeIMO fast package writers for this save.</maml:para>
+          <maml:para>Explicitly accept reported native-save reductions; overrides SaveOptions when supplied.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -182760,7 +182549,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
         <maml:name>Document</maml:name>
         <maml:description>
-          <maml:para>Workbook to save.</maml:para>
+          <maml:para>Live workbook to save.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">ExcelDocument</command:parameterValue>
         <dev:type>
@@ -182770,57 +182559,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>EvaluateFormulas</maml:name>
-        <maml:description>
-          <maml:para>Evaluate supported formulas and write cached values before saving.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>ForceFullCalculationOnOpen</maml:name>
-        <maml:description>
-          <maml:para>Request a full workbook recalculation when opened in Excel-compatible applications.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>MarkFormulasDirty</maml:name>
-        <maml:description>
-          <maml:para>Mark formula cells dirty before saving.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Show">
-        <maml:name>Open</maml:name>
-        <maml:description>
-          <maml:para>Open the workbook after saving.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>PassThru</maml:name>
         <maml:description>
-          <maml:para>Emit the workbook for further processing.</maml:para>
+          <maml:para>Return the saved FileInfo.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -182832,11 +182573,11 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Password</maml:name>
         <maml:description>
-          <maml:para>Password used to save the workbook as an encrypted package.</maml:para>
+          <maml:para>Override the output password; omission retains loaded encryption.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -182844,7 +182585,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Path</maml:name>
         <maml:description>
-          <maml:para>Optional save-as path.</maml:para>
+          <maml:para>Optional new destination; omission uses the associated path.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -182854,33 +182595,21 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SafePreflight</maml:name>
+        <maml:name>SaveOptions</maml:name>
         <maml:description>
-          <maml:para>Run OfficeIMO worksheet preflight cleanup before saving.</maml:para>
+          <maml:para>Native save settings, or a hashtable using the save-option factory's names.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">ExcelSaveOptions</command:parameterValue>
         <dev:type>
-          <maml:name>SwitchParameter</maml:name>
+          <maml:name>ExcelSaveOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SafeRepairDefinedNames</maml:name>
+        <maml:name>Show</maml:name>
         <maml:description>
-          <maml:para>Repair common defined-name issues before saving.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>ValidateOpenXml</maml:name>
-        <maml:description>
-          <maml:para>Validate the saved package with OpenXmlValidator and throw on errors.</maml:para>
+          <maml:para>Open the saved file in its registered default application.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -182900,7 +182629,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
     <command:returnValues>
       <command:returnValue>
         <dev:type>
-          <maml:name>OfficeIMO.Excel.ExcelDocument</maml:name>
+          <maml:name>System.IO.FileInfo</maml:name>
         </dev:type>
       </command:returnValue>
     </command:returnValues>
@@ -182911,13 +182640,11 @@ options retain their owner password, permission mask, algorithm, metadata settin
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Save a workbook in-place.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$workbook | Save-OfficeExcel</dev:code>
+        <maml:title>Save pending edits and then close the workbook.</maml:title>
+        <dev:code>Save-OfficeExcel -Document $workbook -Path ./Reviewed.xlsx -SaveOptions @{ Preflight = $true; ValidateOpenXml = $true } -PassThru
+            Close-OfficeExcel -Document $workbook</dev:code>
         <dev:remarks>
-          <maml:para>Writes pending changes to disk and keeps the workbook open.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
