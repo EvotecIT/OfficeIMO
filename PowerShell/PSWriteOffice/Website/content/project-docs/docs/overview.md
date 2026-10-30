@@ -29,7 +29,7 @@ The module manifest is the source of truth for exported cmdlets and aliases. The
 - **Project — 19 commands:** create and schedule tasks, resources and assignments; exchange mapped tables; save native MPP or Project XML and export reports.
 - **Access — 9 commands:** inspect native MDB/ACCDB schemas and rows, and create inert table databases from PowerShell objects.
 - **EPUB — 7 commands:** build publications from chapters, resources and metadata, then inspect and save the package.
-- **Archive migration and evidence — 6 commands:** inspect package security and provenance, identify iWork files, and convert iWork and offline OneNote content with explicit fidelity evidence.
+- **Archive migration and evidence — 5 commands:** inspect package security and provenance, identify iWork files, and convert iWork and offline OneNote content with explicit fidelity evidence.
 - **Confluence Cloud — 7 commands:** plan, create, update, and remove pages; preserve managed sections; and list, upload, or download attachments.
 - **Markdown, Visio, Reader, OCR, visuals, and open formats:** typed Markdown, VSDX diagrams and stencils, cross-format visual placement, normalized extraction, local image OCR, RTF, CSV, ODT/ODS/ODP, email, AsciiDoc, and LaTeX workflows.
 

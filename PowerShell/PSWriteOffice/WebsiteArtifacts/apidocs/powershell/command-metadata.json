@@ -2512,6 +2512,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentInfoCommand.cs#L25"
     },
     {
+      "name": "Get-OfficeDocumentProvenance",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Security/GetOfficeDocumentProvenanceCommand.cs",
+      "sourceLine": 28,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Security/GetOfficeDocumentProvenanceCommand.cs#L28"
+    },
+    {
       "name": "Get-OfficeEmail",
       "kind": "Cmdlet",
       "aliases": [],
@@ -3147,14 +3155,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Project/GetOfficeProjectViewCommand.cs#L18"
     },
     {
-      "name": "Get-OfficeProvenance",
-      "kind": "Cmdlet",
-      "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Security/GetOfficeProvenanceCommand.cs",
-      "sourceLine": 26,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Security/GetOfficeProvenanceCommand.cs#L26"
-    },
-    {
       "name": "Get-OfficeRtf",
       "kind": "Cmdlet",
       "aliases": [
@@ -3673,6 +3673,14 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/NewOfficeDocumentHierarchyOptionsCommand.cs",
       "sourceLine": 15,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Reader/NewOfficeDocumentHierarchyOptionsCommand.cs#L15"
+    },
+    {
+      "name": "New-OfficeDocumentProvenanceOptions",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Security/NewOfficeDocumentProvenanceOptionsCommand.cs",
+      "sourceLine": 13,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Security/NewOfficeDocumentProvenanceOptionsCommand.cs#L13"
     },
     {
       "name": "New-OfficeDocumentReader",
