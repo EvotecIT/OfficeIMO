@@ -273,6 +273,24 @@ public sealed class PdfLogicalHeading {
     /// <summary>Evidence supporting the heading classification.</summary>
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
 
+    /// <summary>Further source lines of a heading that wraps; <see cref="Line"/> is the first.</summary>
+    internal IReadOnlyList<PdfLogicalTextBlock> ContinuationLines { get; private set; } = Array.Empty<PdfLogicalTextBlock>();
+
+    /// <summary>
+    /// Source lines of the heading in reading order: <see cref="Line"/> followed by the lines of a heading that
+    /// wraps (a long title, or one set beside a logo).
+    /// </summary>
+    public IReadOnlyList<PdfLogicalTextBlock> Lines => ContinuationLines.Count == 0
+        ? new[] { Line }
+        : new[] { Line }.Concat(ContinuationLines).ToArray();
+
+    internal PdfLogicalHeading WithContinuation(PdfLogicalHeading continuation) {
+        var joined = new PdfLogicalHeading(PageNumber, Level, Text.TrimEnd() + " " + continuation.Text.TrimStart(),
+            FontSize, Line, Confidence, Evidence);
+        joined.ContinuationLines = ContinuationLines.Concat(continuation.Lines).ToArray();
+        return joined;
+    }
+
     internal bool CanApplyDocumentFontTier => !Evidence.Any(static item =>
         string.Equals(item.Code, "semantic-outline-heading", StringComparison.Ordinal) ||
         string.Equals(item.Code, "semantic-tagged-pdf-role", StringComparison.Ordinal));

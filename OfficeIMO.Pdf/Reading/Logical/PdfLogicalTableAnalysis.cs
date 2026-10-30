@@ -677,7 +677,7 @@ public static class PdfLogicalTableAnalysis {
         return numericColumns;
     }
 
-    /// <summary>A number followed or preceded by a short uppercase unit or currency code, such as "31,80 PLN".</summary>
+    /// <summary>A number followed by a short unit or currency code ("31,80 PLN", "1.2 h", "+2.4 pts"), or preceded by an uppercase code.</summary>
     private static bool LooksLikeCodedAmount(string value) {
         string trimmed = value.Trim();
         int space = trimmed.LastIndexOf(' ');
@@ -685,7 +685,7 @@ public static class PdfLogicalTableAnalysis {
         if (space <= 0) return false;
         string tail = trimmed.Substring(space + 1);
         string head = trimmed.Substring(0, firstSpace);
-        if (tail.Length is >= 1 and <= 4 && tail.All(char.IsUpper) && LooksLikeNumericValue(trimmed.Substring(0, space))) return true;
+        if (tail.Length is >= 1 and <= 4 && tail.All(char.IsLetter) && LooksLikeNumericValue(trimmed.Substring(0, space))) return true;
         return head.Length is >= 1 and <= 4 && head.All(char.IsUpper) && LooksLikeNumericValue(trimmed.Substring(firstSpace + 1));
     }
 

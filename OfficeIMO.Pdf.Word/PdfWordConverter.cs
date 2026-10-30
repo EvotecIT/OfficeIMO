@@ -105,6 +105,7 @@ namespace OfficeIMO.Pdf.Word {
 
                 WordParagraph? formRowParagraph = null;
                 double formRowY = 0D;
+                bool previousWasTable = false;
                 for (int itemIndex = 0; itemIndex < items.Count; itemIndex++) {
                     options.CancellationToken.ThrowIfCancellationRequested();
                     ImportItem item = items[itemIndex];
@@ -124,6 +125,8 @@ namespace OfficeIMO.Pdf.Word {
                             emittedParagraph = AddListItem(target, item.ListItem!, ref bulletList, ref numberedList, options, typographyScale);
                             break;
                         case ImportItemKind.Table:
+                            // Word joins adjacent tables into one grid; a small empty paragraph keeps them apart.
+                            if (previousWasTable) AddTableSeparator(target);
                             AddTable(target, item.TableExtraction!, options, typographyScale);
                             break;
                         case ImportItemKind.Image:
@@ -147,6 +150,7 @@ namespace OfficeIMO.Pdf.Word {
                             break;
                     }
                     if (item.Kind != ImportItemKind.FormWidget) formRowParagraph = null;
+                    if (itemEmitted) previousWasTable = item.Kind == ImportItemKind.Table;
                     if (emittedParagraph != null && navigation.TryGetItemAnchor(page.PageNumber, itemIndex, out string? itemAnchor)) {
                         emittedParagraph.AddBookmark(itemAnchor!);
                     }
@@ -569,7 +573,7 @@ namespace OfficeIMO.Pdf.Word {
             ImportNavigationMap navigation,
             double typographyScale) {
             WordParagraph paragraph = link == null
-                ? AddStyledParagraph(document, new[] { heading.Line }, options, typographyScale)
+                ? AddStyledParagraph(document, heading.Lines, options, typographyScale)
                 : AddHyperlinkParagraph(
                     document,
                     link,
@@ -915,6 +919,27 @@ namespace OfficeIMO.Pdf.Word {
 
             WordTable table = document.AddTable(rowCount, columnCount, options.TableStyle);
             PopulateTable(table, extraction.Table, data, headerRowIncluded, options, typographyScale);
+            if (options.TableStyle == WordTableStyle.TableGrid) ApplyLightRules(table);
+        }
+
+        // The default grid draws black rules; source tables use hairlines or none, so the import keeps light grey
+        // rules and a little vertical room in each cell.
+        private static readonly OfficeIMO.OfficeColor LightRuleColor = OfficeIMO.OfficeColor.ParseHex("C9CED6");
+
+        private static void ApplyLightRules(WordTable table) {
+            WordTableStyleDetails? details = table.StyleDetails;
+            if (details == null) return;
+            details.SetBordersForAllSides(WordBorderStyle.Single, 4U, LightRuleColor);
+            details.MarginDefaultTopWidth = 29;
+            details.MarginDefaultBottomWidth = 29;
+            details.MarginDefaultLeftWidth = 86;
+            details.MarginDefaultRightWidth = 86;
+        }
+
+        private static void AddTableSeparator(WordDocument document) {
+            WordParagraph separator = document.AddParagraph();
+            ApplyCompactSpacing(separator);
+            separator.LineSpacingAfterPoints = 6D;
         }
 
         private static bool HasHeaderRow(PdfCore.PdfLogicalTableData data) {
@@ -938,7 +963,8 @@ namespace OfficeIMO.Pdf.Word {
             // Table data keeps source rows in order; a promoted header is source row zero.
             const int sourceRowOffset = 0;
             if (headerRowIncluded) {
-                WriteRow(rows[0], data.Columns, data, alignNumericColumns: false, options, typographyScale, GetRowStyles(styles, sourceRowOffset));
+                // A header sits over its figures, so it follows the column's numeric alignment.
+                WriteRow(rows[0], data.Columns, data, options.AlignNumericColumns, options, typographyScale, GetRowStyles(styles, sourceRowOffset));
             }
 
             for (int rowIndex = 0; rowIndex < data.Rows.Count; rowIndex++) {
@@ -949,6 +975,7 @@ namespace OfficeIMO.Pdf.Word {
             if (options.FitTablesToPageWidth) {
                 int[] columnWeights = BuildColumnWeights(sourceTable.Columns);
                 if (columnWeights.Length == data.Columns.Count) {
+                    columnWeights = ApplyMinimumColumnWeights(columnWeights, data);
                     table.SetColumnWidthsPercentage(columnWeights);
                 } else {
                     table.WidthType = WordTableWidthUnit.Pct;
@@ -976,6 +1003,41 @@ namespace OfficeIMO.Pdf.Word {
                     ? Math.Max(1, (int)Math.Round(width / total * 10_000D))
                     : 1)
                 .ToArray();
+        }
+
+        /// <summary>
+        /// A source column sized to its glyphs ("#" holding "10") becomes too narrow once Word adds cell margins, and
+        /// its figures wrap one digit per line. Each column keeps room for its longest word, then the weights are
+        /// rescaled to the same total.
+        /// </summary>
+        internal static int[] ApplyMinimumColumnWeights(int[] weights, PdfCore.PdfLogicalTableData data) {
+            const double AssumedTableWidthPoints = 500D;
+            const double CharacterWidthPoints = 6.5D;
+            const double CellMarginPoints = 16D;
+            long total = weights.Sum(static weight => (long)weight);
+            if (total <= 0 || weights.Length != data.Columns.Count) return weights;
+            var adjusted = new double[weights.Length];
+            for (int columnIndex = 0; columnIndex < weights.Length; columnIndex++) {
+                int longest = LongestWord(data.Columns[columnIndex]);
+                foreach (IReadOnlyList<string> row in data.Rows) {
+                    if (columnIndex < row.Count) longest = Math.Max(longest, LongestWord(row[columnIndex]));
+                }
+                double minimumShare = Math.Min(0.3D, (Math.Min(longest, 24) * CharacterWidthPoints + CellMarginPoints) / AssumedTableWidthPoints);
+                adjusted[columnIndex] = Math.Max(weights[columnIndex], minimumShare * total);
+            }
+            double adjustedTotal = adjusted.Sum();
+            return adjusted.Select(weight => Math.Max(1, (int)Math.Round(weight / adjustedTotal * total))).ToArray();
+        }
+
+        private static int LongestWord(string? text) {
+            if (string.IsNullOrEmpty(text)) return 0;
+            int longest = 0, current = 0;
+            foreach (char value in text!) {
+                if (char.IsWhiteSpace(value)) { current = 0; continue; }
+                current++;
+                if (current > longest) longest = current;
+            }
+            return longest;
         }
 
         private static bool IsFinitePositive(double value) =>

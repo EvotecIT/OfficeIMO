@@ -733,6 +733,7 @@ public sealed partial class PdfLogicalPage {
         Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>> textBlockLookup,
         LogicalTextBlockSourceIndex textBlockSourceIndex) {
         var result = new List<PdfLogicalHeading>(Math.Max(headings.Count, 4));
+        var resultSemantics = new List<PdfUnderstandingSemanticElement?>(Math.Max(headings.Count, 4));
         var represented = new HashSet<PdfLogicalTextBlock>();
         for (int i = 0; i < headings.Count; i++) {
             var heading = headings[i];
@@ -749,6 +750,7 @@ public sealed partial class PdfLogicalPage {
                     block,
                     semantic?.Confidence ?? 0.82D,
                     semantic?.Evidence));
+                resultSemantics.Add(semantic);
                 represented.Add(block);
             }
         }
@@ -767,8 +769,50 @@ public sealed partial class PdfLogicalPage {
                 block,
                 semantic?.Confidence ?? 0.65D,
                 semantic?.Evidence));
+            resultSemantics.Add(semantic);
         }
 
+        return JoinWrappedHeadingLines(result, resultSemantics);
+    }
+
+    private static bool IsWrappedHeadingLine(PdfLogicalTextBlock previous, PdfLogicalTextBlock line, double maximumSpacing) {
+        double gap = previous.BaselineY - line.BaselineY;
+        double size = Math.Max(previous.FontSize, line.FontSize);
+        if (gap <= 0D || size <= 0D || gap > size * maximumSpacing || Math.Abs(previous.FontSize - line.FontSize) > 0.5D) return false;
+        if (Math.Abs(previous.XStart - line.XStart) > Math.Max(2D, size * 0.25D)) return false;
+        // Wrapping fills the first line; a short line over a longer one is a separate heading above it.
+        if (previous.XEnd - previous.XStart < (line.XEnd - line.XStart) * 0.8D) return false;
+        return !ContentStructureExtractor.EndsWithSentenceTerminal(previous.Text);
+    }
+
+    /// <summary>
+    /// A heading region that wraps onto several lines ("Executive security" / "summary" beside a logo) is one
+    /// heading. Lines are joined when they come from the same semantic region and follow each other.
+    /// </summary>
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfLogicalHeading> JoinWrappedHeadingLines(
+        List<PdfLogicalHeading> headings,
+        List<PdfUnderstandingSemanticElement?> semantics) {
+        if (headings.Count < 2 || semantics.Count != headings.Count) return headings.AsReadOnly();
+        var result = new List<PdfLogicalHeading>(headings.Count);
+        PdfUnderstandingSemanticElement? previousSemantic = null;
+        for (int index = 0; index < headings.Count; index++) {
+            PdfLogicalHeading heading = headings[index];
+            PdfUnderstandingSemanticElement? semantic = semantics[index];
+            if (result.Count > 0 && semantic is not null && ReferenceEquals(semantic, previousSemantic) &&
+                semantic.Region.Lines.Count > 1) {
+                PdfLogicalHeading previous = result[result.Count - 1];
+                // A tagged heading keeps the producer's line spacing, so only its geometry is relaxed.
+                bool tagged = semantic.Evidence.Any(static evidence =>
+                    string.Equals(evidence.Code, "semantic-tagged-pdf-role", StringComparison.Ordinal));
+                if (previous.Level == heading.Level &&
+                    IsWrappedHeadingLine(previous.Lines[previous.Lines.Count - 1], heading.Line, tagged ? 2.2D : 1.45D)) {
+                    result[result.Count - 1] = previous.WithContinuation(heading);
+                    continue;
+                }
+            }
+            result.Add(heading);
+            previousSemantic = semantic;
+        }
         return result.AsReadOnly();
     }
 
@@ -791,6 +835,8 @@ public sealed partial class PdfLogicalPage {
         double[] sizes = semantic.Region.Lines.Select(static candidate => candidate.FontSize).OrderBy(static size => size).ToArray();
         double median = sizes[(sizes.Length - 1) / 2];
         double largest = sizes[sizes.Length - 1];
+        // A display title wrapped over a few lines keeps one size throughout.
+        if (sizes.Length <= 3 && largest - sizes[0] <= 0.5D) return true;
         return line.FontSize >= largest * 0.95D && line.FontSize >= median * 1.15D;
     }
 

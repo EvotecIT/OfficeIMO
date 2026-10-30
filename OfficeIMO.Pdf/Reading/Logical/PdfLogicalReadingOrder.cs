@@ -371,7 +371,7 @@ public static partial class PdfLogicalReadingOrderAnalysis {
         position = 0L;
         IReadOnlyList<PdfLogicalTextBlock>? lines = item.Kind switch {
             PdfLogicalReadingOrderKind.TextBlock => new[] { page.TextBlocks[item.SourceIndex] },
-            PdfLogicalReadingOrderKind.Heading => new[] { page.Headings[item.SourceIndex].Line },
+            PdfLogicalReadingOrderKind.Heading => page.Headings[item.SourceIndex].Lines,
             PdfLogicalReadingOrderKind.Paragraph => page.Paragraphs[item.SourceIndex].Lines,
             PdfLogicalReadingOrderKind.ListItem => page.ListItems[item.SourceIndex].Lines,
             _ => null
@@ -491,7 +491,9 @@ public static partial class PdfLogicalReadingOrderAnalysis {
             if (TryGetVisualBounds(page, table, out PdfVisualBounds bounds)) tableBounds[tableIndex] = bounds;
             tableTexts[tableIndex] = NormalizeTableProjectionText(string.Join(" ", table.Rows.SelectMany(static row => row)), consumeWork);
         }
-        for (int index = 0; index < page.Headings.Count; index++) representedTextBlocks.Add(page.Headings[index].Line);
+        for (int index = 0; index < page.Headings.Count; index++) {
+            foreach (PdfLogicalTextBlock line in page.Headings[index].Lines) representedTextBlocks.Add(line);
+        }
         for (int index = 0; index < page.Paragraphs.Count; index++) {
             foreach (PdfLogicalTextBlock line in page.Paragraphs[index].Lines) representedTextBlocks.Add(line);
         }
@@ -511,7 +513,7 @@ public static partial class PdfLogicalReadingOrderAnalysis {
                 block.Kind is (PdfLogicalElementKind.Header or PdfLogicalElementKind.Footer)) continue;
             if (!representedTextBlocks.Contains(block)) AddText(PdfLogicalReadingOrderKind.TextBlock, index, new[] { block });
         }
-        for (int index = 0; index < page.Headings.Count; index++) AddText(PdfLogicalReadingOrderKind.Heading, index, new[] { page.Headings[index].Line });
+        for (int index = 0; index < page.Headings.Count; index++) AddText(PdfLogicalReadingOrderKind.Heading, index, page.Headings[index].Lines);
         for (int index = 0; index < page.Paragraphs.Count; index++) {
             IReadOnlyList<PdfLogicalTextBlock> lines = page.Paragraphs[index].Lines;
             if (!lines.All(listOwnedTextBlocks.Contains) &&

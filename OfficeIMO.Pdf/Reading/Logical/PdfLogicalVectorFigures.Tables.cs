@@ -8,6 +8,37 @@ internal static partial class PdfLogicalVectorFigureAnalysis {
     /// marks of a chart. This rejects figure classification; it does not claim
     /// that the native table detector reconstructed the whole grid.
     /// </summary>
+    private const double ThinRuleThickness = 1.5D;
+
+    private static bool IsThinRule(Box box) =>
+        Math.Min(box.Right - box.Left, box.Bottom - box.Top) <= ThinRuleThickness &&
+        Math.Max(box.Right - box.Left, box.Bottom - box.Top) > ThinRuleThickness * 2D;
+
+    /// <summary>
+    /// A group made only of thin horizontal and vertical rules, where at least two vertical rules cross between
+    /// two horizontal ones, is a ruled table (or a page-split part of one) rather than a chart, which has marks.
+    /// </summary>
+    private static bool IsRuleOnlyGrid(Box[] members, double tolerance) {
+        var horizontal = new List<Box>();
+        var vertical = new List<Box>();
+        foreach (Box box in members) {
+            double width = box.Right - box.Left, height = box.Bottom - box.Top;
+            if (width <= tolerance * 2D && height <= tolerance * 2D) continue; // joint squares
+            if (!(box.Stroked || box.Filled) || !IsThinRule(box) && !(box.Stroked && (width <= tolerance || height <= tolerance))) return false;
+            if (width >= height) horizontal.Add(box); else vertical.Add(box);
+        }
+        if (horizontal.Count < 2 || vertical.Count < 2) return false;
+        int crossing = 0;
+        foreach (Box rule in vertical) {
+            bool meetsTop = horizontal.Any(edge => Math.Abs(edge.Top - rule.Top) <= ThinRuleThickness + tolerance &&
+                edge.Left <= rule.Right + tolerance && edge.Right >= rule.Left - tolerance);
+            bool meetsBottom = horizontal.Any(edge => Math.Abs(edge.Bottom - rule.Bottom) <= ThinRuleThickness + tolerance &&
+                edge.Left <= rule.Right + tolerance && edge.Right >= rule.Left - tolerance);
+            if (meetsTop && meetsBottom) crossing++;
+        }
+        return crossing >= 2;
+    }
+
     private static bool IsRuledCellGrid(Box[] members, IReadOnlyList<Box> tableEvidence, CancellationToken cancellationToken) {
         const double tolerance = 0.75D;
         double left = members.Min(static box => box.Left), right = members.Max(static box => box.Right);
@@ -16,8 +47,10 @@ internal static partial class PdfLogicalVectorFigureAnalysis {
         // Retain their physical grid evidence inside this figure's region.
         Box[] region = tableEvidence.Where(box => box.Left >= left - tolerance && box.Right <= right + tolerance &&
             box.Top >= top - tolerance && box.Bottom <= bottom + tolerance).ToArray();
-        Box[] rules = region.Where(static box => box.Stroked &&
-            (box.Right - box.Left <= tolerance || box.Bottom - box.Top <= tolerance)).ToArray();
+        // Word draws cell borders as thin filled rectangles; they rule a grid exactly as strokes do.
+        Box[] rules = region.Where(static box => (box.Stroked || box.Filled && IsThinRule(box)) &&
+            (box.Right - box.Left <= ThinRuleThickness || box.Bottom - box.Top <= ThinRuleThickness)).ToArray();
+        if (IsRuleOnlyGrid(members, tolerance)) return true;
         var cells = new List<Box>();
         foreach (Box box in region) {
             cancellationToken.ThrowIfCancellationRequested();

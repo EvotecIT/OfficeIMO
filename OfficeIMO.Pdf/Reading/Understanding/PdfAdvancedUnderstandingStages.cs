@@ -548,6 +548,12 @@ public static partial class PdfAdvancedUnderstandingStages {
                     bool currentIsHeading = IsTypographicallyProminent(first, pageMedianFontSize);
                     bool currentIsListItem = ContentStructureExtractor.IsListItemText(first.Text.Trim());
                     bool continuesListItem = currentIsListItem && IsWrappedListContinuation(first, previous, line);
+                    bool continuesHeading = currentIsHeading && startsHeading && !startsListItem &&
+                        IsWrappedHeadingContinuation(current, line);
+                    if (continuesHeading) {
+                        current.Add(line);
+                        continue;
+                    }
                     if (startsHeading || startsListItem || currentIsHeading ||
                         HasMaterialFontTransition(previous, line) ||
                         (!currentIsListItem && StartsParagraphBoundary(current, line)) ||
@@ -559,6 +565,23 @@ public static partial class PdfAdvancedUnderstandingStages {
                 current.Add(line);
             }
             AddRegion(current, regions);
+        }
+
+        /// <summary>
+        /// A display title that wraps (beside a logo, or in a narrow column) continues on the next line in the same
+        /// size and margin at single line spacing; the line before does not end a sentence and is not shorter.
+        /// </summary>
+        private static bool IsWrappedHeadingContinuation(List<PdfUnderstandingLine> current, PdfUnderstandingLine line) {
+            if (current.Count >= 3) return false;
+            PdfUnderstandingLine previous = current[current.Count - 1];
+            if (Math.Abs(previous.FontSize - line.FontSize) > 0.5D) return false;
+            if (Math.Abs(previous.XStart - line.XStart) > Math.Max(2D, line.FontSize * 0.25D)) return false;
+            double gap = previous.BaselineY - line.BaselineY;
+            if (gap <= 0D || gap > line.FontSize * 1.45D) return false;
+            // Wrapping fills the first line; a short line over a longer one is a separate heading above it.
+            if (previous.XEnd - previous.XStart < (line.XEnd - line.XStart) * 0.8D) return false;
+            string text = previous.Text.Trim();
+            return text.Length > 0 && !ContentStructureExtractor.EndsWithSentenceTerminal(text);
         }
 
         private static bool IsTypographicallyProminent(PdfUnderstandingLine line, double pageMedianFontSize) =>
@@ -785,7 +808,7 @@ public static partial class PdfAdvancedUnderstandingStages {
 
     private sealed class AdvancedSemanticClassificationStage : IPdfSemanticClassificationStage {
         public IReadOnlyList<PdfUnderstandingSemanticElement> Classify(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> orderedRegions) {
-            double median = GetBodyFontSize(orderedRegions.SelectMany(static region => region.Lines));
+            double median = GetBodyFontSize(orderedRegions);
             var result = new List<PdfUnderstandingSemanticElement>(orderedRegions.Count);
             foreach (PdfUnderstandingRegion region in orderedRegions) {
                 context.ConsumeWork();
@@ -805,6 +828,7 @@ public static partial class PdfAdvancedUnderstandingStages {
             if (region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region-canonical-table", StringComparison.Ordinal))) return (PdfUnderstandingSemanticKind.Table, 0.93D, "semantic.canonical-table", "The canonical layout engine recovered the region as a validated table.");
             if (IsAdjacentTableCaption(context, region, pageRegions)) return (PdfUnderstandingSemanticKind.Caption, 0.78D, "semantic.table-caption-geometry", "A compact line is immediately adjacent to and aligned with a validated table.");
             if (PdfImageRegionDetectionStage.IsAdjacentImageCaption(context, region)) return (PdfUnderstandingSemanticKind.Caption, 0.8D, "semantic.figure-caption-geometry", "A compact region is immediately adjacent to and aligned with a positioned image.");
+            if (IsNumberedHeading(region, text, largest, median)) return (PdfUnderstandingSemanticKind.Heading, 0.84D, "semantic.numbered-heading", "A single short numbered line is set materially larger than the body text.");
             if (ContentStructureExtractor.IsListItemText(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, "semantic-list-marker", "The region begins with a bullet or numbered marker.");
             // Figures such as KPI values, totals and page numbers are often set large, but text without any letters
             // cannot introduce a section.
@@ -816,12 +840,28 @@ public static partial class PdfAdvancedUnderstandingStages {
         }
 
         /// <summary>
-        /// True when the text reads as words rather than a value: "1.8 h", "94.2%" or "Q3" are figures with a unit.
+        /// The page's reference (body) font size, taken from running text. Lines of validated tables are left out,
+        /// and every line is weighted by its length, so a dashboard whose 9 pt chart axes, legends and table cells
+        /// outnumber its 11 pt prose still measures the prose. Lines without words (axis values, KPI figures) only
+        /// count when nothing else is on the page.
         /// </summary>
+        internal static double GetBodyFontSize(IReadOnlyList<PdfUnderstandingRegion> regions) {
+            var running = new List<PdfUnderstandingLine>();
+            var all = new List<PdfUnderstandingLine>();
+            foreach (PdfUnderstandingRegion region in regions) {
+                bool table = region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region-canonical-table", StringComparison.Ordinal));
+                foreach (PdfUnderstandingLine line in region.Lines) {
+                    all.Add(line);
+                    if (!table && HasLetter(line.Text)) running.Add(line);
+                }
+            }
+            return GetBodyFontSize(running.Count > 0 ? running : all);
+        }
+
         /// <summary>
-        /// The page's reference font size. On a short page a median over lines lets a few large headings outvote
-        /// the body (two headings and one paragraph), so pages with fewer than five lines weight each line by its
-        /// length instead.
+        /// The larger of the median line size and the length-weighted median size (the size that carries half of
+        /// the text). Many short labels cannot pull the body below the prose, and one long footnote cannot pull it
+        /// below the ordinary lines. Pages with fewer than five lines use the length-weighted size alone.
         /// </summary>
         internal static double GetBodyFontSize(IEnumerable<PdfUnderstandingLine> lines) {
             (double Size, int Weight)[] weighted = lines
@@ -829,7 +869,13 @@ public static partial class PdfAdvancedUnderstandingStages {
                 .OrderBy(static item => item.Item1)
                 .ToArray();
             if (weighted.Length == 0) return 0D;
-            if (weighted.Length >= 5) return weighted[(weighted.Length - 1) / 2].Size;
+            // On a short page a few large headings outvote the body line by line (two headings, one paragraph).
+            if (weighted.Length < 5) return GetLengthWeightedMedian(weighted);
+            double lineMedian = weighted[(weighted.Length - 1) / 2].Size;
+            return Math.Max(lineMedian, GetLengthWeightedMedian(weighted));
+        }
+
+        private static double GetLengthWeightedMedian((double Size, int Weight)[] weighted) {
             long total = weighted.Sum(static item => (long)item.Weight);
             long cumulative = 0;
             foreach ((double size, int weight) in weighted) {
@@ -837,6 +883,21 @@ public static partial class PdfAdvancedUnderstandingStages {
                 if (cumulative * 2 >= total) return size;
             }
             return weighted[weighted.Length - 1].Size;
+        }
+
+        /// <summary>
+        /// True when the text reads as words rather than a value: "1.8 h", "94.2%" or "Q3" are figures with a unit.
+        /// </summary>
+        /// <summary>
+        /// True for a section number such as "2. Revenue by region" set in a heading size. A list item shares the
+        /// marker, but it is set in the body size or reads as a sentence.
+        /// </summary>
+        internal static bool IsNumberedHeading(PdfUnderstandingRegion region, string text, double largest, double median) {
+            if (median <= 0D || region.Lines.Count != 1 || largest < median * 1.2D) return false;
+            if (!ContentStructureExtractor.TryParseListItemText(text, out string marker, out string body, out _)) return false;
+            if (marker.Length == 0 || !char.IsDigit(marker[0]) || body.Length == 0) return false;
+            if (PdfUnicodeScalarAnalysis.CountScalars(body) > 90 || ContentStructureExtractor.EndsWithSentenceTerminal(body)) return false;
+            return HasLetter(body);
         }
 
         internal static bool HasLetter(string text) {
