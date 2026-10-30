@@ -48,10 +48,6 @@ namespace OfficeIMO.Core.Internal.IO {
                         stream.Dispose();
                         throw;
                     }
-                } catch (Exception exception) when (windows && attempt < maximumRetries &&
-                    IsExistingClaimContention(exception, claimPath) && TryDeleteAbandonedWindowsClaim(claimPath)) {
-                    // A closed orphan was removed. Retain the exclusive create
-                    // and the marker check so a new owner's claim cannot be erased.
                 } catch (UnauthorizedAccessException exception) when (windows && attempt < maximumRetries &&
                     IsPossiblePendingDeletion(exception, claimPath)) {
                     // DeleteFile leaves the pathname pending until the disposing handle closes.
@@ -60,25 +56,6 @@ namespace OfficeIMO.Core.Internal.IO {
                     // persistent ACL, read-only, and directory failures retain their exception.
                     Thread.Sleep(1);
                 }
-            }
-        }
-
-        private static bool TryDeleteAbandonedWindowsClaim(string claimPath) {
-            try {
-                if ((File.GetAttributes(claimPath) & (FileAttributes.ReparsePoint | FileAttributes.Directory)) != 0)
-                    return false;
-                using (var inactive = new FileStream(claimPath, FileMode.Open, FileAccess.Read, FileShare.Delete)) {
-                    File.Delete(claimPath);
-                }
-                return true;
-            } catch (FileNotFoundException) {
-                return true;
-            } catch (DirectoryNotFoundException) {
-                return true;
-            } catch (UnauthorizedAccessException) {
-                return false;
-            } catch (IOException) {
-                return false;
             }
         }
 

@@ -163,7 +163,7 @@ public sealed class OfficeWorkflowStreamOutputTests {
             Assert.True(File.Exists(claim));
             // A failed multi-claim admission must release any earlier claim it
             // acquired; this probe would fail if that coordination handle leaked.
-            using (AcquireCommitClaim(otherTarget)) { }
+            using (new FileStream(CreateCommitClaimPath(otherTarget), FileMode.Open, FileAccess.Read, FileShare.None)) { }
         } finally { activeClaim.Dispose(); }
         var restarted = new OfficeWorkflowOutputRecoveryStore(directory);
         using var next = await restarted.CreateAsync([2], "content://provider/selected", "next.pdf", default);
