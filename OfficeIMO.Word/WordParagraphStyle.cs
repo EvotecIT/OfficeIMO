@@ -52,7 +52,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Placeholder for a custom paragraph style.
         /// </summary>
-        Custom
+        Custom,
+        /// <summary>The document title style.</summary>
+        Title,
+        /// <summary>The document subtitle style.</summary>
+        Subtitle
     }
 
     /// <summary>
@@ -203,6 +207,8 @@ namespace OfficeIMO.Word {
                 WordParagraphStyles.Heading8 => StyleHeading8,
                 WordParagraphStyles.Heading9 => StyleHeading9,
                 WordParagraphStyles.ListParagraph => StyleListParagraph,
+                WordParagraphStyles.Title => WordThemeDefaults.CreateTitle(),
+                WordParagraphStyles.Subtitle => WordThemeDefaults.CreateSubtitle(),
                 WordParagraphStyles.Custom => null,
                 _ => throw new ArgumentOutOfRangeException(nameof(style)),
             };
@@ -224,6 +230,8 @@ namespace OfficeIMO.Word {
                 case WordParagraphStyles.Heading8: return "Heading8";
                 case WordParagraphStyles.Heading9: return "Heading9";
                 case WordParagraphStyles.ListParagraph: return "ListParagraph";
+                case WordParagraphStyles.Title: return "Title";
+                case WordParagraphStyles.Subtitle: return "Subtitle";
                 case WordParagraphStyles.Custom: return "Custom";
             }
 
@@ -246,6 +254,8 @@ namespace OfficeIMO.Word {
                 "Heading8" => WordParagraphStyles.Heading8,
                 "Heading9" => WordParagraphStyles.Heading9,
                 "ListParagraph" => WordParagraphStyles.ListParagraph,
+                "Title" => WordParagraphStyles.Title,
+                "Subtitle" => WordParagraphStyles.Subtitle,
                 _ => WordParagraphStyles.Custom,
             };
         }

@@ -436,6 +436,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_ListsInsideTable_PreserveStructureAndNesting() {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(1, 2);
+            table.RepeatHeaderRowAtTheTopOfEachPage = false;
 
             var bulletCell = table.Rows[0].Cells[0];
             bulletCell.Paragraphs[0].Remove();
@@ -471,10 +472,10 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_WordToHtml_TableHeaderRows_ExportTheadAndTh() {
+        public void Test_WordToHtml_ModernTableDefault_ExportsTheadAndTh() {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(2, 2);
-            table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
+            Assert.True(table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Name";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "Score";
             table.Rows[1].Cells[0].Paragraphs[0].Text = "Ada";
@@ -584,6 +585,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_TableWithoutHeaderRows_KeepsFlatRows() {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(1, 1);
+            table.RepeatHeaderRowAtTheTopOfEachPage = false;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Cell";
 
             string html = doc.ToHtml();
@@ -600,6 +602,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_TableColumnGroups_ExportWhenEnabled() {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(1, 2);
+            table.RepeatHeaderRowAtTheTopOfEachPage = false;
             table.WidthType = WordTableWidthUnit.Pct;
             table.Width = 5000;
             table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Pct;
@@ -1163,6 +1166,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_TableCellStyles() {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(1, 1);
+            table.RepeatHeaderRowAtTheTopOfEachPage = false;
             table.WidthType = WordTableWidthUnit.Pct;
             table.Width = 5000;
 

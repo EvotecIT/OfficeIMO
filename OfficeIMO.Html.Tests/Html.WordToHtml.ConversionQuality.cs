@@ -61,6 +61,7 @@ namespace OfficeIMO.Tests {
             paragraph.AddText("lumen.json").SetFontFamily("Consolas");
             paragraph.AddText(" at the root.");
             var table = document.AddTable(1, 2);
+            table.RepeatHeaderRowAtTheTopOfEachPage = false;
             table.Rows[0].Cells[0].Paragraphs[0].AddText("title").SetFontFamily("Consolas");
             table.Rows[0].Cells[1].Paragraphs[0].AddText("string");
             var block = document.AddParagraph(string.Empty);

@@ -235,7 +235,9 @@ namespace OfficeIMO.Word.Pdf {
                 MarkerFont = ResolveNativeListMarkerFont(info, marker, markerTextStyle, nativeFontMap),
                 MarkerFontFamily = ResolveNativeListMarkerFontFamily(info, marker, markerTextStyle, nativeFontMap),
                 MarkerFontSize = info.MarkerFontSize ?? ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults),
-                MarkerColor = ParseNativeColor(info.MarkerColorHex),
+                // A Word marker inherits the source text colour when its numbering level leaves it unset.
+                // Make that resolved colour explicit so PDF authoring-theme defaults do not replace it.
+                MarkerColor = ParseNativeColor(info.MarkerColorHex) ?? markerTextStyle.Color ?? PdfCore.PdfColor.Black,
                 MarkerAlign = MapNativeListMarkerAlign(info.LevelJustification) ?? PdfCore.PdfAlign.Left,
                 MarkerBold = info.MarkerBold ?? markerTextStyle.Bold,
                 MarkerItalic = info.MarkerItalic ?? markerTextStyle.Italic

@@ -931,6 +931,7 @@ namespace OfficeIMO.Pdf.Word {
             WordPdfImportOptions options,
             double typographyScale) {
             List<WordTableRow> rows = table.Rows;
+            table.RepeatHeaderRowAtTheTopOfEachPage = headerRowIncluded && options.RepeatHeaderRows;
             int rowOffset = headerRowIncluded ? 1 : 0;
 
             IReadOnlyList<IReadOnlyList<PdfCore.PdfLogicalTableCellStyle?>>? styles = sourceTable.CellStyles;
@@ -938,9 +939,6 @@ namespace OfficeIMO.Pdf.Word {
             const int sourceRowOffset = 0;
             if (headerRowIncluded) {
                 WriteRow(rows[0], data.Columns, data, alignNumericColumns: false, options, typographyScale, GetRowStyles(styles, sourceRowOffset));
-                if (options.RepeatHeaderRows) {
-                    rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
-                }
             }
 
             for (int rowIndex = 0; rowIndex < data.Rows.Count; rowIndex++) {
