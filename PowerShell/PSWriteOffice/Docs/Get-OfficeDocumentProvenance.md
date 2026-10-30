@@ -4,14 +4,19 @@ Module Name: PSWriteOffice
 online version: https://github.com/EvotecIT/OfficeIMO
 schema: 2.0.0
 ---
-# Get-OfficeProvenance
+# Get-OfficeDocumentProvenance
 ## SYNOPSIS
 Collects structural, text-integrity, and optional provider verification evidence for a file.
 
 ## SYNTAX
-### __AllParameterSets
+### Path (Default)
 ```powershell
-Get-OfficeProvenance [-Path] <string> [-Options <OfficeProvenanceAssessmentOptions>] [-C2paToolPath <string>] [-SignalDetector <IOfficeProvenanceSignalDetector[]>] [<CommonParameters>]
+Get-OfficeDocumentProvenance [-Path] <string[]> [-Options <Object[]>] [-C2paToolPath <string>] [-SignalDetector <IOfficeProvenanceSignalDetector[]>] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficeDocumentProvenance -LiteralPath <string[]> [-Options <Object[]>] [-C2paToolPath <string>] [-SignalDetector <IOfficeProvenanceSignalDetector[]>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,7 +26,7 @@ The result keeps carrier discovery, cryptographic verification, and provider sig
 
 ### EXAMPLE 1
 ```powershell
-PS> $evidence = Get-OfficeProvenance -Path .\Published\cover.png
+PS> $evidence = Get-OfficeDocumentProvenance -Path .\Published\cover.png
 $evidence.Structural | Select-Object Format, HasC2paManifest
 $evidence.TextIntegrity
 ```
@@ -29,7 +34,7 @@ $evidence.TextIntegrity
 
 ### EXAMPLE 2
 ```powershell
-PS> $evidence = Get-OfficeProvenance -Path .\Published\cover.png -C2paToolPath C:\Tools\c2patool.exe
+PS> $evidence = Get-OfficeDocumentProvenance -Path .\Published\cover.png -C2paToolPath C:\Tools\c2patool.exe
 $evidence.Verification | Select-Object Status, ProviderName, Findings
 ```
 
@@ -42,7 +47,7 @@ Explicit c2patool executable path or controlled command name used for cryptograp
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -53,12 +58,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Options
-Structural, text-integrity, and provider verification limits and policy.
+### -LiteralPath
+Literal paths, including FileInfo.FullName and provider PSPath pipeline properties.
 
 ```yaml
-Type: OfficeProvenanceAssessmentOptions
-Parameter Sets: __AllParameterSets
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Options
+Typed assessment policies or hashtables with Structural, TextIntegrity and Verification groups. The last policy takes precedence.
+
+```yaml
+Type: Object[]
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -70,19 +91,19 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Asset or document path to inspect.
+Asset or document paths, including provider wildcards.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: FilePath, FullName, LiteralPath
+Type: String[]
+Parameter Sets: Path
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
 ```
 
 ### -SignalDetector
@@ -90,7 +111,7 @@ Optional provider-specific watermark or disclosure detectors.
 
 ```yaml
 Type: IOfficeProvenanceSignalDetector[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -106,7 +127,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 
 ## OUTPUTS
 

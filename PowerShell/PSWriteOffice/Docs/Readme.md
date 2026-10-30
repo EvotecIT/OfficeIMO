@@ -811,6 +811,9 @@ Lists installed reading, conversion and protection capabilities from their canon
 ### [Get-OfficeDocumentInfo](Get-OfficeDocumentInfo.md)
 Inspects format, native counts and encryption without changing a source or reopening a live document.
 
+### [Get-OfficeDocumentProvenance](Get-OfficeDocumentProvenance.md)
+Collects structural, text-integrity, and optional provider verification evidence for a file.
+
 ### [Get-OfficeEmail](Get-OfficeEmail.md)
 Reads a native EML, EMLX, MSG, or TNEF artifact with bounded diagnostics.
 
@@ -1033,9 +1036,6 @@ Returns project tasks as pipeline objects.
 ### [Get-OfficeProjectView](Get-OfficeProjectView.md)
 Captures a portable report from a current calculated schedule.
 
-### [Get-OfficeProvenance](Get-OfficeProvenance.md)
-Collects structural, text-integrity, and optional provider verification evidence for a file.
-
 ### [Get-OfficeRtf](Get-OfficeRtf.md)
 Reads RTF into OfficeIMO's semantic and lossless syntax models.
 
@@ -1203,6 +1203,9 @@ Creates discoverable renderer and reconstruction settings for general conversion
 
 ### [New-OfficeDocumentHierarchyOptions](New-OfficeDocumentHierarchyOptions.md)
 Creates discoverable token and hierarchy settings for Read-OfficeDocument -As Hierarchy.
+
+### [New-OfficeDocumentProvenanceOptions](New-OfficeDocumentProvenanceOptions.md)
+Creates structural, Unicode integrity and optional content-credential verification policy.
 
 ### [New-OfficeDocumentReader](New-OfficeDocumentReader.md)
 Creates an immutable document reader with common policies, format options and optional OCR.
