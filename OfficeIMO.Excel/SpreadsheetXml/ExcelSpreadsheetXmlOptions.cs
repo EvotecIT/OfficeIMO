@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel;
 public sealed class ExcelSpreadsheetXmlOptions {
     /// <summary>Maximum input bytes, or maximum materialized XLSX snapshot bytes on export. Default: 16 MiB.</summary>
     public int MaxInputBytes { get; set; } = 16 * 1024 * 1024;
-    /// <summary>Maximum XML output bytes. Default: 64 MiB.</summary>
+    /// <summary>Maximum XML output bytes and aggregate expanded source XML bytes on export. Default: 64 MiB.</summary>
     public int MaxOutputBytes { get; set; } = 64 * 1024 * 1024;
     /// <summary>Maximum explicitly stored cells across all worksheets. Default: 1,000,000.</summary>
     public int MaxCells { get; set; } = 1_000_000;

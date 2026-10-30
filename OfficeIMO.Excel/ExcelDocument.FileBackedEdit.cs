@@ -85,6 +85,7 @@ namespace OfficeIMO.Excel {
                     packageContentTypesKnownNormalized: normalized,
                     unchangedPackageBytes: null,
                     persistenceMode: resolved.PersistenceMode);
+                document._sourceMaxCharactersInPart = effectiveOpenSettings.MaxCharactersInPart;
                 document._usesFileBackedPackage = true;
                 cancellationToken.ThrowIfCancellationRequested();
                 package = null;

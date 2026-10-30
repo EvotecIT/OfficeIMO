@@ -300,6 +300,7 @@ namespace OfficeIMO.Excel {
                     packageContentTypesKnownNormalized: true,
                     unchangedPackageBytes: unchangedPackageBytes,
                     persistenceMode: options.PersistenceMode);
+                document._sourceMaxCharactersInPart = effectiveOpenSettings.MaxCharactersInPart;
                 document._openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(bytes)
                     ? (byte[])bytes.Clone()
                     : null;

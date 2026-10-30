@@ -1,4 +1,5 @@
 using System.Text;
+using System.IO.Compression;
 using System.Threading;
 using System.Xml;
 using System.Xml.Linq;
@@ -122,6 +123,35 @@ public sealed class ExcelSpreadsheetXmlTests {
         byte[] output = document.ExportSpreadsheetXml().Value;
         using var imported = ExcelDocument.ImportSpreadsheetXml(output).Value;
         Assert.Equal("Read only", imported.Sheets[0].CellAt(1, 1).GetValue<string>());
+    }
+
+    [Fact]
+    public void Xml_export_preserves_source_part_limit_for_unused_shared_strings() {
+        using var source = ExcelDocument.Create();
+        source.AddWorksheet("Data").CellValue(1, 1, "safe");
+        using var package = new MemoryStream(source.ToBytes());
+        using (var archive = new ZipArchive(package, ZipArchiveMode.Update, leaveOpen: true)) {
+            ZipArchiveEntry original = Assert.IsType<ZipArchiveEntry>(archive.GetEntry("xl/sharedStrings.xml"));
+            original.Delete();
+            using var text = new StreamWriter(archive.CreateEntry("xl/sharedStrings.xml").Open(), new UTF8Encoding(false));
+            text.Write("<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"2\" uniqueCount=\"2\"><si><t>safe</t></si><si><t>");
+            text.Write(new string('A', 12_000));
+            text.Write("</t></si></sst>");
+        }
+        using var document = ExcelDocument.Load(new MemoryStream(package.ToArray()), new ExcelLoadOptions {
+            AccessMode = DocumentAccessMode.ReadOnly,
+            OpenSettings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = 4096 }
+        });
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => document.ExportSpreadsheetXml());
+        Assert.Contains("expanded XML", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Xml_export_checks_structure_before_materializing_package_parts() {
+        using var document = ExcelDocument.Create();
+        document.AddWorksheet("Data").CellValue(1, 1, "safe");
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => document.ExportSpreadsheetXml(new() { MaxXmlElements = 2 }));
+        Assert.Contains("MaxXmlElements", error.Message, StringComparison.Ordinal);
     }
 
     [Theory]
