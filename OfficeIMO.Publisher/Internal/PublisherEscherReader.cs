@@ -212,9 +212,13 @@ internal sealed class PublisherEscherData {
 }
 
 internal sealed class PublisherEscherShape {
+    private readonly Dictionary<ushort, OfficeArtProperty> _propertiesById;
+
     internal PublisherEscherShape(uint id, int type, uint flags, IReadOnlyList<OfficeArtProperty> properties,
         bool relativeToParent = false, Action<int>? accountGradientStops = null) {
         Id = id; Type = type; Flags = flags; Properties = properties;
+        _propertiesById = new Dictionary<ushort, OfficeArtProperty>();
+        foreach (OfficeArtProperty property in properties) _propertiesById[property.PropertyId] = property;
         Style = OfficeArtShapeStyle.Decode(properties, accountGradientStops); Transform = OfficeArtShapeTransform.Decode(flags, properties, relativeToParent);
     }
     internal uint Id { get; }
@@ -230,5 +234,7 @@ internal sealed class PublisherEscherShape {
     internal bool Hidden => HiddenByGroup || Style.Hidden == true;
     internal PublisherNativeRectangle? Bounds { get; set; }
     internal PublisherNativeRectangle? GroupCoordinates { get; set; }
-    internal uint? Property(int id) => OfficeArtProperty.GetScalarProperty(Properties, id)?.Value;
+    internal uint? Property(int id) => _propertiesById.TryGetValue(checked((ushort)id), out OfficeArtProperty? property) && !property.IsComplex
+        ? property.Value : null;
+    internal bool HasProperty(int id) => _propertiesById.ContainsKey(checked((ushort)id));
 }
