@@ -7,6 +7,30 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
+    public void NativeListDefinitions_SharedLevelTabsUseOneResolvedSnapshot() {
+        using WordDocument source = CreateNativeListDefinitionControl();
+        Numbering numbering = source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
+        Level level = numbering.Elements<AbstractNum>().Single().Elements<Level>().First();
+        level.PreviousParagraphProperties ??= new PreviousParagraphProperties();
+        level.PreviousParagraphProperties.Tabs = new Tabs(Enumerable.Range(1, 16)
+            .Select(index => new TabStop { Val = TabStopValues.Left, Position = index * 240 }));
+        NumberingInstance first = numbering.Elements<NumberingInstance>().Single();
+        for (int index = 1; index <= 128; index++) {
+            numbering.Append(new NumberingInstance(new AbstractNumId { Val = first.AbstractNumId!.Val!.Value }) {
+                NumberID = first.NumberID!.Value + index
+            });
+        }
+
+        var definitions = WordDocumentTraversal.BuildListNumberingDefinitions(source._wordprocessingDocument.MainDocumentPart);
+        Tabs snapshot = Assert.IsType<Tabs>(definitions[first.NumberID!.Value].Levels[0].LevelTabStops);
+        Assert.Equal(16, snapshot.Elements<TabStop>().Count());
+        Assert.NotSame(level.PreviousParagraphProperties.Tabs, snapshot);
+        for (int index = 1; index <= 128; index++) {
+            Assert.Same(snapshot, definitions[first.NumberID.Value + index].Levels[0].LevelTabStops);
+        }
+    }
+
+    [Fact]
     public void NativeListDefinitions_UnusedDefinitionsDoNotMultiplyInstanceSelectionWork() {
         using WordDocument source = CreateNativeListDefinitionControl();
         Numbering numbering = source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;

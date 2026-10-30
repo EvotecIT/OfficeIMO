@@ -322,6 +322,7 @@ namespace OfficeIMO.Word {
             }
 
             Dictionary<int, AbstractNum> abstracts = WordListNumberingResolver.GetCanonicalAbstractDefinitions(numbering);
+            var levelTabSnapshots = new Dictionary<Level, Tabs?>();
 
             foreach (NumberingInstance instance in numbering.Elements<NumberingInstance>()) {
                 if (instance.NumberID?.Value == null) {
@@ -358,13 +359,13 @@ namespace OfficeIMO.Word {
 
                         levelOverrides.TryGetValue(level.LevelIndex.Value, out Level? overrideLevel);
                         ListLevelDefinition definition = CreateLevelDefinition(level.LevelIndex.Value, overrideLevel ?? level,
-                            level.StartNumberingValue?.Val?.Value ?? 1, level.LevelRestart?.Val?.Value);
+                            levelTabSnapshots, level.StartNumberingValue?.Val?.Value ?? 1, level.LevelRestart?.Val?.Value);
                         levels.Add(definition.Level, definition);
                     }
                 }
                 foreach (KeyValuePair<int, Level> levelOverride in levelOverrides) {
                     if (!levels.ContainsKey(levelOverride.Key)) {
-                        levels.Add(levelOverride.Key, CreateLevelDefinition(levelOverride.Key, levelOverride.Value));
+                        levels.Add(levelOverride.Key, CreateLevelDefinition(levelOverride.Key, levelOverride.Value, levelTabSnapshots));
                     }
                 }
 
@@ -379,11 +380,16 @@ namespace OfficeIMO.Word {
             return result;
         }
 
-        private static ListLevelDefinition CreateLevelDefinition(int level, Level effectiveLevel, int? abstractStart = null, int? restartLevel = null) {
+        private static ListLevelDefinition CreateLevelDefinition(int level, Level effectiveLevel,
+            Dictionary<Level, Tabs?> levelTabSnapshots, int? abstractStart = null, int? restartLevel = null) {
             // A full w:lvlOverride replaces level formatting. Its embedded w:start does
             // not change the abstract start; w:startOverride is applied separately.
             Indentation? indentation = effectiveLevel.GetFirstChild<PreviousParagraphProperties>()?.GetFirstChild<Indentation>();
             NumberingSymbolRunProperties? markerProperties = effectiveLevel.GetFirstChild<NumberingSymbolRunProperties>();
+            if (!levelTabSnapshots.TryGetValue(effectiveLevel, out Tabs? levelTabStops)) {
+                levelTabStops = CloneListLevelTabStops(effectiveLevel);
+                levelTabSnapshots.Add(effectiveLevel, levelTabStops);
+            }
 
             return new ListLevelDefinition(
                 level: level,
@@ -403,7 +409,7 @@ namespace OfficeIMO.Word {
                 levelSuffix: effectiveLevel.LevelSuffix?.Val?.Value,
                 pictureBulletId: effectiveLevel.GetFirstChild<LevelPictureBulletId>()?.Val?.Value,
                 restartLevel: restartLevel,
-                levelTabStops: CloneListLevelTabStops(effectiveLevel));
+                levelTabStops: levelTabStops);
         }
 
         private static IEnumerable<IEnumerable<WordParagraph>> EnumerateListStories(WordDocument document) {
