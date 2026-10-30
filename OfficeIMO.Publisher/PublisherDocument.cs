@@ -3,7 +3,7 @@ using OfficeIMO.Publisher.Internal;
 
 namespace OfficeIMO.Publisher;
 
-/// <summary>A managed editable publication, loaded from Publisher or created in memory. Native .pub writing is not provided.</summary>
+/// <summary>A managed editable publication, loaded from Publisher or created in memory, with bounded native source saving and SVG export.</summary>
 public sealed partial class PublisherDocument {
     private PublisherModelState? _model;
     internal PublisherDocument(IReadOnlyList<PublisherPage> pages, IReadOnlyList<PublisherPage> masters,
