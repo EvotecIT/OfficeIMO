@@ -104,7 +104,14 @@ namespace OfficeIMO.Pdf.Excel {
                     rows,
                     options);
                 ExcelSheet sheet = workbook.AddSheet(BuildSheetName(options.SheetNamePrefix, extraction, i), ExcelSheetNameValidationMode.Sanitize, options.CancellationToken);
-                string range = sheet.AddTable(dataTable, new OfficeIMO.Excel.ExcelTableOptions { Name = requestedTableName, Style = options.TableStyle, IncludeAutoFilter = options.IncludeAutoFilter, CancellationToken = options.CancellationToken }, row: 1, column: 1).Range!;
+                // Fit once after applying imported number formats, under the import policy.
+                string range = sheet.AddTable(dataTable, new OfficeIMO.Excel.ExcelTableOptions {
+                    Name = requestedTableName,
+                    Style = options.TableStyle,
+                    IncludeAutoFilter = options.IncludeAutoFilter,
+                    AutoFit = false,
+                    CancellationToken = options.CancellationToken
+                }, row: 1, column: 1).Range!;
                 ApplyTypedColumnFormats(
                     sheet,
                     dataTable,

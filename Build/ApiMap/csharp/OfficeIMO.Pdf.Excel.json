@@ -41,6 +41,18 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "Worksheet sizing calls use ExcelColumnWidth.Characters for existing stored column units and ExcelColumnWidth.Length(OfficeLength.Points(...)) for existing row points. Default dimension reads convert explicitly at numeric format boundaries. This is a mechanical consumer migration; conversion/layout behavior is retained."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "The migrated typed table insertion auto-fits PDF-imported columns even when ExcelPdfImportOptions.AutoFitColumns is false.",
+      "new": "Disable insertion-level autofit and let the importer fit once after number formats, only under its own explicit AutoFitColumns policy.",
+      "reason": "Retain default worksheet widths and source column-proportion budgets when requested. Modern authoring table defaults remain unchanged for ordinary AddTable callers.",
+      "note": "All18 source-backed column-geometry cases pass on net10.0, including saved XLSX and ODS with disabled/default/enabled fitting and normalized source proportions.",
+      "files": [
+        "OfficeIMO.Pdf.Excel/PdfExcelTableConverterExtensions.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
