@@ -15,7 +15,7 @@ namespace OfficeIMO.Word {
             int totalMarkerCharacters = 0;
             VisitListCounters(document, cancellationToken, (paragraph, info, index, counters, formats) => {
                 string rawMarker = !info.MarkerVisible ? string.Empty : info.PictureBulletId.HasValue ? "•"
-                    : info.Ordered ? BuildMarker(info.Level, index, counters, formats, info.LevelText)
+                    : info.Ordered ? BuildMarker(info.Level, index, counters, formats, info.LevelText, info.LegalNumbering)
                     : info.LevelText ?? "•";
                 if (rawMarker.Length > MaximumListMarkerLength) throw ListMarkerLengthExceeded();
                 (string marker, bool useTextFont) = OfficeTextListMarkerNormalizer.Normalize(rawMarker, info.MarkerFontFamily);
