@@ -31,22 +31,21 @@ internal static class PublisherTextFrameCatalogReader {
                 bindings.Add(storyId, values = new List<FrameBinding>());
             values.Add(new FrameBinding(frame.Value, ordinal));
         }
-        var counts = new Dictionary<uint, uint>();
+        var stories = new HashSet<uint>();
         foreach (IReadOnlyList<PublisherBlock> entry in Entries(Chunk(storiesReference.Value, 0x65, publication, blocks), blocks, context)) {
             uint storyId = Scalar(entry, 1);
             if (!candidates.ContainsKey(storyId)) continue;
-            uint? count = OptionalScalar(entry, 7);
-            if (!count.HasValue) continue;
-            if (counts.ContainsKey(storyId)) throw new InvalidDataException("Duplicate Publisher story catalog definition.");
-            counts.Add(storyId, count.Value);
+            // Field 7 is IdLayout metadata, independent of the frame bindings.
+            // Cardinality comes from the complete frame catalog, not this value.
+            if (!stories.Add(storyId)) throw new InvalidDataException("Duplicate Publisher story catalog definition.");
         }
         foreach (var candidate in candidates) {
             context.Record();
-            if (!bindings.TryGetValue(candidate.Key, out List<FrameBinding>? mapped) || !counts.TryGetValue(candidate.Key, out uint count))
+            if (!bindings.TryGetValue(candidate.Key, out List<FrameBinding>? mapped) || !stories.Contains(candidate.Key))
                 continue;
             PublisherSourceShape[] frames = candidate.Value;
-            if (count != frames.Length || mapped.Count != frames.Length)
-                throw new InvalidDataException("Publisher story catalog frame count disagrees with its source frames.");
+            if (mapped.Count != frames.Length)
+                throw new InvalidDataException("Publisher frame catalog does not cover all source story frames.");
             var byId = frames.ToDictionary(frame => frame.Chunk.Id);
             var ordered = new uint[frames.Length];
             var seenIds = new HashSet<uint>();
