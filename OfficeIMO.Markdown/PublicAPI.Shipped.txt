@@ -225,9 +225,9 @@ OfficeIMO.Markdown.ImageBlock.Alt.get -> string?
 OfficeIMO.Markdown.ImageBlock.AltSourceSpan.get -> OfficeIMO.Markdown.MarkdownSourceSpan?
 OfficeIMO.Markdown.ImageBlock.Caption.get -> string?
 OfficeIMO.Markdown.ImageBlock.Caption.set -> void
-OfficeIMO.Markdown.ImageBlock.Height.get -> double?
+OfficeIMO.Markdown.ImageBlock.Height.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Markdown.ImageBlock.Height.set -> void
-OfficeIMO.Markdown.ImageBlock.ImageBlock(string! path, string? alt = null, string? title = null, double? width = null, double? height = null, string? linkUrl = null, string? linkTitle = null, string? linkTarget = null, string? linkRel = null, string? plainAlt = null) -> void
+OfficeIMO.Markdown.ImageBlock.ImageBlock(string! path, string? alt = null, string? title = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? linkUrl = null, string? linkTitle = null, string? linkTarget = null, string? linkRel = null, string? plainAlt = null) -> void
 OfficeIMO.Markdown.ImageBlock.ImageBlock(string! path, string? alt, string? title) -> void
 OfficeIMO.Markdown.ImageBlock.LinkRel.get -> string?
 OfficeIMO.Markdown.ImageBlock.LinkRel.set -> void
@@ -247,7 +247,7 @@ OfficeIMO.Markdown.ImageBlock.PictureSources.get -> System.Collections.Generic.I
 OfficeIMO.Markdown.ImageBlock.PlainAlt.get -> string?
 OfficeIMO.Markdown.ImageBlock.Title.get -> string?
 OfficeIMO.Markdown.ImageBlock.TitleSourceSpan.get -> OfficeIMO.Markdown.MarkdownSourceSpan?
-OfficeIMO.Markdown.ImageBlock.Width.get -> double?
+OfficeIMO.Markdown.ImageBlock.Width.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Markdown.ImageBlock.Width.set -> void
 OfficeIMO.Markdown.ImageInline
 OfficeIMO.Markdown.ImageInline.Alt.get -> string!
@@ -570,7 +570,7 @@ OfficeIMO.Markdown.MarkdownDocument.HeadingInfo.Block.get -> OfficeIMO.Markdown.
 OfficeIMO.Markdown.MarkdownDocument.HeadingInfo.Level.get -> int
 OfficeIMO.Markdown.MarkdownDocument.HeadingInfo.Text.get -> string!
 OfficeIMO.Markdown.MarkdownDocument.Hr() -> OfficeIMO.Markdown.MarkdownDocument!
-OfficeIMO.Markdown.MarkdownDocument.Image(string! path, string? alt = null, string? title = null, double? width = null, double? height = null) -> OfficeIMO.Markdown.MarkdownDocument!
+OfficeIMO.Markdown.MarkdownDocument.Image(string! path, string? alt = null, string? title = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Markdown.MarkdownDocument!
 OfficeIMO.Markdown.MarkdownDocument.Image(string! path, string? alt, string? title) -> OfficeIMO.Markdown.MarkdownDocument!
 OfficeIMO.Markdown.MarkdownDocument.Ol(System.Action<OfficeIMO.Markdown.MarkdownOrderedListBuilder!>! build) -> OfficeIMO.Markdown.MarkdownDocument!
 OfficeIMO.Markdown.MarkdownDocument.Ol<T>(System.Collections.Generic.IEnumerable<T>! items, int start = 1) -> OfficeIMO.Markdown.MarkdownDocument!
@@ -1673,7 +1673,7 @@ OfficeIMO.Markdown.MarkdownNativeImageBlock
 OfficeIMO.Markdown.MarkdownNativeImageBlock.Alt.get -> string?
 OfficeIMO.Markdown.MarkdownNativeImageBlock.AltSourceSpan.get -> OfficeIMO.Markdown.MarkdownSourceSpan?
 OfficeIMO.Markdown.MarkdownNativeImageBlock.Caption.get -> string?
-OfficeIMO.Markdown.MarkdownNativeImageBlock.Height.get -> double?
+OfficeIMO.Markdown.MarkdownNativeImageBlock.Height.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Markdown.MarkdownNativeImageBlock.Image.get -> OfficeIMO.Markdown.ImageBlock!
 OfficeIMO.Markdown.MarkdownNativeImageBlock.LinkRel.get -> string?
 OfficeIMO.Markdown.MarkdownNativeImageBlock.LinkTarget.get -> string?
@@ -1688,7 +1688,7 @@ OfficeIMO.Markdown.MarkdownNativeImageBlock.Source.get -> string!
 OfficeIMO.Markdown.MarkdownNativeImageBlock.SourceSourceSpan.get -> OfficeIMO.Markdown.MarkdownSourceSpan?
 OfficeIMO.Markdown.MarkdownNativeImageBlock.Title.get -> string?
 OfficeIMO.Markdown.MarkdownNativeImageBlock.TitleSourceSpan.get -> OfficeIMO.Markdown.MarkdownSourceSpan?
-OfficeIMO.Markdown.MarkdownNativeImageBlock.Width.get -> double?
+OfficeIMO.Markdown.MarkdownNativeImageBlock.Width.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Markdown.MarkdownNativeInline
 OfficeIMO.Markdown.MarkdownNativeInline.Children.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Markdown.MarkdownNativeInline!>!
 OfficeIMO.Markdown.MarkdownNativeInline.ContainsPosition(int lineNumber, int columnNumber) -> bool

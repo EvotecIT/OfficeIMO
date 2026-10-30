@@ -15,6 +15,19 @@ its default remains half a point. Paper cell padding uses lengths, and
 `TableParagraphSpacingPoints` and `TableLineSpacingPoints` become
 `TableParagraphSpacing` and nullable `TableLineSpacing`.
 
+## Markdown image lengths
+
+`ImageBlock`, `MarkdownNativeImageBlock` and `MarkdownDocument.Image` use
+nullable `OfficeLength` dimensions. Replace numeric `width: 96` with
+`width: OfficeLength.Pixels(96)`. Unitless Markdown and HTML image hints remain
+CSS pixels; explicit physical hints such as `width=1in` are also accepted.
+Word and PDF exports now agree that 96px is 72pt. Fractional CSS pixel sizes
+round to whole EMUs and preserve that physical value when rendered or imported.
+
+Markup image payloads continue to carry numeric pixels. When serializing a
+live image model yourself, explicitly project `Width?.ToPixels()` and
+`Height?.ToPixels()` if your wire format uses pixels.
+
 ## Word watermark, template and embedded-object lengths
 
 Watermark `Width`, `Height`, `HorizontalOffset` and `VerticalOffset` use nullable

@@ -4,6 +4,8 @@ using System.IO;
 using Color = OfficeIMO.OfficeColor;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
+using OfficeIMO.Markdown.Pdf;
+using OfficeIMO.Markdown.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -40,6 +42,65 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(2, doc.Images.Count);
             Assert.Empty(warnings);
+
+            string dataUri = "data:image/png;base64," + Convert.ToBase64String(File.ReadAllBytes(imagePath));
+            var sizedDocuments = new[] {
+                OfficeIMO.Markdown.MarkdownDocument.Parse($"![Badge]({dataUri}){{width=96 height=48}}"),
+                OfficeIMO.Markdown.MarkdownDocument.Parse($"![Badge]({dataUri}){{width=96px height=48px}}"),
+                OfficeIMO.Markdown.MarkdownDocument.Parse($"![Badge]({dataUri}){{width=1in height=36pt}}"),
+                OfficeIMO.Markdown.MarkdownDocument.Create().Image(dataUri, "Badge",
+                    width: OfficeIMO.OfficeLength.Inches(1), height: OfficeIMO.OfficeLength.Inches(0.5)),
+                OfficeIMO.Html.HtmlConversionDocument.Parse($"<figure><img src=\"{dataUri}\" width=\"96\" height=\"48\" /></figure>").ToMarkdown(),
+                OfficeIMO.Html.HtmlConversionDocument.Parse($"<figure><img src=\"{dataUri}\" style=\"width:1in;height:36pt\" /></figure>").ToMarkdown()
+            };
+            foreach (var sized in sizedDocuments) {
+                using (sized) {
+                    var image = Assert.IsType<OfficeIMO.Markdown.ImageBlock>(Assert.Single(sized.Blocks));
+                    Assert.Equal(OfficeIMO.OfficeLength.Inches(1), image.Width);
+                    Assert.Equal(OfficeIMO.OfficeLength.Inches(0.5), image.Height);
+                    Assert.Contains("{width=96 height=48}", sized.ToMarkdown(), StringComparison.Ordinal);
+                    string html = sized.ToHtml(new OfficeIMO.Markdown.MarkdownHtmlExportOptions {
+                        Kind = OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
+                    });
+                    Assert.Contains("width=\"96\"", html, StringComparison.Ordinal);
+                    Assert.Contains("height=\"48\"", html, StringComparison.Ordinal);
+                    var native = OfficeIMO.Markdown.MarkdownNativeDocument.Parse(sized.ToMarkdown());
+                    var nativeImage = Assert.IsType<OfficeIMO.Markdown.MarkdownNativeImageBlock>(Assert.Single(native.Blocks));
+                    Assert.Equal(OfficeIMO.OfficeLength.Inches(1), nativeImage.Width);
+                    Assert.Equal(OfficeIMO.OfficeLength.Inches(0.5), nativeImage.Height);
+                    Assert.Contains("{width=96 height=48}", Assert.Single(native.ToSnapshot().Blocks).Markdown!, StringComparison.Ordinal);
+
+                    using var word = sized.ToWord();
+                    using var wordBytes = new MemoryStream(word.ToBytes());
+                    using var reopenedWord = WordDocument.Load(wordBytes);
+                    var wordImage = Assert.Single(reopenedWord.Images);
+                    Assert.Equal(72d, wordImage.Width!.Value.ToPoints(), 4);
+                    Assert.Equal(36d, wordImage.Height!.Value.ToPoints(), 4);
+
+                    using var pdf = sized.ToPdf();
+                    using var pdfBytes = new MemoryStream(pdf.ToBytes());
+                    using var reopenedPdf = OfficeIMO.Pdf.PdfDocument.Load(pdfBytes);
+                    var placement = Assert.Single(reopenedPdf.Images.Placements());
+                    Assert.Equal(72d, placement.Width, 4);
+                    Assert.Equal(36d, placement.Height, 4);
+                }
+            }
+            using var fractional = OfficeIMO.Markdown.MarkdownDocument.Create().Image(dataUri, "Fractional",
+                width: OfficeIMO.OfficeLength.Emus(919163), height: OfficeIMO.OfficeLength.Emus(459581));
+            foreach (var rawHtmlHandling in new[] {
+                OfficeIMO.Markdown.MarkdownRawHtmlHandling.Allow,
+                OfficeIMO.Markdown.MarkdownRawHtmlHandling.Strip
+            }) {
+                string fractionalHtml = fractional.ToHtml(new OfficeIMO.Markdown.MarkdownHtmlExportOptions {
+                    Kind = OfficeIMO.Markdown.MarkdownHtmlKind.Fragment,
+                    RawHtmlHandling = rawHtmlHandling
+                });
+                Assert.Contains("style=\"", fractionalHtml, StringComparison.Ordinal);
+                using var imported = OfficeIMO.Html.HtmlConversionDocument.Parse("<figure>" + fractionalHtml + "</figure>").ToMarkdown();
+                var importedImage = Assert.IsType<OfficeIMO.Markdown.ImageBlock>(Assert.Single(imported.Blocks));
+                Assert.Equal(OfficeIMO.OfficeLength.Emus(919163), importedImage.Width);
+                Assert.Equal(OfficeIMO.OfficeLength.Emus(459581), importedImage.Height);
+            }
         }
 
         [Fact]

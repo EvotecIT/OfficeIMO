@@ -464,8 +464,8 @@ public partial class MarkdownDocument : MarkdownObject {
     public MarkdownDocument Image(string path, string? alt, string? title)
         => Append(new ImageBlock(path, alt, title));
 
-    /// <summary>Adds an image block with optional alt text, title, and size hints.</summary>
-    public MarkdownDocument Image(string path, string? alt = null, string? title = null, double? width = null, double? height = null)
+    /// <summary>Adds an image block with optional alt text, title, and physical display lengths.</summary>
+    public MarkdownDocument Image(string path, string? alt = null, string? title = null, OfficeLength? width = null, OfficeLength? height = null)
         => Append(new ImageBlock(path, alt, title, width, height));
 
     /// <summary>Adds a table built with <see cref="MarkdownTableBuilder"/>.</summary>

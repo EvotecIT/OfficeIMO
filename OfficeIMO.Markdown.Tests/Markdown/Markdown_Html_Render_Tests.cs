@@ -589,12 +589,12 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         [Fact]
         public void Image_With_Dimensions_Renders_Size_And_Caption() {
             var doc = MarkdownDocument.Create()
-                .Image("images/photo.png", alt: "Alt text", title: "Title text", width: 640, height: 480)
+                .Image("images/photo.png", alt: "Alt text", title: "Title text", width: OfficeIMO.OfficeLength.Pixels(640), height: OfficeIMO.OfficeLength.Pixels(480))
                 .Caption("Photo caption");
 
             var block = Assert.IsType<ImageBlock>(Assert.Single(doc.Blocks));
-            Assert.Equal(640d, block.Width.GetValueOrDefault());
-            Assert.Equal(480d, block.Height.GetValueOrDefault());
+            Assert.Equal(640d, block.Width.GetValueOrDefault().ToPixels());
+            Assert.Equal(480d, block.Height.GetValueOrDefault().ToPixels());
             Assert.Equal("Photo caption", block.Caption);
 
             string markdown = doc.ToMarkdown().Replace("\r\n", "\n");
@@ -673,7 +673,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Image_Block_Renders_Picture_Sources_Back_To_Html() {
-            var image = new ImageBlock("https://example.com/media/storm-wide.webp", "Flooded street at dawn", "Open full photo", 1280, 720) {
+            var image = new ImageBlock("https://example.com/media/storm-wide.webp", "Flooded street at dawn", "Open full photo", OfficeIMO.OfficeLength.Pixels(1280), OfficeIMO.OfficeLength.Pixels(720)) {
                 PictureFallbackPath = "https://example.com/media/storm-fallback.jpg"
             };
             image.PictureSources.Add(new ImagePictureSource(
@@ -705,7 +705,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Image_Block_Renders_Picture_Sources_With_Width_Descriptors_And_Query_Strings() {
-            var image = new ImageBlock("https://example.com/media/storm-wide.webp?fit=cover&crop=10,20,300,400", "Flooded street at dawn", "Open full photo", 1280, 720) {
+            var image = new ImageBlock("https://example.com/media/storm-wide.webp?fit=cover&crop=10,20,300,400", "Flooded street at dawn", "Open full photo", OfficeIMO.OfficeLength.Pixels(1280), OfficeIMO.OfficeLength.Pixels(720)) {
                 PictureFallbackPath = "https://example.com/media/storm-fallback.jpg?download=1"
             };
             image.PictureSources.Add(new ImagePictureSource(

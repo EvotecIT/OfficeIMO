@@ -2266,6 +2266,79 @@
       "files": [
         "OfficeIMO.Markdown.Tests/Markdown.WordToMarkdown.cs"
       ]
+    },
+    {
+      "member": "Markdown image placement hints and native image dimensions",
+      "action": "change",
+      "category": "units",
+      "old": "ImageBlock and native image Width/Height plus image authoring arguments use nullable pixel numbers.",
+      "target": "OfficeLength? Width/Height and image authoring arguments; unitless Markdown/HTML hints use CSS pixels.",
+      "reason": "Word and PDF exports must agree on placed image size: 96px, 1in and 72pt are equivalent. Relative CSS dimensions remain outside the physical length contract.",
+      "applied": "phase-b-applied",
+      "signatures": [
+        {
+          "symbol": "OfficeIMO.Markdown.ImageBlock.Width",
+          "kind": "property",
+          "old": "public double? Width { get; set; }",
+          "new": "public OfficeLength? Width { get; set; }",
+          "map": "Build/ApiMap/csharp/OfficeIMO.Markdown.json"
+        },
+        {
+          "symbol": "OfficeIMO.Markdown.ImageBlock.Height",
+          "kind": "property",
+          "old": "public double? Height { get; set; }",
+          "new": "public OfficeLength? Height { get; set; }",
+          "map": "Build/ApiMap/csharp/OfficeIMO.Markdown.json"
+        },
+        {
+          "symbol": "OfficeIMO.Markdown.MarkdownNativeImageBlock.Width",
+          "kind": "property",
+          "old": "public double? Width { get; }",
+          "new": "public OfficeLength? Width { get; }",
+          "map": "Build/ApiMap/csharp/OfficeIMO.Markdown.json"
+        },
+        {
+          "symbol": "OfficeIMO.Markdown.MarkdownNativeImageBlock.Height",
+          "kind": "property",
+          "old": "public double? Height { get; }",
+          "new": "public OfficeLength? Height { get; }",
+          "map": "Build/ApiMap/csharp/OfficeIMO.Markdown.json"
+        },
+        {
+          "symbol": "OfficeIMO.Markdown.ImageBlock..ctor",
+          "kind": "constructor",
+          "old": "public ImageBlock(string path, string? alt = null, string? title = null, double? width = null, double? height = null, string? linkUrl = null, string? linkTitle = null, string? linkTarget = null, string? linkRel = null, string? plainAlt = null)",
+          "new": "public ImageBlock(string path, string? alt = null, string? title = null, OfficeLength? width = null, OfficeLength? height = null, string? linkUrl = null, string? linkTitle = null, string? linkTarget = null, string? linkRel = null, string? plainAlt = null)",
+          "map": "Build/ApiMap/csharp/OfficeIMO.Markdown.json"
+        },
+        {
+          "symbol": "OfficeIMO.Markdown.MarkdownDocument.Image",
+          "kind": "method",
+          "old": "public MarkdownDocument Image(string path, string? alt = null, string? title = null, double? width = null, double? height = null)",
+          "new": "public MarkdownDocument Image(string path, string? alt = null, string? title = null, OfficeLength? width = null, OfficeLength? height = null)",
+          "map": "Build/ApiMap/csharp/OfficeIMO.Markdown.json"
+        }
+      ],
+      "files": [
+        "OfficeIMO.Markdown/Blocks/ImageBlock.cs",
+        "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
+        "OfficeIMO.Markdown/Native/MarkdownNativeContentBlocks.cs",
+        "OfficeIMO.Markdown/README.md",
+        "OfficeIMO.Markdown/Reader/MarkdownReader.Blocks.Images.cs",
+        "OfficeIMO.Markdown/Reader/Parsers/ImageParser.cs",
+        "OfficeIMO.Markdown.Html/Converters/HtmlToMarkdownConverter.Blocks.ImageSources.cs",
+        "OfficeIMO.Markdown.Pdf/MarkdownPdfConverterExtensions.Images.cs",
+        "OfficeIMO.Markdown.Tests/Markdown/Markdown_CurrentHead_Review_Tests.cs",
+        "OfficeIMO.Markdown.Tests/Markdown/Markdown_HtmlToMarkdown_Tests.cs",
+        "OfficeIMO.Markdown.Tests/Markdown/Markdown_Html_Render_Tests.cs",
+        "OfficeIMO.Markdown.Tests/Markdown/Markdown_Reader_TablesAndLists_Tests.cs",
+        "OfficeIMO.Markdown.Tests/Markdown/Markdown_Write_Profile_Tests.cs",
+        "OfficeIMO.Markdown.Tests/Markdown.Images.cs",
+        "OfficeIMO.Markup/Parsing/OfficeMarkupParser.Markdown.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/Markdown.SaveAsPdf.Visuals.cs",
+        "OfficeIMO.Word.Markdown/Converters/MarkdownToWordConverter.BlockRenderer.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/AddOfficeMarkdownImageCommand.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

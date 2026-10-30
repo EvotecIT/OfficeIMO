@@ -16,7 +16,7 @@ public class MarkdownSaveAsPdfVisualTests {
         MarkdownDocument document = MarkdownDocument
             .Create()
             .H1("Visual report")
-            .Image(dataUri, "Operational badge", "Badge", width: 42, height: 28)
+            .Image(dataUri, "Operational badge", "Badge", width: OfficeIMO.OfficeLength.Pixels(42), height: OfficeIMO.OfficeLength.Pixels(28))
             .Caption("Figure 1. Operational badge");
 
         byte[] bytes = document.ToPdf(CreateVisualOptions()).ToBytes();

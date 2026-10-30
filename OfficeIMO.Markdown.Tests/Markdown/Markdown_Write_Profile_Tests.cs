@@ -160,7 +160,7 @@ Lead[^1]
     [Fact]
     public void Portable_Write_Profile_Omits_OfficeImo_Image_Size_Suffixes() {
         var doc = MarkdownDocument.Create();
-        doc.Add(new ImageBlock("https://example.com/logo.png", "Logo", "Example", width: 256, height: 128));
+        doc.Add(new ImageBlock("https://example.com/logo.png", "Logo", "Example", width: OfficeIMO.OfficeLength.Pixels(256), height: OfficeIMO.OfficeLength.Pixels(128)));
 
         var markdown = doc.ToMarkdown(MarkdownSaveOptions.CreatePortableProfile()).Replace("\r\n", "\n").Trim();
 
@@ -424,7 +424,7 @@ HTML text
         table.Headers.Add("Value");
         table.Rows.Add(new[] { "Area", "Markdown" });
         var doc = MarkdownDocument.Create();
-        doc.Add(new ImageBlock("https://example.com/logo.png", "Logo", width: 256, height: 128));
+        doc.Add(new ImageBlock("https://example.com/logo.png", "Logo", width: OfficeIMO.OfficeLength.Pixels(256), height: OfficeIMO.OfficeLength.Pixels(128)));
         doc.Add(table);
 
         var markdown = doc.ToMarkdown(MarkdownSaveOptions.CreateGitHubFlavoredMarkdownProfile()).Replace("\r\n", "\n").Trim();
@@ -585,7 +585,7 @@ HTML text
     [Fact]
     public void Html_Image_Profile_Renders_Linked_Image_Blocks_As_Raw_Html() {
         var doc = MarkdownDocument.Create();
-        doc.Add(new ImageBlock("https://example.com/logo.png", "Logo", "Example", width: 256, height: 128, linkUrl: "https://example.com/docs", linkTitle: "Documentation", linkTarget: "_blank"));
+        doc.Add(new ImageBlock("https://example.com/logo.png", "Logo", "Example", width: OfficeIMO.OfficeLength.Pixels(256), height: OfficeIMO.OfficeLength.Pixels(128), linkUrl: "https://example.com/docs", linkTitle: "Documentation", linkTarget: "_blank"));
 
         var markdown = doc.ToMarkdown(MarkdownSaveOptions.CreateHtmlImageProfile()).Replace("\r\n", "\n").Trim();
 
