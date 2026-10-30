@@ -13,6 +13,7 @@ namespace OfficeIMO.Excel.Pdf {
         internal CancellationToken CancellationToken { get; set; }
 
         private int _headerRowCount = 1;
+        private bool _headerRowCountSpecified;
         private int? _maxRowsPerSheet;
         private PdfCore.PdfCreateOptions? _pdfOptions;
         private bool _pdfOptionsCreatedByRenderingProfile;
@@ -222,8 +223,12 @@ namespace OfficeIMO.Excel.Pdf {
                 }
 
                 _headerRowCount = value;
+                _headerRowCountSpecified = true;
             }
         }
+
+        /// <summary>True when the caller set <see cref="HeaderRowCount"/> instead of keeping the default.</summary>
+        internal bool HeaderRowCountSpecified => _headerRowCountSpecified;
 
         /// <summary>
         /// Optional maximum number of used-range rows exported from each sheet.

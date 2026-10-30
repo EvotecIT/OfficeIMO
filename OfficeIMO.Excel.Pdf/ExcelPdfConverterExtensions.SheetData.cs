@@ -95,7 +95,11 @@ namespace OfficeIMO.Excel.Pdf {
             MergeLayoutData? mergedCells = bodyRange.MergedCells;
             ColumnLayoutData? columnWidths = bodyRange.ColumnWidths;
             RowLayoutData? rowHeights = bodyRange.RowHeights;
-            int headerRows = options.HeaderRowCount;
+            // A spreadsheet repeats only its print-title rows on later pages. The worksheet canvas
+            // follows that unless the caller asks for header rows explicitly.
+            int headerRows = options.WorksheetLayout == ExcelPdfWorksheetLayoutMode.WorksheetCanvas && !options.HeaderRowCountSpecified
+                ? 0
+                : options.HeaderRowCount;
             if (!options.UseWorksheetPrintTitleRows || metadataSheet == null) {
                 return CreateSheetExportData(metadataSheet, values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, rangeFirstRow, structuredTables, options);
             }

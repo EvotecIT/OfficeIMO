@@ -23,9 +23,10 @@ public partial class Excel {
             PageSize = new PdfCore.PdfPageSize(700, 500), Margins = PdfCore.PdfPageMargins.Uniform(20)
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
+        // Only the print-title rows repeat; row 1 is ordinary data, as in a spreadsheet printout.
         Assert.Equal("Row001Row002", pdf.GetPage(1).Text);
-        Assert.Equal("Row001Row003Row004", pdf.GetPage(2).Text);
-        Assert.Equal("Row001Row003Row004Row005Row006Row007Row008", pdf.GetPage(3).Text);
+        Assert.Equal("Row003Row004", pdf.GetPage(2).Text);
+        Assert.Equal("Row003Row004Row005Row006Row007Row008", pdf.GetPage(3).Text);
     }
 
     [Theory]
