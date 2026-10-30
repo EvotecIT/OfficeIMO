@@ -63,7 +63,7 @@ foreach ($name in 'notes.txt.pdf', 'brief.html.pdf') {
     }
 }
 $recorded = Import-OfficeConversionReport -LiteralPath $firstReportPath
-if ($recorded.Batch.Summary.Completed -ne 2 -or $recorded.Batch.Items.Count -ne 2) {
+if ($recorded.Summary.Completed -ne 2 -or $recorded.Items.Count -ne 2) {
     throw 'The first attempt did not retain both file outcomes.'
 }
 $firstReportHash = (Get-FileHash -LiteralPath $firstReportPath -Algorithm SHA256).Hash

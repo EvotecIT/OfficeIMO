@@ -26,7 +26,7 @@ Reports describe an earlier attempt; checkpoint receipts and current source/outp
 
 ### EXAMPLE 1
 ```powershell
-Import-OfficeConversionReport -Path ./runs/*.json | Select-Object Status, Summary
+Import-OfficeConversionReport -Path ./runs/*.json | Select-Object State, Summary
 ```
 
 

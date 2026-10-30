@@ -137501,7 +137501,7 @@ the script needs to work with list objects directly instead of using a text sear
     <command:examples>
       <command:example>
         <maml:title>Read the conversion runs in a directory.</maml:title>
-        <dev:code>Import-OfficeConversionReport -Path ./runs/*.json | Select-Object Status, Summary</dev:code>
+        <dev:code>Import-OfficeConversionReport -Path ./runs/*.json | Select-Object State, Summary</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
