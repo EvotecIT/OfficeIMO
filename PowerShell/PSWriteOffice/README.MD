@@ -1,159 +1,233 @@
 # PSWriteOffice
 
-Create, read, edit and convert documents from PowerShell through [OfficeIMO](https://github.com/EvotecIT/OfficeIMO). Microsoft Office is not required.
-
-```powershell
-New-OfficePowerPoint -Path ./Service-Review.pptx {
-    PowerPointSlide -Title 'Service review' -Subtitle 'October 2026'
-    PowerPointSlide -Title 'Current signals' {
-        PowerPointCard 'Availability' -Text 'All regions healthy'
-        PowerPointCard 'Capacity' -Text 'Storage at 71%'
-    }
-}
-```
-
-The theme supplies fonts, colors, spacing and layouts. Content commands use spelled-out format aliases, such as `PowerPointSlide`, `WordParagraph` and `ExcelTable`.
-
-[![PowerShell Gallery](https://img.shields.io/powershellgallery/v/PSWriteOffice.svg)](https://www.powershellgallery.com/packages/PSWriteOffice)
-[![Tests](https://github.com/EvotecIT/OfficeIMO/actions/workflows/powershell-tests.yml/badge.svg?branch=master)](https://github.com/EvotecIT/OfficeIMO/actions/workflows/powershell-tests.yml)
+[![PowerShell Gallery Version](https://img.shields.io/powershellgallery/v/PSWriteOffice.svg)](https://www.powershellgallery.com/packages/PSWriteOffice)
+[![PowerShell Gallery Downloads](https://img.shields.io/powershellgallery/dt/PSWriteOffice.svg)](https://www.powershellgallery.com/packages/PSWriteOffice)
+[![Test PowerShell](https://github.com/EvotecIT/OfficeIMO/actions/workflows/powershell-tests.yml/badge.svg?branch=master)](https://github.com/EvotecIT/OfficeIMO/actions/workflows/powershell-tests.yml)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+PSWriteOffice creates, converts, reads and searches Word, Excel, PowerPoint, PDF and Markdown documents from PowerShell, plus Visio, Project, Access, OneNote, email, EPUB, RTF, OpenDocument, CSV and more. Microsoft Office is not required, the same scripts run on Windows, macOS and Linux, and new documents start from a theme, so the output looks finished without styling every element.
+
+PSWriteOffice is built on [OfficeIMO](https://github.com/EvotecIT/OfficeIMO) and lives in the same repository. Report bugs and request features in [OfficeIMO issues](https://github.com/EvotecIT/OfficeIMO/issues).
 
 ## Install
 
 ```powershell
 Install-Module PSWriteOffice -Scope CurrentUser
-Import-Module PSWriteOffice
 ```
 
-Use PowerShell 7.4 or newer on Windows, Linux or macOS, or Windows PowerShell 5.1 with .NET Framework 4.7.2. Some operations have additional requirements; check the owning command's help. OCR can use an optional Tesseract provider, and printer delivery uses the operating system's print services.
+PSWriteOffice runs on PowerShell 7.4 and later (including 7.6), and on Windows PowerShell 5.1. Upgrading from 3.5 or earlier? The [migration guide](../../MIGRATION.md) maps every renamed and merged command, and calling a removed command prints its replacement.
 
-PSWriteOffice is maintained in the OfficeIMO repository. Report problems in [OfficeIMO issues](https://github.com/EvotecIT/OfficeIMO/issues). See [MIGRATION.md](../../MIGRATION.md) for upgrade changes and [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases) for release history.
+## One line each
 
-## Choose a workflow
-
-| Task | Start with |
-| --- | --- |
-| Export PowerShell objects to a workbook | `Export-OfficeExcel` |
-| Compose a document | `New-OfficeWord`, `New-OfficeExcel`, `New-OfficePowerPoint`, `New-OfficePdf` or `New-OfficeMarkdown` |
-| Convert an existing file | `Convert-OfficeDocument` |
-| Read content as text, Markdown, tables or structured data | `Read-OfficeDocument` |
-| Search files and folders | `Search-OfficeDocument` |
-| Inspect native counts, protection and package details | `Get-OfficeDocumentInfo` |
-| Render document pages or slides | `Export-OfficeWordImage`, `Export-OfficeExcelImage`, `Export-OfficePowerPointImage` or `Export-OfficePdfImage` |
-
-Use `Get-Help <command> -Full` for parameter sets and examples, or browse the [command reference](Docs/Readme.md). The [example library](Examples/README.md) contains complete scripts grouped by task and format.
-
-## Export rows to Excel
+Export objects to a styled Excel table with a frozen header, fitted columns and number formats inferred from the data:
 
 ```powershell
-$rows = @(
-    [pscustomobject]@{ Service = 'Directory'; Incidents = 2; Owner = 'Identity' }
-    [pscustomobject]@{ Service = 'Messaging'; Incidents = 1; Owner = 'Collaboration' }
+Get-Process | Select-Object -First 20 Name, Id, CPU, WorkingSet | Export-OfficeExcel -Path .\Processes.xlsx
+```
+
+Export the same objects to a Word table or a deck. `Export-OfficePowerPoint` makes a title slide, then table slides that continue with the header repeated:
+
+```powershell
+Get-Service | Select-Object -First 15 Name, Status, StartType | Export-OfficeWord -Path .\Services.docx -Title 'Services'
+Get-Service | Where-Object Status -eq Stopped | Export-OfficePowerPoint -Path .\Stopped.pptx -Title 'Stopped services'
+```
+
+Convert one file, or a whole folder in parallel:
+
+```powershell
+Convert-OfficeDocument -Path .\Services.docx -To Pdf
+Get-ChildItem .\Reports -Filter *.docx | Convert-OfficeDocument -To Pdf -OutputDirectory .\Pdf -ThrottleLimit 4
+```
+
+Search Word, Excel, PowerPoint, PDF, Markdown and email files at once. `-Pattern` is a regular expression, as in `Select-String`:
+
+```powershell
+Search-OfficeDocument -Path .\Contracts -Recurse -Pattern 'termination|renewal'
+```
+
+Read a document as text, Markdown or chunks for search and AI ingestion:
+
+```powershell
+Read-OfficeDocument -Path .\Handbook.pdf -As Markdown
+```
+
+Read rows back from a workbook:
+
+```powershell
+Import-OfficeExcel -Path .\Processes.xlsx | Sort-Object CPU -Descending | Select-Object -First 5
+```
+
+## Word
+
+Inside a content block, each command adds to the document. The block saves and closes the file when it ends:
+
+```powershell
+$milestones = @(
+    [pscustomobject]@{ Milestone = 'Discovery'; Owner = 'Product'; Status = 'Done' }
+    [pscustomobject]@{ Milestone = 'Pilot'; Owner = 'Operations'; Status = 'At risk' }
+    [pscustomobject]@{ Milestone = 'Rollout'; Owner = 'IT'; Status = 'Planned' }
 )
-$rows | Export-OfficeExcel -Path ./Incidents.xlsx -AutoFit -FreezeTopRow
-```
+$trend = @(
+    [pscustomobject]@{ Week = 'W1'; Complete = 20 }
+    [pscustomobject]@{ Week = 'W2'; Complete = 45 }
+    [pscustomobject]@{ Week = 'W3'; Complete = 70 }
+)
 
-For a larger workflow, see the [readable Excel review](Examples/Excel/Recipe-Excel-ReadableReview.ps1) and [CSV and database examples](Examples/README.md#inspect-convert-and-integrate).
-
-## Compose a PowerPoint deck
-
-Slides choose a layout from their content. Metrics create a KPI layout; cards create a card grid; steps create a process; titled columns create a comparison. Tables and lists use the shared layout engine's continuation rules.
-
-```powershell
-New-OfficePowerPoint -Path ./Operations.pptx -Theme Modern {
-    PowerPointSlide -Title 'Operations' -Subtitle 'Monthly review'
-    PowerPointSection 'Performance'
-    PowerPointSlide -Title 'Service health' {
-        PowerPointKpi '99.95%' 'Availability' -Change '+0.02 pt'
-        PowerPointKpi '182 ms' 'Median response' -Color Success
+New-OfficeWord -Path .\Status.docx -Theme Modern -Force {
+    WordHeading 'Northwind migration'
+    WordParagraph {
+        WordText 'Overall status: ' -Bold
+        WordText 'On track' -Bold -Color Success
     }
-    PowerPointSection 'Operating model'
-    PowerPointSlide -Title 'Operating rhythm' {
-        PowerPointStep 'Collect' 'Gather health signals'
-        PowerPointStep 'Review' 'Confirm decisions with owners'
-        PowerPointStep 'Act' 'Track actions to closure'
+    WordTable -InputObject $milestones {
+        WordTableCondition { $_.Status -eq 'At risk' } -BackgroundColor Danger
     }
-    PowerPointSlide -Title 'Incidents' {
-        PowerPointTable -InputObject $rows -Property Service, Incidents, Owner
+    WordChart -Type Line -InputObject $trend -Category Week -Value Complete -Title 'Completion by week'
+    WordFooter {
+        WordText 'Internal · Page '
+        WordPageNumber -IncludeTotal
     }
 }
 ```
 
-Choose `-Theme Modern`, `Boardroom` or `Dark`, supply a theme object, or use a PowerPoint template path. Use `-Layout` on a slide when its purpose needs an explicit layout, such as `Section`, `Quote` or `Closing`.
+`Success`, `Warning`, `Danger` and `Accent1` to `Accent6` are theme colors, so they follow the document's theme.
 
-`PowerPointSection` groups the following slides, including their continuations. Use `-Slide` with a native slide or a one-based number to start a section in an existing deck.
-
-`Get-OfficePowerPointSection` returns native section information. Its `SlideIndices` are zero-based; add one when passing an index to a command's `-Slide` parameter.
-
-A PowerPoint content block saves and closes its document when it completes. A failed block leaves an existing destination unchanged. `New-OfficePowerPoint` requires `-Force` to replace an existing file; `-WhatIf` does not run the block. Add `-PassThru` to return the saved `FileInfo`, or `-Show` to open the result in its default application.
-
-Without a content block, creation returns a live document. Save it explicitly and close it when finished:
+## Excel
 
 ```powershell
-$document = New-OfficePowerPoint -Theme Boardroom
-try {
-    Add-OfficePowerPointSlide -Document $document -Title 'Customer onboarding' {
-        PowerPointList 'Confirm acceptance criteria', 'Assign owners', 'Set the handover date'
+$sales = @(
+    [pscustomobject]@{ Region = 'North'; Revenue = 182400; Growth = 0.12 }
+    [pscustomobject]@{ Region = 'South'; Revenue = 141900; Growth = 0.08 }
+    [pscustomobject]@{ Region = 'West'; Revenue = 97300; Growth = -0.03 }
+)
+
+New-OfficeExcel -Path .\Sales.xlsx -Theme Modern -Force {
+    ExcelSheet 'Sales' {
+        ExcelTable $sales -Name Sales -ColumnFormat @{ Growth = 'Percent' }
+        ExcelChart -Table Sales -Category Region -Value Revenue -Address F2 -Type Column -Title 'Revenue by region'
     }
-    Save-OfficePowerPoint -Document $document -Path ./Onboarding.pptx
-} finally {
-    Close-OfficePowerPoint -Document $document
 }
 ```
 
-Use `Open-OfficePowerPoint -LiteralPath ./Onboarding.pptx` to edit a saved deck. Closing disposes the live document; it does not save pending edits. [Object composition](Examples/PowerPoint/Recipe-PowerPoint-ObjectComposition.ps1) shows the complete lifecycle with speaker notes.
+`Export-OfficeExcel` covers the one-table case and streams very large inputs; `New-OfficeExcel` builds workbooks with several sheets, charts, formulas and formatting.
 
-## Convert files
+## PowerPoint
 
-```powershell
-Convert-OfficeDocument -Path ./Report.docx -To Pdf -OutputPath ./Report.pdf
-
-Get-ChildItem ./Reports -File |
-    Convert-OfficeDocument -To Pdf -OutputDirectory ./PDF -NoClobber
-```
-
-`-Path` supports input discovery; `-LiteralPath` treats a filename literally. `FileInfo` pipelines bind through their full paths. `-OutputPath` names one file; `-OutputDirectory` receives multiple outputs.
-
-Conversions return reports that describe approximations, omissions and errors. Use `-FailOnLoss` when those reductions are unacceptable. `-NoClobber` preserves existing outputs; `-SkipUpToDate` skips an output only when it is newer than its source. A skipped input retains its reason in the result.
-
-For restartable work, use [saved conversion jobs](Examples/Workflows/Recipe-SavedConversionJob.ps1). Jobs retain portable settings and checkpoint evidence; passwords are resolved at execution rather than stored in the job.
-
-## Read and inspect
+Slides are laid out from their content: a title alone makes a section slide, one list, table or chart makes a title-and-content slide, and KPIs make a metrics slide. No coordinates are needed:
 
 ```powershell
-Read-OfficeDocument -Path ./Report.pdf -As Markdown
-Get-ChildItem ./Reports -File | Get-OfficeDocumentInfo
-Search-OfficeDocument -Path ./Reports -Pattern 'renewal' -SimpleMatch -Recurse
+$quarters = @(
+    [pscustomobject]@{ Quarter = 'Q1'; Revenue = 4.8 }
+    [pscustomobject]@{ Quarter = 'Q2'; Revenue = 5.1 }
+    [pscustomobject]@{ Quarter = 'Q3'; Revenue = 5.7 }
+)
+
+New-OfficePowerPoint -Path .\Review.pptx -Theme Boardroom -Force {
+    PowerPointSlide -Title 'Quarterly business review' -Subtitle 'Performance, decisions and priorities'
+    PowerPointSlide -Title 'Quarter at a glance' {
+        PowerPointKpi '5.7m' 'Revenue (USD)' -Change '+12%' -Trend Up
+        PowerPointKpi '36%' 'Operating margin' -Change '+1 pt' -Trend Up
+        PowerPointKpi '3' 'Decisions needed'
+    }
+    PowerPointSlide -Title 'Revenue trend' {
+        PowerPointChart -InputObject $quarters -Category Quarter -Value Revenue -Type Column -Title 'Revenue (USD m)'
+        PowerPointNotes 'Explain the Q2 dip before the Q3 result.'
+    }
+    PowerPointSlide -Title 'Next steps' {
+        PowerPointList 'Approve the budget', 'Confirm owners', 'Review in January'
+    }
+}
 ```
 
-For PowerPoint package validation, layout preflight and accessibility checks, use `Test-OfficePowerPoint`. Add feature and review inventories with a typed policy:
+## PDF
 
 ```powershell
-$options = New-OfficePowerPointInspectionOptions -Features -ReviewComments
-$inspection = Test-OfficePowerPoint -LiteralPath ./Operations.pptx -Options $options
-$inspection.Accessibility
+$services = @(
+    [pscustomobject]@{ Service = 'Identity'; Availability = 99.98; Status = 'Healthy' }
+    [pscustomobject]@{ Service = 'Mail'; Availability = 99.71; Status = 'Watch' }
+)
+
+New-OfficePdf -Path .\Status.pdf -Force {
+    PdfHeading 'Weekly status'
+    PdfParagraph {
+        PdfText 'Overall: '
+        PdfText 'Healthy' -Bold -Color Success
+    }
+    PdfTable -InputObject $services
+}
 ```
 
-Reader output preserves source locations and provenance where the format provides them. Reconstructing an editable document from PDF or an image cannot restore information absent from its source. Check conversion reports and verify tables, amounts and reading order before using reconstructed output.
+Combine, split, protect and inspect existing files with the cross-format commands:
 
-## Formats and examples
+```powershell
+Merge-OfficeDocument -Path .\Status.pdf, .\Services.pdf -OutputPath .\Pack.pdf
+Get-OfficeDocumentInfo -Path .\Pack.pdf
+Protect-OfficeDocument -Path .\Pack.pdf -Password (Read-Host -Prompt 'Password' -AsSecureString) -Encrypt
+```
 
-| Area | Examples |
-| --- | --- |
-| Word | [Reports and document editing](Examples/Word) |
-| Excel and CSV | [Workbooks](Examples/Excel), [CSV](Examples/Csv) |
-| PowerPoint | [Decks, templates and editing](Examples/PowerPoint) |
-| PDF | [Composition, forms, extraction and operations](Examples/Pdf) |
-| Markdown and other text formats | [Markdown](Examples/Markdown), [RTF](Examples/Rtf) |
-| Visio | [Diagrams and stencils](Examples/Visio) |
-| Mixed files | [Reader](Examples/Reader), [workflows](Examples/Workflows) |
+## Markdown
 
-The module also exposes OfficeIMO's Project, Access, EPUB, OpenDocument, email, iWork, OneNote, HTML, AsciiDoc, LaTeX and Confluence workflows. Use the [command index](Docs/Readme.md) to find their current operations and limits.
+```powershell
+New-OfficeMarkdown -Path .\Report.md -Force {
+    MarkdownHeading 'Stopped services'
+    MarkdownTable -InputObject (Get-Service | Where-Object Status -eq Stopped | Select-Object -First 10 Name, StartType)
+}
+Convert-OfficeDocument -Path .\Report.md -To Word
+```
 
-## Reference and contributions
+## Working with live documents
 
-- [Generated command reference](Docs/Readme.md)
-- [Runnable examples](Examples/README.md)
-- [OfficeIMO documentation](../../Docs/README.md)
-- [Build and validation guide](../../Docs/building-and-releasing.md)
-- [License](LICENSE)
+Leave out the content block to keep a document open, for example to build it in a loop, then save and close it yourself:
+
+```powershell
+$document = New-OfficeWord -Path .\Inventory.docx -Force
+foreach ($server in 'SQL01', 'SQL02', 'WEB01') {
+    Add-OfficeWordHeading -Document $document -Text $server -Level 2
+    Add-OfficeWordParagraph -Document $document -Text "Checked on $(Get-Date -Format d)."
+}
+Save-OfficeWord -Document $document
+Close-OfficeWord -Document $document
+```
+
+`Open-OfficeWord`, `Open-OfficeExcel`, `Open-OfficePowerPoint` and `Open-OfficePdf` edit existing files the same way, with or without a block.
+
+## Conventions
+
+Every command follows the same rules:
+
+- `New-` refuses to replace an existing file unless you pass `-Force`. `Export-` and `Convert-` replace their output unless you pass `-NoClobber`. Commands that write files support `-WhatIf`.
+- `-Path` is the file a command reads, or creates when it reads none; `-OutputPath` and `-OutputDirectory` name the output when there is also an input. `-LiteralPath` takes names with wildcard characters, and `Get-ChildItem` output pipes into every command that reads files.
+- Lengths take a number of points or a unit: `-Width 5cm`, `-SpacingBefore 12pt`, `-Margin 1in`.
+- Colors take `#RRGGBB`, a CSS name or a theme role (`Accent1`, `Success`, `Danger`). `-Theme` takes `Modern`, `Classic`, `Minimal`, `Boardroom`, `Dark` or the path of a `.potx`, `.dotx` or `.xltx` template.
+- Pages, slides, sheets, rows and columns are numbered from 1. `-Sheet` takes a name or a position.
+- On/off options are switches (`-Bold`, `-NoFreeze`); `-Bold:$false` turns formatting off explicitly.
+- `-Password` takes a `SecureString`.
+
+## Help
+
+Every command has help with working examples:
+
+```powershell
+Get-Help New-OfficePowerPoint -Examples
+Get-Command -Module PSWriteOffice -Noun OfficeExcel*
+```
+
+- [Command reference](Docs/Readme.md), one generated page per command.
+- [Examples](Examples), runnable scripts for every format.
+- [Migration guide](../../MIGRATION.md) for scripts written against 3.5 and earlier.
+
+Electronic invoices are no longer part of PSWriteOffice; use the [OfficeIMO.Invoicing](../../OfficeIMO.Invoicing/README.md) packages from .NET.
+
+## Build and test
+
+```powershell
+dotnet build .\Sources\PSWriteOffice.sln -c Debug
+pwsh -NoLogo -NoProfile -File .\PSWriteOffice.Tests.ps1
+pwsh -NoLogo -NoProfile -File .\Build\Build-Module.ps1 -RunMode Build
+```
+
+[PSWriteOffice.psm1](PSWriteOffice.psm1) loads the local debug build from `Sources\PSWriteOffice\bin\Debug\` during development.
+
+## License
+
+MIT

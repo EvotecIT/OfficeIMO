@@ -78,7 +78,7 @@ The combined registration applies the same immutable legacy options to every leg
 
 Legacy warnings include the detected profile, structured-versus-salvage quality, and feature-level losses. The handler never executes macros or refreshes external links.
 
-SYLK/DIF project stored values through the same Excel table reader. SYLK expressions and formatting are omitted with warnings; DIF error markers remain literal text with warnings. The [Excel profile coverage](../OfficeIMO.Excel/README.md#profile-coverage) defines the exact grammar and limits. `LegacySpreadsheetImportOptions.TextEncoding` is snapshotted at registration; when absent, the per-read `ReaderOptions.TextEncoding` applies, then Windows-1252. A Unicode BOM takes precedence. `OfficeIMO.Reader.All` includes these formats when `IncludeLegacySpreadsheet` is enabled, which is the preset default.
+SYLK/DIF project stored values through the same Excel table reader. SYLK expressions and formatting are omitted with warnings; DIF error markers remain literal text with warnings. The [Excel profile coverage](../Docs/officeimo.excel-guide.md#profile-coverage) defines the exact grammar and limits. `LegacySpreadsheetImportOptions.TextEncoding` is snapshotted at registration; when absent, the per-read `ReaderOptions.TextEncoding` applies, then Windows-1252. A Unicode BOM takes precedence. `OfficeIMO.Reader.All` includes these formats when `IncludeLegacySpreadsheet` is enabled, which is the preset default.
 
 ## Incremental path reads
 

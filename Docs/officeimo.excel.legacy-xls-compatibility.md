@@ -143,7 +143,7 @@ session with independent stream-position accounting and the format's plaintext
 record exceptions. VBA and some compound metadata remain unencrypted according
 to the format. Supported CryptoAPI input also restores encrypted summary metadata
 and nested storage for subsequent native preservation saves. See the
-[password-to-open contract](../OfficeIMO.Excel/README.md#password-to-open-output)
+[password-to-open contract](officeimo.excel-guide.md#password-to-open-output)
 for security limits and the native XLSB profile. Workbook/sheet protection is a
 separate contract.
 
