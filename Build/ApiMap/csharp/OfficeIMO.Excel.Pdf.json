@@ -230,8 +230,8 @@
       "category": "conversion",
       "notes": "ToConversionWarning() maps to PdfConversionWarning today.",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Only the internal ExcelPdfExportOptions.Warnings collection carries this type; construction and ToConversionWarning are implementation details. The user-facing diagnostics are shared reports. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Excel.Pdf.ExcelToPdfOptions.UseRenderingProfile(OfficeRenderingProfile profile, OfficeRenderingProfileApplyMode mode = Replace)",
@@ -410,14 +410,14 @@
     {
       "old": "OfficeIMO.Excel.Pdf.PdfExcelTableImportReport",
       "kind": "type",
-      "action": "merge",
-      "new": "OfficeIMO.OfficeConversionReport",
-      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.Excel.PdfExcelTableImportReport",
+      "reason": "Retain this documented advanced model or its incoming public options/result contract under the approved visibility rule.",
       "file": "OfficeIMO.Excel.Pdf/PdfExcelTableImportModels.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-retained-public-contract",
+      "note": "Keep the report: a documented public ODS result exposes PdfOdsConversionReport.PdfReport, independently of the internal PDF-to-Excel importer. PSWriteOffice also declares this report as cmdlet output. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Excel.Pdf.PdfExcelTableImportResult",
@@ -428,20 +428,20 @@
       "file": "OfficeIMO.Excel.Pdf/PdfExcelTableImportModels.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Hide the result wrapper: both incoming ConvertToExcelWithEvidence overloads are internal. ODS consumes this wrapper inside method bodies and returns a different public result containing only its report. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Excel.Pdf.PdfExcelTableImportEntry",
       "kind": "type",
-      "action": "merge",
-      "new": "OfficeIMO.OfficeConversionReport",
-      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.Excel.PdfExcelTableImportEntry",
+      "reason": "Retain this documented advanced model or its incoming public options/result contract under the approved visibility rule.",
       "file": "OfficeIMO.Excel.Pdf/PdfExcelTableImportModels.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-retained-public-contract",
+      "note": "Keep the entry model: the documented ODS PdfReport.Entries path exposes these records for table projection evidence. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Excel.Pdf.PdfExcelTableColumnKind",

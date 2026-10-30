@@ -187,7 +187,7 @@ public sealed class PdfExcelTableImportEntry {
     }
 
     /// <summary>Contains an editable Excel document and the corresponding PDF table import report.</summary>
-    public sealed class PdfExcelTableImportResult : OfficeConversionResult<ExcelDocument, PdfExcelTableImportReport> {
+    internal sealed class PdfExcelTableImportResult : OfficeConversionResult<ExcelDocument, PdfExcelTableImportReport> {
         internal PdfExcelTableImportResult(ExcelDocument value, PdfExcelTableImportReport report) : base(value, report) { }
 
         /// <summary>Gets whether the source contained page or document content outside the imported tables.</summary>

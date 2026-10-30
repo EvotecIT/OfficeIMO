@@ -3,7 +3,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
-public sealed class OfficeConversionFidelityContracts {
+public sealed class WordMarkdownFidelityContracts {
     [Fact]
     public void CommonProjectionPreservesLegacyDiagnosticsWithEmptyText() {
         var report = new WordMarkdownConversionReport(new[] {

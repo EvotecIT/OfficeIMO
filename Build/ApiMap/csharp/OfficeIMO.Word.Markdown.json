@@ -263,8 +263,8 @@
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConversionResult.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Hide the Word-to-Markdown evidence result: only a private helper and an internal evidence extension return it; public ToMarkdown returns MarkdownDocument plus OfficeConversionReport. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.Markdown.MarkdownToWordResult",
@@ -275,8 +275,8 @@
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConversionResult.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Hide the Markdown-to-Word evidence result: only internal ConvertToWordWithEvidence returns it; public ToWord returns WordDocument and the shared report. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.Markdown.WordMarkdownConversionResult<T>",
@@ -287,8 +287,8 @@
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConversionResult.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Hide this evidence-only generic base. Its only incoming result subclasses are the two internalized evidence wrappers. Protected construction and public subclassability alone are not documented roots. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.Markdown.WordMarkdownConversionReport",
@@ -299,8 +299,8 @@
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConversionResult.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Hide the evidence report: public Word/Markdown routes translate its contents to OfficeConversionReport. Incoming typed evidence result/exception/constructor paths all become internal together. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.Markdown.WordMarkdownConversionDiagnostic",
@@ -311,8 +311,8 @@
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConversionResult.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Hide the typed evidence diagnostic: diagnostic sinks and raw-HTML delegates are already internal, and public reports carry OfficeDiagnostic. Its public constructor is not an incoming root. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.Markdown.WordMarkdownConversionException",
@@ -323,8 +323,8 @@
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConversionResult.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Hide the evidence-specific exception: no README/guide/example or public incoming signature roots it. Public FailOnLoss uses the shared report.ThrowIfLoss contract. Preserve the existing runtime throw behavior of internal RequireValue/RequireNoLoss. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.Markdown.ImageExportMode",

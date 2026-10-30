@@ -4832,15 +4832,15 @@
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordImportOptions",
       "kind": "type",
-      "action": "merge",
-      "new": "OfficeIMO.Word.WordLoadOptions",
-      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordImportOptions",
+      "reason": "Retain this documented advanced model or its incoming public options/result contract under the approved visibility rule.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
       "category": "options",
       "notes": "Legacy Word import becomes format detection in Load.",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-retained-public-contract",
+      "note": "Keep the options: the documented additional legacy-word importer and Reader registration accept this distinct supported import contract. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions",
@@ -4852,8 +4852,8 @@
       "category": "options",
       "notes": "DOC is loaded by Load with format detection; legacy settings become WordLoadOptions.Legacy.",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Already internal. WordLoadOptions exposes primitive limits and creates this decoder object internally; the similarly named property in WordDocumentConversionOptions is inside an internal class. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.Pdf.WordToPdfOptions",
@@ -5053,8 +5053,8 @@
       "file": "OfficeIMO.Word/Layout/PdfExportWarning.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Only the internal WordPdfExportOptions.Warnings collection carries this warning object. Public constructors alone do not root it. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.ToPng(WordImageExportOptions options = null)",
@@ -5771,14 +5771,14 @@
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordImportResult",
       "kind": "type",
-      "action": "merge",
-      "new": "OfficeIMO.OfficeConversionReport",
-      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "action": "keep",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordImportResult",
+      "reason": "Retain this documented advanced model or its incoming public options/result contract under the approved visibility rule.",
       "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-retained-public-contract",
+      "note": "Keep the result: the package README constructs it through the public additional legacy-word importer and reads its source content and loss report. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordImporter",
@@ -6010,8 +6010,8 @@
       "file": "OfficeIMO.Word/LegacyDoc/LegacyDocImportReport.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Already internal. The report is returned only by internal LegacyDocDocument/LegacyDocLoadResult containers. Historical corpus/migration references do not turn them into public incoming contracts. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary",
@@ -6039,8 +6039,8 @@
       "file": "OfficeIMO.Word/LegacyDoc/LegacyDocLoadResult.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Already internal. Incoming native LoadLegacyDocWithReport methods are internal and normal loading uses unified lifecycle contracts. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeature",

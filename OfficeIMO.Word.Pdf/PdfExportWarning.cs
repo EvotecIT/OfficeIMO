@@ -2,7 +2,7 @@ namespace OfficeIMO.Word.Pdf {
     /// <summary>
     /// Describes content that could not be faithfully mapped during PDF export.
     /// </summary>
-    public sealed class PdfExportWarning {
+    internal sealed class PdfExportWarning {
         /// <summary>
         /// Stable warning code suitable for assertions and wrapper routing.
         /// </summary>

@@ -399,8 +399,8 @@
       "file": "OfficeIMO.Word.Html/HtmlToWordResult.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Hide the HTML evidence wrapper: only internal ConvertToWordWithEvidence sync/async methods return it; the README uses ToWord and OfficeConversionReport. The nonpackable editable-evidence tool directly names the wrapper. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.Html.ImageProcessingMode",

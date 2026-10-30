@@ -98,22 +98,20 @@ Excel model. It records unsupported BIFF12 records in
 `XlsbImportDiagnostics` and `XlsbPreservedRecords`.
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Excel;
-using OfficeIMO.Excel.Xlsb;
 
 using ExcelDocument workbook = ExcelDocument.Load(
     "source.xlsb",
     new ExcelLoadOptions {
-        XlsbImportOptions = new XlsbImportOptions {
-            MaxCells = 2_000_000,
-            MaxSharedStrings = 500_000
-        }
+        MaxCells = 2_000_000,
+        MaxSharedStrings = 500_000
     });
 
 workbook["Data"].CellValue(2, 2, 1250m);
 workbook.Save("edited.xlsb");
 
-ExcelDocument.Convert("source.xlsb", "editable.xlsx");
+OfficeConverter.Convert("source.xlsb", "editable.xlsx");
 ```
 
 An unchanged XLSB source can be copied byte-for-byte. A supported cell edit uses

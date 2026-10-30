@@ -5,7 +5,7 @@ namespace OfficeIMO.PowerPoint.Pdf;
 /// <summary>
 /// Describes PowerPoint content that the first-party PDF adapter skipped or simplified.
 /// </summary>
-public sealed class PowerPointPdfExportWarning {
+internal sealed class PowerPointPdfExportWarning {
     /// <summary>Creates a PowerPoint-to-PDF export warning.</summary>
     public PowerPointPdfExportWarning(int slideNumber, string code, string message)
         : this(slideNumber, code, message, null) { }

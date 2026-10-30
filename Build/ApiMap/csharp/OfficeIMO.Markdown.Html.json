@@ -425,6 +425,20 @@
       "phase": "A",
       "applied": "applied",
       "note": "Canonical SaveAs output failures retain the completed conversion report through the shared internal output helper; cancellation continues to propagate unchanged."
+    },
+    {
+      "phase": "B",
+      "action": "internalize",
+      "old": "Public HtmlToMarkdownResult evidence wrapper without a public incoming conversion signature.",
+      "new": "Internal evidence result; public conversion returns MarkdownDocument and the shared Core report.",
+      "reason": "The typed raw HTML evidence result is cross-assembly plumbing, with named access for the existing editable-evidence executable.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Markdown.Html/HtmlToMarkdownResult.cs",
+        "OfficeIMO.Markdown.Html/OfficeIMO.Markdown.Html.csproj",
+        "Build/HtmlEditableEvidence/EditableTargetExporter.cs"
+      ],
+      "note": "The evidence tool calls the current internal evidence converter with explicit MarkdownHtmlImportOptions. No public shim or runtime dependency is added."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

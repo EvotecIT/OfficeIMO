@@ -28,11 +28,11 @@ internal static class EditableTargetExporter {
     internal static EditableExport SaveAndReopen(HtmlConversionDocument source, string target, string output, string documentName) {
         switch (target) {
             case "word": {
-                HtmlToWordResult result = source.ToWordDocumentResult();
+                HtmlToWordResult result = source.ConvertToWordWithEvidence();
                 string artifact = Path.Combine(output, documentName + ".docx");
                 using (WordDocument document = result.RequireValue()) document.Save(artifact);
                 using WordDocument loaded = WordDocument.Load(artifact);
-                return new EditableExport(result.Report, artifact, loaded.ToHtmlResult().RequireValue(),
+                return new EditableExport(result.Report, artifact, loaded.ConvertToHtmlWithEvidence().RequireValue(),
                     NativeTables: EditableNativeTableEvidence.FromWord(loaded));
             }
             case "excel": {
@@ -96,7 +96,7 @@ internal static class EditableTargetExporter {
                 }), NativeTables: EditableNativeTableEvidence.FromRtf(loaded));
             }
             case "markdown": {
-                HtmlToMarkdownResult result = source.ToMarkdownDocumentResult();
+                HtmlToMarkdownResult result = source.ConvertToMarkdownWithEvidence(new MarkdownHtmlImportOptions());
                 string artifact = Path.Combine(output, documentName + ".md");
                 result.RequireValue().Save(artifact);
                 MarkdownDocument loaded = MarkdownDocument.Load(artifact);

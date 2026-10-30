@@ -235,8 +235,6 @@ public sealed class PublicApiNamingContracts {
     public void RouteBackedConversionResultsUseTheSharedValueReportAndLossContract() {
         Type[] resultTypes = {
             typeof(PdfDocumentConversionResult),
-            typeof(OfficeIMO.Word.Markdown.WordToMarkdownResult),
-            typeof(OfficeIMO.Word.Markdown.MarkdownToWordResult),
             typeof(OfficeIMO.Rtf.RtfConversionResult<OfficeIMO.Rtf.RtfDocument>),
             typeof(OfficeIMO.OpenDocument.OdfConversionResult<OfficeIMO.OpenDocument.OdtDocument>),
             typeof(HtmlTextConversionResult),
@@ -317,7 +315,7 @@ public sealed class PublicApiNamingContracts {
             static type => type.Name == "PdfPageOrientation");
         Assert.DoesNotContain(typeof(HtmlConversionDocument).Assembly.GetExportedTypes(),
             static type => type.Name == "HtmlConversionLossKind");
-        Assert.DoesNotContain(typeof(OfficeIMO.Word.Markdown.WordMarkdownConversionReport).Assembly.GetExportedTypes(),
+        Assert.DoesNotContain(typeof(OfficeIMO.Word.Markdown.WordMarkdownImportOptions).Assembly.GetExportedTypes(),
             static type => type.Name == "WordMarkdownConversionLossKind");
         Assert.DoesNotContain(typeof(OfficeIMO.PowerPoint.PowerPointDocument).Assembly.GetExportedTypes(),
             static type => type.Name == "PowerPointSignatureMutationPolicy");

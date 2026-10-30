@@ -6,7 +6,7 @@ using OfficeIMO.Markdown;
 namespace OfficeIMO.Word.Markdown;
 
 /// <summary>One structured diagnostic from a Word/Markdown conversion.</summary>
-public sealed class WordMarkdownConversionDiagnostic {
+internal sealed class WordMarkdownConversionDiagnostic {
     /// <summary>Creates a diagnostic.</summary>
     public WordMarkdownConversionDiagnostic(string code, string message, OfficeConversionLossKind lossKind,
         OfficeDiagnosticSeverity severity = OfficeDiagnosticSeverity.Warning, string? location = null, string? format = null) {
@@ -34,7 +34,7 @@ public sealed class WordMarkdownConversionDiagnostic {
 }
 
 /// <summary>Immutable fidelity report from one Word/Markdown conversion.</summary>
-public sealed class WordMarkdownConversionReport : IOfficeConversionReport {
+internal sealed class WordMarkdownConversionReport : IOfficeConversionReport {
     /// <summary>Creates a report from conversion diagnostics.</summary>
     public WordMarkdownConversionReport(IEnumerable<WordMarkdownConversionDiagnostic>? diagnostics = null) {
         Diagnostics = Array.AsReadOnly((diagnostics ?? Array.Empty<WordMarkdownConversionDiagnostic>()).ToArray());
@@ -65,7 +65,7 @@ public sealed class WordMarkdownConversionReport : IOfficeConversionReport {
 }
 
 /// <summary>Exception thrown when a Word/Markdown conversion is required to be lossless.</summary>
-public sealed class WordMarkdownConversionException : InvalidOperationException {
+internal sealed class WordMarkdownConversionException : InvalidOperationException {
     /// <summary>Creates an exception for a lossy report.</summary>
     public WordMarkdownConversionException(WordMarkdownConversionReport report)
         : base("The Word/Markdown conversion did not preserve all source content.") {
@@ -77,7 +77,7 @@ public sealed class WordMarkdownConversionException : InvalidOperationException 
 }
 
 /// <summary>Shared value-and-report contract for Word/Markdown conversions.</summary>
-public abstract class WordMarkdownConversionResult<T> : OfficeConversionResult<T, WordMarkdownConversionReport> where T : class {
+internal abstract class WordMarkdownConversionResult<T> : OfficeConversionResult<T, WordMarkdownConversionReport> where T : class {
     /// <summary>Creates a conversion result.</summary>
     protected WordMarkdownConversionResult(T value, WordMarkdownConversionReport report) : base(value, report) { }
 
@@ -98,11 +98,11 @@ public abstract class WordMarkdownConversionResult<T> : OfficeConversionResult<T
 }
 
 /// <summary>Typed Markdown document plus the Word-to-Markdown fidelity report.</summary>
-public sealed class WordToMarkdownResult : WordMarkdownConversionResult<MarkdownDocument> {
+internal sealed class WordToMarkdownResult : WordMarkdownConversionResult<MarkdownDocument> {
     internal WordToMarkdownResult(MarkdownDocument value, WordMarkdownConversionReport report) : base(value, report) { }
 }
 
 /// <summary>Native Word document plus the Markdown-to-Word fidelity report.</summary>
-public sealed class MarkdownToWordResult : WordMarkdownConversionResult<WordDocument> {
+internal sealed class MarkdownToWordResult : WordMarkdownConversionResult<WordDocument> {
     internal MarkdownToWordResult(WordDocument value, WordMarkdownConversionReport report) : base(value, report) { }
 }

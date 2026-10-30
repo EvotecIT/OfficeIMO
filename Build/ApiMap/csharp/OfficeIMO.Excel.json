@@ -10115,15 +10115,15 @@
     {
       "old": "OfficeIMO.Excel.Legacy.LegacySpreadsheetImportOptions",
       "kind": "type",
-      "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelLoadOptions",
-      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "action": "keep",
+      "new": "OfficeIMO.Excel.Legacy.LegacySpreadsheetImportOptions",
+      "reason": "Retain this documented advanced model or its incoming public options/result contract under the approved visibility rule.",
       "file": "OfficeIMO.Excel/Legacy/LegacySpreadsheetContracts.cs",
       "category": "options",
       "notes": "Legacy spreadsheet import becomes format detection in Load.",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-retained-public-contract",
+      "note": "Keep the options: documented Lotus/Quattro/Multiplan/Works/SYLK/DIF import accepts these options; Reader registration also exposes them. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Excel.LegacyXls.LegacyXlsImportOptions",
@@ -10135,8 +10135,8 @@
       "category": "options",
       "notes": "XLS is loaded by Load with format detection; legacy settings become ExcelLoadOptions.Legacy.",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Already internal. ExcelLoadOptions maps its public primitive settings to this native XLS decoder object. Its conversion-options property belongs to internal ExcelDocumentConversionOptions. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Excel.Xlsb.XlsbImportOptions",
@@ -10148,8 +10148,8 @@
       "category": "options",
       "notes": "XLSB is loaded by Load with format detection.",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Hide the XLSB decoder options: ExcelLoadOptions.XlsbImportOptions is internal in the captured source, and public limit knobs are forwarded as primitive members. The interoperability guide still shows the older nested options shape; no such public member exists now. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Excel.ExcelDocument.ToImages()",
@@ -10289,14 +10289,14 @@
     {
       "old": "OfficeIMO.Excel.Legacy.LegacySpreadsheetImportResult",
       "kind": "type",
-      "action": "merge",
-      "new": "OfficeIMO.OfficeConversionReport",
-      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "action": "keep",
+      "new": "OfficeIMO.Excel.Legacy.LegacySpreadsheetImportResult",
+      "reason": "Retain this documented advanced model or its incoming public options/result contract under the approved visibility rule.",
       "file": "OfficeIMO.Excel/Legacy/LegacySpreadsheetContracts.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-retained-public-contract",
+      "note": "Keep the result: the package README reads the public additional legacy-spreadsheet importer result, including recovered cells, names, metadata and report. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Excel.LegacyXls.LegacyXlsLoadResult",
@@ -10307,8 +10307,8 @@
       "file": "OfficeIMO.Excel/LegacyXls/LegacyXlsLoadResult.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Already internal. Native LoadLegacyXlsWithReport methods are internal and the public lifecycle conversion path uses unified reports. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Excel.LegacyXls.Model",

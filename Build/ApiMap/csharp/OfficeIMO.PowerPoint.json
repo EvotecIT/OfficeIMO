@@ -11357,8 +11357,8 @@
       "category": "options",
       "notes": "PPT is loaded by Load with format detection; legacy settings become PowerPointLoadOptions.Legacy.",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Already internal. PowerPointLoadOptions translates the public lifecycle settings into this private decoder object. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions",
@@ -11546,8 +11546,8 @@
       "file": "OfficeIMO.PowerPoint/Layout/PowerPointPdfExportWarning.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Only the internal PowerPointPdfExportOptions.Warnings collection carries this warning object. Public self-construction is not a supported incoming root. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ToImage()",
@@ -12031,8 +12031,8 @@
       "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptImportReport.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Already internal. Incoming report factories/properties belong to internal LegacyPptDocument and LegacyPptLoadResult. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.PowerPoint.LegacyPpt.LegacyPptLoadResult",
@@ -12043,8 +12043,8 @@
       "file": "OfficeIMO.PowerPoint/LegacyPpt/LegacyPptLoadResult.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Already internal. The incoming LoadLegacyPptWithReport methods are internal; public lifecycle methods expose unified reports instead. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.PowerPoint.LegacyPpt.Model",

@@ -5061,44 +5061,6 @@ OfficeIMO.Excel.Xlsb.XlsbImportDiagnosticSeverity
 OfficeIMO.Excel.Xlsb.XlsbImportDiagnosticSeverity.Error = 2 -> OfficeIMO.Excel.Xlsb.XlsbImportDiagnosticSeverity
 OfficeIMO.Excel.Xlsb.XlsbImportDiagnosticSeverity.Information = 0 -> OfficeIMO.Excel.Xlsb.XlsbImportDiagnosticSeverity
 OfficeIMO.Excel.Xlsb.XlsbImportDiagnosticSeverity.Warning = 1 -> OfficeIMO.Excel.Xlsb.XlsbImportDiagnosticSeverity
-OfficeIMO.Excel.Xlsb.XlsbImportOptions
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.CancellationToken.get -> System.Threading.CancellationToken
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.CancellationToken.set -> void
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxCells.get -> int
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxCells.set -> void
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxHyperlinks.get -> int
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxHyperlinks.set -> void
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxLogicalRows.get -> int
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxLogicalRows.set -> void
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxMergedRanges.get -> int
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxMergedRanges.set -> void
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxPackageBytes.get -> long
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxPackageBytes.set -> void
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxPartBytes.get -> int
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxPartBytes.set -> void
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxRecordBytes.get -> int
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxRecordBytes.set -> void
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxRecordCount.get -> int
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxRecordCount.set -> void
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxRelatedParts.get -> int
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxRelatedParts.set -> void
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxRelationshipDepth.get -> int
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxRelationshipDepth.set -> void
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxRowDefinitions.get -> int
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxRowDefinitions.set -> void
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxSharedStringCharacters.get -> long
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxSharedStringCharacters.set -> void
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxSharedStringItemCharacters.get -> int
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxSharedStringItemCharacters.set -> void
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxSharedStrings.get -> int
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxSharedStrings.set -> void
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxStringCharacters.get -> int
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxStringCharacters.set -> void
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxWorksheets.get -> int
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.MaxWorksheets.set -> void
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.ReportPreservedRecords.get -> bool
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.ReportPreservedRecords.set -> void
-OfficeIMO.Excel.Xlsb.XlsbImportOptions.XlsbImportOptions() -> void
 OfficeIMO.Excel.Xlsb.XlsbPreservedRecordInfo
 OfficeIMO.Excel.Xlsb.XlsbPreservedRecordInfo.Offset.get -> long
 OfficeIMO.Excel.Xlsb.XlsbPreservedRecordInfo.PartName.get -> string!

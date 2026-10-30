@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.Xlsb {
     /// <summary>
     /// Controls resource limits and unsupported-content reporting while importing XLSB workbooks.
     /// </summary>
-    public sealed class XlsbImportOptions {
+    internal sealed class XlsbImportOptions {
         internal XlsbImportOptions Snapshot() => (XlsbImportOptions)MemberwiseClone();
         /// <summary>Gets or sets the largest accepted decompressed package part. The default is 128 MiB.</summary>
         public int MaxPartBytes { get; set; } = 128 * 1024 * 1024;
