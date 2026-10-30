@@ -25,7 +25,7 @@ use OfficeIMO's MIT license; the Apache POI terms apply to the upstream corpus.
 
 [New-NativeComparisonCorpus.ps1](../../Build/Publisher/New-NativeComparisonCorpus.ps1)
 creates synthetic publications directly in Microsoft Publisher and exports their
-native PDF references. Run it on Windows with Publisher installed and no existing
+native PDF references. Run it in PowerShell 7 on Windows with Publisher installed and no existing
 Publisher session. Choose an empty task-owned output directory:
 
 ```powershell
@@ -46,13 +46,23 @@ MultipleMasters applies two single-page masters in A/B/A order across three
 physical pages. TwoPageMaster retains the default first-page master and applies
 the distinct members of a native two-page master to the next left and right
 pages. Distinct marker text and geometry identify each master in the reference
-PDF. Omitting `-Case` selects all twelve controls.
+PDF. PictureOwnership places two physical pictures on its first page and one
+picture on a master shared by both physical pages. The second physical picture
+uses Publisher's [Shape.Duplicate method](https://learn.microsoft.com/en-us/office/vba/api/publisher.shape.duplicate).
+Its saved native image-store references must be inspected separately; duplicating
+a shape does not establish that Publisher shares the embedded image asset.
+The retained PictureOwnership PUB has three placements referencing one native
+image-store entry: one master picture and two pictures on the first physical page.
+Omitting `-Case` selects every available case.
 
 Each case has a PUB, a Publisher-exported PDF and JSON that separates its authored
 contract from the observed native page/shape inventory. The root manifest records
 the case contracts and file hashes. Master controls also record authored
-assignment IDs and the observed shapes on each native master definition. Text
-fonts, margins and object colors are explicit; other native publication defaults
+assignment IDs and the observed shapes on each native master definition.
+PictureOwnership also records its authored zero crop values and native
+observations of picture cropping, embedding and page ownership. Numeric crop
+values follow [Publisher's original-image point units](https://learn.microsoft.com/en-us/office/vba/api/publisher.pictureformat.cropleft).
+Text fonts, margins and object colors are explicit; other native publication defaults
 remain recorded as defaults. Producer
 metadata records the Publisher executable version, PowerShell version, culture
 and Arial font-file hash when available. Native file bytes can vary between runs;

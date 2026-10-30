@@ -2,7 +2,7 @@
 
 OfficeIMO.Publisher reads native publications, supports bounded in-memory edits
 and converts the current model. Its public model owns
-publication pages, master definitions, styled source stories, native table grids, embedded assets
+publication pages, master definitions, placed pictures, styled source stories, native table grids, embedded assets
 and a recovery report. Shared `OfficeDrawing` owns the reconstructed visual scene;
 the optional PDF package consumes that scene without another native decoder.
 
@@ -38,9 +38,10 @@ references do not report missing images.
 | Groups | Native child coordinate spaces, non-uniform scale after child rotation, nested rotation/reflection and hidden-descendant suppression | Missing anchors report unresolved transforms; comparison against native Publisher rendering remains unqualified |
 | Text wrapping | Native frame exclusion references and object wrap distances; transformed rectangular exclusions | Widest available interval per horizontal band; side selection, tight/through outlines and native font metrics can differ |
 | Pictures | Embedded and delayed OfficeArt payload extraction, Publisher GIF envelopes, positioned images, source crop and supported custom-path masks | WMF/EMF use a supplied application codec or reported placeholder; native custom-mask appearance remains unqualified |
+| Placed-picture model | `PublisherPage.Pictures` separates page/master ownership, stable object IDs, asset references, page-point bounds, transforms and normalized crop from embedded bytes; unsupported placements expose an edit limitation | Unresolved image references can remain unresolved; inspection does not qualify native save-back or editable effects |
 | Picture controls | Source-RGB transparency keys, encoded-RGB brightness/contrast, preserve-grays tone handling, BT.709 grayscale and a 50-percent two-color threshold; original assets remain available | Color space, effect ordering and native Publisher pixels remain unqualified; recoloring and extended color controls are unassessed; invalid tone values or unresolved keys report omission |
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
-| In-memory edits | Document-owned replacement of complete non-table story paragraphs and bounds changes for resolved, visible, untransformed top-level frames; stable IDs and links, fresh scenes, text ranges and overflow | No table edits, grouped/transformed frame edits, relinking, object creation or native save-back; old page/story/frame references remain snapshots |
+| In-memory edits | Document-owned replacement of complete non-table story paragraphs, bounds changes for resolved visible untransformed top-level frames, and image replacement/bounds changes for supported rectangular PNG/JPEG picture placements; stable IDs, ownership and order, fresh scenes, text ranges and overflow | Picture edits reject grouped/transformed, hidden, effected, custom-clipped, unresolved or otherwise unqualified placements; no table edits, relinking, object creation, page/master topology edits or native save-back; old references remain snapshots |
 | Output | SVG per document page and multi-page PDF through shared engines | No native save-back or editable publication writer |
 
 `OfficeIMO.Workflows` uses the same native codec for its `publisher-pdf` route,
@@ -79,6 +80,20 @@ operation. `PublisherPage.CreateDrawing()` returns a detached scene for callers
 that need render-only annotations. Document SVG/PDF exports use the canonical
 publication state, and the Reader extension projects its current stories,
 tables, physical pages and assets without serializing or reopening it.
+
+Page/master dimensions, registration and object ownership, picture placement
+and embedded asset state are retained independently of the derived drawing.
+Modern native bindings and coordinate interpretation are mapped at import;
+supported picture edits and rendering consume the typed placement directly.
+Other object features retain their bounded imported representation while the
+editable model develops. This is not a complete authoring or generation-neutral
+native codec contract. Replacing one picture leaves shared-asset siblings
+unchanged. Original native assets stay available, while superseded edit-owned
+assets are released when no current picture references them. Replacement uses
+the shared bounded PNG/JPEG decoder, and projection retains byte, element and
+pixel-work limits. Unsupported picture edits report
+`PUB_PICTURE_EDIT_UNSUPPORTED` without changing the existing reading or
+rendering loss classification.
 
 `PublisherPage.TextFrames` records recovered frame geometry and links. Assigned
 UTF-16 ranges refer to normalized `PublisherTextStory.Text`; they are derived

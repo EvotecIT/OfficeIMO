@@ -25,6 +25,7 @@ public sealed class PublisherNativeComparisonTests {
     [InlineData("Brochure")]
     [InlineData("MultipleMasters")]
     [InlineData("TwoPageMaster")]
+    [InlineData("PictureOwnership")]
     public void Native_physical_pages_keep_their_order_size_and_master_reference(string caseId) {
         NativeCase contract = ReadContract(caseId);
         PublisherDocument publication = Load(caseId, contract);
@@ -54,6 +55,7 @@ public sealed class PublisherNativeComparisonTests {
     [InlineData("Brochure")]
     [InlineData("MultipleMasters")]
     [InlineData("TwoPageMaster")]
+    [InlineData("PictureOwnership")]
     public void Pdf_export_keeps_every_native_document_page_including_blank_pages(string caseId) {
         NativeCase contract = ReadContract(caseId);
         PublisherDocument publication = Load(caseId, contract);
@@ -251,6 +253,44 @@ public sealed class PublisherNativeComparisonTests {
     }
 
     [Fact]
+    public void Native_shared_image_placements_keep_master_ownership_and_independent_pdf_geometry() {
+        const string caseId = "PictureOwnership";
+        NativeCase contract = ReadContract(caseId);
+        PublisherDocument publication = Load(caseId, contract);
+        PublisherPage master = Assert.Single(publication.MasterPages);
+        PublisherPicture masterPicture = Assert.Single(master.Pictures);
+        PublisherImage asset = Assert.Single(publication.Images);
+        Assert.Equal(2, publication.Pages[0].Pictures.Count);
+        Assert.Empty(publication.Pages[1].Pictures);
+        Assert.Equal(master.Id, masterPicture.PageId);
+        Assert.All(publication.Pages, page => Assert.Equal(master.Id, page.MasterPageId));
+        foreach (PublisherPicture picture in publication.Pages.SelectMany(page => page.Pictures).Append(masterPicture)) {
+            Assert.True(picture.CanEdit, picture.EditLimitation);
+            Assert.Equal(asset.Id, picture.ImageId);
+            Assert.True(picture.HasPlacement);
+            ExpectedShape expected = Assert.Single(contract.Expected.Shapes,
+                item => item.PageRole == (picture.PageId == master.Id ? "Master" : "Physical") && Near(item.Left, picture.X));
+            AssertNear(expected.Left, picture.X); AssertNear(expected.Top, picture.Y);
+            AssertNear(expected.Width, picture.Width); AssertNear(expected.Height, picture.Height);
+        }
+        Assert.All(publication.Pages[0].Pictures, picture => Assert.Equal(publication.Pages[0].Id, picture.PageId));
+        string reference = FilePath(caseId, contract.Files.Reference);
+        AssertHash(reference, contract.Files.Reference.Sha256);
+        PdfReadDocument native = PdfReadDocument.Open(File.ReadAllBytes(reference));
+        PdfReadDocument exported = PdfReadDocument.Open(publication.ToPdfBytes());
+        for (int index = 0; index < publication.Pages.Count; index++) {
+            PdfImagePlacement[] expected = native.Pages[index].GetImagePlacements().ToArray();
+            PdfImagePlacement[] actual = exported.Pages[index].GetImagePlacements().ToArray();
+            Assert.Equal(index == 0 ? 3 : 1, expected.Length);
+            Assert.Equal(expected.Length, actual.Length);
+            foreach (PdfImagePlacement placement in expected) {
+                PdfImagePlacement match = Assert.Single(actual, item => Near(placement.X, item.X) && Near(placement.Y, item.Y));
+                AssertNear(placement.Width, match.Width); AssertNear(placement.Height, match.Height);
+            }
+        }
+    }
+
+    [Fact]
     public void Custom_label_keeps_its_native_table_cells_and_multilingual_story() {
         const string caseId = "TableLabel";
         NativeCase contract = ReadContract(caseId);
@@ -369,6 +409,7 @@ public sealed class PublisherNativeComparisonTests {
     private sealed class ExpectedShape {
         [DataMember(Name = "name")] public string Name { get; set; } = null!;
         [DataMember(Name = "pageIndex")] public int PageIndex { get; set; }
+        [DataMember(Name = "pageRole")] public string? PageRole { get; set; }
         [DataMember(Name = "kind")] public string Kind { get; set; } = null!;
         [DataMember(Name = "left")] public double Left { get; set; }
         [DataMember(Name = "top")] public double Top { get; set; }

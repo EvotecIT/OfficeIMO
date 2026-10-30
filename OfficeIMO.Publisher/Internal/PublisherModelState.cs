@@ -3,8 +3,8 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.Internal;
 
-// The document's current decoded model is the only input to projection. Native
-// bytes are retained separately as immutable provenance, never patched by edits.
+// Current semantic page/picture/asset state and the remaining decoded object
+// model feed projection. Native bytes remain separate immutable provenance.
 internal sealed class PublisherModelState {
     private readonly PublisherContents _contents;
     private readonly PublisherQuillText _text;
@@ -12,17 +12,21 @@ internal sealed class PublisherModelState {
     private readonly PublisherParseContext _decoded;
     private readonly PublisherNativeSource _nativeSource;
     private readonly PublisherReadReport _sourceReport;
+    private readonly PublisherPublicationState _publication;
 
     internal PublisherModelState(PublisherContents contents, PublisherQuillText text, PublisherEscherData artwork,
-        PublisherParseContext decoded, PublisherNativeSource nativeSource, PublisherReadReport? sourceReport = null) {
+        PublisherParseContext decoded, PublisherNativeSource nativeSource, PublisherReadReport? sourceReport = null,
+        PublisherPublicationState? publication = null) {
         _contents = contents; _text = text; _artwork = artwork; _decoded = decoded; _nativeSource = nativeSource;
+        _publication = publication ?? PublisherModelImporter.Import(contents, artwork, decoded);
         _sourceReport = sourceReport ?? new PublisherReadReport(decoded.Diagnostics, contents.Shapes.Count, 0,
             text.Stories.Count, artwork.Images.Count, decoded.Records);
     }
 
     internal PublisherDocument Project(CancellationToken token) {
         token.ThrowIfCancellationRequested();
-        PublisherDocument document = new PublisherPageProjector(_contents, _text, _artwork, _decoded.ForProjection(token)).Project();
+        PublisherDocument document = new PublisherPageProjector(_contents, _text, _artwork,
+            _decoded.ForProjection(token, _publication.AdditionalImageBytes, _publication.AdditionalImageCount), _publication).Project();
         token.ThrowIfCancellationRequested();
         document.AttachModel(this, _sourceReport);
         return document;
@@ -39,7 +43,7 @@ internal sealed class PublisherModelState {
         var text = new PublisherQuillText();
         foreach (var entry in _text.Stories) text.Stories.Add(entry.Key, entry.Key == storyId ? replacement : entry.Value);
         foreach (var entry in _text.CellParagraphs) text.CellParagraphs.Add(entry.Key, entry.Value);
-        return new PublisherModelState(_contents, text, _artwork, _decoded, _nativeSource, _sourceReport);
+        return new PublisherModelState(_contents, text, _artwork, _decoded, _nativeSource, _sourceReport, _publication);
     }
 
     internal PublisherModelState SetBounds(PublisherTextFrame frame, double x, double y, double width, double height) {
@@ -48,13 +52,9 @@ internal sealed class PublisherModelState {
             || shape.GroupTransform != OfficeTransform.Identity || shape.LayoutTransform != OfficeTransform.Identity
             || shape.Transform.RotationDegrees.GetValueOrDefault() != 0 || shape.Transform.FlipHorizontal || shape.Transform.FlipVertical)
             throw new NotSupportedException("Frame bounds can only be edited for visible, resolved, untransformed top-level frames.");
-        PublisherSourcePage page = _contents.Pages.Single(item => item.Id == frame.PageId);
-        double originX = _contents.Width / 2, originY = _contents.Height / 2;
-        if (page.IsMaster) {
-            if (page.NativeLayout.HasValue && page.NativeLayout.Value is not (0 or 1 or 3))
-                throw new NotSupportedException("This master page's coordinate basis is not qualified for frame edits.");
-            originX = page.NativeLayout switch { 0 => 0, 1 => _contents.Width, _ => originX };
-        }
+        PublisherPageState page = _publication.Pages.Single(item => item.Id == frame.PageId);
+        if (!page.SupportsPlacementEditing) throw new NotSupportedException("This master page's coordinate basis is not qualified for frame edits.");
+        double originX = page.RegistrationX, originY = page.RegistrationY;
         double x1 = (x - originX) * 12700, y1 = (y - originY) * 12700;
         double x2 = (x + width - originX) * 12700, y2 = (y + height - originY) * 12700;
         if (new[] { x1, y1, x2, y2 }.Any(value => value < int.MinValue || value > int.MaxValue))
@@ -67,8 +67,41 @@ internal sealed class PublisherModelState {
         var artwork = new PublisherEscherData();
         foreach (PublisherEscherShape item in _artwork.Shapes) artwork.Shapes.Add(item.Id == frame.Id ? replacement : item);
         foreach (var entry in _artwork.Images) artwork.Images.Add(entry.Key, entry.Value);
-        return new PublisherModelState(_contents, _text, artwork, _decoded, _nativeSource, _sourceReport);
+        return new PublisherModelState(_contents, _text, artwork, _decoded, _nativeSource, _sourceReport, _publication);
     }
+
+    internal PublisherModelState SetPictureBounds(uint pictureId, double x, double y, double width, double height) {
+        PublisherPicture picture = _publication.EditablePicture(pictureId);
+        return WithPublication(_publication.SetBounds(picture, x, y, width, height));
+    }
+
+    internal PublisherModelState ReplacePictureImage(uint pictureId, byte[] bytes, CancellationToken token) {
+        PublisherPicture picture = _publication.EditablePicture(pictureId);
+        if (bytes.Length == 0 || bytes.Length > _decoded.Options.MaximumImageBytes)
+            throw new ArgumentException("Replacement image bytes must fit the configured per-image limit.", nameof(bytes));
+        byte[] owned = (byte[])bytes.Clone();
+        if (!OfficeImageReader.TryIdentifyByContent(owned, null, token, out OfficeImageInfo info)
+            || info.Format is not (OfficeImageFormat.Png or OfficeImageFormat.Jpeg))
+            throw new ArgumentException("Replacement pictures require PNG or JPEG content.", nameof(bytes));
+        if (info.Width <= 0 || info.Height <= 0 || (long)info.Width * info.Height > _decoded.Options.MaximumRasterPixels)
+            throw new ArgumentException("Replacement image dimensions exceed the configured pixel limit.", nameof(bytes));
+        var options = new OfficeRasterDecodeOptions {
+            MaximumEncodedBytes = Math.Min(_decoded.Options.MaximumImageBytes, 128 * 1024 * 1024),
+            MaximumDecodedPixels = Math.Min(_decoded.Options.MaximumRasterPixels, 50_000_000),
+            MaximumInspectionWorkPixels = Math.Min(_decoded.Options.MaximumImageProcessingPixels, 50_000_000),
+            CancellationToken = token
+        };
+        if (!OfficeRasterImageDecoder.TryDecode(owned, options, out OfficeRasterImage? raster, out _) || raster == null)
+            throw new ArgumentException("Replacement picture content is invalid or exceeds the configured decoding bounds.", nameof(bytes));
+        token.ThrowIfCancellationRequested();
+        PublisherPublicationState candidate = _publication.ReplaceImage(picture, owned, info.MimeType);
+        if (candidate.AdditionalImageBytes > _decoded.Options.MaximumTotalImageBytes - _decoded.ImageBytes)
+            throw new ArgumentException("Replacement image exceeds the configured publication image byte limit.", nameof(bytes));
+        return WithPublication(candidate);
+    }
+
+    private PublisherModelState WithPublication(PublisherPublicationState publication) =>
+        new(_contents, _text, _artwork, _decoded, _nativeSource, _sourceReport, publication);
 }
 
 // Owned source storage is private to the model. Retention is not a native-save

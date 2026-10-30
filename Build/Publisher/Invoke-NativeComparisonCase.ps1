@@ -22,7 +22,7 @@ param(
     [string] $Stage = 'Full',
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -64,7 +64,7 @@ if ($Operation -eq 'Validate') {
     . (Join-Path $PSScriptRoot 'Get-NativeValidationArtifactNames.ps1')
     $reservedArtifacts = Get-NativeValidationArtifactNames -Stage $Stage |
         ForEach-Object { Join-Path $output $_ }
-} elseif ($Case -in @('Image', 'Newsletter', 'TableLabel')) {
+} elseif ($Case -in @('Image', 'Newsletter', 'TableLabel', 'PictureOwnership')) {
     $reservedArtifacts += Join-Path $output ($stem + '.png')
 }
 foreach ($path in @($reservedArtifacts) + @($ReceiptPath, $failurePath, $cleanupPath)) {
@@ -115,6 +115,8 @@ if ($Case -eq 'TableLabel') {
 }
 $layout = $null
 . (Join-Path $PSScriptRoot 'Add-NativeComparisonLayout.ps1')
+. (Join-Path $PSScriptRoot 'Add-NativeComparisonPictures.ps1')
+. (Join-Path $PSScriptRoot 'Write-NativePublisherPhaseReceipt.ps1')
 
 function Set-NativePhase {
     param([string] $Value)
@@ -122,9 +124,7 @@ function Set-NativePhase {
     try {
         if ($nativeVerified) {
             $processReceipt.phase = $Value
-            $temporaryReceipt = $ReceiptPath + '.tmp'
-            [IO.File]::WriteAllText($temporaryReceipt, ($processReceipt | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
-            [IO.File]::Replace($temporaryReceipt, $ReceiptPath, [Management.Automation.Language.NullString]::Value)
+            Write-NativePublisherPhaseReceipt -Path $ReceiptPath -Value $processReceipt
         } else {
             $startup = [ordered]@{
                 schema = 'officeimo.publisher.native-startup.v1'
@@ -409,7 +409,8 @@ try {
             Set-NativePhase 'OpenSnapshotWritable'
             $document = $application.Open($snapshot, $false, $false)
             Set-NativePhase 'NativeResave'
-            $document.SaveAs($resaved)
+            # 1 is pbFilePublication; exclude task output from recent files.
+            $document.SaveAs($resaved, 1, $false)
             $qualifiedOperations.Add('NativeSaveAs')
             Set-NativePhase 'CloseNativeResave'
             $document.Close()
@@ -582,10 +583,18 @@ try {
             $layout = Add-NativeComparisonLayout -Case $Case -Document $document -FirstPage $page
             $pageCount = $layout.pages
         }
+        'PictureOwnership' {
+            $picturePath = Join-Path $output ($stem + '.png')
+            New-ReferencePicture $picturePath
+            $layout = Add-NativeComparisonPictures -Document $document -FirstPage $page -PicturePath $picturePath
+            $pageCount = $layout.pages
+        }
     }
+    Set-NativePhase 'ObserveCorpusPageCount'
     if ($document.Pages.Count -ne $pageCount) {
         throw ('Native page count differs from the declared contract: ' + $document.Pages.Count)
     }
+    Set-NativePhase 'InventoryCorpusCase'
     $inventory = Get-NativeInventory $document
     if ($null -ne $layout) {
         foreach ($assignment in $layout.masterAssignments) {
@@ -595,13 +604,17 @@ try {
             }
         }
     }
-    $phase = 'SaveCorpusCase'
-    $document.SaveAs($publication)
+    Set-NativePhase 'SaveCorpusCase'
+    # 1 is pbFilePublication; exclude task output from recent files.
+    $document.SaveAs($publication, 1, $false)
+    Set-NativePhase 'ExportCorpusReference'
     $document.ExportAsFixedFormat(2, $reference)
+    Set-NativePhase 'ObserveCorpusProducer'
     $producerVersion = [string]$application.Version
     $executableVersion = (Get-Item -LiteralPath $ownedProcess.Path).VersionInfo.FileVersion
     # Publisher holds an exclusive stream handle until Close. Capture native
     # observations first, then close before hashing the exact output bytes.
+    Set-NativePhase 'CloseCorpusCase'
     $document.Close()
     $document = $null
     foreach ($path in @($publication, $reference)) {
@@ -640,6 +653,15 @@ try {
     if ($null -ne $layout) {
         $contract.expected.masterAssignments = $layout.masterAssignments
         $contract.expected.panelWidthPoints = $layout.panelWidthPoints
+    }
+    if ($Case -eq 'PictureOwnership') {
+        $contract.nativePictureObservations = $layout.pictureObservations
+        $contract.expected.pictureDuplication = [pscustomobject]@{
+            sourceName = 'PhysicalPictureOriginal'
+            duplicateName = 'PhysicalPictureDuplicate'
+            method = 'Shape.Duplicate'
+            nativeImageStoreSharing = 'Unassessed'
+        }
     }
     $sourceImage = Join-Path $output ($stem + '.png')
     if (Test-Path -LiteralPath $sourceImage) {

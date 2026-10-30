@@ -1,10 +1,10 @@
 namespace OfficeIMO.Publisher;
 
-/// <summary>An embedded image recovered without resolving links or activating embedded objects.</summary>
+/// <summary>An embedded image asset, recovered or supplied by a supported picture edit. Links and embedded objects remain inert.</summary>
 public sealed class PublisherImage {
     private readonly byte[] _bytes;
     internal PublisherImage(int id, string contentType, byte[] bytes) { Id = id; ContentType = contentType; _bytes = bytes; }
-    /// <summary>One-based image-store identifier used by native drawing properties.</summary>
+    /// <summary>Document-scoped asset identifier. Loaded assets retain their one-based native image-store identifiers; codecs own native binding when saving is supported.</summary>
     public int Id { get; }
     /// <summary>MIME type of the recovered payload, including Publisher-specific image envelopes.</summary>
     public string ContentType { get; }

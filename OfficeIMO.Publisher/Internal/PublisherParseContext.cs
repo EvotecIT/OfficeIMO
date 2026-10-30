@@ -14,14 +14,19 @@ internal sealed class PublisherParseContext {
     private long _imageProcessingPixels;
     private long _textLayoutCharacters;
     private int _imageStoreEntries;
+    internal int ImageStoreEntryCount => _imageStoreEntries;
     private long _tableModelItems, _tableModelCharacters;
     internal IReadOnlyList<OfficeConversionFidelityDiagnostic> Diagnostics => _diagnostics;
     // Called on the decode-only context. Each projection starts with the same
     // source evidence and budgets, never with an earlier projection's work.
-    internal PublisherParseContext ForProjection(CancellationToken token) {
+    internal PublisherParseContext ForProjection(CancellationToken token, long additionalImageBytes = 0, int additionalImageEntries = 0) {
+        if (additionalImageBytes > Options.MaximumTotalImageBytes - ImageBytes)
+            throw new InvalidDataException("Publisher total image byte limit exceeded.");
+        if (additionalImageEntries > Options.Limits.MaxItems - _imageStoreEntries)
+            throw new InvalidDataException("Publisher image store entry limit exceeded.");
         var result = new PublisherParseContext(Options, token) {
-            Records = Records, ImageBytes = ImageBytes,
-            _imageStoreEntries = _imageStoreEntries, _imageProcessingBytes = _imageProcessingBytes,
+            Records = Records, ImageBytes = ImageBytes + additionalImageBytes,
+            _imageStoreEntries = _imageStoreEntries + additionalImageEntries, _imageProcessingBytes = _imageProcessingBytes,
             _imageProcessingPixels = _imageProcessingPixels, _pathWorkItems = _pathWorkItems
         };
         foreach (OfficeConversionFidelityDiagnostic diagnostic in _diagnostics)

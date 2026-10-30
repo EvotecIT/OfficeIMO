@@ -7,7 +7,8 @@ Microsoft Publisher must be installed on Windows and no Publisher process may al
 be running. The tool creates synthetic publications from scratch; it does not open
 user documents, enable macros, change Office settings, or invoke OfficeIMO.
 The output directory must be empty. Native output is evidence, not an OfficeIMO
-writer result or a claim of matching layout. The tool works in PowerShell 5.1 and 7.
+writer result or a claim of matching layout. Native authoring is qualified with
+PowerShell 7. PowerShell 5.1 syntax and receipt checks do not qualify native COM saves.
 .PARAMETER OutputDirectory
 Empty task-owned directory for publications, PDF references, contracts and run receipts.
 .PARAMETER Case
@@ -15,6 +16,8 @@ Cases to produce. Text and TextLong differ only in their text length; Blank, Rec
 and Image isolate the smallest native structures needed by a template-free writer.
 Brochure has two landscape sides with three panels each. MultipleMasters and
 TwoPageMaster exercise explicit native single-page and paired master assignments.
+PictureOwnership duplicates an embedded picture and applies one master picture
+to two physical pages. Native image-store sharing is a separate saved-file check.
 .PARAMETER TimeoutSeconds
 Maximum elapsed time per case, including application startup, save and shutdown.
 .EXAMPLE
@@ -33,8 +36,8 @@ param(
     [Parameter(Mandatory)]
     [string] $OutputDirectory,
 
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster')]
-    [string[]] $Case = @('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster'),
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
+    [string[]] $Case = @('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership'),
 
     [ValidateRange(10, 600)]
     [int] $TimeoutSeconds = 90

@@ -1,7 +1,7 @@
 # OfficeIMO.Publisher
 
 Read Microsoft Publisher publications into positioned pages, styled text
-stories and embedded image assets, edit supported stories and frame bounds, and
+stories and embedded image assets, edit supported stories, frame bounds and pictures, and
 render the current model. The managed reader handles the Publisher
 2002-and-later compound-document generation without installing Publisher.
 [The support contract](SUPPORT.md) identifies the qualified fixtures and rendering
@@ -76,15 +76,42 @@ the current page scenes, assigned text ranges and overflow. SVG and the optional
 PDF package consume those scenes; the Reader adapter can project the current
 in-memory document directly.
 
+`PublisherPage.Pictures` exposes placed pictures separately from the embedded
+assets in `Images`. Each placement identifies its page, image asset, unrotated
+bounds, crop and page transform. Master pictures remain listed on the master;
+their current artwork is included on every referring document page. Coordinates
+are page-local points, and crop values are normalized source-edge fractions.
+`CanEdit` identifies supported placements; `EditLimitation` explains why another
+placement is inspection-only, with the same reason in the read report.
+
+```csharp
+var picture = publication.Pages[0].Pictures.First(item => item.CanEdit);
+publication.ReplacePictureImage(picture.Id, File.ReadAllBytes("replacement.png"));
+publication.SetPictureBounds(picture.Id, 72, 216, 144, 96);
+File.WriteAllText("picture-edited.svg", publication.ToSvg());
+```
+
+Picture edits support visible, resolved, untransformed top-level rectangular
+PNG/JPEG placements with qualified crop and simple paint. Replacement validates
+the complete PNG or JPEG through the shared managed image decoder and retains
+the selected placement's crop, bounds, identity, page and drawing order. It
+creates a separate asset reference so another placement sharing the old image
+does not change. Original native assets remain available; unreferenced assets
+from superseded replacements are released. Moving a picture also recalculates
+its existing rectangular text-wrap exclusions. Grouped, rotated, reflected,
+hidden, effected, custom-clipped and unresolved pictures retain their reading
+and rendering behavior but reject these edits. Per-image byte and pixel limits,
+the image-store entry limit, and cumulative page-projection budgets apply.
+
 Each operation validates and projects its candidate before changing the
 document. Failed or cancelled edits leave the preceding state usable. Concurrent
-mutation is unsupported. Fetch `Pages`, `MasterPages`, `TextStories` and frames
+mutation is unsupported. Fetch `Pages`, `MasterPages`, `TextStories`, `Images`, frames and pictures
 again after an edit: previously returned objects remain snapshots.
 `ReadReport` describes the current reconstruction; `SourceReadReport` retains
 the original native decoding evidence without projection findings.
 
 These edits change the in-memory publication and rendered outputs. Native PUB
-save-back, object creation, table editing and frame relinking are not provided
+save-back, object creation, page/master relationship edits, table editing and frame relinking are not provided
 by this API. Retaining private native source data does not establish opaque
 preservation or a native save contract.
 

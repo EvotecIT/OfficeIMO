@@ -44,7 +44,7 @@ internal sealed partial class PublisherPageProjector {
     }
     private static bool HasFill(OfficeShape shape) => shape.FillColor.HasValue || shape.FillGradient != null || shape.FillRadialGradient != null;
     private void ProjectPicture(PublisherEscherShape source, OfficeDrawing drawing, uint imageId, OfficeShape? clipShape) {
-        if (imageId > int.MaxValue || !_escher.Images.TryGetValue((int)imageId, out PublisherImage? image)) {
+        if (imageId > int.MaxValue || !_publication.Images.TryGetValue((int)imageId, out PublisherImage? image)) {
             _context.Add("PUB_IMAGE_REFERENCE_UNRESOLVED", "A native picture refers to an unavailable embedded image.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(source.Id)); return;
         }
         OfficeArtPictureProperties picture = OfficeArtPictureProperties.Decode(source.Properties);

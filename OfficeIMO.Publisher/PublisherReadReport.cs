@@ -16,7 +16,7 @@ public sealed class PublisherReadReport : IOfficeConversionReport {
     public int ProjectedObjectCount { get; }
     /// <summary>Number of decoded text stories, including stories not placed on a page.</summary>
     public int TextStoryCount { get; }
-    /// <summary>Number of images with recovered payloads, including unplaced images.</summary>
+    /// <summary>Number of current embedded assets, including recovered unplaced images and assets retained by supported picture edits.</summary>
     public int ImageCount { get; }
     /// <summary>Number of inspected native records across all source streams.</summary>
     public int InspectedRecordCount { get; }

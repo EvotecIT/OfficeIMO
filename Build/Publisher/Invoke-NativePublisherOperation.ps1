@@ -39,7 +39,7 @@ param(
     [ValidateSet('Corpus', 'Validate')]
     [string] $Operation = 'Corpus',
 
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
     [string] $Case = 'Blank',
 
     [string] $InputPath,
@@ -67,6 +67,7 @@ if ($Operation -eq 'Validate') {
     throw 'Inspect and Resave stages apply only to candidate validation.'
 }
 . (Join-Path $PSScriptRoot 'Get-NativeValidationArtifactNames.ps1')
+. (Join-Path $PSScriptRoot 'Read-NativePublisherReceipt.ps1')
 $output = [IO.Path]::GetFullPath($OutputDirectory)
 $runDirectory = Join-Path $output '.run'
 $key = $Operation + '-' + $Case
@@ -92,7 +93,7 @@ $artifactNames = @(Get-NativeValidationArtifactNames -Stage $Stage)
 if ($Operation -eq 'Corpus') {
     $stem = 'native-' + $Case.ToLowerInvariant()
     $artifactNames = @(($stem + '.pub'), ($stem + '.pdf'), ($stem + '.json'))
-    if ($Case -in @('Image', 'Newsletter', 'TableLabel')) {
+    if ($Case -in @('Image', 'Newsletter', 'TableLabel', 'PictureOwnership')) {
         $artifactNames += $stem + '.png'
     }
 }
@@ -182,7 +183,7 @@ function Get-CompletionReceipt {
         return $null
     }
     try {
-        $receipt = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json -ErrorAction Stop
+        $receipt = Read-NativePublisherReceipt -Path $receiptPath
         if ($receipt.workerProcessId -eq $WorkerProcessId -and $receipt.phase -eq 'ShutdownComplete' -and $receipt.operationSucceeded -is [bool]) {
             return $receipt
         }
@@ -261,7 +262,7 @@ try {
             $worker.Dispose()
         }
         if (Test-Path -LiteralPath $receiptPath) {
-            $receipt = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
+            $receipt = Read-NativePublisherReceipt -Path $receiptPath
             $native = Get-Process -Id $receipt.processId -ErrorAction SilentlyContinue
             if ($null -eq $native) {
                 $closure.native = 'Exited'

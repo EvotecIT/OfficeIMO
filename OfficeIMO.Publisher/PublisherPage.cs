@@ -5,11 +5,13 @@ namespace OfficeIMO.Publisher;
 /// <summary>A recovered publication page. Coordinates and dimensions are points, with a local top-left origin.</summary>
 public sealed class PublisherPage {
     private readonly OfficeDrawing _drawing;
-    internal PublisherPage(uint id, string name, uint? masterPageId, OfficeDrawing drawing,
-        IReadOnlyList<PublisherTextFrame> textFrames, IReadOnlyList<PublisherTable> tables) {
+    internal PublisherPage(uint id, string name, uint? masterPageId, double width, double height, OfficeDrawing drawing,
+        IReadOnlyList<PublisherTextFrame> textFrames, IReadOnlyList<PublisherTable> tables, IReadOnlyList<PublisherPicture> pictures) {
         Id = id; Name = name; MasterPageId = masterPageId; _drawing = drawing;
+        Width = width; Height = height;
         TextFrames = Array.AsReadOnly(textFrames.ToArray());
         Tables = Array.AsReadOnly(tables.ToArray());
+        Pictures = Array.AsReadOnly(pictures.ToArray());
     }
     /// <summary>Native page identifier.</summary>
     public uint Id { get; }
@@ -23,8 +25,10 @@ public sealed class PublisherPage {
     public IReadOnlyList<PublisherTextFrame> TextFrames { get; }
     /// <summary>Native tables owned by this page. Tables inherited from a master are listed on that master page.</summary>
     public IReadOnlyList<PublisherTable> Tables { get; }
+    /// <summary>Picture placements owned by this page, in recovered drawing order. Pictures inherited from a master are listed on that master.</summary>
+    public IReadOnlyList<PublisherPicture> Pictures { get; }
     /// <summary>Page width in points.</summary>
-    public double Width => _drawing.Width;
+    public double Width { get; }
     /// <summary>Page height in points.</summary>
-    public double Height => _drawing.Height;
+    public double Height { get; }
 }
