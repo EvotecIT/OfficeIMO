@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Drawing;
 using static OfficeIMO.Publisher.WriterProbe.NativeEncoding;
 
 namespace OfficeIMO.Publisher.WriterProbe;
@@ -15,9 +16,12 @@ internal static class CandidateWriter {
     private static readonly Guid QuillSubClassId = new("08c8f6da-969d-11d1-8e02-00c04fb6fece");
 
     internal static byte[] Create(string kind, string? value) {
-        if (kind is not ("blank" or "text" or "shape" or "image")) throw new ArgumentException("Unknown candidate kind.");
+        if (kind is not ("blank" or "text" or "styled-text" or "shape" or "image")) throw new ArgumentException("Unknown candidate kind.");
+        if (kind == "styled-text" && value != null) throw new ArgumentException("The styled-text case uses its fixed three-run sample.");
+        OfficeRichTextParagraph? paragraph = kind == "styled-text" ? CandidateStyledText.Create() : null;
         string? text = kind switch {
             "text" => value ?? "Template-free Publisher writer probe\r",
+            "styled-text" => string.Concat(paragraph!.Runs.Select(run => run.Text)),
             "shape" => "\r",
             _ => null
         };
@@ -32,7 +36,7 @@ internal static class CandidateWriter {
         NativePublicationGraph.Graph graph = NativePublicationGraph.Create(kind, DocumentId, WidthEmu, HeightEmu);
         var streams = new List<OfficeCompoundStream> {
             new OfficeCompoundStream("Contents", Contents(kind, graph)),
-            new OfficeCompoundStream("Quill/QuillSub/CONTENTS", QuillCandidate.Create(text)),
+            new OfficeCompoundStream("Quill/QuillSub/CONTENTS", QuillCandidate.Create(text, paragraph)),
             new OfficeCompoundStream("Escher/EscherStm", CandidateOfficeArt.Create(kind, image, graph.ShapeId, WidthEmu, HeightEmu)),
             new OfficeCompoundStream("Escher/EscherDelayStm", CandidateOfficeArt.CreateImageDelayStream(image)),
             new OfficeCompoundStream("\u0003Internal", InternalHeader()),

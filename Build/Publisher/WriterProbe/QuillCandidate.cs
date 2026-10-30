@@ -1,4 +1,5 @@
 using System.Text;
+using OfficeIMO.Drawing;
 using static OfficeIMO.Publisher.WriterProbe.NativeEncoding;
 
 namespace OfficeIMO.Publisher.WriterProbe;
@@ -8,7 +9,7 @@ internal static class QuillCandidate {
     private const int FirstPayloadOffset = 512;
     private const int MinimumStreamBytes = 1024;
 
-    internal static byte[] Create(string? text) {
+    internal static byte[] Create(string? text, OfficeRichTextParagraph? paragraph) {
         var records = new List<QuillRecord>();
         if (text != null) {
             records.Add(new QuillRecord("TEXT", 0, Encoding.Unicode.GetBytes(text)));
@@ -28,7 +29,10 @@ internal static class QuillCandidate {
             // actual serialized position even when the other libraries grow.
             int textEnd = FirstPayloadOffset + text.Length * 2;
             int firstPageOffset = Align(FirstPayloadOffset + records.Sum(record => record.Body.Length), QuillTextFormatting.PageBytes);
-            records.AddRange(QuillTextFormatting.CreateRecords(textEnd, firstPageOffset));
+            IReadOnlyList<QuillFormattingRange> characterRanges = paragraph == null
+                ? new[] { new QuillFormattingRange(textEnd, Chunk(Scalar(0x0C, 0x22, 18 * 12700))) }
+                : QuillCharacterFormatting.FromParagraph(paragraph, FirstPayloadOffset);
+            records.AddRange(QuillTextFormatting.CreateRecords(textEnd, firstPageOffset, characterRanges));
         }
         var positionedRecords = new List<(QuillRecord Record, int Offset)>();
         int payloadEnd = FirstPayloadOffset;

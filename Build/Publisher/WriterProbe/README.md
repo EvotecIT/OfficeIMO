@@ -27,6 +27,8 @@ dotnet $probe inventory ./reference.pub ./reference.inventory.json
 dotnet $probe diff ./native-text.pub ./native-textlong.pub ./text-change.diff.json
 dotnet $probe create blank ./candidate-blank.pub
 dotnet $probe create text ./candidate-text.pub 'Template-free publication'
+
+dotnet $probe create styled-text ./candidate-styled-text.pub
 dotnet $probe create shape ./candidate-shape.pub
 dotnet $probe create image ./candidate-image.pub ./picture.png
 dotnet $probe render ./reference.pub ./managed-comparison
@@ -76,6 +78,14 @@ record, flags zero, bounds `[0, absolute TEXT end]` and the calculated absolute
 offset of the matching formatting page. Stream padding and descriptor lengths
 follow that layout. These carriers address the observed missing-index load
 failure; their text semantics still require native qualification.
+
+`styled-text` uses one shared `OfficeRichTextParagraph` containing three Arial
+runs: `Plain 12 | ` at 12 points/plain, `Bold 18` at 18 points/bold, and
+` | Plain 12` at 12 points/plain. A final native CR follows the last run.
+Each run explicitly selects generated font index zero, its size and its bold
+state. The 512-byte character page has three parallel endpoints and relative
+style offsets; it includes the reset to plain formatting. Existing plain text,
+rectangle, blank and image cases retain their qualified wire encodings.
 
 The current Quill defaults are generated libraries: `INK ` version words
 `0x74/0x74`, an indexed `FONT` library with a generated Arial entry, one `STSH` name entry selecting

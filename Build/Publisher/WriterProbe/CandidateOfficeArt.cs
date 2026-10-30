@@ -42,13 +42,14 @@ internal static class CandidateOfficeArt {
         image.Length >= 8 && image[0] == 0x89 && image[1] == 0x50 ? "image/png" : "image/jpeg";
 
     private static byte[] Leaf(string kind, bool hasImage, uint nativeShapeId, uint shapeId, uint width, uint height) {
-        bool hasStory = kind is "text" or "shape";
+        bool isTextBox = kind is "text" or "styled-text";
+        bool hasStory = isTextBox || kind == "shape";
         var properties = new List<(ushort Id, uint Value)> {
             (0x181, 0x0000FF), // Solid red in the common OfficeArt RGB encoding.
             (0x1BF, 0x00100010),
             (0x1FF, 0x00080000) // No line.
         };
-        if (kind == "text") {
+        if (isTextBox) {
             properties[1] = (0x1BF, 0x00100000); // Text frame has no fill.
             properties.Add((0x81, 0)); properties.Add((0x82, 0));
             properties.Add((0x83, 0)); properties.Add((0x84, 0));
@@ -61,7 +62,7 @@ internal static class CandidateOfficeArt {
         });
         uint Coord(double points, uint pageSize) => unchecked((uint)(int)(points * 12700 - pageSize / 2D));
         return Art(15, 0xF004,
-            Art((ushort)(((kind == "image" ? 75 : kind == "text" ? 202 : 1) << 4) | 2), 0xF00A,
+            Art((ushort)(((kind == "image" ? 75 : isTextBox ? 202 : 1) << 4) | 2), 0xF00A,
                 Bytes(writer => { writer.Write(shapeId); writer.Write(0xA00U); })),
             Art((ushort)((properties.Count << 4) | 3), 0xF00B, fopt),
             Art(0, 0xF010, Client((0x2001, Coord(72, width)), (0x2002, Coord(72, height)),

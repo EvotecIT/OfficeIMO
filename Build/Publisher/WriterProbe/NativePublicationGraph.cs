@@ -20,7 +20,7 @@ internal static class NativePublicationGraph {
         uint physicalId = firstPageId + PhysicalPageIndex;
         uint shapeId = firstPageId + OrderedPageCount;
         bool hasShape = kind != "blank";
-        bool hasStory = kind is "text" or "shape";
+        bool hasStory = kind is "text" or "styled-text" or "shape";
         uint quillDocumentId = shapeId + (hasShape ? 1U : 0U);
         uint printBlockId = quillDocumentId + 3;
         uint masterGeometryId = printBlockId + 1;

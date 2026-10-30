@@ -21,7 +21,7 @@ internal static class Program {
                 WriteNew(args[2], bytes);
                 Console.WriteLine(JsonSerializer.Serialize(new {
                     schema = "officeimo.publisher.writer-probe.candidate.v1",
-                    profile = "unqualified-native-schema-textbox-and-shape-story-v22",
+                    profile = "unqualified-native-schema-styled-text-v23",
                     hypothesis = args[0],
                     kind = args[1],
                     rootClassId = CandidateWriter.PublicationClassId,
@@ -51,7 +51,7 @@ internal static class Program {
                 else Console.WriteLine(json);
                 return 0;
             }
-            Console.Error.WriteLine("inventory <input.pub> [report.json]\ndiff <left.pub> <right.pub> [report.json]\ncreate <blank|text|shape|image> <candidate.pub> [text-or-image-path]\nrender <input.pub> <unused-output-directory>");
+            Console.Error.WriteLine("inventory <input.pub> [report.json]\ndiff <left.pub> <right.pub> [report.json]\ncreate <blank|text|styled-text|shape|image> <candidate.pub> [text-or-image-path]\nrender <input.pub> <unused-output-directory>");
             return 2;
         } catch (Exception exception) {
             Console.Error.WriteLine(exception.GetType().Name + ": " + exception.Message);
