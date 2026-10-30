@@ -3,7 +3,7 @@ using OfficeIMO.Drawing.Binary;
 
 namespace OfficeIMO.Publisher.Internal;
 
-internal sealed partial class PublisherPageProjector {
+internal sealed partial class PublisherNativeShapeMapper {
     private OfficeArtCustomPathProjection? CustomPath(PublisherEscherShape source, double width, double height) {
         if (!OfficeArtCustomPathProjector.HasPath(source.Properties)) return null;
         if (OfficeArtCustomPathProjector.TryProject(source.Properties, width, height,

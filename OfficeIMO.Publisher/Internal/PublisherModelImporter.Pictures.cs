@@ -7,6 +7,10 @@ internal static partial class PublisherModelImporter {
     private static PublisherPicture? ImportPicture(PublisherEscherShape shape, PublisherSourceShape native,
         PublisherPageState page, PublisherContents source, PublisherEscherData artwork) {
         OfficeArtProperty? reference = shape.Properties.LastOrDefault(property => property.PropertyId == 0x0104);
+        // Contents kind 0x20 also describes ordinary native lines. The
+        // independently authored line control has this kind and no image
+        // binding; it belongs to vector artwork rather than a missing picture.
+        if (shape.Type == 20 && reference == null) return null;
         if (native.Chunk.Kind != 0x20 && shape.Type != 75 && reference == null) return null;
         int? imageId = reference is { IsComplex: false, IsBlipId: true, Value: > 0 and <= int.MaxValue } ? (int)reference.Value : null;
         OfficeArtPictureProperties picture = OfficeArtPictureProperties.Decode(shape.Properties);

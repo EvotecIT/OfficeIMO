@@ -13,9 +13,9 @@ public sealed class PublisherReadReport : IOfficeConversionReport {
     public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
     /// <summary>Number of publication shape, group, and table records identified in the native directory.</summary>
     public int SourceObjectCount { get; }
-    /// <summary>Number of current publication objects, including retained imported objects and authored continuation frames.</summary>
+    /// <summary>Number of current publication objects, including retained imported objects, authored shapes and continuation frames.</summary>
     public int CurrentObjectCount { get; }
-    /// <summary>Number of distinct current objects represented on a document or master page, including authored frames. Repeated master use counts once.</summary>
+    /// <summary>Number of distinct current objects represented on a document or master page, including authored shapes and frames. Repeated master use counts once.</summary>
     public int ProjectedObjectCount { get; }
     /// <summary>Number of decoded text stories, including stories not placed on a page.</summary>
     public int TextStoryCount { get; }

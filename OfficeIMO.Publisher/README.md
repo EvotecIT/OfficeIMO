@@ -1,8 +1,8 @@
 # OfficeIMO.Publisher
 
 Read Microsoft Publisher publications into positioned pages, styled text
-stories and embedded image assets, edit supported stories, frame bounds and pictures,
-append story continuation frames, and
+stories and embedded image assets, edit supported stories, frames, pictures and
+vector artwork, append continuation frames and primitive shapes, and
 render the current model. The managed reader handles the Publisher
 2002-and-later compound-document generation without installing Publisher.
 [The support contract](SUPPORT.md) identifies the qualified fixtures and rendering
@@ -130,22 +130,63 @@ hidden, effected, custom-clipped and unresolved pictures retain their reading
 and rendering behavior but reject these edits. Per-image byte and pixel limits,
 the image-store entry limit, and cumulative page-projection budgets apply.
 
+`PublisherPage.Shapes` exposes vector artwork in page drawing order, with its
+stable identifier, page-local bounds, page transform and edit limitation.
+Applied master shapes remain listed on their master. A text-capable shape and
+its text frame share one object identifier and current placement: either bounds
+operation updates both views. Pictures and table artwork retain their separate
+model owners.
+
+```csharp
+var shape = publication.Pages[0].Shapes.First(item => item.CanEdit);
+publication.SetShapeBounds(shape.Id, 72, 300, 180, 72);
+publication.SetShapePaint(shape.Id, OfficeColor.FromRgb(32, 120, 180),
+    OfficeColor.Black, strokeWidth: 2);
+
+var ellipse = OfficeShape.Ellipse(72, 48);
+ellipse.FillColor = OfficeColor.FromRgb(240, 180, 40);
+var added = publication.AddShape(publication.Pages[0].Id, ellipse, 300, 300);
+File.WriteAllText("shapes-edited.svg", publication.ToSvg());
+```
+
+Bounds and solid-paint edits support visible, resolved, untransformed top-level
+rectangles, rounded rectangles, ellipses, diamonds, triangles and lines with
+qualified paint. Moving or resizing an existing wrap obstacle recalculates its
+referencing text frames. `SetShapePaint` replaces the fill and outline colors,
+stroke width and opacities; null colors disable that paint. Stroke widths remain
+in points when geometry is resized.
+
+`AddShape` accepts shared rectangle, rounded-rectangle, ellipse and line
+descriptors on existing document or master pages. It copies the descriptor,
+appends the object to its page's drawing order and returns its current snapshot.
+New shapes have no story or text-wrap references. Horizontal and vertical lines
+keep a zero logical extent on one axis; both endpoints must differ. Other
+shapes require positive extents. Bounds use page-local points and permit clipped
+bleed within the publication's coordinate range.
+
+Grouped, transformed, hidden, custom-path, gradient, effected and unresolved
+artwork remains inspection-only with its existing rendering diagnostics.
+`HasPlacement = false` identifies unavailable geometry. `CreateShape()` returns
+a detached descriptor for editable artwork and rejects inspection-only shapes;
+their current rendered representation remains in `CreateDrawing()`. Creation
+rejects unsupported descriptors rather than dropping their effects.
+
 Each operation validates and projects its candidate before changing the
 document. Failed or cancelled edits leave the preceding state usable. Concurrent
-mutation is unsupported. Fetch `Pages`, `MasterPages`, `TextStories`, `Images`, frames and pictures
+mutation is unsupported. Fetch `Pages`, `MasterPages`, `TextStories`, `Images`, frames, pictures and shapes
 again after an edit: previously returned objects remain snapshots.
 `ReadReport` describes the current reconstruction; `SourceReadReport` retains
 the original native decoding evidence without projection findings.
 
 These edits change the in-memory publication and rendered outputs. Native PUB
-save-back, standalone object creation, page/master relationship edits, table editing and arbitrary frame relinking are not provided
+save-back, standalone publication creation, page/master relationship edits, table editing and arbitrary frame relinking are not provided
 by this API. Retaining private native source data does not establish opaque
 preservation or a native save contract.
 
 `ReadReport.CurrentObjectCount` includes retained imported objects and authored
-continuation frames; `ProjectedObjectCount` counts distinct current objects
+continuation frames and shapes; `ProjectedObjectCount` counts distinct current objects
 represented in the page scenes. `SourceObjectCount` and `SourceReadReport` retain
-the original native object inventory. Authored frames do not add native records
+the original native object inventory. Authored frames and shapes do not add native records
 to `InspectedRecordCount`.
 
 ## Recovered content and layout

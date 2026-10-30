@@ -23,6 +23,9 @@ internal sealed partial class PublisherPageProjector {
         foreach (PublisherPicture picture in _publication.Pictures.Values.Where(picture => !picture.CanEdit))
             _context.Add("PUB_PICTURE_EDIT_UNSUPPORTED", picture.EditLimitation!, OfficeConversionLossKind.None,
                 PublisherEscherReader.ShapeLocation(picture.Id));
+        foreach (PublisherShape shape in _publication.Shapes.Values.Where(shape => !shape.CanEdit))
+            _context.Add("PUB_SHAPE_EDIT_UNSUPPORTED", shape.EditLimitation!, OfficeConversionLossKind.None,
+                PublisherEscherReader.ShapeLocation(shape.Id));
     }
     internal PublisherDocument Project() {
         var scenes = new Dictionary<uint, OfficeDrawing>();
@@ -54,6 +57,8 @@ internal sealed partial class PublisherPageProjector {
                     ProjectSemanticPicture(picture, drawing);
                 else if (_publication.Text.Frames.TryGetValue(id, out PublisherFrameState? frame) && frame.IsAuthored)
                     ProjectAuthoredTextFrame(frame, drawing);
+                else if (_publication.Shapes.TryGetValue(id, out PublisherShape? vector) && vector.IsAuthored)
+                    ProjectAuthoredShape(vector, drawing);
                 else if (artwork.TryGetValue(id, out PublisherEscherShape? shape)) ProjectShape(shape, drawing, page.Id);
             }
             scenes.Add(page.Id, drawing);
@@ -90,7 +95,8 @@ internal sealed partial class PublisherPageProjector {
             var projectedPage = new PublisherPage(page.Id, page.Name, page.MasterPageId, page.Width, page.Height, clipped,
                 pageFrames.TryGetValue(page.Id, out List<PublisherTextFrame>? frames) ? frames : Array.Empty<PublisherTextFrame>(),
                 pageTables.TryGetValue(page.Id, out PublisherTable[]? tables) ? tables : Array.Empty<PublisherTable>(),
-                page.ObjectIds.Where(id => _publication.Pictures.ContainsKey(id)).Select(CurrentPictureSnapshot).ToArray());
+                page.ObjectIds.Where(id => _publication.Pictures.ContainsKey(id)).Select(CurrentPictureSnapshot).ToArray(),
+                page.ObjectIds.Where(id => _publication.Shapes.ContainsKey(id)).Select(_publication.CurrentShape).ToArray());
             if (page.IsMaster) masters.Add(projectedPage); else pages.Add(projectedPage);
         }
         if (pages.Count == 0) throw new InvalidDataException("Publisher publication has no printable document pages.");
@@ -104,7 +110,7 @@ internal sealed partial class PublisherPageProjector {
         }
         var report = new PublisherReadReport(_context.Diagnostics, _source.Shapes.Count, _projected.Count,
             _publication.Text.Stories.Count, _publication.Images.Count, _context.Records,
-            _source.Shapes.Count + _publication.Text.AuthoredFrameCount);
+            _source.Shapes.Count + _publication.AuthoredObjectCount);
         return new PublisherDocument(pages, masters, _publication.Text.Stories.Values.ToArray(), _publication.Images.Values.ToArray(), report);
     }
     private uint? Owner(uint id, int depth) {

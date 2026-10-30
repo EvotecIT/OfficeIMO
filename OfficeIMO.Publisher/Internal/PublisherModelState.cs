@@ -5,7 +5,7 @@ namespace OfficeIMO.Publisher.Internal;
 
 // Current semantic pages, pictures, stories and frame chains feed projection.
 // Imported graphics/table residue and native provenance stay separate and inert.
-internal sealed class PublisherModelState {
+internal sealed partial class PublisherModelState {
     private readonly PublisherContents _contents;
     private readonly PublisherQuillText _importedText;
     private readonly PublisherEscherData _artwork;
@@ -50,7 +50,7 @@ internal sealed class PublisherModelState {
     internal PublisherModelState AddLinkedTextFrame(uint previousFrameId, uint pageId, double x, double y, double width, double height,
         CancellationToken token, out uint frameId) {
         token.ThrowIfCancellationRequested();
-        if ((long)_contents.Shapes.Count + _publication.Text.AuthoredFrameCount >= _decoded.Options.Limits.MaxItems)
+        if ((long)_contents.Shapes.Count + _publication.AuthoredObjectCount >= _decoded.Options.Limits.MaxItems)
             throw new InvalidDataException("Publisher current object limit exceeded.");
         return WithPublication(_publication.AddLinkedTextFrame(previousFrameId, pageId, x, y, width, height, out frameId));
     }

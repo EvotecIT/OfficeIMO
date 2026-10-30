@@ -3,7 +3,7 @@ using OfficeIMO.Drawing.Binary;
 
 namespace OfficeIMO.Publisher.Internal;
 
-internal sealed partial class PublisherPageProjector {
+internal sealed partial class PublisherNativeShapeMapper {
     private void ProjectFill(PublisherEscherShape source, OfficeShape shape, double width, double height) {
         OfficeArtShapeStyle style = source.Style;
         if (style.FillEnabled == false || style.FillType.GetValueOrDefault() == 0) return;

@@ -2,7 +2,8 @@
 
 OfficeIMO.Publisher reads native publications, supports bounded in-memory edits
 and converts the current model. Its public model owns
-publication pages, master definitions, placed pictures, styled source stories, native table grids, embedded assets
+publication pages, master definitions, placed pictures, supported vector artwork,
+styled source stories, native table grids, embedded assets
 and a recovery report. Shared `OfficeDrawing` owns the reconstructed visual scene;
 the optional PDF package consumes that scene without another native decoder.
 
@@ -41,7 +42,9 @@ references do not report missing images.
 | Placed-picture model | `PublisherPage.Pictures` separates page/master ownership, stable object IDs, asset references, page-point bounds, transforms and normalized crop from embedded bytes; unsupported placements expose an edit limitation | Unresolved image references can remain unresolved; inspection does not qualify native save-back or editable effects |
 | Picture controls | Source-RGB transparency keys, encoded-RGB brightness/contrast, preserve-grays tone handling, BT.709 grayscale and a 50-percent two-color threshold; original assets remain available | Color space, effect ordering and native Publisher pixels remain unqualified; recoloring and extended color controls are unassessed; invalid tone values or unresolved keys report omission |
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
-| In-memory edits | Document-owned replacement of complete non-table story paragraphs, bounds changes for resolved visible untransformed top-level frames, and image replacement/bounds changes for supported rectangular PNG/JPEG picture placements; stable IDs, ownership and order, fresh scenes, text ranges and overflow | Picture edits reject grouped/transformed, hidden, effected, custom-clipped, unresolved or otherwise unqualified placements; no table edits, arbitrary relinking, standalone object creation, page/master topology edits or native save-back; old references remain snapshots |
+| Editable vector artwork | `PublisherPage.Shapes` records owner, stable ID, point bounds and placement availability; bounds and solid-paint edits for supported basic geometry; shared text-frame placement and current wrap obstacles | Grouped, transformed, hidden, custom-path, gradient, effected and unresolved artwork is inspection-only; detached editable descriptors do not establish native writable support |
+| Primitive creation | Rectangle, rounded rectangle, ellipse and nondegenerate line descriptors append to existing document/master pages; shared publication allocator and current SVG/PDF scenes | No new publication, page/master topology or native records; unsupported geometry/effects are rejected; new shapes have no story or wrap references |
+| In-memory edits | Document-owned replacement of complete non-table story paragraphs, bounds changes for resolved visible untransformed top-level frames, and image replacement/bounds changes for supported rectangular PNG/JPEG picture placements; stable IDs, ownership and order, fresh scenes, text ranges and overflow | Picture edits reject grouped/transformed, hidden, effected, custom-clipped, unresolved or otherwise unqualified placements; no table edits, arbitrary relinking, page/master topology edits or native save-back; old references remain snapshots |
 | Continuation-frame creation | Append an ordinary untransformed text frame to a resolved non-table story's tail on an existing document page; one complete styled story, current links/ranges/overflow, copied columns/padding/alignment, no fill/outline, and shared SVG/PDF/Reader projection | The source chain must contain ordinary visible untransformed document-page frames; master chains, ambiguous links and non-tail insertion are rejected; this is in-memory model creation, not native PUB creation |
 | Output | SVG per document page and multi-page PDF through shared engines | No native save-back or editable publication writer |
 
@@ -69,9 +72,9 @@ adapter is included in `OfficeIMO.Reader.All`.
 
 `SourceObjectCount` measures the original native descriptors.
 `CurrentObjectCount` includes retained imported objects and authored
-continuation frames; `ProjectedObjectCount` counts distinct current objects
+continuation frames and shapes; `ProjectedObjectCount` counts distinct current objects
 represented in document or master scenes. Repeated master use counts once.
-Authored frames do not add native inspection records, and `SourceReadReport`
+Authored frames and shapes do not add native inspection records, and `SourceReadReport`
 retains the original decoding evidence. Counts do not measure pixel fidelity
 or prove that all content of an object survived. Complete stories remain
 inspectable even when their visual placement is incomplete.
@@ -87,7 +90,7 @@ publication state, and the Reader extension projects its current stories,
 tables, physical pages and assets without serializing or reopening it.
 
 Page/master dimensions, registration and object ownership, picture placement,
-complete text stories, frame definitions/chains and embedded asset state are
+complete text stories, frame definitions/chains, supported shape geometry/paint and embedded asset state are
 retained independently of the derived drawing.
 Modern native bindings and coordinate interpretation are mapped at import;
 supported picture edits and rendering consume the typed placement directly.
@@ -96,6 +99,18 @@ alignment and geometry are imported into semantic state once. Bounds edits and
 new continuation frames do not synthesize native drawing or text records.
 The one publication object allocator reserves imported identities and dangling
 references; failed mutations do not consume an identity.
+Vector artwork uses the shared `OfficeShape` descriptor, copied at its public
+boundaries. Supported native geometry and paint are mapped by the same adapter
+used for retained native artwork; supported projection consumes the current
+descriptor directly. Text-capable artwork takes current placement from its
+frame owner, including after `SetTextFrameBounds`. Other artwork retains its
+private native projection and feature-level losses. Unsupported shape edits add
+`PUB_SHAPE_EDIT_UNSUPPORTED` with no additional loss classification.
+Horizontal and vertical lines retain zero logical extents independently of the
+positive canvas used for rendering. Basic solid paint validates finite widths
+and opacities; creation rejects clipping, transforms, effects, dashes, markers
+and unsupported geometry. Shape and continuation creation share the same object
+and projection limits and leave the allocator unchanged on failure.
 Other object features retain their bounded imported representation while the
 editable model develops. This is not a complete authoring or generation-neutral
 native codec contract. Replacing one picture leaves shared-asset siblings

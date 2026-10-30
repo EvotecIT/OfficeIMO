@@ -6,12 +6,14 @@ namespace OfficeIMO.Publisher;
 public sealed class PublisherPage {
     private readonly OfficeDrawing _drawing;
     internal PublisherPage(uint id, string name, uint? masterPageId, double width, double height, OfficeDrawing drawing,
-        IReadOnlyList<PublisherTextFrame> textFrames, IReadOnlyList<PublisherTable> tables, IReadOnlyList<PublisherPicture> pictures) {
+        IReadOnlyList<PublisherTextFrame> textFrames, IReadOnlyList<PublisherTable> tables, IReadOnlyList<PublisherPicture> pictures,
+        IReadOnlyList<PublisherShape> shapes) {
         Id = id; Name = name; MasterPageId = masterPageId; _drawing = drawing;
         Width = width; Height = height;
         TextFrames = Array.AsReadOnly(textFrames.ToArray());
         Tables = Array.AsReadOnly(tables.ToArray());
         Pictures = Array.AsReadOnly(pictures.ToArray());
+        Shapes = Array.AsReadOnly(shapes.ToArray());
     }
     /// <summary>Native page identifier.</summary>
     public uint Id { get; }
@@ -27,6 +29,8 @@ public sealed class PublisherPage {
     public IReadOnlyList<PublisherTable> Tables { get; }
     /// <summary>Picture placements owned by this page, in recovered drawing order. Pictures inherited from a master are listed on that master.</summary>
     public IReadOnlyList<PublisherPicture> Pictures { get; }
+    /// <summary>Vector artwork owned by this page, in drawing order. Text-capable artwork shares its ID and placement with its text frame; inherited artwork remains listed on the master.</summary>
+    public IReadOnlyList<PublisherShape> Shapes { get; }
     /// <summary>Page width in points.</summary>
     public double Width { get; }
     /// <summary>Page height in points.</summary>

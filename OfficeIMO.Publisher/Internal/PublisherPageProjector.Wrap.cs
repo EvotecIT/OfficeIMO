@@ -40,6 +40,9 @@ internal sealed partial class PublisherPageProjector {
         if (_publication.Pictures.TryGetValue(id, out PublisherPicture? picture) && picture.CanEdit)
             return new PublisherImportedWrapObject(picture.PageId, picture.X, picture.Y, picture.Width, picture.Height, picture.PageTransform,
                 picture.HasPlacement, false);
+        if (_publication.Shapes.TryGetValue(id, out PublisherShape? shape) && shape.CanEdit)
+            return new PublisherImportedWrapObject(shape.PageId, shape.X, shape.Y, shape.Width, shape.Height, shape.PageTransform,
+                shape.HasPlacement, false);
         return _publication.Text.ImportedObstacles.TryGetValue(id, out PublisherImportedWrapObject? imported) ? imported : null;
     }
 }

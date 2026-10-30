@@ -3,16 +3,17 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Publisher.Internal;
 
 /// <summary>Generation-neutral current page ownership, placed pictures and embedded assets. Native bindings are retained by the importer separately.</summary>
-internal sealed class PublisherPublicationState {
+internal sealed partial class PublisherPublicationState {
     private readonly HashSet<int> _sourceImageIds;
     internal PublisherPublicationState(IEnumerable<PublisherPageState> pages, IReadOnlyDictionary<uint, uint?> owners,
         IReadOnlyDictionary<uint, PublisherPicture> pictures, IReadOnlyDictionary<int, PublisherImage> images, PublisherTextState text,
-        IEnumerable<int>? sourceImageIds = null, int? nextImageId = null, uint nextObjectId = 0) {
+        IEnumerable<int>? sourceImageIds = null, int? nextImageId = null, uint nextObjectId = 0, IReadOnlyDictionary<uint, PublisherShape>? shapes = null) {
         Pages = Array.AsReadOnly(pages.ToArray());
         ObjectOwners = new System.Collections.ObjectModel.ReadOnlyDictionary<uint, uint?>(owners.ToDictionary(item => item.Key, item => item.Value));
         Pictures = new System.Collections.ObjectModel.ReadOnlyDictionary<uint, PublisherPicture>(pictures.ToDictionary(item => item.Key, item => item.Value));
         Images = new System.Collections.ObjectModel.ReadOnlyDictionary<int, PublisherImage>(images.ToDictionary(item => item.Key, item => item.Value));
         Text = text;
+        Shapes = new System.Collections.ObjectModel.ReadOnlyDictionary<uint, PublisherShape>((shapes ?? new Dictionary<uint, PublisherShape>()).ToDictionary(item => item.Key, item => item.Value));
         _sourceImageIds = new HashSet<int>(sourceImageIds ?? images.Keys);
         NextImageId = nextImageId ?? (images.Count == 0 ? 1 : images.Keys.Max() == int.MaxValue ? 0 : images.Keys.Max() + 1);
         NextObjectId = nextObjectId;
@@ -22,6 +23,8 @@ internal sealed class PublisherPublicationState {
     internal IReadOnlyDictionary<uint, PublisherPicture> Pictures { get; }
     internal IReadOnlyDictionary<int, PublisherImage> Images { get; }
     internal PublisherTextState Text { get; }
+    internal IReadOnlyDictionary<uint, PublisherShape> Shapes { get; }
+    internal int AuthoredObjectCount => Text.AuthoredFrameCount + Shapes.Values.Count(shape => shape.IsAuthored);
     internal int NextImageId { get; }
     internal uint NextObjectId { get; }
     internal long AdditionalImageBytes => Images.Values.Where(image => !_sourceImageIds.Contains(image.Id)).Sum(image => (long)image.ByteCount);
@@ -37,7 +40,7 @@ internal sealed class PublisherPublicationState {
     internal PublisherPublicationState SetBounds(PublisherPicture picture, double x, double y, double width, double height) {
         var pictures = Pictures.ToDictionary(item => item.Key, item => item.Value);
         pictures[picture.Id] = picture.WithBounds(x, y, width, height);
-        return new PublisherPublicationState(Pages, ObjectOwners, pictures, Images, Text, _sourceImageIds, NextImageId, NextObjectId);
+        return new PublisherPublicationState(Pages, ObjectOwners, pictures, Images, Text, _sourceImageIds, NextImageId, NextObjectId, Shapes);
     }
 
     internal PublisherPublicationState ReplaceImage(PublisherPicture picture, byte[] bytes, string contentType) {
@@ -51,11 +54,11 @@ internal sealed class PublisherPublicationState {
         if (picture.ImageId.HasValue && !_sourceImageIds.Contains(picture.ImageId.Value)
             && !pictures.Values.Any(item => item.ImageId == picture.ImageId)) images.Remove(picture.ImageId.Value);
         return new PublisherPublicationState(Pages, ObjectOwners, pictures, images, Text, _sourceImageIds,
-            NextImageId == int.MaxValue ? 0 : NextImageId + 1, NextObjectId);
+            NextImageId == int.MaxValue ? 0 : NextImageId + 1, NextObjectId, Shapes);
     }
 
     internal PublisherPublicationState WithText(PublisherTextState text) =>
-        new(Pages, ObjectOwners, Pictures, Images, text, _sourceImageIds, NextImageId, NextObjectId);
+        new(Pages, ObjectOwners, Pictures, Images, text, _sourceImageIds, NextImageId, NextObjectId, Shapes);
 
     internal PublisherPublicationState AddLinkedTextFrame(uint previousFrameId, uint pageId,
         double x, double y, double width, double height, out uint frameId) {
@@ -77,7 +80,7 @@ internal sealed class PublisherPublicationState {
         var owners = ObjectOwners.ToDictionary(item => item.Key, item => item.Value); owners.Add(frameId, pageId);
         uint createdId = frameId;
         return new PublisherPublicationState(Pages.Select(item => item.Id == pageId ? item.WithObject(createdId) : item),
-            owners, Pictures, Images, text, _sourceImageIds, NextImageId, createdId == uint.MaxValue ? 0 : createdId + 1);
+            owners, Pictures, Images, text, _sourceImageIds, NextImageId, createdId == uint.MaxValue ? 0 : createdId + 1, Shapes);
     }
 }
 

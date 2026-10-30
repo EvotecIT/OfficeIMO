@@ -3,7 +3,7 @@ using OfficeIMO.Drawing.Binary;
 
 namespace OfficeIMO.Publisher.Internal;
 
-internal sealed partial class PublisherPageProjector {
+internal sealed partial class PublisherNativeShapeMapper {
     /// <summary>Maps native line semantics into the shared scene; marker dimensions remain an explicit approximation.</summary>
     private void ProjectLineDetails(PublisherEscherShape source, OfficeShape shape) {
         OfficeArtShapeStyle style = source.Style;
