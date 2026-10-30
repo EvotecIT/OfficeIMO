@@ -406,6 +406,9 @@ Adds a footnote reference to a Word paragraph.
 ### [Add-OfficeWordHeader](Add-OfficeWordHeader.md)
 Adds content to a section header.
 
+### [Add-OfficeWordHeading](Add-OfficeWordHeading.md)
+Adds a heading using the document's built-in heading, title or subtitle style.
+
 ### [Add-OfficeWordHyperlink](Add-OfficeWordHyperlink.md)
 Adds a hyperlink to the current Word paragraph.
 
@@ -1174,6 +1177,9 @@ Joins multiple PDF files into a single PDF.
 ### [Join-OfficeWordDocument](Join-OfficeWordDocument.md)
 Appends one or more Word documents into a base Word document.
 
+### [Merge-OfficeDocument](Merge-OfficeDocument.md)
+Combines documents of the same native format in input order.
+
 ### [Move-OfficeExcelSheet](Move-OfficeExcelSheet.md)
 Moves a worksheet to a new workbook position.
 
@@ -1353,6 +1359,9 @@ Creates a discoverable Word revision filter for Resolve-OfficeWordRevision.
 
 ### [New-OfficeWordTableCell](New-OfficeWordTableCell.md)
 Creates a reusable Word table cell definition for explicit table rows.
+
+### [Protect-OfficeDocument](Protect-OfficeDocument.md)
+Adds native password encryption or editing restrictions to a document.
 
 ### [Protect-OfficeExcelSheet](Protect-OfficeExcelSheet.md)
 Protects the current worksheet.
