@@ -31,7 +31,7 @@ namespace OfficeIMO.PowerPoint {
             double width = context.Grid.W(10);
             string title = slide.Title!;
             if (context.Lines(title, style, width) <= 2) {
-                slide.TitleSize = style.Size;
+                slide.TitleSize = context.UnambiguousSize(title, style, width, style.Size, style.Minimum, 4D);
                 return;
             }
 
@@ -61,7 +61,7 @@ namespace OfficeIMO.PowerPoint {
                     title);
             }
 
-            slide.TitleSize = size;
+            slide.TitleSize = context.UnambiguousSize(title, style, width, size, style.Minimum, 4D);
         }
 
         internal static HeaderGeometry MeasureHeader(PowerPointLayoutContext context, PowerPointLayoutSlide slide) {
@@ -72,7 +72,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTextStyleSpec subtitle = context.Style(PowerPointTextRole.Subtitle);
             double size = slide.TitleSize ?? title.Size;
             string text = slide.Title ?? string.Empty;
-            List<string> lines = PowerPointTextMeasure.Wrap(text, size, grid.W(10), context.Theme.HeadingFont, true, title.Tracking);
+            List<string> lines = PowerPointTextMeasure.Wrap(text, size, grid.W(10) / PowerPointLayoutContext.SafetyFactor, context.Theme.HeadingFont, true, title.Tracking);
             var header = new HeaderGeometry { TitleY = grid.Y(2), TitleSize = size, TitleLines = string.IsNullOrWhiteSpace(text) ? 0 : lines.Count };
             if (!string.IsNullOrEmpty(slide.ContinuedSuffix) && lines.Count > 0) {
                 double last = PowerPointTextMeasure.Width(lines[lines.Count - 1], size, context.Theme.HeadingFont, true, title.Tracking);
@@ -83,7 +83,7 @@ namespace OfficeIMO.PowerPoint {
             double bottom = header.TitleY + header.TitleLines * size * title.LineHeight;
             if (!string.IsNullOrWhiteSpace(slide.Subtitle)) {
                 header.SubtitleY = bottom + SubtitleGap;
-                header.SubtitleLines = context.Lines(slide.Subtitle!, subtitle, grid.W(9));
+                header.SubtitleLines = context.SafeLines(slide.Subtitle!, subtitle, grid.W(9));
                 bottom = header.SubtitleY + header.SubtitleLines * subtitle.Size * subtitle.LineHeight;
             }
 
@@ -106,8 +106,12 @@ namespace OfficeIMO.PowerPoint {
                 layout = selected.Value.LayoutIndex;
             }
             PowerPointTextBox? title = context.Document.GetLayoutPlaceholderTextBox(master, layout, PowerPointPlaceholderType.Title);
-            return title != null && title.TryGetBoundsPoints(out double left, out double top, out double width, out double height)
-                ? PowerPointLayoutBox.FromPoints(left, top, width, height) : (PowerPointLayoutBox?)null;
+            if (title == null) return null;
+            if (title.TryGetBoundsPoints(out double left, out double top, out double width, out double height))
+                return PowerPointLayoutBox.FromPoints(left, top, width, height);
+            // A layout title without geometry inherits the master's, as PowerPoint draws it.
+            return context.MasterTitle is PowerPointLayoutRect inherited
+                ? PowerPointLayoutBox.FromPoints(inherited.X, inherited.Y, inherited.Width, inherited.Height) : (PowerPointLayoutBox?)null;
         }
 
         private static HeaderGeometry MeasureTemplateHeader(PowerPointLayoutContext context, PowerPointLayoutSlide slide, PowerPointLayoutBox titleBox) {
@@ -141,8 +145,8 @@ namespace OfficeIMO.PowerPoint {
         internal static HeaderGeometry RenderHeader(PowerPointLayoutContext context, PowerPointLayoutWriter writer,
             PowerPointLayoutSlide slide) {
             PowerPointLayoutGrid grid = context.Grid;
-            if (!context.Document.OwnsLayoutTheme &&
-                writer.Slide.GetLayoutPlaceholder(PowerPointPlaceholderType.Title)?.Bounds is PowerPointLayoutBox templateTitle) {
+            if (!context.Document.OwnsLayoutTheme && writer.Slide.GetLayoutPlaceholder(PowerPointPlaceholderType.Title) is { } placeholder &&
+                (placeholder.Bounds ?? TemplateTitleBounds(context, slide)) is PowerPointLayoutBox templateTitle) {
                 return RenderTemplateHeader(context, writer, slide, templateTitle);
             }
 
@@ -155,23 +159,26 @@ namespace OfficeIMO.PowerPoint {
 
             PowerPointTextStyleSpec title = context.Style(PowerPointTextRole.Title);
             if (!string.IsNullOrWhiteSpace(slide.Title)) {
-                string text = PowerPointTextMeasure.Balance(slide.Title!, header.TitleSize, grid.W(10), context.Theme.HeadingFont, true, title.Tracking);
-                PowerPointLayoutParagraph paragraph = context.Paragraph(text, PowerPointTextRole.Title, size: header.TitleSize);
+                // A continuation suffix shares the last line, so only an unsuffixed title narrows to balance.
+                double width = string.IsNullOrEmpty(slide.ContinuedSuffix)
+                    ? PowerPointTextMeasure.BalancedWidth(slide.Title!, header.TitleSize, grid.W(10), context.Theme.HeadingFont, true, title.Tracking)
+                    : grid.W(10);
+                PowerPointLayoutParagraph paragraph = context.Paragraph(slide.Title!, PowerPointTextRole.Title, size: header.TitleSize);
                 if (!string.IsNullOrEmpty(slide.ContinuedSuffix) && !header.SuffixOnEyebrow) {
                     PowerPointTextStyleSpec subtitle = context.Style(PowerPointTextRole.Subtitle);
                     paragraph.Runs.Add(new PowerPointLayoutRun(slide.ContinuedSuffix!, subtitle, bold: false) { Tracking = 0D });
                 }
 
                 double height = header.TitleLines * header.TitleSize * title.LineHeight + 8D;
-                writer.Text("Title", new PowerPointLayoutRect(grid.X(1), header.TitleY, grid.W(10), height), paragraph,
+                writer.Text("Title", new PowerPointLayoutRect(grid.X(1), header.TitleY, width, height), paragraph,
                     placeholder: "<p:ph type=\"title\"/>");
             }
 
             if (!string.IsNullOrWhiteSpace(slide.Subtitle)) {
                 PowerPointTextStyleSpec subtitle = context.Style(PowerPointTextRole.Subtitle);
-                string text = PowerPointTextMeasure.Balance(slide.Subtitle!, subtitle.Size, grid.W(9), context.Theme.BodyFont);
-                writer.Text("Subtitle", new PowerPointLayoutRect(grid.X(1), header.SubtitleY, grid.W(9),
-                    header.SubtitleLines * subtitle.Size * subtitle.LineHeight + 6D), context.Paragraph(text, PowerPointTextRole.Subtitle));
+                double width = PowerPointTextMeasure.BalancedWidth(slide.Subtitle!, subtitle.Size, grid.W(9), context.Theme.BodyFont);
+                writer.Text("Subtitle", new PowerPointLayoutRect(grid.X(1), header.SubtitleY, width,
+                    header.SubtitleLines * subtitle.Size * subtitle.LineHeight + 6D), context.Paragraph(slide.Subtitle!, PowerPointTextRole.Subtitle));
             }
 
             return header;
@@ -302,13 +309,18 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>One item of a bottom-anchored text stack (title slides, section, closing, image).</summary>
         internal sealed class StackItem {
-            internal StackItem(string name, PowerPointLayoutParagraph paragraph, double height, double gapAfter, string? placeholder = null) {
+            internal StackItem(string name, PowerPointLayoutParagraph paragraph, double height, double gapAfter, string? placeholder = null,
+                double? width = null) {
                 Name = name;
                 Paragraph = paragraph;
                 Height = height;
                 GapAfter = gapAfter;
                 Placeholder = placeholder;
+                Width = width;
             }
+
+            /// <summary>Frame width when narrower than the stack (measured or balanced text).</summary>
+            internal double? Width { get; }
 
             internal string Name { get; }
             internal PowerPointLayoutParagraph Paragraph { get; }
@@ -327,11 +339,15 @@ namespace OfficeIMO.PowerPoint {
                 while (resolved - 2D >= floor && context.Lines(text, style, width, resolved) > maxLines.Value) resolved -= 2D;
             }
 
-            string value = balance ? PowerPointTextMeasure.Balance(text, resolved, width, context.FontOf(style), style.Bold, style.Tracking) : text;
-            int lines = context.Lines(text, style, width / 1.06D, resolved);
-            PowerPointLayoutParagraph paragraph = context.Paragraph(value, role, color, resolved);
-            // Tight display leading (1.0) still gets a frame of normal leading so no renderer clips the last line.
-            return new StackItem(name, paragraph, lines * resolved * Math.Max(1.2D, style.LineHeight) + 4D, gapAfter, placeholder);
+            resolved = context.UnambiguousSize(text, style, width, resolved, minimum ?? style.Minimum);
+            double frame = balance ? PowerPointTextMeasure.BalancedWidth(text, resolved, width, context.FontOf(style), style.Bold, style.Tracking) : width;
+            int lines = context.SafeLines(text, style, width, resolved);
+            PowerPointLayoutParagraph paragraph = context.Paragraph(text, role, color, resolved);
+            // The frame holds exactly the measured lines at the written line pitch (plus the descender of the last
+            // line for tight display leading), so stacked items keep their designed gaps in every renderer.
+            double pitch = resolved * style.LineHeight;
+            double height = lines * pitch + Math.Max(0D, resolved * 1.2D - pitch) + 2D;
+            return new StackItem(name, paragraph, height, gapAfter, placeholder, frame);
         }
 
         /// <summary>Writes stack items bottom-anchored (or top-anchored) inside <paramref name="box" />.</summary>
@@ -340,7 +356,7 @@ namespace OfficeIMO.PowerPoint {
             double total = items.Sum(i => i.Height) + items.Take(items.Count - 1).Sum(i => i.GapAfter);
             double y = bottom ? box.Bottom - total : box.Y;
             foreach (StackItem item in items) {
-                writer.Text(item.Name, new PowerPointLayoutRect(box.X, y, box.Width, item.Height), item.Paragraph,
+                writer.Text(item.Name, new PowerPointLayoutRect(box.X, y, Math.Min(box.Width, item.Width ?? box.Width), item.Height), item.Paragraph,
                     anchor: "t", placeholder: item.Placeholder);
                 y += item.Height + item.GapAfter;
             }

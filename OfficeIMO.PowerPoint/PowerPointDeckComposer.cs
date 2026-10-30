@@ -265,6 +265,13 @@ namespace OfficeIMO.PowerPoint {
             if (content.MaterializedSlide != null) slide.IsFirst = content.MaterializedSlide.Index == 0;
             slide.SelectionDeckSize = _slideIndex;
             slide.TemplateLayout ??= _templateLayoutMap?.Resolve(PowerPointDeckPlanSlideKind.Content);
+            // Content slides take the design's footer like designer slides do, instead of falling back to the deck title.
+            if (!string.IsNullOrWhiteSpace(_design.FooterLeft) && _design.FooterLeft != "OfficeIMO") {
+                _presentation.LayoutDeck.FooterText ??= _design.FooterLeft;
+            }
+            if (string.IsNullOrWhiteSpace(slide.FooterRightText) && !string.IsNullOrWhiteSpace(_design.FooterRight)) {
+                slide.FooterRightText = _design.FooterRight;
+            }
             return PowerPointLayoutEngine.AddSlides(_presentation, slide,
                 PowerPointDesignExtensions.LayoutThemeFor(_presentation, _design.Theme), content.MaterializedSlide)[0];
         }

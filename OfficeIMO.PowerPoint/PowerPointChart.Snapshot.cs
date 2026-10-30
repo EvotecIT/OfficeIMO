@@ -468,6 +468,17 @@ namespace OfficeIMO.PowerPoint {
                 style = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadStyle(
                     GetChartPart(), chart, PowerPointChartSnapshotMapper.MapKind(kind), colorScheme,
                     style, data.Categories.Count);
+            // Single-group category charts project their native surfaces and axis styling too, so a chart area
+            // written without fill on a dark slide is not drawn as a white panel. Formatting the shared contract
+            // cannot express keeps the text-only style instead of dropping the chart.
+            if (!forDataUpdate && kind is not (PowerPointChartSnapshotKind.Radar or PowerPointChartSnapshotKind.Pie or
+                    PowerPointChartSnapshotKind.Doughnut or PowerPointChartSnapshotKind.Bubble or PowerPointChartSnapshotKind.Scatter)) {
+                try {
+                    style = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadStyle(
+                        GetChartPart(), chart, PowerPointChartSnapshotMapper.MapKind(kind), colorScheme, style);
+                } catch (NotSupportedException) {
+                }
+            }
             if (!forDataUpdate && (kind is PowerPointChartSnapshotKind.Pie or PowerPointChartSnapshotKind.Doughnut)) {
                 C.PieChartSeries? radialSeries = chart.PlotArea?.Descendants<C.PieChartSeries>().FirstOrDefault();
                 OfficeColor[]? palette = radialSeries == null ? null :

@@ -14,7 +14,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static readonly Dictionary<string, double> FamilyFactors = new(StringComparer.OrdinalIgnoreCase) {
             ["Aptos"] = 0.94D,
-            ["Aptos Display"] = 0.91D,
+            // Aptos Display is downloaded on demand; where it is missing, the fallback runs wider than the face.
+            ["Aptos Display"] = 0.96D,
             ["Calibri"] = 0.87D,
             ["Carlito"] = 0.87D,
             ["Arial"] = 0.99D,
@@ -73,15 +74,17 @@ namespace OfficeIMO.PowerPoint {
             .Select(word => Width(word, size, family, bold)).DefaultIfEmpty(0D).Max();
 
         /// <summary>
-        ///     Re-breaks a title or subtitle so the lines are balanced (no single-word last line) while keeping the
-        ///     same line count. Returns the text with explicit line breaks, or the input when balancing changes nothing.
+        ///     The frame width that balances a wrapped title or subtitle (no single-word last line) while keeping the
+        ///     same line count. The text itself keeps soft wrapping: the frame narrows instead of the text gaining hard
+        ///     line breaks, so the renderer still wraps with its own metrics and an edited title reflows. A small
+        ///     allowance above the narrowest measure keeps a slightly wider renderer from adding a line.
         /// </summary>
-        internal static string Balance(string text, double size, double width, string family, bool bold = false,
+        internal static double BalancedWidth(string text, double size, double width, string family, bool bold = false,
             double tracking = 0D) {
             List<string> lines = Wrap(text, size, width, family, bold, tracking);
-            if (lines.Count < 2 || text.IndexOf('\n') >= 0) return text;
+            if (lines.Count < 2 || text.IndexOf('\n') >= 0) return width;
             string[] words = text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            if (words.Length < 3) return text;
+            if (words.Length < 3) return width;
             // Shrink the measure until the line count would grow; the narrowest measure that keeps the count is balanced.
             double low = width * 0.5D, high = width;
             for (int i = 0; i < 12; i++) {
@@ -90,10 +93,9 @@ namespace OfficeIMO.PowerPoint {
                 else high = mid;
             }
 
-            List<string> balanced = Wrap(text, size, high, family, bold, tracking);
-            if (balanced.Count != lines.Count) return text;
-            if (balanced.SequenceEqual(lines)) return text;
-            return string.Join("\n", balanced);
+            if (Wrap(text, size, high, family, bold, tracking).Count != lines.Count) return width;
+            // The longest word keeps a wider allowance than the line: a renderer that cannot fit a word breaks it.
+            return Math.Min(width, Math.Max(high * 1.06D, LongestWord(text, size, family, bold) * 1.15D));
         }
     }
 }

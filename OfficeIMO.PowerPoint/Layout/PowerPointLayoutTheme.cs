@@ -59,7 +59,7 @@ namespace OfficeIMO.PowerPoint {
     ///     from an <see cref="OfficeTheme" />.
     /// </summary>
     internal sealed class PowerPointLayoutTheme {
-        private readonly Dictionary<PowerPointTextRole, PowerPointTextStyleSpec> _styles = new();
+        private Dictionary<PowerPointTextRole, PowerPointTextStyleSpec> _styles = new();
 
         private PowerPointLayoutTheme(OfficeTheme theme) {
             Theme = theme;
@@ -145,18 +145,18 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Text on an accent1 background.</summary>
         internal string OnAccent { get; }
 
-        internal string HeadingFont { get; }
-        internal string BodyFont { get; }
+        internal string HeadingFont { get; private set; }
+        internal string BodyFont { get; private set; }
         internal string TableHeaderFill { get; }
         internal string TableHeaderText { get; }
         internal bool TableBanding { get; }
         internal double TableBorderWidth { get; }
-        internal double TableCellPadding { get; }
-        internal double MarginLeft { get; }
-        internal double MarginRight { get; }
-        internal double MarginTop { get; }
-        internal double ListIndent { get; }
-        internal double ParagraphAfter { get; }
+        internal double TableCellPadding { get; private set; }
+        internal double MarginLeft { get; private set; }
+        internal double MarginRight { get; private set; }
+        internal double MarginTop { get; private set; }
+        internal double ListIndent { get; private set; }
+        internal double ParagraphAfter { get; private set; }
 
         internal PowerPointTextStyleSpec this[PowerPointTextRole role] => _styles[role];
 
@@ -171,6 +171,48 @@ namespace OfficeIMO.PowerPoint {
 
         internal static PowerPointLayoutTheme From(OfficeTheme? theme) => new(theme ?? OfficeTheme.Default);
 
+        /// <summary>The same tokens measured with other font families (the fonts a template's theme part names).</summary>
+        internal PowerPointLayoutTheme WithFontFamilies(string? heading, string? body) {
+            if ((heading == null || heading == HeadingFont) && (body == null || body == BodyFont)) return this;
+            var copy = (PowerPointLayoutTheme)MemberwiseClone();
+            copy.HeadingFont = heading ?? HeadingFont;
+            copy.BodyFont = body ?? BodyFont;
+            return copy;
+        }
+
+        private const double ReadableFloor = 10D;
+
+        /// <summary>Size of the slide relative to the reference the type scale is designed for.</summary>
+        internal double Scale { get; private set; } = 1D;
+
+        /// <summary>
+        ///     The same tokens for a smaller slide: text sizes, minimums, margins and spacing scale by
+        ///     <paramref name="factor" />, with a 10 pt floor (the preflight's readable minimum) so text stays readable.
+        /// </summary>
+        internal PowerPointLayoutTheme Scaled(double factor) {
+            if (factor >= 0.97D || Math.Abs(factor - Scale) < 0.001D) return this;
+            var copy = (PowerPointLayoutTheme)MemberwiseClone();
+            double relative = factor / Scale;
+            copy._styles = new Dictionary<PowerPointTextRole, PowerPointTextStyleSpec>();
+            foreach (KeyValuePair<PowerPointTextRole, PowerPointTextStyleSpec> pair in _styles) {
+                PowerPointTextStyleSpec style = pair.Value;
+                double floor = Math.Min(style.Size, ReadableFloor);
+                double size = Math.Max(floor, RoundSize(style.Size * relative));
+                double minimum = Math.Min(size, Math.Max(floor, Math.Round(style.Minimum * relative)));
+                copy._styles[pair.Key] = new PowerPointTextStyleSpec(style.Role, style.HeadingFont, size, minimum, style.Bold,
+                    style.LineHeight, style.Color, style.Upper, style.Tracking);
+            }
+
+            copy.MarginLeft = MarginLeft * relative;
+            copy.MarginRight = MarginRight * relative;
+            copy.MarginTop = MarginTop * relative;
+            copy.ListIndent = ListIndent * relative;
+            copy.ParagraphAfter = ParagraphAfter * relative;
+            copy.TableCellPadding = TableCellPadding * relative;
+            copy.Scale = factor;
+            return copy;
+        }
+
         /// <summary>
         ///     Maps a designer theme onto the default theme: the brand accents and fonts replace the theme's, the
         ///     type scale, spacing and neutral roles stay. Colours that would fail contrast are not taken over.
@@ -184,11 +226,34 @@ namespace OfficeIMO.PowerPoint {
             accent = EnsureContrast(accent, palette.Background, 4.5D);
             OfficeColor accent2 = EnsureContrast(Color(design.Accent2Color, palette.Accent2), palette.Background, 3D);
             OfficeColor accent3 = EnsureContrast(Color(design.Accent3Color, palette.Accent3), palette.Background, 3D);
+            // Series and comparison columns are told apart by these accents. A brand accent that is only a shade of
+            // the primary keeps the theme's own accent instead, so two chart series never share one blue.
+            // A design that repeats the theme's own primary accent composes with the theme as it is.
+            if (accent.ToRgbHex() == palette.Accent1.ToRgbHex()) {
+                accent2 = palette.Accent2;
+                accent3 = palette.Accent3;
+            }
+            if (!Distinct(accent2, accent)) accent2 = Distinct(palette.Accent2, accent) ? palette.Accent2 : palette.Accent4;
+            if (!Distinct(accent3, accent) || !Distinct(accent3, accent2)) accent3 = palette.Accent3;
             palette = palette.With(accent1: accent, accent2: accent2, accent3: accent3);
             OfficeThemeFont heading = theme.Fonts.Heading.With(family: Font(design.HeadingFontName, theme.Fonts.Heading.Family));
             OfficeThemeFont body = theme.Fonts.Body.With(family: Font(design.BodyFontName, theme.Fonts.Body.Family));
             OfficeTheme mapped = theme.WithPalette(palette).WithFonts(new OfficeThemeFonts(heading, body));
             return new PowerPointLayoutTheme(mapped);
+        }
+
+        /// <summary>Whether two accents read as different series: a clear hue step or a clear lightness step.</summary>
+        internal static bool Distinct(OfficeColor a, OfficeColor b) {
+            static (double H, double L) HueLightness(OfficeColor c) {
+                double r = c.R / 255D, g = c.G / 255D, bl = c.B / 255D;
+                double max = Math.Max(r, Math.Max(g, bl)), min = Math.Min(r, Math.Min(g, bl)), d = max - min;
+                double h = d == 0D ? -1D : max == r ? 60D * (((g - bl) / d + 6D) % 6D) : max == g ? 60D * ((bl - r) / d + 2D) : 60D * ((r - g) / d + 4D);
+                return (h, (max + min) / 2D);
+            }
+            (double ha, double la) = HueLightness(a);
+            (double hb, double lb) = HueLightness(b);
+            double hue = ha < 0D || hb < 0D ? 180D : Math.Min(Math.Abs(ha - hb), 360D - Math.Abs(ha - hb));
+            return hue >= 40D || Math.Abs(la - lb) >= 0.25D;
         }
 
         private void Add(PowerPointTextRole role, bool headingFont, double size, double minimum, bool bold,

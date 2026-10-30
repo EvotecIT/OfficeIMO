@@ -112,7 +112,9 @@ namespace OfficeIMO.PowerPoint {
                 case PowerPointLayout.Cards:
                     return slide.Blocks.Count > 0 && slide.Blocks.All(block => block is PowerPointLayoutCard);
                 case PowerPointLayout.Logos:
-                    return slide.Blocks.Count > 0 && slide.Blocks.All(block => block is PowerPointLayoutCard card && string.IsNullOrWhiteSpace(card.Text) && card.Items.Count == 0);
+                    // A logo may carry a short descriptor ("Authorized service") shown under its name.
+                    return slide.Blocks.Count > 0 && slide.Blocks.All(block => block is PowerPointLayoutCard card && card.Items.Count == 0 &&
+                        (string.IsNullOrWhiteSpace(card.Text) || card.Text!.Length <= LogoCaptionLimit && card.Text.IndexOf('\n') < 0));
                 case PowerPointLayout.Process:
                     return slide.Blocks.Count > 0 && slide.Blocks.All(block => block is PowerPointLayoutStep);
                 case PowerPointLayout.Quote:
@@ -132,6 +134,8 @@ namespace OfficeIMO.PowerPoint {
                     return true;
             }
         }
+
+        private const int LogoCaptionLimit = 40;
 
         private static bool CanClose(PowerPointLayoutSlide slide) {
             var (lede, blocks) = SplitLede(slide.Blocks);

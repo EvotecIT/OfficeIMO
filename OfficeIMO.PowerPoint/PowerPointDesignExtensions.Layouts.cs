@@ -13,8 +13,18 @@ namespace OfficeIMO.PowerPoint {
         private static readonly System.Text.RegularExpressions.Regex ContinuedTitle =
             new(@"^(.*?)( \(continued(?: \d+/\d+)?\))$", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
-        internal static PowerPointLayoutTheme LayoutThemeFor(PowerPointPresentation presentation, PowerPointDesignTheme? theme) =>
-            theme == null ? presentation.LayoutTheme : PowerPointLayoutTheme.From(ResolveTheme(theme), presentation.BaseTheme);
+        /// <remarks>
+        ///     Layout runs reference the theme font slots (+mj-lt, +mn-lt), so text is measured with the fonts the
+        ///     presentation's theme part names now. A template composed without applying the design keeps its own
+        ///     fonts, and measuring with the design's fonts would wrap differently from what is drawn.
+        /// </remarks>
+        internal static PowerPointLayoutTheme LayoutThemeFor(PowerPointPresentation presentation, PowerPointDesignTheme? theme) {
+            if (theme == null) return presentation.LayoutTheme;
+            PowerPointLayoutTheme mapped = PowerPointLayoutTheme.From(ResolveTheme(theme), presentation.BaseTheme);
+            if (presentation.OwnsLayoutTheme) return mapped;
+            (string? heading, string? body) = presentation.ThemeFontFamilies();
+            return mapped.WithFontFamilies(heading, body);
+        }
 
         /// <summary>
         ///     Applies the designer theme: its brand accents and safe fonts are mapped onto the presentation's theme and

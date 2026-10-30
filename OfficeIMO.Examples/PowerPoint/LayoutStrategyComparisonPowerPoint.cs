@@ -7,102 +7,37 @@ using OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.Examples.PowerPoint {
     /// <summary>
-    /// Demonstrates using the same semantic plan with different design brief variation controls.
+    /// Renders one semantic plan in several built-in themes. The plan is unchanged; the theme supplies palette,
+    /// fonts and type scale, and the slide layouts choose the geometry from the content.
     /// </summary>
     public static class LayoutStrategyComparisonPowerPoint {
         public static void Example_LayoutStrategyComparisonPowerPoint(string folderPath, bool openPowerPoint) {
-            Console.WriteLine("[*] PowerPoint - Layout strategy comparison");
-            string filePath = Path.Join(folderPath, "PowerPoint Layout Strategy Comparison.pptx");
-
+            Console.WriteLine("[*] PowerPoint - One plan in three themes");
             PowerPointDeckPlan plan = CreatePlan();
-            LayoutStrategyExample[] examples = {
-                new(PowerPointAutoLayoutStrategy.ContentFirst, PowerPointPaletteStyle.SplitComplementary,
-                    "Content fit first", "Keep dense or structured content readable before adding visual variety."),
-                new(PowerPointAutoLayoutStrategy.Compact, PowerPointPaletteStyle.CoolNeutral,
-                    "Compact business rhythm", "Prefer tighter layouts when the deck needs more information per slide."),
-                new(PowerPointAutoLayoutStrategy.VisualFirst, PowerPointPaletteStyle.Complementary,
-                    "Visual proof first", "Favor stronger hero, proof, and visual framing when the content allows it.")
-            };
-
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
-            presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-
-            foreach (LayoutStrategyExample example in examples) {
-                PowerPointDesignBrief brief = CreateBrief(example);
-                IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> preview = brief.DescribeDeckPlan(plan);
-                PowerPointDeckPlan renderPlan = new PowerPointDeckPlan();
-
-                renderPlan.AddSection(example.Title,
-                    example.Description,
-                    "layout-strategy-" + example.Strategy,
-                    options => options.SectionVariant = example.Strategy == PowerPointAutoLayoutStrategy.VisualFirst
-                        ? PowerPointSectionLayoutVariant.Poster
-                        : PowerPointSectionLayoutVariant.EditorialRail);
-
-                renderPlan.AddCustom("Resolved variants", composer => {
-                    composer.AddTitle("Resolved variants",
-                        "The plan is unchanged; the brief steers palette, density, and Auto layout behavior.");
-                    PowerPointLayoutBox[] columns = composer.ContentColumns(2, 0.8, topCm: 3.7, bottomMarginCm: 2.35);
-
-                    composer.AddCardGrid(preview.Select((summary, index) => new PowerPointCardContent(
-                            (index + 1) + ". " + ToDisplayName(summary.Kind.ToString()),
-                            new[] {
-                                summary.Title,
-                                "Variant: " + ToDisplayName(summary.LayoutVariant ?? "custom"),
-                                "Items: " + summary.ContentItemCount,
-                            })),
-                        columns[0],
-                        new PowerPointCardGridSlideOptions {
-                            MaxColumns = 2,
-                            Variant = PowerPointCardGridLayoutVariant.SoftTiles
-                        });
-
-                    int distinctVariants = preview
-                        .Select(summary => summary.LayoutVariant ?? "custom")
-                        .Distinct(StringComparer.OrdinalIgnoreCase)
-                        .Count();
-                    composer.AddMetricStrip(new[] {
-                        new PowerPointMetric(preview.Count.ToString(), "slides"),
-                        new PowerPointMetric(distinctVariants.ToString(), "variants"),
-                        new PowerPointMetric(((int)example.Strategy + 1).ToString(), "strategy")
-                    }, columns[1].TakeTopCm(2.2));
-
-                    string reasons = "Palette " + ToDisplayName(example.PaletteStyle.ToString()) + ". Mode " +
-                        ToDisplayName(example.Strategy.ToString()) + ". Preview variants before rendering.";
-                    composer.AddCalloutBand(reasons,
-                        columns[1].InsetCm(0, 2.75, 0, 0).TakeTopCm(2.25));
-                }, "layout-preview-" + example.Strategy,
-                    options => options.FooterRight = ToDisplayName(example.Strategy.ToString()));
-
-                foreach (PowerPointDeckPlanSlide plannedSlide in plan.Slides) {
-                    renderPlan.Add(plannedSlide);
-                }
-                presentation.Compose(renderPlan, PowerPointCompositionOptions.FromBrief(brief));
+            string? first = null;
+            foreach ((string name, OfficeTheme theme) in new[] {
+                         ("Modern", OfficeTheme.Modern), ("Boardroom", OfficeTheme.Boardroom), ("Dark", OfficeTheme.Dark)
+                     }) {
+                string filePath = Path.Join(folderPath, "PowerPoint Layout Strategy Comparison - " + name + ".pptx");
+                first ??= filePath;
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath, new PowerPointCreateOptions { Theme = theme });
+                // The design repeats the theme's own accent and fonts, so composition keeps the theme as it is.
+                PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#" + theme.Palette.Accent1.ToRgbHex(), "layout-comparison-" + name,
+                    headingFontName: theme.Fonts.Heading.Family, bodyFontName: theme.Fonts.Body.Family, footerLeft: "OfficeIMO · " + name + " theme");
+                PowerPointCompositionOptions options = PowerPointCompositionOptions.FromDesign(design);
+                options.ApplyTheme = false;
+                presentation.Compose(plan, options);
+                presentation.Save();
+                Validate(filePath, presentation);
             }
 
-            presentation.Save();
-            Validate(filePath, presentation);
-            if (openPowerPoint) ExampleFileLauncher.Open(filePath);
-        }
-
-        private static PowerPointDesignBrief CreateBrief(LayoutStrategyExample example) {
-            return PowerPointDesignBrief
-                .FromBrand("#008C95", "layout-strategy-comparison", "service portfolio and delivery proposal")
-                .WithIdentity("Variation Controls", eyebrow: "OfficeIMO.PowerPoint", footerLeft: "OFFICEIMO",
-                    footerRight: ToDisplayName(example.Strategy.ToString()))
-                .WithPaletteStyle(example.PaletteStyle)
-                .WithPalette(secondaryAccentColor: "#6D5BD0", tertiaryAccentColor: "#0E7490",
-                    warmAccentColor: "#FFB000", surfaceColor: "#F6FAFC", panelBorderColor: "#D5E3EA")
-                .WithLayoutStrategy(example.Strategy)
-                .WithVariety(PowerPointDesignVariety.Exploratory)
-                .WithPreferredMoods(PowerPointDesignMood.Energetic, PowerPointDesignMood.Editorial)
-                .WithPreferredVisualStyles(PowerPointVisualStyle.Geometric, PowerPointVisualStyle.Soft);
+            if (openPowerPoint && first != null) ExampleFileLauncher.Open(first);
         }
 
         private static PowerPointDeckPlan CreatePlan() {
             return new PowerPointDeckPlan()
                 .AddSection("Service portfolio",
-                    "One semantic plan can produce different slide rhythm without changing coordinates.",
+                    "One plan, three themes, no coordinates.",
                     "layout-cover")
                 .AddCaseStudy("Managed workplace rollout",
                     new[] {
@@ -121,7 +56,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     },
                     "layout-case")
                 .AddProcess("Delivery path",
-                    "Auto variants react to the strategy and the number of steps.",
+                    "Five steps on one row; the layout follows the step count.",
                     new[] {
                         new PowerPointProcessStep("Discover", "Collect constraints and service expectations."),
                         new PowerPointProcessStep("Design", "Choose target architecture and rollout rules."),
@@ -131,7 +66,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     },
                     "layout-process")
                 .AddCardGrid("Scope of services",
-                    "Cards remain semantic while the brief chooses their visual treatment.",
+                    "Cards stay semantic; the theme supplies their colour and type.",
                     new[] {
                         new PowerPointCardContent("Deployments", new[] { "Intune", "Autopilot", "Policy baseline" }),
                         new PowerPointCardContent("Operations", new[] { "Incident handling", "Monitoring", "Optimization" }),
@@ -161,27 +96,5 @@ namespace OfficeIMO.Examples.PowerPoint {
             Console.WriteLine($"    Saved: {filePath}");
             Console.WriteLine("    Validation: no Open XML errors found.");
         }
-
-        private static string ToDisplayName(string value) {
-            if (string.IsNullOrWhiteSpace(value)) {
-                return value;
-            }
-
-            List<char> chars = new();
-            for (int i = 0; i < value.Length; i++) {
-                char current = value[i];
-                if (i > 0 && char.IsUpper(current) &&
-                    (char.IsLower(value[i - 1]) || (i + 1 < value.Length && char.IsLower(value[i + 1])))) {
-                    chars.Add(' ');
-                }
-
-                chars.Add(current);
-            }
-
-            return new string(chars.ToArray());
-        }
-
-        private sealed record LayoutStrategyExample(PowerPointAutoLayoutStrategy Strategy,
-            PowerPointPaletteStyle PaletteStyle, string Title, string Description);
     }
 }

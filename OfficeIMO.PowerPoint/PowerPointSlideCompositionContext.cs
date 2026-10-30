@@ -144,7 +144,7 @@ namespace OfficeIMO.PowerPoint {
                 slide.Blocks.Add(new PowerPointLayoutCard(card.Title, card.Text, card.Items, card.ImagePath, PowerPointLayoutBlock.ParseColor(card.AccentColor)));
             }
 
-            PowerPointLayoutEngine.DrawCards(_context, _writer, slide, ToRect(bounds), full: false);
+            PowerPointLayoutEngine.DrawCards(_context, _writer, slide, ToRect(bounds), full: false, maxColumns: options?.MaxColumns);
         }
 
         /// <summary>Adds the Process composition in the content area.</summary>

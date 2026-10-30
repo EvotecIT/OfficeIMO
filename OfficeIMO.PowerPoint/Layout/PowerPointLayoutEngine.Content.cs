@@ -309,6 +309,10 @@ namespace OfficeIMO.PowerPoint {
             internal double HeaderSize { get; set; }
             internal double RowHeight { get; set; }
             internal double HeaderHeight { get; set; }
+
+            /// <summary>Top and bottom cell padding of body and header rows.</summary>
+            internal double RowPad { get; set; }
+            internal double HeaderPad { get; set; }
             internal double[] Widths { get; set; } = Array.Empty<double>();
             internal bool[] Numeric { get; set; } = Array.Empty<bool>();
         }
@@ -321,12 +325,18 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTextStyleSpec body = context.Style(PowerPointTextRole.TableBody);
             PowerPointTextStyleSpec header = context.Style(PowerPointTextRole.TableHeader);
             double pad = context.Theme.TableCellPadding;
+            // Compact rows: two points smaller (not below the minimum) and a quarter of the vertical padding, the density
+            // of a reference table, used when it keeps a long table on fewer slides.
+            double size = bodySize ?? body.Size;
+            if (table.Dense) size = Math.Min(size, Math.Max(body.Minimum, body.Size - 2D));
             var metrics = new TableMetrics {
-                BodySize = bodySize ?? body.Size,
-                HeaderSize = Math.Min(header.Size, (bodySize ?? body.Size) - 1D)
+                BodySize = size,
+                HeaderSize = Math.Min(header.Size, size - 1D),
+                RowPad = table.Dense ? pad * 0.25D + 1.5D : pad + 2D,
+                HeaderPad = table.Dense ? pad * 0.5D + 1.5D : pad + 3D
             };
-            metrics.RowHeight = metrics.BodySize * body.LineHeight + 2D * (pad + 2D);
-            metrics.HeaderHeight = table.IncludeHeaders ? metrics.HeaderSize * header.LineHeight + 2D * (pad + 3D) : 0D;
+            metrics.RowHeight = metrics.BodySize * body.LineHeight + 2D * metrics.RowPad;
+            metrics.HeaderHeight = table.IncludeHeaders ? metrics.HeaderSize * header.LineHeight + 2D * metrics.HeaderPad : 0D;
             int columns = table.Headers.Count;
             var natural = new double[columns];
             metrics.Numeric = new bool[columns];
@@ -406,6 +416,36 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutSlide probe = Continuation(context, slide, 2, 3);
             int limit = table.MaximumRows ?? Math.Min(first, TableCapacity(context, probe, metrics, false));
             int pages = (int)Math.Ceiling(table.Rows.Count / (double)limit);
+            PowerPointLayoutTable source = table;
+            if (!table.MaximumRows.HasValue && !table.Dense) {
+                // A long reference table reads better on fewer, fuller slides: switch to compact rows when that
+                // saves a slide.
+                PowerPointLayoutTable dense = table.WithRows(table.Rows);
+                dense.Dense = true;
+                TableMetrics compact = MeasureTable(context, dense, width, metrics.BodySize < context.Style(PowerPointTextRole.TableBody).Size ? metrics.BodySize : null);
+                List<int> denseUnits = table.Rows.Select(row => RowUnits(context, compact, row)).ToList();
+                int denseFirst = TableCapacity(context, slide, compact, lede != null);
+                if (denseUnits.Sum() <= denseFirst && table.Rows.Count <= denseFirst) {
+                    PowerPointLayoutSlide whole = slide.CloneHeader();
+                    whole.Subtitle = slide.Subtitle;
+                    whole.Notes = slide.Notes;
+                    whole.Layout = slide.Layout;
+                    whole.SourceNote = slide.SourceNote;
+                    foreach (PowerPointLayoutBlock block in slide.Blocks) whole.Blocks.Add(ReferenceEquals(block, table) ? dense : block);
+                    yield return whole;
+                    yield break;
+                }
+
+                int denseLimit = Math.Min(denseFirst, TableCapacity(context, probe, compact, false));
+                int densePages = (int)Math.Ceiling(table.Rows.Count / (double)denseLimit);
+                if (densePages < pages) {
+                    table = dense;
+                    metrics = compact;
+                    units = denseUnits;
+                    limit = denseLimit;
+                    pages = densePages;
+                }
+            }
             List<List<int>> chunks;
             while (true) {
                 chunks = Balance(Enumerable.Range(0, table.Rows.Count).ToList(), pages);
@@ -426,7 +466,7 @@ namespace OfficeIMO.PowerPoint {
                 part.TableRange = (rows[0] + 1, rows[rows.Count - 1] + 1, table.Rows.Count);
                 PowerPointLayoutTable pageTable = table.WithRows(rows.Select(i => table.Rows[i]).ToList());
                 foreach (PowerPointLayoutBlock block in slide.Blocks.Where(b => b.IsContentBlock && !ReferenceEquals(b, lede))) {
-                    part.Blocks.Add(ReferenceEquals(block, table) ? pageTable : block);
+                    part.Blocks.Add(ReferenceEquals(block, source) ? pageTable : block);
                 }
 
                 part.SourceNote = slide.SourceNote;
@@ -442,6 +482,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutTheme theme = context.Theme;
             TableMetrics metrics = MeasureTable(context, table, box.Width,
                 table.Headers.Count > (context.Grid.IsNarrow ? 6 : 8) ? context.Style(PowerPointTextRole.TableBody).Minimum : null);
+            double rowPad = metrics.RowPad, headerPad = metrics.HeaderPad;
             double pad = theme.TableCellPadding;
             bool tintedHeader = PowerPointLayoutTheme.Contrast(theme.TableHeaderFill, theme.Background) < 1.6D;
             string hairline = Emu(Math.Max(0.25D, theme.TableBorderWidth));
@@ -477,7 +518,7 @@ namespace OfficeIMO.PowerPoint {
             if (table.IncludeHeaders) {
                 xml.Append("<a:tr h=\"").Append(Emu(metrics.HeaderHeight)).Append("\">");
                 for (int c = 0; c < table.Headers.Count; c++) {
-                    xml.Append(Cell(table.Headers[c], true, c, theme.TableHeaderFill, pad + 3D, tintedHeader ? theme.Accent1 : theme.TableHeaderFill,
+                    xml.Append(Cell(table.Headers[c], true, c, theme.TableHeaderFill, headerPad, tintedHeader ? theme.Accent1 : theme.TableHeaderFill,
                         tintedHeader ? Emu(1D) : "0"));
                 }
                 xml.Append("</a:tr>");
@@ -489,7 +530,7 @@ namespace OfficeIMO.PowerPoint {
                 string? fill = theme.TableBanding && r % 2 == 1 ? theme.Surface : null;
                 xml.Append("<a:tr h=\"").Append(Emu(height)).Append("\">");
                 for (int c = 0; c < table.Headers.Count; c++) {
-                    xml.Append(Cell(c < row.Count ? row[c] ?? string.Empty : string.Empty, false, c, fill, pad + 2D, theme.Hairline, hairline));
+                    xml.Append(Cell(c < row.Count ? row[c] ?? string.Empty : string.Empty, false, c, fill, rowPad, theme.Hairline, hairline));
                 }
                 xml.Append("</a:tr>");
             }
@@ -570,24 +611,35 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal static void RenderChart(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointLayoutChart chart, PowerPointLayoutRect box) {
+            // The chart label sits left-aligned above the plot as slide text (charts.title.align = left). A native
+            // chart title is centred by every renderer, so the chart itself carries no title.
+            if (!string.IsNullOrWhiteSpace(chart.Title)) {
+                PowerPointTextStyleSpec caption = context.Style(PowerPointTextRole.Caption);
+                double size = caption.Size + 3D;
+                PowerPointLayoutParagraph label = context.Paragraph(chart.Title!, PowerPointTextRole.Caption, context.Theme.Text, size, bold: true);
+                double height = Math.Ceiling(context.Height(chart.Title!, caption, box.Width, size)) + 2D;
+                writer.Text("Chart Title", box.WithHeight(height), label);
+                double offset = height + 8D;
+                box = new PowerPointLayoutRect(box.X, box.Y + offset, box.Width, Math.Max(40D, box.Height - offset));
+            }
+
             PowerPointChart result = writer.Slide.AddChart(chart.Kind, chart.Data, PowerPointUnits.FromPoints(box.X), PowerPointUnits.FromPoints(box.Y),
                 PowerPointUnits.FromPoints(box.Width), PowerPointUnits.FromPoints(box.Height), new PowerPointChartAccessibilityOptions {
                     Name = "Chart",
                     AlternativeText = chart.AlternativeText ?? chart.Title ?? "Chart",
                     IncludeDataSummaryInAlternativeText = true
                 });
-            // The slide title carries the message; a chart keeps at most a short label-sized title.
-            if (!string.IsNullOrWhiteSpace(chart.Title)) {
-                result.SetTitle(chart.Title!);
-                result.SetTitleTextStyle(fontSizePoints: context.Style(PowerPointTextRole.Caption).Size + 3D, bold: true, color: context.Theme.Text);
-            } else {
-                result.ClearTitle();
-            }
+            result.ClearTitle();
 
             // The chart sits on the slide surface: no chart-area fill or frame.
             result.SetChartAreaStyle(noFill: true, noLine: true);
             if (chart.Kind is OfficeChartKind.Pie or OfficeChartKind.Doughnut) {
-                ContrastSliceLabels(context, result, chart);
+                // Readers get the share on each slice; the legend names the slices.
+                result.SetDataLabels(showValue: false, showPercent: true);
+                result.SetDataLabelNumberFormat("0%");
+                result.SetDataLabelTextStyle(fontSizePoints: SliceLabelSize, bold: true, color: SliceLabelColor(context, chart));
+                result.SetLegend(OfficeChartLegendPosition.Bottom);
+                result.SetLegendTextStyle(fontSizePoints: ChartTextSize, color: context.Theme.TextMuted);
                 return;
             }
 
@@ -606,6 +658,8 @@ namespace OfficeIMO.PowerPoint {
                 else result.SetSeriesFillColor(i, accent);
             }
 
+            StyleCategoryChart(context, result, chart);
+
             // One series needs no legend; several get theirs at the top, under the title.
             DocumentFormat.OpenXml.Drawing.Charts.Legend? legend = result.GetChart().GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Legend>();
             if (chart.Data.Series.Count <= 1) {
@@ -613,24 +667,164 @@ namespace OfficeIMO.PowerPoint {
                 result.Save();
             } else {
                 result.SetLegend(OfficeChartLegendPosition.Top);
+                result.SetLegendTextStyle(fontSizePoints: ChartTextSize, color: context.Theme.TextMuted);
+            }
+        }
+
+        /// <summary>Axis and label text on layout charts (powerpoint-layouts.json, charts.axisText).</summary>
+        private const double ChartTextSize = 11D;
+
+        /// <summary>
+        ///     The layout chart look for category charts: 11 pt muted axis text, hairline value gridlines on a rounded
+        ///     scale of four or five steps, value labels when one series has few points, and straight lines with
+        ///     open markers.
+        /// </summary>
+        private static void StyleCategoryChart(PowerPointLayoutContext context, PowerPointChart result, PowerPointLayoutChart chart) {
+            if (chart.Kind is OfficeChartKind.Scatter or OfficeChartKind.Bubble or OfficeChartKind.Radar) return;
+            PowerPointLayoutTheme theme = context.Theme;
+            result.SetCategoryAxisLabelTextStyle(fontSizePoints: ChartTextSize, color: theme.TextMuted);
+            result.SetValueAxisLabelTextStyle(fontSizePoints: ChartTextSize, color: theme.TextMuted);
+            result.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: theme.Hairline, lineWidthPoints: 0.75D);
+            UniformAxisText(result);
+
+            bool secondary = chart.Data.Series.Any(series => series.AxisGroup == OfficeChartAxisGroup.Secondary);
+            bool stacked100 = chart.Kind is OfficeChartKind.ColumnStacked100 or OfficeChartKind.BarStacked100 or
+                OfficeChartKind.LineStacked100 or OfficeChartKind.AreaStacked100;
+            bool single = chart.Data.Series.Count == 1 && chart.Data.Categories.Count <= 8 && !stacked100;
+            if (!secondary && !stacked100 && NiceScale(chart, single) is (double minimum, double maximum, double step)) {
+                result.SetValueAxisScale(minimum, maximum, step);
+            }
+
+            for (int i = 0; i < chart.Data.Series.Count && i < 6; i++) {
+                OfficeChartSeries series = chart.Data.Series[i];
+                OfficeChartKind kind = series.RenderKind ?? chart.Kind;
+                if (kind is OfficeChartKind.Line or OfficeChartKind.LineStacked or OfficeChartKind.LineStacked100) {
+                    if (series.Color == null && series.SeriesStyle == null) {
+                        string accent = theme.Accent(i + 1);
+                        if (series.ShowMarkers || single) result.SetSeriesMarker(i, OfficeChartMarkerShape.Circle, 6, theme.Background, accent, 1.5D);
+                    }
+                }
+            }
+
+            StraightLines(result);
+
+            if (single) {
+                OfficeChartKind kind = chart.Data.Series[0].RenderKind ?? chart.Kind;
+                bool line = kind is OfficeChartKind.Line or OfficeChartKind.LineStacked;
+                bool area = kind is OfficeChartKind.Area or OfficeChartKind.AreaStacked;
+                if (!area) {
+                    result.SetDataLabels(showValue: true);
+                    result.SetDataLabelPosition(line ? OfficeChartDataLabelPosition.Top : OfficeChartDataLabelPosition.OutsideEnd);
+                    result.SetDataLabelTextStyle(fontSizePoints: ChartTextSize, bold: true, color: theme.Text);
+                }
             }
         }
 
         /// <summary>
-        ///     Pie and doughnut labels sit on their slice: each takes white or the theme text colour, whichever reads
-        ///     on that slice's accent fill.
+        ///     Secondary axes (combo charts) take the same axis text as the primary ones, so the chart keeps one axis
+        ///     text style and the shared chart renderer can draw it.
         /// </summary>
-        private static void ContrastSliceLabels(PowerPointLayoutContext context, PowerPointChart result, PowerPointLayoutChart chart) {
-            bool labelled = result.GetChart().Descendants<DocumentFormat.OpenXml.Drawing.Charts.DataLabels>().Any(labels =>
-                labels.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ShowValue>()?.Val?.Value == true ||
-                labels.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ShowPercent>()?.Val?.Value == true);
-            if (!labelled || chart.Data.Series.Count == 0) return;
-            int points = chart.Data.Categories.Count;
-            for (int i = 0; i < points; i++) {
-                string fill = context.Theme.Accent(i % 6 + 1);
-                string color = PowerPointLayoutTheme.Contrast("FFFFFF", fill) >= 4.5D ? "FFFFFF" : context.Theme.Text;
-                result.SetSeriesDataLabelTextStyleForPoint(0, i, color: color);
+        private static void UniformAxisText(PowerPointChart result) {
+            var axes = result.GetChart().PlotArea?.ChildElements
+                .Where(axis => axis is DocumentFormat.OpenXml.Drawing.Charts.CategoryAxis or DocumentFormat.OpenXml.Drawing.Charts.ValueAxis)
+                .ToList();
+            if (axes == null || axes.Count <= 2) return;
+            DocumentFormat.OpenXml.OpenXmlElement? reference = axes[0].GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.TextProperties>();
+            if (reference == null) return;
+            foreach (DocumentFormat.OpenXml.OpenXmlElement axis in axes.Skip(1)) {
+                DocumentFormat.OpenXml.Drawing.Charts.TextProperties? text = axis.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.TextProperties>();
+                if (text == null) continue;
+                text.InsertAfterSelf(reference.CloneNode(true));
+                text.Remove();
             }
+            result.Save();
+        }
+
+        /// <summary>Writes explicit unsmoothed lines, so no renderer curves a series between its points.</summary>
+        private static void StraightLines(PowerPointChart result) {
+            bool changed = false;
+            foreach (var series in result.GetChart().Descendants<DocumentFormat.OpenXml.Drawing.Charts.LineChartSeries>().ToList()) {
+                DocumentFormat.OpenXml.Drawing.Charts.Smooth? smooth = series.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Smooth>();
+                if (smooth != null) {
+                    if (smooth.Val?.Value == false) continue;
+                    smooth.Val = false;
+                } else {
+                    smooth = new DocumentFormat.OpenXml.Drawing.Charts.Smooth { Val = false };
+                    DocumentFormat.OpenXml.OpenXmlElement? extensions = series.ChildElements.FirstOrDefault(child => child.LocalName == "extLst");
+                    if (extensions != null) series.InsertBefore(smooth, extensions);
+                    else series.Append(smooth);
+                }
+                changed = true;
+            }
+            if (changed) result.Save();
+        }
+
+        /// <summary>
+        ///     A value axis of four to six round steps. Bars and columns start at zero; a line whose values sit far
+        ///     from zero gets a band around its data so the trend is readable. Headroom keeps value labels inside.
+        /// </summary>
+        internal static (double Minimum, double Maximum, double Step)? NiceScale(PowerPointLayoutChart chart, bool labelled) {
+            bool stacked = chart.Kind is OfficeChartKind.ColumnStacked or OfficeChartKind.BarStacked or OfficeChartKind.LineStacked or
+                OfficeChartKind.AreaStacked;
+            var values = new List<double>();
+            if (stacked) {
+                for (int c = 0; c < chart.Data.Categories.Count; c++) {
+                    double positive = 0D, negative = 0D;
+                    foreach (OfficeChartSeries series in chart.Data.Series) {
+                        if (c >= series.Values.Count || double.IsNaN(series.Values[c])) continue;
+                        if (series.Values[c] >= 0D) positive += series.Values[c]; else negative += series.Values[c];
+                    }
+                    values.Add(positive);
+                    values.Add(negative);
+                }
+            } else {
+                values.AddRange(chart.Data.Series.SelectMany(series => series.Values).Where(value => !double.IsNaN(value) && !double.IsInfinity(value)));
+            }
+
+            if (values.Count == 0) return null;
+            double min = values.Min(), max = values.Max();
+            if (max <= min && max == 0D) return null;
+            bool line = chart.Kind is OfficeChartKind.Line or OfficeChartKind.LineStacked;
+            double headroom = labelled ? 1.12D : 1.04D;
+            if (line && min > 0D && min >= max * 0.5D) {
+                double span = Math.Max(max - min, max * 0.05D);
+                double step = NiceStep(span * 1.6D / 4D);
+                double low = Math.Max(0D, Math.Floor((min - span * 0.3D) / step) * step);
+                double high = Math.Ceiling((max + span * (labelled ? 0.25D : 0.1D)) / step) * step;
+                return (low, high, step);
+            }
+
+            double lowEnd = Math.Min(0D, min);
+            double highEnd = Math.Max(0D, max);
+            double unit = NiceStep((highEnd * headroom - lowEnd * headroom) / 4D);
+            if (unit <= 0D) return null;
+            double minimum = lowEnd < 0D ? Math.Floor(lowEnd * headroom / unit) * unit : 0D;
+            double maximum = highEnd > 0D ? Math.Ceiling(highEnd * headroom / unit) * unit : 0D;
+            if (maximum <= minimum) return null;
+            return (minimum, maximum, unit);
+        }
+
+        private static double NiceStep(double raw) {
+            if (raw <= 0D || double.IsNaN(raw) || double.IsInfinity(raw)) return 0D;
+            double magnitude = Math.Pow(10D, Math.Floor(Math.Log10(raw)));
+            double fraction = raw / magnitude;
+            double nice = fraction <= 1D ? 1D : fraction <= 2D ? 2D : fraction <= 2.5D ? 2.5D : fraction <= 5D ? 5D : 10D;
+            return nice * magnitude;
+        }
+
+        /// <summary>Slice labels are large text (14 pt bold), so 3:1 against every slice is readable.</summary>
+        private const double SliceLabelSize = 14D;
+
+        /// <summary>
+        ///     One label colour for every slice (a per-slice colour is not portable across renderers): white or the
+        ///     theme ink, whichever keeps the better worst-case contrast over the slice accents in use.
+        /// </summary>
+        private static string SliceLabelColor(PowerPointLayoutContext context, PowerPointLayoutChart chart) {
+            int points = Math.Max(1, Math.Min(6, chart.Data.Categories.Count));
+            string[] fills = Enumerable.Range(1, points).Select(context.Theme.Accent).ToArray();
+            double white = fills.Min(fill => PowerPointLayoutTheme.Contrast("FFFFFF", fill));
+            double ink = fills.Min(fill => PowerPointLayoutTheme.Contrast(context.Theme.Ink, fill));
+            return white >= ink ? "FFFFFF" : context.Theme.Ink;
         }
 
         /// <summary>Pictures keep their aspect ratio: contained in the box (top-left) or cover-cropped around the focal point.</summary>

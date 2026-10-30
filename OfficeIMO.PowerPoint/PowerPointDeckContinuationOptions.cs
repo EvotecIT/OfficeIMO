@@ -8,7 +8,7 @@ namespace OfficeIMO.PowerPoint {
         private int _caseStudySectionsPerSlide = PowerPointDeckPlanLimits.MaxCaseStudySections;
         private int _caseStudyMetricsPerSlide = PowerPointDeckPlanLimits.MaxCaseStudyMetrics;
         private int _processStepsPerSlide = PowerPointDeckPlanLimits.MaxProcessSteps;
-        private int _cardsPerSlide = 6;
+        private int _cardsPerSlide = 8;
         private int _logosPerSlide = PowerPointDeckPlanLimits.DenseLogoWallItems;
         private int _locationsPerSlide = PowerPointDeckPlanLimits.VisibleCoveragePins;
         private int _capabilitySectionsPerSlide = PowerPointDeckPlanLimits.DenseCapabilitySections;
@@ -42,7 +42,8 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointDeckPlanLimits.MaxProcessSteps, nameof(ProcessStepsPerSlide));
         }
 
-        /// <summary>Maximum cards per generated page.</summary>
+        /// <summary>Maximum cards per generated page (default 8: two rows of four short cards). The layout still
+        /// moves cards to another page when their text needs the room.</summary>
         public int CardsPerSlide {
             get => _cardsPerSlide;
             set => _cardsPerSlide = RequirePositive(value, nameof(CardsPerSlide));
