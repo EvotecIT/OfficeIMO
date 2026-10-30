@@ -10367,6 +10367,18 @@
       "reason": "Preserve the existing CSS-shadow approximation through the physical-length API.",
       "file": "OfficeIMO.PowerPoint.Html/HtmlPowerPointConverterExtensions.Generic.cs",
       "applied": "phase-b-applied"
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "Maintained legacy import examples still use internal report factories, removed save loss-policy properties or format-specific byte helpers.",
+      "new": "Use document Load(..., out OfficeConversionReport), ThrowIfLoss(), Save options with AllowLoss, and ToBytes(saveOptions).",
+      "reason": "The lifecycle migration must also update maintained compatibility guides and report examples; removed factories cannot remain the advertised route.",
+      "note": "Six maintained normal-load, report-load and cross-format report examples compile together against the current public Word, Excel, PowerPoint and Core libraries with zero warnings/errors. Application code can format the immutable diagnostics for archival text reports.",
+      "files": [
+        "OfficeIMO.PowerPoint/README.md"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

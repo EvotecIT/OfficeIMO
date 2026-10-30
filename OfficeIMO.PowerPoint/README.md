@@ -154,10 +154,11 @@ presentation.ReplaceText("Draft", "Approved");
 presentation.SaveCopy("updated.pptx");
 ```
 
-Use `LoadLegacyPptWithReport(...)` when an import gate needs parser diagnostics and a conversion-loss result:
+Use the `Load` overload with a report when an import gate needs parser diagnostics and a conversion-loss result:
 
 ```csharp
-using OfficeIMO.PowerPoint.LegacyPpt;
+using OfficeIMO;
+using OfficeIMO.PowerPoint;
 
 using PowerPointDocument presentation = PowerPointDocument.Load("legacy-deck.ppt", null,
     out OfficeIMO.OfficeConversionReport report);
