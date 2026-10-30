@@ -28,7 +28,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         MarkdownPdfStyle visualTheme = ResolveVisualTheme(document, options);
-        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
+        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.CreateForImportedLayout(pdfOptions);
         PdfCore.PdfTheme? documentTheme = visualTheme.DocumentThemeSnapshot;
         if (documentTheme != null) {
             pdf.Theme(documentTheme);

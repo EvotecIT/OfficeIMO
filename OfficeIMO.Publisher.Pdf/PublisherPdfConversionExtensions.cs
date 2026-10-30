@@ -11,7 +11,7 @@ public static class PublisherPdfConversionExtensions {
         var report = new PdfConversionReport();
         PdfCreateOptions operation = options?.Clone() ?? new PdfCreateOptions();
         operation.ReportDiagnosticsTo(report, "OfficeIMO.Publisher.Pdf");
-        PdfDocument pdf = PdfDocument.Create(operation);
+        PdfDocument pdf = PdfDocument.CreateForImportedLayout(operation);
         foreach (PublisherPage page in document.Pages) {
             cancellationToken.ThrowIfCancellationRequested();
             pdf.Compose(builder => builder.Page(surface => surface.Size(page.Width, page.Height).Margin(0)

@@ -102,9 +102,10 @@ public sealed partial class PdfCreateOptions {
     }
     /// <summary>Footer font size in points.</summary>
     public double FooterFontSize {
-        get => _footerFontSize;
+        get => !_hasExplicitFooterFontSize && _useOfficeThemeDefaults ? EffectiveTheme.Footer.FontSize.ToPoints() : _footerFontSize;
         set {
             _footerFontSize = value;
+            _hasExplicitFooterFontSize = true;
             MarkFontConfigurationAssigned();
         }
     }

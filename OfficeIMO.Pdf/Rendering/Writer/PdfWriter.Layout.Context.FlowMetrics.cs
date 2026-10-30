@@ -569,7 +569,7 @@ internal static partial class PdfWriter {
         }
 
         private double MeasureDeferredTableFirstVisualHeight(DeferredTableBlock table, double frameWidth, double fontSize) {
-            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
+            PdfTableStyle style = table.Style ?? currentOpts.DefaultDeferredTableStyleSnapshot ?? PdfTableStyles.Light();
             using System.Collections.Generic.IEnumerator<DeferredTableBatch> batches = table.CreateBatches(style).GetEnumerator();
             return batches.MoveNext()
                 ? MeasureTableBlockHeight(batches.Current.Table, frameWidth, fontSize, firstVisualOnly: true)

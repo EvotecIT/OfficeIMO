@@ -39,7 +39,7 @@ public static class XpsPdfExtensions {
         if (document.Pages.Count == 0) throw new InvalidOperationException("PDF export requires at least one page.");
         var navigation = new XpsPdfNavigation(document, cancellationToken);
         var structure = options.PreserveLogicalStructure ? new XpsPdfLogicalStructure(document, cancellationToken) : null;
-        var pdf = PdfDocument.Create(options.PdfOptions);
+        var pdf = PdfDocument.CreateForImportedLayout(options.PdfOptions);
         if (structure?.HasNativeStructure == true) pdf.TaggedStructure(PdfTaggedStructureMode.CatalogMarkers);
         pdf.Compose(builder => {
             for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {

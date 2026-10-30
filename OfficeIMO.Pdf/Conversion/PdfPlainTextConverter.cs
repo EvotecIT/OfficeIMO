@@ -56,7 +56,7 @@ internal static class PdfPlainTextConverter {
         PdfCreateOptions pdfOptions = settings.PdfOptions;
         pdfOptions.PreserveTextWhitespace = true;
         pdfOptions.MaxGeneratedPages = Math.Min(pdfOptions.MaxGeneratedPages ?? settings.MaximumPages, settings.MaximumPages);
-        PdfDocument document = PdfDocument.Create(pdfOptions);
+        PdfDocument document = PdfDocument.CreateForImportedLayout(pdfOptions);
         string[] pages = normalized.ToString().Split('\f');
         if (pages.Length > settings.MaximumPages) throw new InvalidDataException("Plain text exceeds the explicit page limit.");
         var style = new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0, LineHeight = 1.2 };

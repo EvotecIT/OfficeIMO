@@ -3484,6 +3484,57 @@
       "file": "OfficeIMO.Pdf/Compose/PdfContentBuilder.cs",
       "applied": "phase-b-applied",
       "note": "More specific one-argument overloads preserve actual cells; existing alignment/style overloads keep their behavior. Native array regression passes on net10.0."
+    },
+    {
+      "phase": "B",
+      "action": "add",
+      "applied": "phase-b-applied",
+      "new": "PdfCreateOptions.Theme : OfficeTheme?; PdfTheme.FromOfficeTheme(OfficeTheme)",
+      "reason": "Use the canonical PDF theme adapter for newly authored composition with root OfficeColor. Explicit native style/font/size overrides and clones retain precedence; loaded PDFs and source-format imports remain neutral.",
+      "note": "New PDF composition snapshots shared theme defaults. Explicit fonts, per-level styles and run formatting win; loaded PDFs and source-layout imports remain neutral. Deferred/context components retain their owning page defaults, including late page configuration. Core/PDF library builds pass with zero warnings and errors on net10.0; 38 focused native cases pass. The package README snippet compiles and runs; Modern, Classic, Dark and explicit Boardroom/Courier samples render successfully. FromOfficeTheme creates a styling bundle rather than a document conversion. Raw physical properties are covered by the separate geometry migration.",
+      "extraNote": "Review remediation carries owning page defaults through deferred/context flow and keeps explicit document fonts above inherited theme heading fonts, while explicit heading/block/run styles remain stronger. The standalone styling factory retains distinct Boardroom fonts. New saved-artifact regression source covers these paths; the earlier primary 28-case result predates this remediation, which has not been built or tested in this bounded edit.",
+      "files": [
+        "Build/ApiMap/csharp/OfficeIMO.Pdf.json",
+        "OfficeIMO.Core/OfficeDocumentFontSubstitutions.cs",
+        "OfficeIMO.DjVu.Pdf/DjVuPdfConversionEngine.cs",
+        "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.cs",
+        "OfficeIMO.Html/Pdf/HtmlPdfRenderedConverter.cs",
+        "OfficeIMO.Markdown.Pdf/MarkdownPdfConverterExtensions.cs",
+        "OfficeIMO.OneNote.Pdf/OneNoteVisualPdfRenderer.cs",
+        "OfficeIMO.OpenDocument.Odg.Pdf/OdgPdfConversionEngine.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfCreationOfficeThemeTests.cs",
+        "OfficeIMO.Pdf/Compose/PdfContentBuilder.TypedTables.cs",
+        "OfficeIMO.Pdf/Conversion/PdfPlainTextConverter.cs",
+        "OfficeIMO.Pdf/Core/PdfDocument.Images.cs",
+        "OfficeIMO.Pdf/Core/PdfDocument.Meta.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfPageImposer.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfStamper.Canvas.cs",
+        "OfficeIMO.Pdf/Manipulation/PdfTaggedPageOrganizer.Import.cs",
+        "OfficeIMO.Pdf/Model/PdfTheme.OfficeTheme.cs",
+        "OfficeIMO.Pdf/Model/PdfTheme.cs",
+        "OfficeIMO.Pdf/OfficeDocumentModelPdfExtensions.cs",
+        "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
+        "OfficeIMO.Pdf/Options/PdfOptions.Clone.cs",
+        "OfficeIMO.Pdf/Options/PdfOptions.Decorations.cs",
+        "OfficeIMO.Pdf/Options/PdfOptions.FontConfigurationState.cs",
+        "OfficeIMO.Pdf/Options/PdfOptions.HeaderFooter.cs",
+        "OfficeIMO.Pdf/Options/PdfOptions.MeasurementSnapshot.cs",
+        "OfficeIMO.Pdf/Options/PdfOptions.OfficeTheme.cs",
+        "OfficeIMO.Pdf/Options/PdfOptions.Page.cs",
+        "OfficeIMO.Pdf/Options/PdfOptions.Styles.cs",
+        "OfficeIMO.Pdf/PublicAPI.Unshipped.txt",
+        "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.FlowMetrics.cs",
+        "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.Process.Table.cs",
+        "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Context.Process.cs",
+        "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.PageText.cs",
+        "OfficeIMO.PowerPoint.Pdf/PowerPointPdfConverterExtensions.Api.cs",
+        "OfficeIMO.PowerPoint.Pdf/PowerPointPdfConverterExtensions.TablePreview.cs",
+        "OfficeIMO.Publisher.Pdf/PublisherPdfConversionExtensions.cs",
+        "OfficeIMO.Rtf.Pdf/RtfPdfConverter.cs",
+        "OfficeIMO.Visio.Pdf/VisioPdfConversionEngine.DiagramPages.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.cs",
+        "OfficeIMO.Xps.Pdf/XpsPdfExtensions.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
@@ -3495,6 +3546,8 @@
     "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
   },
   "additions": [
-    "PdfContentBuilder.Table<T>(IEnumerable<T> rows); Table<T>(IEnumerable<T> rows, OfficeTableOptions? options); PdfTableOptions adds Align, Style and bounded Projection controls"
+    "PdfContentBuilder.Table<T>(IEnumerable<T> rows); Table<T>(IEnumerable<T> rows, OfficeTableOptions? options); PdfTableOptions adds Align, Style and bounded Projection controls",
+    "PdfCreateOptions.Theme : OfficeTheme?",
+    "PdfTheme.FromOfficeTheme(OfficeTheme)"
   ]
 }

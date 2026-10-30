@@ -47,8 +47,8 @@ public sealed partial class PdfDocument : IDisposable {
     private string? _subject;
     private string? _keywords;
 
-    private PdfDocument(PdfCreateOptions? options = null) {
-        _optionsStorage = options?.Clone() ?? new PdfCreateOptions();
+    private PdfDocument(PdfCreateOptions? options = null, bool useThemeDefaults = true) {
+        _optionsStorage = (options ?? PdfCreateOptions.CreateNeutralOptions()).CreateDocumentSnapshot(useThemeDefaults);
         _optionsStorage.MaterializeAutomaticPdfXProductionMetadata();
         _pipeline = PdfPipelineReport.Created();
         _blockScopes = new System.Collections.Generic.Stack<System.Action<IPdfBlock>>();
@@ -69,7 +69,7 @@ public sealed partial class PdfDocument : IDisposable {
         LazyInitializer.EnsureInitialized(ref _optionsStorage, CreateSourceBackedOptions)!;
 
     private static PdfCreateOptions CreateSourceBackedOptions() {
-        var options = new PdfCreateOptions();
+        var options = PdfCreateOptions.CreateNeutralOptions();
         options.MaterializeAutomaticPdfXProductionMetadata();
         return options;
     }
@@ -80,6 +80,10 @@ public sealed partial class PdfDocument : IDisposable {
     /// <param name="options">Page size, margins and default font options. When null, sensible defaults are used.</param>
     /// <returns>New <see cref="PdfDocument"/> instance.</returns>
     public static PdfDocument Create(PdfCreateOptions? options = null) => new PdfDocument(options);
+
+    /// <summary>Creates a neutral target for a source format that already owns typography and layout.</summary>
+    internal static PdfDocument CreateForImportedLayout(PdfCreateOptions? options = null) =>
+        new PdfDocument(options, useThemeDefaults: false);
 
     /// <summary>
     /// Gets the content builder for ordinary incremental authoring. It uses the same document
@@ -285,6 +289,9 @@ public sealed partial class PdfDocument : IDisposable {
     // Internal getters for writer/compose
     internal System.Collections.Generic.IEnumerable<IPdfBlock> Blocks => _blocks;
     internal PdfCreateOptions Options => _options;
+    private PdfCreateOptions? _compositionOptions;
+    /// <summary>Resolves typed-table defaults from the active composed page, including nested flow.</summary>
+    internal PdfCreateOptions CompositionOptions => _compositionOptions ?? _options;
 
     private System.Action<IPdfBlock> CurrentBlockSink => _blockScopes!.Peek();
 
@@ -312,8 +319,14 @@ public sealed partial class PdfDocument : IDisposable {
         }
         var block = new PageBlock(snapshot);
         using (PushBlockScope(block.AddBlock)) {
-            var page = new PdfPageBuilder(this, snapshot);
-            configure(page);
+            PdfCreateOptions? previousOptions = _compositionOptions;
+            _compositionOptions = snapshot;
+            try {
+                var page = new PdfPageBuilder(this, snapshot);
+                configure(page);
+            } finally {
+                _compositionOptions = previousOptions;
+            }
         }
         AddPageBlock(block);
     }

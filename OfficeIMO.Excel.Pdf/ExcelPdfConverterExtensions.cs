@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel.Pdf {
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = RegisterWorksheetFonts(pdfOptions, exportPlans, options, preserveConfiguredFontSlots, document.GetWorkbookDefaultFontInfo());
             ApplyTextFallbacks(pdfOptions, options, preserveConfiguredFontSlots, registeredFontSlots, exportPlans);
             ApplyWorksheetColumnFontMetrics(document, pdfOptions, options, exportPlans);
-            var pdf = PdfCore.PdfDocument.Create(pdfOptions);
+            var pdf = PdfCore.PdfDocument.CreateForImportedLayout(pdfOptions);
             IReadOnlyDictionary<string, string> sheetDestinations = BuildSheetDestinationMap(exportPlans);
             IReadOnlyDictionary<string, string> cellDestinations = BuildCellDestinationMap(exportPlans);
             foreach (var worksheet in exportPlans.GroupBy(plan => plan.SheetName, StringComparer.OrdinalIgnoreCase)) {

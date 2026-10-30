@@ -16,7 +16,7 @@ internal static class OneNoteVisualPdfRenderer {
         effective.Validate();
         effective.PdfOptions.UseContentStreamCompressionByDefault();
         string title = string.IsNullOrWhiteSpace(effective.Title) ? sourceName : effective.Title!;
-        PdfCore.PdfDocument document = PdfCore.PdfDocument.Create(effective.PdfOptions).Meta(title, effective.Author, effective.Subject, effective.Keywords);
+        PdfCore.PdfDocument document = PdfCore.PdfDocument.CreateForImportedLayout(effective.PdfOptions).Meta(title, effective.Author, effective.Subject, effective.Keywords);
         var report = new PdfCore.PdfConversionReport();
 
         foreach (OneNotePageReference reference in pages) {

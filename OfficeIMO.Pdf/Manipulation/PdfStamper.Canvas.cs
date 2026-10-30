@@ -56,7 +56,7 @@ internal static partial class PdfStamper {
             overlayOptions.MarginRight = 0D;
             overlayOptions.MarginBottom = 0D;
             overlayOptions.Encryption = null;
-            byte[] overlay = PdfDocument.Create(overlayOptions)
+            byte[] overlay = PdfDocument.CreateForImportedLayout(overlayOptions)
                 .Canvas(generatedCanvas => CopyCanvasItems(canvas, generatedCanvas))
                 .SerializeBytes(cancellationToken);
             int generatedPageBytes = overlay.Length > int.MaxValue - 1024 ? int.MaxValue : overlay.Length + 1024;

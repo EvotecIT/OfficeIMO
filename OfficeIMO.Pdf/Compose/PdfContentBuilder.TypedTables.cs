@@ -52,7 +52,7 @@ public sealed partial class PdfContentBuilder {
             if (!expanded) AddRow(row, null, null);
         }
         if (output.Count == 0) throw new ArgumentException("A headerless table requires at least one row.", nameof(rows));
-        var effectiveStyle = pdfOptions?.Style?.Clone() ?? new PdfTableStyle();
+        var effectiveStyle = pdfOptions?.Style?.Clone() ?? _doc.CompositionOptions.DefaultTableStyle ?? new PdfTableStyle();
         effectiveStyle.HeaderRowCount = headers ? 1 : 0;
         effectiveStyle.RepeatHeaderRowCount = headers ? 1 : 0;
         if (options?.Name != null) effectiveStyle.Caption = options.Name;

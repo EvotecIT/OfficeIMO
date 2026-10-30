@@ -213,7 +213,7 @@ namespace OfficeIMO.Word.Pdf {
                         "Picture bullet " + pictureBulletId.ToString(CultureInfo.InvariantCulture) + " is represented by a portable text bullet in PDF output.");
                 }
             }
-            PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(CreateNativeOptions(
+            PdfCore.PdfDocument pdf = PdfCore.PdfDocument.CreateForImportedLayout(CreateNativeOptions(
                     document,
                     options,
                     nativeFontMap,

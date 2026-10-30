@@ -1,6 +1,10 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfCreateOptions {
+    private double? _marginLeft;
+    private double? _marginRight;
+    private double? _marginTop;
+    private double? _marginBottom;
     private double _pageWidth = 612;
     private double _pageHeight = 792;
     private long _pageSizeConfigurationVersion;
@@ -51,15 +55,15 @@ public sealed partial class PdfCreateOptions {
     /// <summary>Page orientation inferred from the current page size.</summary>
     public OfficePageOrientation PageOrientation => PageWidth > PageHeight ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
     /// <summary>Left margin in points. Default 72 (1 inch).</summary>
-    public double MarginLeft { get; set; } = 72; // 1 in
+    public double MarginLeft { get => _marginLeft ?? (_useOfficeThemeDefaults ? EffectiveTheme.Page.MarginLeft.ToPoints() : 72D); set => _marginLeft = value; }
     /// <summary>Right margin in points. Default 72 (1 inch).</summary>
-    public double MarginRight { get; set; } = 72;
+    public double MarginRight { get => _marginRight ?? (_useOfficeThemeDefaults ? EffectiveTheme.Page.MarginRight.ToPoints() : 72D); set => _marginRight = value; }
     /// <summary>Swaps the left and right margins on even visible page numbers. Numbering starts and restarts determine parity.</summary>
     public bool MirrorMargins { get; set; }
     /// <summary>Top margin in points. Default 72 (1 inch).</summary>
-    public double MarginTop { get; set; } = 72;
+    public double MarginTop { get => _marginTop ?? (_useOfficeThemeDefaults ? EffectiveTheme.Page.MarginTop.ToPoints() : 72D); set => _marginTop = value; }
     /// <summary>Bottom margin in points. Default 72 (1 inch).</summary>
-    public double MarginBottom { get; set; } = 72;
+    public double MarginBottom { get => _marginBottom ?? (_useOfficeThemeDefaults ? EffectiveTheme.Page.MarginBottom.ToPoints() : 72D); set => _marginBottom = value; }
     /// <summary>Page margins in points.</summary>
     public PdfPageMargins Margins {
         get => new PdfPageMargins(OfficeIMO.OfficeLength.Points(MarginLeft),OfficeIMO.OfficeLength.Points(MarginTop),OfficeIMO.OfficeLength.Points(MarginRight),OfficeIMO.OfficeLength.Points(MarginBottom));

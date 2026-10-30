@@ -31,7 +31,7 @@ public static partial class PowerPointPdfConverterExtensions {
         bool hasExplicitDefaultFont = options.HasExplicitPdfFontConfiguration && options.PdfOptions?.HasExplicitDefaultFont == true;
         options.NativeTextDefaultFontFamily = string.IsNullOrWhiteSpace(options.FontFamily) && !hasExplicitDefaultFont ? null
             : PdfCore.PdfFontNames.ToBaseFontName(PdfCore.PdfStandardFontMapper.GetStyledFont(pdfOptions.DefaultFont, false, false));
-        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
+        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.CreateForImportedLayout(pdfOptions);
         ReportOmittedSpeakerNotes(presentation, options);
 
         IReadOnlyList<PptCore.PowerPointSlide> slides = presentation.Slides;

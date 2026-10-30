@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderDeferredTableFlowBlock(DeferredTableBlock deferredTable, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
-            PdfTableStyle style = deferredTable.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
+            PdfTableStyle style = deferredTable.Style ?? currentOpts.DefaultDeferredTableStyleSnapshot ?? PdfTableStyles.Light();
             if (style.Position is { VerticalAlignment: not PdfTableVerticalAlignment.Top })
                 throw new ArgumentException("Deferred floating tables support top alignment; use an eager table for center or bottom alignment.", nameof(deferredTable));
             double flowYBeforeTable = y;

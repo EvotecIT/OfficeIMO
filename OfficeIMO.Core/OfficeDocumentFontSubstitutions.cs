@@ -65,6 +65,25 @@ internal static class OfficeDocumentFontSubstitutions {
             ((normalized == "courier" || normalized == "couriernew") && target.Equals("Liberation Mono", StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>Returns the generic CSS family (<c>sans-serif</c>, <c>serif</c> or <c>monospace</c>) that best describes a family name.</summary>
+    internal static string ClassifyGenericFamily(string family) {
+        string key = Normalize(family);
+        if (IsMonospace(key)) return "monospace";
+        if (IsSerif(key)) return "serif";
+        return "sans-serif";
+    }
+
+    private static bool IsMonospace(string key) =>
+        key.Contains("mono") || key.Contains("courier") || key.Contains("consol") || key.Contains("code") ||
+        key == "menlo" || key == "monaco" || key == "sfmono";
+
+    private static bool IsSerif(string key) =>
+        !key.Contains("sans") && (key.Contains("serif") || key.Contains("times") || key.Contains("roman") ||
+            key.Contains("georgia") || key.Contains("cambria") || key.Contains("caladea") || key.Contains("gelasio") ||
+            key.Contains("garamond") || key.Contains("baskerville") || key.Contains("palatino") || key.Contains("bookantiqua") ||
+            key.Contains("century") || key.Contains("tinos") || key.Contains("constantia") || key.Contains("didot") ||
+            key.Contains("minion") || key.Contains("charter"));
+
     private static string Normalize(string family) =>
         family.Trim().Replace(" ", string.Empty).Replace("-", string.Empty).ToLowerInvariant();
 }

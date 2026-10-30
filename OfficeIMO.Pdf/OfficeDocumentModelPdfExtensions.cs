@@ -29,7 +29,7 @@ internal static partial class OfficeDocumentModelPdfExtensions {
         PdfCreateOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCreateOptions();
         pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(report, ConverterName);
-        PdfDocument document = PdfDocument.Create(pdfOptions)
+        PdfDocument document = PdfDocument.CreateForImportedLayout(pdfOptions)
             .Meta(source.Source.Title, source.Source.Author, source.Source.Subject, source.Source.Keywords);
         OfficeRasterDecodeOptions rasterDecodeOptions = options.SnapshotRasterDecodeOptions();
         rasterDecodeOptions.MaximumDecodedPixels = Math.Min(

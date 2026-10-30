@@ -19,7 +19,7 @@ internal static partial class VisioPdfConversionEngine {
         pdfOptions.UseRenderingProfile(profile, OfficeRenderingProfileApplyMode.Overlay);
         drawingOptions.LayoutMetrics = PdfWriter.CreateDrawingTextMetrics(pdfOptions, token);
         OfficeConversionResult<IReadOnlyList<OfficeDrawing>, VisioDrawingConversionReport> projected = source.ToDrawings(drawingOptions, token);
-        PdfDocument pdf = PdfDocument.Create(pdfOptions);
+        PdfDocument pdf = PdfDocument.CreateForImportedLayout(pdfOptions);
         foreach (OfficeDrawing drawing in projected.Value) {
             token.ThrowIfCancellationRequested();
             pdf.Compose(document => document.Page(page => {

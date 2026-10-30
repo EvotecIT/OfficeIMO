@@ -91,6 +91,7 @@
     <InternalsVisibleTo Include="OfficeIMO.OpenDocument.Odg.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Xps.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.DjVu.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Publisher.Pdf" />
   </ItemGroup>
 
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Invoicing.Pdf" /></ItemGroup>

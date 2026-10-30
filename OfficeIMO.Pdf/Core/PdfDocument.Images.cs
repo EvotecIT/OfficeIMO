@@ -163,7 +163,7 @@ public sealed partial class PdfDocument {
         IEnumerable<PdfImageDocumentSource> images,
         PdfImageImportOptions effective,
         CancellationToken cancellationToken) {
-        var document = new PdfDocument();
+        var document = new PdfDocument(useThemeDefaults: false);
         int sourceCount = 0;
         foreach (PdfImageDocumentSource source in images) {
             cancellationToken.ThrowIfCancellationRequested();

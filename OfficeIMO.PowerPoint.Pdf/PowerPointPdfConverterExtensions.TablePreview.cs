@@ -32,7 +32,7 @@ public static partial class PowerPointPdfConverterExtensions {
         }
         pdfOptions.PageWidth = width;
         pdfOptions.PageHeight = height;
-        PdfCore.PdfDocument document = PdfCore.PdfDocument.Create(pdfOptions);
+        PdfCore.PdfDocument document = PdfCore.PdfDocument.CreateForImportedLayout(pdfOptions);
         document.Canvas(target => target.AddItems(canvas.Items));
         return PdfCore.PdfReadDocument.Open(document.ToBytes()).Pages[0].ToDrawing();
     }

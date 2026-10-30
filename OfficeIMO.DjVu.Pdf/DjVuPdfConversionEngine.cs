@@ -47,7 +47,7 @@ internal static class DjVuPdfConversionEngine {
         var pdfReport = new PdfConversionReport();
         settings.PdfOptions!.UseContentStreamCompressionByDefault();
         settings.PdfOptions.ReportDiagnosticsTo(pdfReport, "OfficeIMO.DjVu.Pdf");
-        var pdf = PdfDocument.Create(settings.PdfOptions);
+        var pdf = PdfDocument.CreateForImportedLayout(settings.PdfOptions);
         var pageReports = new List<DjVuPdfPageReport>();
         var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
         var textBudget = new DjVuPdfTextBudget(settings);

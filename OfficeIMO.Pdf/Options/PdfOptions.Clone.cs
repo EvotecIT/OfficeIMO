@@ -7,7 +7,8 @@ public sealed partial class PdfCreateOptions {
         var clone = new PdfCreateOptions {
             PageWidth = PageWidth,
             PageHeight = PageHeight,
-            BackgroundColor = BackgroundColor,
+            _backgroundColor = _backgroundColor,
+            _hasExplicitBackgroundColor = _hasExplicitBackgroundColor,
             TextWatermark = _textWatermark?.Clone(),
             FirstPageTextWatermark = _firstPageTextWatermark?.Clone(),
             EvenPageTextWatermark = _evenPageTextWatermark?.Clone(),
@@ -21,13 +22,13 @@ public sealed partial class PdfCreateOptions {
             PageBorder = _pageBorder?.Clone(),
             PageBackgroundImage = _pageBackgroundImage?.Clone(),
             PageBackgroundShapes = ClonePageBackgroundShapes(_pageBackgroundShapes),
-            MarginLeft = MarginLeft,
-            MarginRight = MarginRight,
+            _marginLeft = _marginLeft,
+            _marginRight = _marginRight,
             MirrorMargins = MirrorMargins,
-            MarginTop = MarginTop,
-            MarginBottom = MarginBottom,
-            DefaultFont = DefaultFont,
-            DefaultFontSize = DefaultFontSize,
+            _marginTop = _marginTop,
+            _marginBottom = _marginBottom,
+            _defaultFont = _defaultFont,
+            _defaultFontSize = _defaultFontSize,
             UseFontUnitTextLayout = UseFontUnitTextLayout,
             _textWhitespaceMode = _textWhitespaceMode,
             _hasExplicitTextWhitespaceConfiguration = _hasExplicitTextWhitespaceConfiguration,
@@ -131,12 +132,12 @@ public sealed partial class PdfCreateOptions {
             EvenPageFooterFormat = EvenPageFooterFormat,
             FooterFont = FooterFont,
             FooterFontFamily = FooterFontFamily,
-            FooterFontSize = FooterFontSize,
+            _footerFontSize = _footerFontSize,
             FooterTextColor = FooterTextColor,
             FooterAlign = FooterAlign,
             FooterOffsetY = FooterOffsetY,
             PageNumberStyle = PageNumberStyle,
-            DefaultTextColor = DefaultTextColor,
+            _defaultTextColor = _defaultTextColor,
             DefaultParagraphStyle = _defaultParagraphStyle?.Clone(),
             DefaultHeadingStyles = _defaultHeadingStyles?.Clone(),
             DefaultListStyle = _defaultListStyle?.Clone(),
@@ -199,6 +200,10 @@ public sealed partial class PdfCreateOptions {
             _firstPageFooterShapes = CloneHeaderFooterShapes(_firstPageFooterShapes),
             _evenPageFooterShapes = CloneHeaderFooterShapes(_evenPageFooterShapes)
         };
+        clone._theme = _theme;
+        clone._useOfficeThemeDefaults = _useOfficeThemeDefaults;
+        clone._hasExplicitDefaultFontSize = _hasExplicitDefaultFontSize;
+        clone._hasExplicitFooterFontSize = _hasExplicitFooterFontSize;
         clone._useAutomaticPdfXProductionMetadata = _useAutomaticPdfXProductionMetadata;
         clone._defaultTableStyle = _defaultTableStyle?.Clone();
         clone._hasExplicitDefaultTableStyle = _hasExplicitDefaultTableStyle;

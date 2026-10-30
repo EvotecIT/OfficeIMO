@@ -52,7 +52,7 @@ public sealed partial class PdfCreateOptions {
                 }
             }
 
-            AddInt64((int)_defaultFont);
+            AddInt64((int)DefaultFont);
             AddInt64((int)_headerFont);
             AddInt64((int)_footerFont);
             AddInt64(BitConverter.DoubleToInt64Bits(DefaultFontSize));

@@ -136,7 +136,7 @@ internal static class PdfPageImposer {
         int sheetCount = checked((int)((pageNumbers.LongLength + cellsPerSheet - 1L) / cellsPerSheet));
         if (sheetCount > options.MaxSheets) throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPages, options.MaxSheets, sheetCount);
 
-        var blank = PdfDocument.Create(new PdfCreateOptions { PageSize = options.SheetSize,
+        var blank = PdfDocument.CreateForImportedLayout(new PdfCreateOptions { PageSize = options.SheetSize,
             FileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(info.EffectiveVersion),
             MaxGeneratedOutputBytes = options.MaxOutputBytes });
         for (int index = 0; index < sheetCount; index++) {

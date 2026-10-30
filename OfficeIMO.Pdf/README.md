@@ -47,6 +47,36 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 
 `document.Content.Heading(level, text)` accepts authored heading levels from 1 through 9 in document, page, column and container flow. The `H1`, `H2` and `H3` shortcuts retain their existing presets. Deeper headings accept the same `PdfHeadingStyle` overrides. Enable tagged output with `new PdfCreateOptions().EnableTaggedPdfCatalogMarkers()` when creating the document to retain explicit numeric levels during semantic reading, including skipped levels. Levels 7–9 use `H7`–`H9` tags mapped to the standard `H6` role. Bookmarks preserve the parent-child hierarchy; without tags, semantic reading uses their nesting depth and cannot recover skipped numeric levels.
 
+## Creation themes and typed tables
+
+New PDF composition uses `OfficeTheme.Default`. Select another theme when creating
+the document:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Pdf;
+
+using var document = PdfDocument.Create(new PdfCreateOptions {
+    Theme = OfficeTheme.Classic
+});
+document.Content.H1("Quarterly revenue")
+    .Text("Revenue by quarter")
+    .Table(new[] { new RevenueRow("Q1", 120), new RevenueRow("Q2", 145) });
+document.Save("quarterly-revenue.pdf");
+
+record RevenueRow(string Quarter, int Revenue);
+```
+
+The theme supplies page margins, typography, colors, headings and table defaults.
+Explicit options, block styles and run formatting take precedence. Creation snapshots
+the options; later caller changes do not restyle the document. Loading a PDF preserves
+its existing appearance. Source-format imports retain their source layout.
+
+Typed tables accept `OfficeTableOptions` for column selection, ordering, headers,
+formatters and alignment. `PdfTableOptions` also accepts an explicit PDF style and
+bounded projection options. Use `PdfTheme.FromOfficeTheme(theme)` to create a reusable
+PDF style bundle.
+
 ## Find your next task
 
 - [Read text and tables](#load-once-and-build-one-semantic-read-result).

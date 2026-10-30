@@ -16,7 +16,7 @@ internal static class OdgPdfConversionEngine {
             textShapingProvider: pdfOptions.TextShapingProvider, textShapingLanguage: pdfOptions.Language);
         OdfConversionResult<IReadOnlyList<OfficeDrawing>> projected = source.ToDrawings(operation.LossPolicy, operation.ForPrint,
             operation.MaximumPages, token, operation.DateTimeFields, profile, PdfWriter.CreateDrawingTextMetrics(pdfOptions, token));
-        PdfDocument pdf = PdfDocument.Create(pdfOptions);
+        PdfDocument pdf = PdfDocument.CreateForImportedLayout(pdfOptions);
         foreach (OfficeDrawing drawing in projected.Value) {
             token.ThrowIfCancellationRequested();
             pdf.Compose(document => document.Page(builder => {
