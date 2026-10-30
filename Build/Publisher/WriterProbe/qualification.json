@@ -576,10 +576,507 @@
     ],
     "limits": [
       "Repair-free opening remains unassessed.",
-      "The native runner reads and resaves; native text mutation is a separate unexercised operation.",
       "Opaque record semantics, cached preview freshness and broad native-layout fidelity remain unassessed.",
       "The 20-point request renders at 20.04 points in these native PDFs, within the recorded tolerance.",
-      "Original controls and native-resaved derivatives retain their distinct provenance."
-    ]
+      "Original controls and native-resaved derivatives retain their distinct provenance.",
+      "Native whole-range text mutation is qualified separately on one styled candidate; it does not qualify all source-edit specimens."
+    ],
+    "placementAndPaint": {
+      "scope": "Nine bounded OfficeArt source edits; native inventory, PDF geometry/paint/image pixels, and save/reopen qualification.",
+      "candidateCodecCommit": "5055b30b729edafe3d31b099dd50521e14566ee5",
+      "probeCommand": [
+        "edit",
+        "<source.pub>",
+        "<candidate.pub>",
+        "<objectId>",
+        "<x>",
+        "<y>",
+        "<width>",
+        "<height>",
+        "[fillRgbHex]"
+      ],
+      "validationCommand": "Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath <candidate.pub> -OutputDirectory <fresh-output>",
+      "qualifiedOperations": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "physicalPagesCompared": 19,
+      "sourceUnchanged": true,
+      "unaffectedNativeObjectGeometryAndText": true,
+      "nativePixelsIdenticalBeforeAfterResave": true,
+      "sharedImageRgbSha256": "5d0e18b939b2c9ea9cfa8a34cb10d593d46df4401d3f6eb78429d179a25219a1",
+      "cases": [
+        {
+          "name": "rectangle-bounds",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Rectangle/native-rectangle.pub",
+            "sha256": "bd876bc5d9e7d9b1b7e22202caea262b7fa931f97aa80b0bfcd64813877553b1"
+          },
+          "objectId": 293,
+          "requestedPointBounds": [
+            90.0,
+            108.0,
+            216.0,
+            90.0
+          ],
+          "requestedFillRgb": null,
+          "candidateSha256": "521cea00d6dfb9fcb07eaf220ef00d883214cc61661d1a3326f72b5ffc94655e",
+          "physicalPageCount": 1,
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "521cea00d6dfb9fcb07eaf220ef00d883214cc61661d1a3326f72b5ffc94655e"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "7a2aa81cea0c5d3e7a327f500e25a2ce4751f68fd17998e7482064f77d65e180"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "6bc07bf5aa2fd5ea534b0b618956ab813eed04d3f26b860eee9cdaff0b231461"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "50b8b54bfc217184f468f70f0f579b029d9ee923ac73db1a26a2d5aead5ac907"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "7f404cd748b4df10c07ed49ae44472bfcc6b253d2ec063ac338e2dae0aa2b498"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "7039950ce753affc1c1d465fba6735305a599fd40079c4b7157ef4161af9afd4"
+            }
+          ]
+        },
+        {
+          "name": "rectangle-blue-fill",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Rectangle/native-rectangle.pub",
+            "sha256": "bd876bc5d9e7d9b1b7e22202caea262b7fa931f97aa80b0bfcd64813877553b1"
+          },
+          "objectId": 293,
+          "requestedPointBounds": null,
+          "requestedFillRgb": [
+            0,
+            90,
+            170
+          ],
+          "candidateSha256": "da9481026b65e19a153751d357368cc36bef360d365c2007c4eac9bf489c07f6",
+          "physicalPageCount": 1,
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "da9481026b65e19a153751d357368cc36bef360d365c2007c4eac9bf489c07f6"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "872c2464ded7a1c7ccfdc5f520031054aee053160d98761cd8580e7db3372cf2"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "65a238757f1bbf7ea928d9712c00e70f6df5d8dac659a9bea798d299d6d1e033"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "4b34ee8e8bd902ffc19d9e102da8d0145eca3446adb33e71e06057698d73cca5"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "07a3a151ac71cbac476914428c4591f94e39258e083ae69d56c34e24fae6dc6e"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "13becaea9494e0efc43cba99bb4cb1fb880b72ab814facf0221959dbc5573a1a"
+            }
+          ]
+        },
+        {
+          "name": "rectangle-bounds-blue",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Rectangle/native-rectangle.pub",
+            "sha256": "bd876bc5d9e7d9b1b7e22202caea262b7fa931f97aa80b0bfcd64813877553b1"
+          },
+          "objectId": 293,
+          "requestedPointBounds": [
+            90.0,
+            108.0,
+            216.0,
+            90.0
+          ],
+          "requestedFillRgb": null,
+          "candidateSha256": "3243df4b4d599971f8d56c11d086793d327f24c77e2caf52e791bdc718acb9ba",
+          "physicalPageCount": 1,
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "3243df4b4d599971f8d56c11d086793d327f24c77e2caf52e791bdc718acb9ba"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "a4461e94f87ca85148c8cfd6edc8352e1f696989c7ffbabbddffab834dc7f1e1"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "4f4464a399bee6b860fe52ab918b9c631d99d18ba7cf95382bd72dc806f80d86"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "b6f4ee01d792459bef51bf8738a67f3b495f4e47875a0f25f9ea35b36c8118d2"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "520b78906183471eaa8da0df1569acea4328568c4f83897308741d6cb1c2cebe"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "3d2cb01612dc44779689751d5f5406385b73545f144b09911ffbe993dba2d212"
+            }
+          ]
+        },
+        {
+          "name": "physical-frame-bounds",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TwoPageMaster/native-twopagemaster.pub",
+            "sha256": "76748d733c050f351fac09b7ec1741c87ef5dcc3d876cba7d8e3d30571c4c7c8"
+          },
+          "objectId": 310,
+          "requestedPointBounds": [
+            90.0,
+            120.0,
+            432.0,
+            60.0
+          ],
+          "requestedFillRgb": null,
+          "candidateSha256": "063b38adbe9680c2fb75dcad8ca6197774dc8befde87ecb01c1352bb1b4f94da",
+          "physicalPageCount": 3,
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "063b38adbe9680c2fb75dcad8ca6197774dc8befde87ecb01c1352bb1b4f94da"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "696d273e7f8886f1e7816b2ee19af8a881976314eb6b04ba3d887e028ea136db"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "1a041eaecb427a05cf8a3fa2859e2a702f556de25e5973012a0c66184e46dfd4"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "66427aa19421f6e9f7509e7be5d3fd4733fbeb06a08e7bab555e39d08544c15a"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "71fb8136820abcc0732417b69dbd53dcf7449c36ff15b1871b6cc39339e33cb1"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "46717b974301f7f486f850ee791a8e5a55431b9f902ae5cf36a1d35ccb18372a"
+            }
+          ]
+        },
+        {
+          "name": "master-default-bounds",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TwoPageMaster/native-twopagemaster.pub",
+            "sha256": "76748d733c050f351fac09b7ec1741c87ef5dcc3d876cba7d8e3d30571c4c7c8"
+          },
+          "objectId": 307,
+          "requestedPointBounds": [
+            24.0,
+            36.0,
+            270.0,
+            30.0
+          ],
+          "requestedFillRgb": null,
+          "candidateSha256": "55f7ba27b176928db2be0ef066beaf82169ee6a9539a77a58f11377430a7f711",
+          "physicalPageCount": 3,
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "55f7ba27b176928db2be0ef066beaf82169ee6a9539a77a58f11377430a7f711"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "3434160c193b3ee6585aeb54c5d69e3ab6e9c2f392280767f85e82e1d0716f35"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "cefd7faff88df144f7da209836ad09691a49530d32a8a7bbf5599a8cd48d007e"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "b015e866d775b88915f84d4aa29d2bf3804302f39e57b0dfd4e116fc2cf23b27"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "6971c9c06deb381de7d06dbf0b973b6aa7735beacdcad1c8688ae6e13a0117f3"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "b72998358a4f9e8cb633db8cbabb02f031047fd9aee632b8ff424dc15f63b1cf"
+            }
+          ]
+        },
+        {
+          "name": "master-left-bounds",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TwoPageMaster/native-twopagemaster.pub",
+            "sha256": "76748d733c050f351fac09b7ec1741c87ef5dcc3d876cba7d8e3d30571c4c7c8"
+          },
+          "objectId": 308,
+          "requestedPointBounds": [
+            24.0,
+            36.0,
+            270.0,
+            30.0
+          ],
+          "requestedFillRgb": null,
+          "candidateSha256": "30babd653960b9c93032fac98b2d5b42b47b5d6d0f669691a3c3952b11f84fd5",
+          "physicalPageCount": 3,
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "30babd653960b9c93032fac98b2d5b42b47b5d6d0f669691a3c3952b11f84fd5"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "4a51f27fecbddc499a9972fff4ef1b931558f869eaa1e76f97faf14272057063"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "09aaec3b14a9ef8e6c936d744354d55cac8692a98b30377ccc0127e481ff1a5a"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "79b8a938ef05537f82eb4aa39620a53362a370cbfe37424a0334f112d1337ce7"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "4be388c329f6a14d787b283e398a51a257c4db42d9e907a54ca6244793c69f2c"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "578ae830149e71a044992f4177280a0e15c58992b0a3bdb6b26176faf36963b6"
+            }
+          ]
+        },
+        {
+          "name": "master-right-bounds",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TwoPageMaster/native-twopagemaster.pub",
+            "sha256": "76748d733c050f351fac09b7ec1741c87ef5dcc3d876cba7d8e3d30571c4c7c8"
+          },
+          "objectId": 309,
+          "requestedPointBounds": [
+            348.0,
+            36.0,
+            240.0,
+            30.0
+          ],
+          "requestedFillRgb": null,
+          "candidateSha256": "598f4f768fb97ce40ce23bba2d68d7ee4e59ded6bc1099c809637c612d2bc21f",
+          "physicalPageCount": 3,
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "598f4f768fb97ce40ce23bba2d68d7ee4e59ded6bc1099c809637c612d2bc21f"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "2c00c440593022e4e022b52c9b86e08c6938071a2fbd59a442dd4d92f7ec4a65"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "4330fe353fd2b7712036bbf677b143bc624ae0252e10ac1a7c063fec4393b97f"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "7dad7335aeefc8748d4f7ecfabb5726a777961be846548167345de8f13d4147a"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "a1762267e1c971876a2b7b381e2670c40707f8f1dad379f420cceaf09a3684e0"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "5fe4f26ac44665951b28c96c5763b85d545a110b286da44067f05ecaf6a553f2"
+            }
+          ]
+        },
+        {
+          "name": "picture-physical-bounds",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/PictureOwnership/native-pictureownership.pub",
+            "sha256": "d2b49025a8b0e9f4f893e97497d190d7f173ba16d851c212f5338c222b2f1309"
+          },
+          "objectId": 298,
+          "requestedPointBounds": [
+            90.0,
+            270.0,
+            144.0,
+            72.0
+          ],
+          "requestedFillRgb": null,
+          "candidateSha256": "ee9ea5cef579a6338431a28741ceadf3e6fda58e6077f09ef924c0c98e54ccf5",
+          "physicalPageCount": 2,
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "ee9ea5cef579a6338431a28741ceadf3e6fda58e6077f09ef924c0c98e54ccf5"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "a925a5772556ba3c16ac78eb807d8ba0706c8a851dbecca5145adcfb09522ac5"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "5a7ad9c38c118e3ba734953a09a162cd947410a533b6c743670dfa45de3f80f5"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "983ecbdc05d88bed5bf4060f58f7ce954f46145b6b08bc421c343bc15505fd3b"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "483e56868eaa82a9af6aa4fa079c7ed14b5f607cf659e1c8de23224ee2817b72"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "f42549f7c86bab74f181c64ffa08b6de58ed17fa36632333c8d0e99c9487272a"
+            }
+          ]
+        },
+        {
+          "name": "picture-master-bounds",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/PictureOwnership/native-pictureownership.pub",
+            "sha256": "d2b49025a8b0e9f4f893e97497d190d7f173ba16d851c212f5338c222b2f1309"
+          },
+          "objectId": 296,
+          "requestedPointBounds": [
+            36.0,
+            36.0,
+            72.0,
+            48.0
+          ],
+          "requestedFillRgb": null,
+          "candidateSha256": "9d86778eda7305cd4ff2f03ae2cad9e33bd1fe5a2da99e7ce804404964dc0b41",
+          "physicalPageCount": 2,
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "9d86778eda7305cd4ff2f03ae2cad9e33bd1fe5a2da99e7ce804404964dc0b41"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "1ec2db8ffd53ce64e7f26b9f11d70be77212bb62e52be4b0dcf8621c413121bc"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "d803e2f217c0d454140f872854ffc82c0697076fad60e66dfdb7420f2e16c785"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "f95d8324628cffc5e50d79797cc8dccc991007813bbed00d69628b4a0840b861"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "487ee0d9c8d2940d8bee1efa7275d1cb1997038885d345b96135215a08885d9a"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "eb953d150acdf895866395a6c503cc0ff817a419dcb16b4928bc3496a1f2be9d"
+            }
+          ]
+        }
+      ],
+      "limits": [
+        "Only the listed objects and operations are qualified; native repair remains unassessed.",
+        "Original Contents AA/AB extents stay unchanged in the two qualified picture edits. Their general semantics remain unassessed.",
+        "Paired-master local bounds and physical composition are separate observations; no general layout-fidelity claim."
+      ]
+    },
+    "nativeTextMutation": {
+      "scope": "Whole-range text replacement through the native object model on the single physical unlinked text box in the styled candidate.",
+      "sourceCase": "styled",
+      "candidateSha256": "c02bca2babd7459b2a5d89ca514981d951046c86bae22e562371e29dbf11f8f4",
+      "command": [
+        "Invoke-NativePublisherOperation.ps1",
+        "-Operation",
+        "Validate",
+        "-Stage",
+        "Full",
+        "-InputPath",
+        "<styled.pub>",
+        "-OutputDirectory",
+        "<fresh-output>",
+        "-NativeEditText",
+        "Native edit \"accepted\" \\"
+      ],
+      "runnerFiles": [
+        {
+          "path": "../Invoke-NativePublisherOperation.ps1",
+          "sha256": "1f0c8f93794abf3b88779074bd6c777af38e0bf1a026e2295247753ff505f28c"
+        },
+        {
+          "path": "../Invoke-NativeComparisonCase.ps1",
+          "sha256": "3feb94ac86e3cdf7717b27c3d3d05c05b953e0a4b76972d46d9e4ba68b65df72"
+        }
+      ],
+      "qualifiedOperations": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeTextMutation",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "immediateRangeText": "Native edit \"accepted\" \\",
+      "reopenedText": "Native edit \"accepted\" \\\r",
+      "initialAndResavedPdfTextVerified": true,
+      "frameAndMasterStateUnchanged": true,
+      "sourceUnchanged": true,
+      "nativeArtifacts": [
+        {
+          "name": "candidate-input.pub",
+          "sha256": "c02bca2babd7459b2a5d89ca514981d951046c86bae22e562371e29dbf11f8f4"
+        },
+        {
+          "name": "native-initial-inventory.json",
+          "sha256": "bec5c6820234b3d2863588d661e923742d83b8083a130eff8d864bffca3a154f"
+        },
+        {
+          "name": "native-resaved.pub",
+          "sha256": "2fff27b9cbb915cdb9e8d4939770b040996ccbf16d608d287cb13261e7a5032d"
+        },
+        {
+          "name": "native-resaved-inventory.json",
+          "sha256": "6fe0a7af4cc4d3b0c1109c885359ec38fa6271e3bd0bfbd80ad154694d64df29"
+        },
+        {
+          "name": "native-initial.pdf",
+          "sha256": "ab7a1e9a536edf8adcb0eb546b5f3b9811bbb07626e42fd6141f0896c75533be"
+        },
+        {
+          "name": "native-resaved.pdf",
+          "sha256": "78a057d0f27ca5d2ef7888c001df066b72350633b76ac120b3b8fc935081129a"
+        }
+      ],
+      "limits": [
+        "One controlled whole-range replacement, not character-level or manual UI editing.",
+        "Immediate assigned text omits the final paragraph CR; save/reopen materializes it.",
+        "Native repair and general editing/formatting remain unassessed."
+      ]
+    }
   }
 }

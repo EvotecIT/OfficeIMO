@@ -99,7 +99,7 @@ page. Unsupported run merges, other formatting and page-capacity overflow refuse
 output. Other logical streams and directory
 metadata remain unchanged, including cached previews whose freshness is unassessed.
 Unsupported semantic changes refuse output. This path does not establish
-repair-free opening, native edit acceptance or opaque semantic preservation and
+repair-free opening, general native edit acceptance or opaque semantic preservation and
 does not expose public native saving. The [writer probe](../Build/Publisher/WriterProbe/README.md#loaded-source-candidates)
 owns its use and qualification limits.
 
@@ -112,6 +112,19 @@ and after resave. These observations do not establish repair-free opening,
 native text mutation, other profiles or opaque-record semantics. The
 [qualification record](../Build/Publisher/WriterProbe/qualification.json)
 keeps source provenance, exact file hashes and operation boundaries.
+
+Nine additional placement/paint specimens cover a rectangle's bounds and solid
+fill, a physical text frame, default and paired-master frames, and physical/master
+picture bounds. Native inventories and PDFs retain the requested values across
+19 physical pages before and after native save/reopen; unaffected object geometry,
+text and shared image pixels remain unchanged. The two picture edits retain the
+original Contents AA/AB extent fields; their general semantics remain unassessed.
+
+A separate native object-model check replaces the whole text range of the styled
+specimen's sole unlinked text box. The exact text survives native save/reopen and
+PDF export, while frame/master state and original source bytes remain unchanged.
+This qualifies one controlled text replacement, not character-level editing,
+manual UI editing, general formatting changes or repair-free opening.
 
 One retained Quill style catalog supplies the existing formatting resolver.
 It keeps native character/paragraph pair ordinals, nullable decoded values,

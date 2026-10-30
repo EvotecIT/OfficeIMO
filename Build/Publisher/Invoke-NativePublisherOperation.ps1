@@ -23,6 +23,10 @@ separate PUB without PDF export. Full performs both PDF exports as well. Partial
 stages establish only their listed operations; native repair remains unassessed.
 .PARAMETER TimeoutSeconds
 Bounded worker lifetime, including application startup and shutdown.
+.PARAMETER NativeEditText
+Optional single-line replacement for a candidate with one physical page and one
+unlinked text box. Validate/Full only. The writable snapshot is changed before
+native save-as; initial artifacts retain the original content.
 .EXAMPLE
 ./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -InputPath ./candidate.pub -OutputDirectory ./candidate-native
 .EXAMPLE
@@ -47,6 +51,10 @@ param(
     [ValidateSet('Inspect', 'Resave', 'Full')]
     [string] $Stage = 'Full',
 
+    [ValidateLength(1, 4096)]
+    [ValidatePattern('\A[^\p{Cc}\p{Zl}\p{Zp}]+\z')]
+    [string] $NativeEditText,
+
     [ValidateRange(10, 600)]
     [int] $TimeoutSeconds = 90
 )
@@ -54,6 +62,10 @@ param(
 $ErrorActionPreference = 'Stop'
 if ($env:OS -ne 'Windows_NT') {
     throw 'Native qualification requires Microsoft Publisher on Windows.'
+}
+$nativeEditRequested = $PSBoundParameters.ContainsKey('NativeEditText')
+if ($nativeEditRequested -and ($Operation -ne 'Validate' -or $Stage -ne 'Full')) {
+    throw 'NativeEditText requires candidate validation with Stage Full.'
 }
 if ($Operation -eq 'Validate') {
     if ([string]::IsNullOrWhiteSpace($InputPath) -or -not (Test-Path -LiteralPath $InputPath -PathType Leaf)) {
@@ -160,6 +172,9 @@ $argumentValues = @(
 )
 if ($Operation -eq 'Validate') {
     $argumentValues += @('-InputPath', $InputPath, '-Stage', $Stage)
+}
+if ($nativeEditRequested) {
+    $argumentValues += @('-NativeEditText', $NativeEditText)
 }
 $arguments = ($argumentValues | ForEach-Object { ConvertTo-NativePublisherArgument $_ }) -join ' '
 $worker = $null

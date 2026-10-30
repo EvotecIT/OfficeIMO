@@ -135,9 +135,33 @@ read-only open, initial inventory/PDF export, native save-as, read-only reopen
 and a second inventory/PDF export. Native text, frame bounds and size/bold states
 match the requested values within 0.1 point, and native rendered pixels remain
 identical across resave. This includes re-editing a file after Microsoft
-Publisher resaved it. Native text mutation and repair-free opening remain
-separate, unexercised criteria; these samples do not qualify other profiles or
-opaque record semantics.
+Publisher resaved it. These six runs do not exercise native text mutation or
+establish repair-free opening, other profiles or opaque record semantics.
+
+The record also binds nine placement/paint candidates to independent native
+Rectangle, TwoPageMaster and PictureOwnership controls. Across 19 physical pages,
+native inventories and PDFs retain the requested rectangle fill/bounds, physical
+and master frame bounds, and physical/master picture bounds after native
+save/reopen. Unaffected object geometry/text and shared image pixels stay
+unchanged; native rendered pixels match before and after resave. Original
+Contents AA/AB extent fields remain unchanged for the two qualified picture
+edits, without qualifying their general semantics.
+
+The native runner can also exercise whole-range text editing on a candidate with
+one physical page and one unlinked text box:
+
+```powershell
+./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath ./styled.pub -OutputDirectory ./native-edit -NativeEditText 'Native edit accepted'
+```
+
+Initial inventory/PDF artifacts retain the original text. The runner changes
+only its writable snapshot, saves to a separate PUB and checks the requested text
+after read-only reopen. The recorded styled specimen passes this operation,
+including quoted text and a trailing backslash; independent native PDF text
+matches and source bytes remain unchanged. A freshly assigned range can omit the
+final paragraph CR that appears after save/reopen. This is one controlled native
+object-model edit; character-level editing, manual UI editing, general formatting
+and repair-free opening remain unassessed.
 
 ## Creation cases
 

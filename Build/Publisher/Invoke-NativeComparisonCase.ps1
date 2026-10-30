@@ -7,6 +7,8 @@ it supplies the deadline and preserves uncertain processes on startup failures.
 Corpus content is synthetic, fonts/colors are explicit, and macros stay disabled.
 Candidate validation performs only its requested Inspect, Resave or Full stage;
 inventories are persisted before PDF exports and repair remains unassessed.
+NativeEditText optionally replaces the sole unlinked physical text box before
+native save-as during Validate/Full; it never modifies the original input.
 #>
 [CmdletBinding()]
 param(
@@ -20,6 +22,10 @@ param(
 
     [ValidateSet('Inspect', 'Resave', 'Full')]
     [string] $Stage = 'Full',
+
+    [ValidateLength(1, 4096)]
+    [ValidatePattern('\A[^\p{Cc}\p{Zl}\p{Zp}]+\z')]
+    [string] $NativeEditText,
 
     [Parameter(Mandatory)]
     [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
@@ -37,6 +43,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 2
+$nativeEditRequested = $PSBoundParameters.ContainsKey('NativeEditText')
+if ($nativeEditRequested -and ($Operation -ne 'Validate' -or $Stage -ne 'Full')) {
+    throw 'NativeEditText requires candidate validation with Stage Full.'
+}
 if ($env:OS -ne 'Windows_NT' -or [Threading.Thread]::CurrentThread.ApartmentState -ne 'STA') {
     throw 'Run the corpus controller on Windows; this worker requires an STA process.'
 }
@@ -403,11 +413,50 @@ try {
             throw 'The initial read-only observation changed the input snapshot.'
         }
         $resavedInventory = $null
+        $nativeTextMutation = $null
         if ($Stage -ne 'Inspect') {
             # Only this task-owned snapshot is opened writable. The original
             # candidate remains outside the native application's mutation path.
             Set-NativePhase 'OpenSnapshotWritable'
             $document = $application.Open($snapshot, $false, $false)
+            if ($nativeEditRequested) {
+                Set-NativePhase 'NativeTextMutation'
+                if ($document.ReadOnly -or $document.Pages.Count -ne 1) {
+                    throw 'Native text mutation requires one writable physical page.'
+                }
+                $editPage = $document.Pages.Item(1)
+                $objects.Add($editPage)
+                if ($editPage.Shapes.Count -ne 1) {
+                    throw 'Native text mutation requires exactly one physical text box.'
+                }
+                $editShape = $editPage.Shapes.Item(1)
+                $objects.Add($editShape)
+                if ($editShape.Type -ne 17 -or $editShape.HasTextFrame -ne -1) {
+                    throw 'Native text mutation requires an ordinary text box.'
+                }
+                $editFrame = $editShape.TextFrame
+                $objects.Add($editFrame)
+                if ($editFrame.HasNextLink -eq -1 -or $editFrame.HasPreviousLink -eq -1) {
+                    throw 'Native text mutation does not accept linked frames.'
+                }
+                $editRange = $editFrame.TextRange
+                $objects.Add($editRange)
+                $beforeText = [string]$editRange.Text
+                $editRange.Text = $NativeEditText
+                $observedText = [string]$editRange.Text
+                # A freshly assigned range can omit the final paragraph CR
+                # that Publisher materializes when saving the publication.
+                if ($observedText -cne $NativeEditText -and $observedText -cne ($NativeEditText + "`r")) {
+                    throw 'Publisher did not retain the requested native text mutation.'
+                }
+                $nativeTextMutation = [ordered]@{
+                    shapeName = [string]$editShape.Name
+                    before = $beforeText
+                    requested = $NativeEditText
+                    observed = $observedText
+                }
+                $qualifiedOperations.Add('NativeTextMutation')
+            }
             Set-NativePhase 'NativeResave'
             # 1 is pbFilePublication; exclude task output from recent files.
             $document.SaveAs($resaved, 1, $false)
@@ -421,6 +470,12 @@ try {
             $resavedInventory = Get-NativeInventory $document
             if (-not $resavedInventory.readOnly) {
                 throw 'Publisher did not reopen the native resave read-only.'
+            }
+            if ($nativeEditRequested -and
+                ($resavedInventory.pageCount -ne 1 -or
+                 $resavedInventory.pages[0].shapes.Count -ne 1 -or
+                 $resavedInventory.pages[0].shapes[0].text -cne ($NativeEditText + "`r"))) {
+                throw 'The native text mutation did not survive save-as and reopen.'
             }
             $qualifiedOperations.Add('ReadOnlyReopen')
             $qualifiedOperations.Add('ResavedInventory')
@@ -477,6 +532,9 @@ try {
             initial = $initialInventory
             resaved = $resavedInventory
             files = $files.ToArray()
+        }
+        if ($nativeEditRequested) {
+            $report.nativeTextMutation = $nativeTextMutation
         }
         Write-NewNativeJson -Path $validationPath -Value $report
         Set-NativePhase 'Shutdown'
