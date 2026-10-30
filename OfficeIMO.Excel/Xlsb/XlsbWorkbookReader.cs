@@ -189,7 +189,9 @@ namespace OfficeIMO.Excel.Xlsb {
                         uint state = cursor.ReadUInt32();
                         uint tabId = cursor.ReadUInt32();
                         string relationshipId = cursor.ReadWideString(options.MaxStringCharacters);
-                        string name = cursor.ReadWideString(options.MaxStringCharacters);
+                        // Worksheet names have a format-level 31-character limit. Enforce
+                        // it before allocating a name that formulas could repeat per cell.
+                        string name = cursor.ReadWideString(Math.Min(options.MaxStringCharacters, 31));
                         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(relationshipId)) {
                             throw new InvalidDataException($"The BrtBundleSh record at offset {record.Offset} does not contain a worksheet name and relationship id.");
                         }
