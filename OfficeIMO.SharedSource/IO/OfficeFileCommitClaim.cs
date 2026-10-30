@@ -80,18 +80,10 @@ namespace OfficeIMO.Core.Internal.IO {
         }
 
         private static FileStream OpenUnixClaim(string claimPath) {
-            // The runtime checks the opened inode against the pathname and unlinks it before
-            // releasing its exclusive lock. Separate reclamation or post-disposal deletion can
-            // instead remove a successor's claim.
-            try {
-                return new FileStream(claimPath, FileMode.OpenOrCreate, FileAccess.ReadWrite,
-                    FileShare.None, 4096, FileOptions.DeleteOnClose);
-            } catch (UnauthorizedAccessException) {
-                // A readable stale claim need not be writable when its parent permits deletion.
-                // Prefer write access above for filesystems whose locks require it.
-                return new FileStream(claimPath, FileMode.OpenOrCreate, FileAccess.Read,
-                    FileShare.None, 4096, FileOptions.DeleteOnClose);
-            }
+            // Only a claim created by this publisher can be unlinked on close. OpenOrCreate
+            // would adopt and delete an unrelated file with the same predictable name.
+            return new FileStream(claimPath, FileMode.CreateNew, FileAccess.ReadWrite,
+                FileShare.None, 4096, FileOptions.DeleteOnClose);
         }
 
         /// <summary>Releases a claim once, retaining the platform's established deletion behavior.</summary>
