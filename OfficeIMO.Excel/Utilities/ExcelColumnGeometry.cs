@@ -13,6 +13,7 @@ namespace OfficeIMO.Excel.Utilities {
 
         internal static double GetMaximumDigitWidth(WorksheetPart? worksheetPart, out bool resolved, OfficeFontFaceCollection? fonts = null) {
             resolved = false;
+            if (fonts?.Faces.Count == 0) fonts = null;
             WorkbookPart? workbook = worksheetPart?.GetParentParts().OfType<WorkbookPart>().FirstOrDefault();
             Font? font = workbook?.WorkbookStylesPart?.Stylesheet?.Fonts?.Elements<Font>().FirstOrDefault();
             string? family = font?.GetFirstChild<FontName>()?.Val?.Value;
