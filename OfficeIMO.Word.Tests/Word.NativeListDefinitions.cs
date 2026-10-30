@@ -6,6 +6,29 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Fact]
+    public void NativeListDefinitions_UnusedDefinitionsDoNotMultiplyInstanceSelectionWork() {
+        using WordDocument source = CreateNativeListDefinitionControl();
+        Numbering numbering = source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
+        AbstractNum template = numbering.Elements<AbstractNum>().Single();
+        NumberingInstance first = numbering.Elements<NumberingInstance>().Single();
+        int abstractId = template.AbstractNumberId!.Value;
+        for (int index = 1; index <= 256; index++) {
+            var unused = (AbstractNum)template.CloneNode(true);
+            unused.AbstractNumberId = abstractId + index;
+            unused.Nsid?.Remove();
+            numbering.InsertBefore(unused, first);
+            numbering.Append(new NumberingInstance(new AbstractNumId { Val = abstractId }) {
+                NumberID = first.NumberID!.Value + index
+            });
+        }
+
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        var markers = WordDocumentTraversal.BuildListMarkers(restored);
+        Assert.Equal(new[] { "12.", "13." }, restored.Paragraphs.Where(p => p.Text is "First" or "Second")
+            .Select(p => markers[p].Marker));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
