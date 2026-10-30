@@ -20,7 +20,7 @@ public partial class Word {
         foreach (FontSize size in styles.Descendants<FontSize>().ToArray()) size.Remove();
         foreach (FontSizeComplexScript size in styles.Descendants<FontSizeComplexScript>().ToArray()) size.Remove();
         styles.DocDefaults!.RunPropertiesDefault!.RunPropertiesBaseStyle!.Append(new FontSize { Val = "24" });
-        var paragraph = table ? source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : source.AddParagraph();
+        var paragraph = table ? source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0] : source.AddParagraph();
         paragraph._paragraph.RemoveAllChildren<Run>();
         paragraph._paragraph.Append(new Run(new RunProperties(new FontSize { Val = "16" }), new Text("A")),
             new Run(new Text("B")));
@@ -79,7 +79,7 @@ public partial class Word {
     [InlineData(true, true, true, 40D)]
     public void SaveAsPdf_EmptyParagraphMarksUseExplicitSpacingUnits(bool nativeDoc, bool table, bool exact, double expected) {
         using WordDocument source = WordDocument.Create();
-        WordTableCell? cell = table ? source.AddTable(1, 1).Rows[0].Cells[0] : null;
+        WordTableCell? cell = table ? source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0] : null;
         var first = cell == null ? source.AddParagraph("A") : cell.AddParagraph("A", removeExistingParagraphs: true);
         var blank = cell == null ? source.AddParagraph() : cell.AddParagraph();
         var last = cell == null ? source.AddParagraph("B") : cell.AddParagraph("B");
@@ -137,7 +137,7 @@ public partial class Word {
     [InlineData(true, true, true, 40D)]
     public void SaveAsPdf_PreservesFormattedBlankLines(bool nativeDoc, bool table, bool exact, double expected) {
         using WordDocument source = WordDocument.Create();
-        WordParagraph paragraph = table ? source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : source.AddParagraph();
+        WordParagraph paragraph = table ? source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0] : source.AddParagraph();
         SetExplicitSpacingBlankLineRuns(paragraph, "A", "B", exact ? WordLineSpacingRule.Exact : WordLineSpacingRule.AtLeast);
         string original = source._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
@@ -197,7 +197,7 @@ public partial class Word {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph;
         if (route == "table") {
-            paragraph = source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
+            paragraph = source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = "A\nB\nC";
         } else {
             paragraph = source.AddParagraph("A\nB\nC");

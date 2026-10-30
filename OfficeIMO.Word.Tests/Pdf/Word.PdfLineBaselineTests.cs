@@ -20,7 +20,7 @@ public partial class Word {
     public void SaveAsPdf_EmptyLeadingRunsDoNotEnlargeVisibleFontLineSpacing(bool nativeDoc, string frame) {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = frame == "table"
-            ? source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : source.AddParagraph();
+            ? source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0] : source.AddParagraph();
         if (frame == "columns") source.Sections[0].ColumnCount = 2;
         paragraph._paragraph.RemoveAllChildren<Run>();
         paragraph._paragraph.Append(new Run(new RunProperties(new RunFonts { Ascii = "TallFallback", HighAnsi = "TallFallback" })),
@@ -61,7 +61,7 @@ public partial class Word {
     public void SaveAsPdf_MixedSizeBaselinesUseFontLineBoxes(bool nativeDoc, string frame, bool minimum) {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = frame == "table"
-            ? source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : source.AddParagraph();
+            ? source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0] : source.AddParagraph();
         if (frame == "columns") source.Sections[0].ColumnCount = 2;
         paragraph._paragraph.RemoveAllChildren<Run>();
         paragraph._paragraph.Append(TextLine("A", 8, true), TextLine("B", 32, true), TextLine("C", 8, false));

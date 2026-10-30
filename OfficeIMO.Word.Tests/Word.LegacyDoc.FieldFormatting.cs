@@ -57,7 +57,7 @@ public partial class Word {
             StyleName = new W.StyleName { Val = styleId },
             StyleRunProperties = new W.StyleRunProperties(new W.Vanish())
         });
-        WordTable table = source.AddTable(1, 1);
+        WordTable table = source.AddTable(1, 1, WordTableStyle.TableGrid);
         table._table.GetFirstChild<W.TableProperties>()!.TableStyle = new W.TableStyle { Val = styleId };
         AppendSplitFormattingField(table.Rows[0].Cells[0].Paragraphs[0]._paragraph, complex, false, "HIDDEN", "VISIBLE");
         Assert.Empty(source.ValidateDocument());
@@ -71,7 +71,7 @@ public partial class Word {
         W.Paragraph footnote = notes.AddFootNote("Placeholder").Paragraph.FootNote!.Paragraphs![1]._paragraph;
         W.Paragraph endnote = notes.AddEndNote("Placeholder").Paragraph.EndNote!.Paragraphs![1]._paragraph;
         return new[] {
-            source.AddParagraph()._paragraph, source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0]._paragraph,
+            source.AddParagraph()._paragraph, source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0]._paragraph,
             source.Sections[0].Header.Default!.AddParagraph()._paragraph,
             source.Sections[0].Footer.Default!.AddParagraph()._paragraph, footnote, endnote
         };

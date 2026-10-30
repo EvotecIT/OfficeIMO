@@ -18,7 +18,7 @@ public partial class Word {
     [InlineData(true)]
     public void LegacyDoc_SaveMaterializesDocxAutofitDefault(bool emptyLayoutElement) {
         using WordDocument source = WordDocument.Create();
-        WordTable table = source.AddTable(1, 1);
+        WordTable table = source.AddTable(1, 1, WordTableStyle.TableGrid);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Automatic table";
         table._tableProperties!.TableLayout = emptyLayoutElement ? new W.TableLayout() : null;
         Assert.Equal(WordTableLayoutMode.AutoFit, table.LayoutMode);

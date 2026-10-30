@@ -77,7 +77,7 @@ public partial class Word {
         source.AddParagraph("BODY");
         if (story >= 2) source.AddHeadersAndFooters();
         WordParagraph paragraph = story switch {
-            1 => source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0],
+            1 => source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0],
             2 => source.Header.Default.AddParagraph("MARKED"),
             3 => source.Footer.Default.AddParagraph("MARKED"),
             _ => source.AddParagraph("MARKED")
