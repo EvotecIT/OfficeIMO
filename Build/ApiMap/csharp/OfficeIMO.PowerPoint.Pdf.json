@@ -386,6 +386,19 @@
       "change": "Adapt PowerPoint table sizing to OfficeLength",
       "reason": "Native table export reads the typed row and column sizes in points at its PDF layout boundary.",
       "applied": "phase-b-applied"
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "Text-box PDF font preflight registered only direct textbox/run font names",
+      "new": "Register the effective inherited and script-specific families of rendered inline runs and fields before creating PDF text metrics",
+      "reason": "Mixed inherited and explicit text styles must produce the same measured spans in native snapshots and PDF rendering. Omitting effective inherited fonts selected a different PDF fallback and changed advances.",
+      "files": [
+        "OfficeIMO.PowerPoint.Pdf/PowerPointPdfConverterExtensions.Fonts.cs",
+        "OfficeIMO.PowerPoint.Tests/Pdf/PowerPoint.NativeTextLayoutTests.cs"
+      ],
+      "applied": "phase-b-applied",
+      "note": "Preserve profile precedence and resource policy. Existing exact geometry/link comparisons pass in both shaping modes; portable missing-family cases also cover inherited ordinary runs and fields."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

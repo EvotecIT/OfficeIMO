@@ -6,6 +6,7 @@ using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -51,6 +52,10 @@ public sealed class PowerPointNativeTextLayoutTests {
         images.UseRenderingProfile(profile);
         byte[] svg = slide.ExportImage(OfficeImageExportFormat.Svg, images).Bytes;
         PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot(images);
+        Assert.Contains(snapshot.TextSpans, span => span.Text == "ALPHA" && span.BaseFont == "NativeFixture"
+            && span.FontSize == 13D && !span.IsItalic);
+        Assert.Contains(snapshot.TextSpans, span => span.Text.IndexOf("beta", StringComparison.Ordinal) >= 0
+            && span.FontSize == 18D && span.IsItalic);
         byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions().UseRenderingProfile(profile)).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var page = pdf.GetPage(1);
@@ -67,5 +72,44 @@ public sealed class PowerPointNativeTextLayoutTests {
             snapshot.TextSpans.Select(span => (span.Text, Math.Round(span.X, 3), Math.Round(span.Y, 3), Math.Round(span.FontSize, 3), Math.Round(span.Advance, 3), Math.Round(span.RotationDegrees, 3))));
         Assert.Equal("svg", System.Xml.Linq.XDocument.Parse(System.Text.Encoding.UTF8.GetString(svg)).Root!.Name.LocalName);
         Assert.Equal(new[] { "https://officeimo.net/native-layout" }, PdfCore.PdfInspector.Inspect(bytes).LinkUris);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TextBoxInheritedFontsParticipateInPdfMeasurementPreflight(bool field) {
+        const string inheritedFamily = "OfficeIMO Missing Inherited Text Face";
+        var fonts = new OfficeFontFaceCollection().Add("NativeFixture",
+            OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
+        PowerPointTextBox box = presentation.AddSlide().AddTextBox("EXPLICIT",
+            OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20),
+            OfficeIMO.OfficeLength.Points(300), OfficeIMO.OfficeLength.Points(80));
+        box.FontName = "NativeFixture";
+        box.FontSize = OfficeIMO.OfficeLength.Points(13);
+        PowerPointParagraph paragraph = box.Paragraphs[0];
+        paragraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(
+            new A.DefaultRunProperties(new A.LatinFont { Typeface = inheritedFamily }) { FontSize = 1800 });
+        if (field) {
+            paragraph.AddField(" beta gamma", "slidenum", "{44444444-4444-4444-4444-444444444444}",
+                run => run.Italic = true);
+        } else {
+            paragraph.AddRun(" beta gamma", run => run.Italic = true);
+        }
+
+        var options = new PowerPointPdfExportOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        }.UseRenderingProfile(new OfficeRenderingProfile("inherited-text-preflight", fonts));
+        PdfCore.PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence(options);
+
+        // This warning is deterministic even when the host has no Office fonts installed.
+        Assert.Contains(result.Warnings, warning => warning.Code == "font-family-substitution"
+            && warning.Details.TryGetValue("fontFamily", out string? family) && family == inheritedFamily);
+        OfficeRichTextRun[] runs = PowerPointPdfTextFormattingTests.GetDrawingTextRuns(
+            Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(result.Value.Blocks))).ToArray();
+        Assert.Contains(runs, run => run.Text == "EXPLICIT" && run.FontFamily == "NativeFixture"
+            && run.FontSize == 13D && !run.Italic);
+        Assert.Contains(runs, run => run.Text == " beta gamma" && run.FontFamily == inheritedFamily
+            && run.FontSize == 18D && run.Italic);
     }
 }

@@ -342,8 +342,16 @@ public static partial class PowerPointPdfConverterExtensions {
     private static void RegisterPresentationTextBoxFonts(PptCore.PowerPointTextBox textBox, int slideNumber, PdfCore.PdfCreateOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointPdfExportOptions options) {
         RegisterPresentationFontCandidate(textBox.FontName, pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
         foreach (PptCore.PowerPointParagraph paragraph in textBox.Paragraphs) {
-            foreach (PptCore.PowerPointTextRun run in paragraph.Runs) {
-                RegisterPresentationFontCandidate(run.FontName, pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
+            foreach (PptCore.PowerPointParagraphInline inline in paragraph.InlineNodes) {
+                if (inline.Run is not { } run || string.IsNullOrEmpty(inline.Text)) continue;
+                // Measurement and painting resolve inherited and script-specific faces,
+                // including fields. Register those same families before creating the PDF measurer.
+                foreach (PptCore.PowerPointEffectiveTextSegment segment in PptCore.PowerPointEffectiveRunStyleResolver.ResolveSegments(
+                    run, paragraph, textBox.TextBody?.ListStyle, textBox.MasterTextStyle)) {
+                    RegisterPresentationFontCandidate(segment.Style.FontName ?? textBox.FontName
+                        ?? PptCore.PowerPointTextDefaults.ResolveBodyLatinFont(textBox.OwnerSlide),
+                        pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
+                }
             }
         }
     }
