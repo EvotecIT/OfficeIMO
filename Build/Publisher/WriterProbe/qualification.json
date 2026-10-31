@@ -21639,5 +21639,397 @@
       "Managed hyphenation, column balancing, repair-free opening and generic public native creation remain unqualified.",
       "No production model/codec source or process-global option changed."
     ]
+  },
+  "runLanguageLifecycle": {
+    "schema": "officeimo.publisher.run-language-lifecycle.v1",
+    "sourceCommit": "8df017f2327236a870f373e2133d3c3def09b71e",
+    "sourceFileHashBasis": "SHA-256 of canonical Git blob bytes at sourceCommit.",
+    "sourceFiles": [
+      {
+        "path": "Build/Publisher/Add-NativeFrameCreationControl.ps1",
+        "sha256": "203997edcea04a92b83953b4068718acd4d99cd8fe99deb212dbbd55519d9b49"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "sha256": "d6c23fa0c9a20bc9c9bfd29b2e1c06d6bb9c032d4fbb687a605e19724d99e944"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+        "sha256": "d9d37442fe1e57ef6cfabec043dd2fcee38676aadbe86c6cbde420ccfccadf58"
+      },
+      {
+        "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+        "sha256": "abfe2192ea2b59f02327ea6ee1609fcdeada9041872d1a04c514f5dc1c5cc93d"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateCases.cs",
+        "sha256": "16d9b52ffdb88b7f3f94e54461a45ffa2efb20600f873f44752b65e616958899"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateFrameLayout.cs",
+        "sha256": "3a7638feb86253d21211407f4f6438533e571820b5a185f9fec0c7634166ca6d"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateLinkedStory.cs",
+        "sha256": "11747566139297076a5f3fdd045af942f8303f4d001c4f0a4d880b70bc5a337b"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/Program.cs",
+        "sha256": "e27bca786ec5363a48b27617b71d35a6e2931d74162b50cd227d7b69f97c7b4c"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/QuillCharacterFormatting.cs",
+        "sha256": "03f14921084db8e849cf25df05349718ab0d50290f776b074e1e0205ccef3877"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeCalloutRenderer.cs",
+        "sha256": "0a9a34bda84f1da5ceb13bb67e1411e66e48b6671268a447f9739949d732cdf3"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawing.ColorTint.cs",
+        "sha256": "da259e417d7778a81938642fc2e7a0e1bc0dec79a9db228821c73b4af4f2467f"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawing.Paragraphs.cs",
+        "sha256": "5e3d5d3dd23e2d9cef2fc68d4ebb20c87f0feda77b81c2ef16e36ea95f962b83"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingRichText.cs",
+        "sha256": "fbda4d8f95197392f8aaf36ad553b4f48b714702cd20cad9a47aef7a377ea38f"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.Labels.cs",
+        "sha256": "edd9e8c495a319baaa995935d30251b609fa1acef1ac083f7d18cc99e252a568"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.Paragraphs.cs",
+        "sha256": "fe53fa8698b202dca9e67dbcfe459d73b2081a13184305f330c2a7ddb28b39f7"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeDrawingTextLayout.cs",
+        "sha256": "b5cfc74580840c8982ac8ee6dbdb52d9efb11c44d9c69c3fe93ffe7996f64fb6"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextFlow.cs",
+        "sha256": "eb07b4a2e3044c2f7594125a747b7afe0a1abeeb5d8868d41108022b14217e9f"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextParagraph.cs",
+        "sha256": "24221866914316e3e81fe3e0c5d953838ff5c683b55aeb3d340423251ba46161"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextRun.cs",
+        "sha256": "d53b3d7c924e6995944824167be82c1e4ca5f6a0cdc7e250a158460d23fd3e43"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextSegment.cs",
+        "sha256": "25b9004d4dea86c33cb80dec0ac3af5922588ed23e20247f448b6b42582bdac0"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextLayoutEngine.RichText.Runs.cs",
+        "sha256": "146097cf78c5c899a8d3323307241495ab4401edc1957ccc988eda88efd9ebc2"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextLayoutEngine.RichText.cs",
+        "sha256": "8578d29002a9f630f876ba457c7732e9cc25c612457efe4472b345931bf06d7f"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextLayoutEngine.Stacked.cs",
+        "sha256": "4b4afbadfe6ca6d7feab2d695af17bc4d586b7e81142ea242ef094e589166da1"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeTextTabLeaderStyle.cs",
+        "sha256": "2a7b14ef31679e3561c6596fbbd6e0d3d8c15f3d40efe17a539b527a88954390"
+      },
+      {
+        "path": "OfficeIMO.Drawing.Tests/Drawing.LanguageMetadata.cs",
+        "sha256": "2f3040b5d87781c6eb51b291439c3588c4e9cc0b2bcb30fcf3985f66bc89e5b6"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherLanguageWritingTests.cs",
+        "sha256": "2f931ac685adbd84fa694fbb90dfd44bae0dc90a15b75c7f9f30e5a85a6f309c"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.Compare.cs",
+        "sha256": "c5b5bf64b320e7213320b4864f9cf27dedf5e53d9e0aaa07d1b9cf9143ef0d97"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillCharacterStyleWriter.Extended.cs",
+        "sha256": "f8e7cd424a2dd22ffdfca07e299073cc88db5399ad0a18ea73ac812d9eb48917"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillCharacterStyleWriter.Language.cs",
+        "sha256": "86b734fd593718c22c006d438b562164f432dcc1935aeb9e31dd2a92fd8effd9"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillCharacterStyleWriter.cs",
+        "sha256": "528c3d3e32775e5cfec8ff9056e9c9e10027ca10b689be31ec8a3aa13b97408a"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Retention.cs",
+        "sha256": "a9891cceafae2915873bb638ebd0afaa46d1263c604b3b6551e7d95ea82ef5e9"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Topology.cs",
+        "sha256": "b67ebc41d8b4f9552b3fb97bc6db69f7f9a37b3a561f15e44c2c5db4c092b83c"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillStyleReader.cs",
+        "sha256": "cb825737cca916e954e5e64c4e4aaccaae95a510a369b55931939ca1945349fa"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillStyles.cs",
+        "sha256": "b1f0f97eb5248d93170d414070c53ca9606bb2d33fcd3c80d3358d3b02f117ff"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillTextReader.cs",
+        "sha256": "94a444064ed0c6426202f2d7463cc5f9b36456092b70d86d6bd4a4639a107199"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherStoryEditor.cs",
+        "sha256": "7237fb17744abe1a169b7f106c474f5bde91bc5de6f2886ec6a6edfcc6e7d3ed"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherTextComparison.cs",
+        "sha256": "106f65110dbfeda642d51d1bf032beed87068f5077e63ecc872ba9f1dc7dcb6b"
+      }
+    ],
+    "api": {
+      "owner": "OfficeIMO.Core.OfficeRichTextRun",
+      "property": "LanguageId:uint?",
+      "authoring": "WithLanguageId(uint?)",
+      "range": "0..65535;null unspecified",
+      "sourceNull": "Retains imported overrides; doesnotrequestnativeclear.",
+      "segments": "LanguageId annotation survivesfluentcopy/paragraph/drawing/tint/scale/flow/tab/label/stacked projection;differentlanguagesdonotmerge."
+    },
+    "nativeCodec": {
+      "primary": "Character0x12/type0x22",
+      "reading": "Inheritedvaluesresolved;unknownencodings/outofrangevaluesremainopaqueandreported.",
+      "writing": "Explicitprimaryonly;duplicates,unqualifiedtypesandoutofrangeexistingscalarsrefuse;opaquecompanionunchanged.",
+      "correspondence": "Visualtemplateequality/hashremainlanguageagnostic;explicitrequestscheckedseparatelyandappliedafterunambiguousnativecorrespondence.",
+      "coverage": [
+        "Ordinaryset/reset/unspecifiedsourceedits",
+        "Nonuniformparagraphretention/textreplacementinordinaryandcellstories",
+        "Retainedemptytypingtopologyinordinaryandcellstories"
+      ]
+    },
+    "creationCases": [
+      {
+        "name": "created-frame",
+        "sha256": "ac37b822d9af0ec91d5714c66f39402b6f517061e71b61572cc54fc2647430d2",
+        "languageId": 1033,
+        "nativeOperations": 7,
+        "matchedPagePairs": 4
+      },
+      {
+        "name": "created-linked",
+        "sha256": "d9b6ccbe01eae6b80d0fc300c27231c276e913e9ca943d0b01087966c6abbcf8",
+        "languageId": 1033,
+        "nativeOperations": 7,
+        "matchedPagePairs": 6
+      },
+      {
+        "name": "created-overflow",
+        "sha256": "d5e701a359f63d88b9c7e8a256e8b92cb868bbad8b013ea6dfb534a4b1f03e12",
+        "languageId": 1033,
+        "nativeOperations": 7,
+        "matchedPagePairs": 6
+      }
+    ],
+    "sourceCases": [
+      {
+        "name": "french-created",
+        "sha256": "6454cf93bfb6fa7472a84470d972191bf1bcd5f3892b8bc932d7ca19ecfb6eef",
+        "languageId": 1036,
+        "nativeOperations": 7,
+        "matchedPagePairs": 4
+      },
+      {
+        "name": "french-normalized",
+        "sha256": "ce2ad329b1839fe90c864b423c92de03278626b9285cd37488eb0946ed2b30de",
+        "languageId": 1036,
+        "nativeOperations": 7,
+        "matchedPagePairs": 4
+      },
+      {
+        "name": "french-control",
+        "sha256": "53695827d845242f01c82fc92056bef5290e10ae0eb99f0ed41dc53bbc060929",
+        "languageId": 1036,
+        "nativeOperations": 7,
+        "matchedPagePairs": 4
+      },
+      {
+        "name": "english-created",
+        "sha256": "dd185efda99c5ce43b41baf0758a1003f7f40c0877c2965de07743989121cca3",
+        "languageId": 1033,
+        "nativeOperations": 7,
+        "matchedPagePairs": 4
+      },
+      {
+        "name": "english-normalized",
+        "sha256": "477bee3d3d7ba75e3ddff427cbf41c5f5a8fafe02ddf56bb878cdefca0d877fd",
+        "languageId": 1033,
+        "nativeOperations": 7,
+        "matchedPagePairs": 4
+      },
+      {
+        "name": "english-control",
+        "sha256": "07917df8796e076e8cc6188e30508391217d802fd1f7153fd1e1d36d204cca32",
+        "languageId": 1033,
+        "nativeOperations": 7,
+        "matchedPagePairs": 4
+      },
+      {
+        "name": "unspecified-created",
+        "sha256": "6454cf93bfb6fa7472a84470d972191bf1bcd5f3892b8bc932d7ca19ecfb6eef",
+        "languageId": 1036,
+        "nativeOperations": 7,
+        "matchedPagePairs": 4
+      },
+      {
+        "name": "unspecified-normalized",
+        "sha256": "ce2ad329b1839fe90c864b423c92de03278626b9285cd37488eb0946ed2b30de",
+        "languageId": 1036,
+        "nativeOperations": 7,
+        "matchedPagePairs": 4
+      },
+      {
+        "name": "unspecified-control",
+        "sha256": "53695827d845242f01c82fc92056bef5290e10ae0eb99f0ed41dc53bbc060929",
+        "languageId": 1036,
+        "nativeOperations": 7,
+        "matchedPagePairs": 4
+      }
+    ],
+    "nativeFiles": 18,
+    "nativeOperations": 126,
+    "independentNativePagePixelPairs": 52,
+    "nativeLanguageGetterStates": 136,
+    "retentionCases": [
+      {
+        "name": "retain-text",
+        "sha256": "7954c38dcfa8ada3c755185310d755d16b31af24284f87e21f1374c724020a06",
+        "nativeOperations": 7,
+        "pageCount": 7,
+        "paragraphs": [
+          "Second native paragraph",
+          "Third native paragraph",
+          "Final native paragraph"
+        ]
+      },
+      {
+        "name": "replace-text",
+        "sha256": "928ba989e89deaa4aed6055788197a8ed4f99ebf692dcc1fbe61df8ce4b6739d",
+        "nativeOperations": 7,
+        "pageCount": 7,
+        "paragraphs": [
+          "Second native paragraph extra",
+          "Third native paragraph extra",
+          "Final native paragraph extra"
+        ]
+      },
+      {
+        "name": "empty-text",
+        "sha256": "489f1415bd25fef2c8b0983d610855fc787067b903cbd90044bb57c91cef301c",
+        "nativeOperations": 7,
+        "pageCount": 5,
+        "paragraphs": [
+          "",
+          ""
+        ]
+      },
+      {
+        "name": "retain-cell",
+        "sha256": "86ef7ead3d51500365fd663f23486be9bf0d3bdb70f72ba5446375b456e788ac",
+        "nativeOperations": 7,
+        "pageCount": 7,
+        "paragraphs": [
+          "Second native paragraph",
+          "Third native paragraph",
+          "Final native paragraph"
+        ]
+      },
+      {
+        "name": "replace-cell",
+        "sha256": "1bca04d6233f8581d574aed27b04dd732930b3dac0b2dda26ec33471d70fb03b",
+        "nativeOperations": 7,
+        "pageCount": 7,
+        "paragraphs": [
+          "Second native paragraph extra",
+          "Third native paragraph extra",
+          "Final native paragraph extra"
+        ]
+      },
+      {
+        "name": "empty-cell",
+        "sha256": "c308bb203405defd765830b7d5cc30941890f682bd8d2bba664f206b44611183",
+        "nativeOperations": 7,
+        "pageCount": 3,
+        "paragraphs": [
+          "",
+          ""
+        ]
+      }
+    ],
+    "retentionResaveStablePagePairs": 36,
+    "pixelComparisonDpi": 144,
+    "publicReloads": 36,
+    "managedPdfSvgPages": 124,
+    "previousCreationProfilesByteIdentical": 25,
+    "newCreationProfiles": 3,
+    "fixtures": [
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/FrameCreationFrench/provenance.json",
+        "sha256": "33ff5239edaddfc2112e11d15ae03844a8d18451b1091e918ff153b09717715b"
+      }
+    ],
+    "tests": {
+      "publisherPerFramework": 931,
+      "drawing": {
+        "net10": 6244,
+        "net8": 6244,
+        "net472": 6216,
+        "skippedPerFramework": 5
+      },
+      "reader": 95,
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net472"
+      ],
+      "newRegressionCases": {
+        "publisher": 13,
+        "drawing": 3
+      },
+      "regressions": [
+        "Language_set_reset_and_unspecified_saves_preserve_opaque_fields_and_neighboring_stories",
+        "Retained_count_changes_apply_language_with_or_without_text_replacement",
+        "Empty_typing_topology_applies_explicit_language_to_each_retained_CR",
+        "Unqualified_language_scalar_remains_opaque_and_refuses_explicit_editing",
+        "Stacked_layout_keeps_language_on_every_measured_text_element"
+      ]
+    },
+    "validation": {
+      "unsigned": true,
+      "standardPublisherPdfAndReaderPublisherBuilds": true,
+      "sourcePowerShellBuild": true,
+      "nativeProducer": "Microsoft Publisher16.0.20527.20088",
+      "automationSecurity": 3,
+      "ps7AndPs51SyntaxFiles": 4,
+      "probeNoIncrementalBuild": true
+    },
+    "limits": [
+      "Explicit16bitWindowsIDs;English/Frenchcontrolprofilesonly.",
+      "Unspecifiedsourcepreservesinherited/opaqueoverrides;nativelanguageoverrideclearingremainsunqualified.",
+      "Additionalretention/cellcasesestablishnativeacceptance/publicreload/resavestability;independentpixelparityclaimedonlyfor52basepairs.",
+      "Broaderlanguages/scripts,managedhyphenation,columnbalancing,paragraph-terminatordefaults,repair-freeopeningandgenericpublicnativecreationremainunqualified."
+    ],
+    "sourcePowerShell": {
+      "runtime": "7.6.9",
+      "pdfs": 5,
+      "pages": 12,
+      "actualOwnerAssemblyBound": true,
+      "managedDefaultPixelPairs": 12
+    }
   }
 }

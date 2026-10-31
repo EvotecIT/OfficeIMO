@@ -507,7 +507,12 @@ sources. Twelve files complete 84 native operations; all 52 initial/resaved page
 pairs match independent references at 144 dpi, and 136 native getters retain
 the intended language. Three source-free public-model specimens cover columns,
 linked frames and terminal overflow. Existing unspecified-language creation
-profiles retain their byte identity. Native clearing of imported overrides,
+profiles retain their byte identity. Six additional files qualify nonuniform
+paragraph retention/text replacement and retained empty typing in ordinary and
+cell stories: 42 native operations, 12 public reloads and 36 stable native resave
+page pairs. These cases preserve visual-template correspondence and raw-source
+ambiguity checks while applying the explicit language to copied bodies and CRs.
+Native clearing of imported overrides,
 broader languages/scripts, paragraph-terminator defaults, managed hyphenation,
 column balancing and repair-free opening require separate qualification.
 
