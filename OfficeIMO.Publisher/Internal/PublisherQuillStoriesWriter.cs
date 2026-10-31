@@ -39,7 +39,14 @@ internal static class PublisherQuillStoriesWriter {
                 || binding.TextByteOffset != text.Offset + originalStart * 2 || data.U32(lengths.Offset + 12 + ordinal * 4) != binding.NativeLength
                 || !data.Utf16(binding.TextByteOffset, binding.NativeLength * 2).Equals(prior.Text.Replace('\n', '\r'), StringComparison.Ordinal)) return null;
             int outputStart = checked(text.Offset + replacement.Length * 2);
-            if (!PublisherQuillParagraphWriter.TryPlan(data, context, binding, prior, current, outputStart, token, out var storyPc, out var storyPp, resources, typingStyles)) return null;
+            bool cellTopology = beforeTables.TryGetValue(binding.StoryId, out PublisherTableStory? priorTable)
+                && priorTable.Segments.Zip(afterTables[binding.StoryId].Segments, (a, b) => a.Paragraphs.Count != b.Paragraphs.Count).Any(changed => changed);
+            bool planned = cellTopology
+                ? PublisherQuillTableTextWriter.TryPlanParagraphs(data, context, binding, priorTable!, afterTables[binding.StoryId],
+                    outputStart, token, out var storyPc, out var storyPp, resources, typingStyles)
+                : PublisherQuillParagraphWriter.TryPlan(data, context, binding, prior, current, outputStart, token,
+                    out storyPc, out storyPp, resources, typingStyles);
+            if (!planned) return null;
             pc.AddRange(storyPc); pp.AddRange(storyPp);
             replacement.Append(current.Text.Replace('\n', '\r')); originalStart = checked(originalStart + binding.NativeLength);
         }

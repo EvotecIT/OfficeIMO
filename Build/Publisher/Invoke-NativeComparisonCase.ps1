@@ -23,12 +23,13 @@ param(
     [ValidateSet('Inspect', 'Resave', 'Full')]
     [string] $Stage = 'Full',
 
-    [ValidateLength(1, 4096)]
-    [ValidatePattern('\A[^\p{Cc}\p{Zl}\p{Zp}]+\z')]
+    [AllowEmptyString()]
+    [ValidateLength(0, 4096)]
+    [ValidatePattern('\A[^\p{Cc}\p{Zl}\p{Zp}]*\z')]
     [string] $NativeEditText,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableCellTyping', 'TableCellTypingEarlyRange', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -679,7 +680,7 @@ try {
                 throw 'Publisher did not establish reciprocal newsletter frame links.'
             }
         }
-        { $_ -in @('TableLabel', 'TableCellTyping', 'TableCellTypingEarlyRange') } {
+        { $_ -in @('TableLabel', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs') } {
             $pageCount = Add-NativeTableControl -Publication $document -FirstPage $page -Case $Case -PicturePath (Join-Path $output ($stem + '.png'))
         }
         { $_ -in @('Brochure', 'MultipleMasters', 'TwoPageMaster') } {

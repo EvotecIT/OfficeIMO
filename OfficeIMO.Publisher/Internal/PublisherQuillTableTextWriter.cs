@@ -1,7 +1,34 @@
 namespace OfficeIMO.Publisher.Internal;
 
-/// <summary>Retains fixed native cell partitions while remapping story-relative TCD endpoints.</summary>
+/// <summary>Retains native cell ownership while remapping TCD endpoints and planning each cell's paragraph definitions.</summary>
 internal static class PublisherQuillTableTextWriter {
+    /// <summary>Bounds topology reuse to one cell; adjacent cells can have distinct native definitions.</summary>
+    internal static bool TryPlanParagraphs(PublisherBinaryData data, PublisherParseContext context, PublisherQuillStoryStyles binding,
+        PublisherTableStory before, PublisherTableStory after, int outputTextOffset, CancellationToken token,
+        out List<PublisherQuillFormattingRange> pc, out List<PublisherQuillFormattingRange> pp,
+        PublisherQuillWriteResources resources, PublisherQuillStyles? typingStyles) {
+        pc = new(); pp = new();
+        if (before.Segments.Count != after.Segments.Count) return false;
+        int offset = 0, position = outputTextOffset;
+        for (int cell = 0; cell < before.Segments.Count; cell++) {
+            token.ThrowIfCancellationRequested();
+            PublisherTextStory prior = before.Segments[cell], current = after.Segments[cell];
+            int start = checked(binding.NativeStart + offset), end = checked(start + prior.Text.Length);
+            PublisherQuillStyleUse[] uses = binding.Uses.Where(use => use.NativeStart < end
+                && (long)use.NativeStart + use.NativeLength > start).Select(use => use with {
+                    NativeStart = Math.Max(start, use.NativeStart),
+                    NativeLength = Math.Min(end, checked(use.NativeStart + use.NativeLength)) - Math.Max(start, use.NativeStart)
+                }).ToArray();
+            var segment = new PublisherQuillStoryStyles(binding.StoryId, binding.StoryOrdinal, start, prior.Text.Length,
+                checked(binding.TextByteOffset + offset * 2), prior.Paragraphs.Count, 0, uses, binding.Definitions);
+            if (!PublisherQuillParagraphWriter.TryPlan(data, context, segment, prior, current, position, token,
+                out var cellPc, out var cellPp, resources, typingStyles)) return false;
+            pc.AddRange(cellPc); pp.AddRange(cellPp);
+            offset = checked(offset + prior.Text.Length); position = checked(position + current.Text.Length * 2);
+        }
+        return offset == binding.NativeLength;
+    }
+
     internal static bool TryPlan(PublisherQuillSourceLayout layout,
         IReadOnlyDictionary<uint, PublisherTextStory> before, IReadOnlyDictionary<uint, PublisherTextStory> after,
         IReadOnlyDictionary<uint, PublisherTableStory> beforeTables, IReadOnlyDictionary<uint, PublisherTableStory> afterTables,
@@ -30,8 +57,7 @@ internal static class PublisherQuillTableTextWriter {
             int oldEnd = 0, newEnd = 0;
             for (int cell = 0; cell < prior.Segments.Count; cell++) {
                 token.ThrowIfCancellationRequested(); PublisherTextStory a = prior.Segments[cell], b = current.Segments[cell];
-                if (a.Id != id || b.Id != id || !a.HasFinalParagraphTerminator || !b.HasFinalParagraphTerminator
-                    || a.Paragraphs.Count != b.Paragraphs.Count) return false;
+                if (a.Id != id || b.Id != id || !a.HasFinalParagraphTerminator || !b.HasFinalParagraphTerminator) return false;
                 oldEnd = checked(oldEnd + a.Text.Length); newEnd = checked(newEnd + b.Text.Length);
                 int adjustment = cell == prior.Segments.Count - 1 ? 0 : 1;
                 if (data.U32(chunk.Offset + 12 + cell * 4) != oldEnd - adjustment) return false;

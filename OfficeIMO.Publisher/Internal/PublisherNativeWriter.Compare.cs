@@ -4,11 +4,13 @@ namespace OfficeIMO.Publisher.Internal;
 
 internal sealed partial class PublisherNativeWriter {
     private void Compare() {
-        if (!MapEqual(_baseline.Text.Stories, _current.Text.Stories, StoryEqual)) {
+        if (!MapEqual(_baseline.Text.Stories, _current.Text.Stories, StoryEqual)
+            || !MapEqual(_baseline.Text.TableStories, _current.Text.TableStories, TableStoryEqual)) {
             var sourceStyles = _imported.Styles.Stories.ToDictionary(story => story.StoryId);
             foreach (var story in _baseline.Text.Stories) {
                 _token.ThrowIfCancellationRequested();
-                if ((!_current.Text.Stories.TryGetValue(story.Key, out PublisherTextStory? current) || !StoryEqual(story.Value, current))
+                if ((!_current.Text.Stories.TryGetValue(story.Key, out PublisherTextStory? current) || !StoryEqual(story.Value, current)
+                    || !TableStoryUnchanged(story.Key))
                     && sourceStyles.TryGetValue(story.Key, out PublisherQuillStoryStyles? dependency)) _styleDependencies.Add(dependency);
             }
             if (!TryRewriteStories()) Reject("Quill", "Stories or formatting changed outside the supported existing-story and formatting-page profiles. StyleDependencies identifies the original stories, definition ordinals and direct native OPL spans.");
@@ -43,9 +45,12 @@ internal sealed partial class PublisherNativeWriter {
         bool extended = false;
         foreach (var entry in _baseline.Text.Stories) {
             PublisherTextStory current = _current.Text.Stories[entry.Key];
-            if (StoryEqual(entry.Value, current)) continue;
-            if (!CanRewriteStory(entry.Value, current, out bool changedFormatting)
-                || !(_baseline.Text.TableStories.ContainsKey(entry.Key) ? CanRewriteTableStory(entry.Key) : CanRewriteStoryFrames(entry.Key))) return false;
+            if (StoryEqual(entry.Value, current) && TableStoryUnchanged(entry.Key)) continue;
+            bool changedFormatting;
+            if (_baseline.Text.TableStories.ContainsKey(entry.Key)) {
+                if (!CanRewriteTableStory(entry.Key)) return false;
+                changedFormatting = true;
+            } else if (!CanRewriteStory(entry.Value, current, out changedFormatting) || !CanRewriteStoryFrames(entry.Key)) return false;
             extended |= changedFormatting;
         }
         if (!extended && _baseline.Text.Stories.Count == 1 && _baseline.Text.Frames.Count == 1 && _styleDependencies.Count == 1) {
@@ -61,10 +66,20 @@ internal sealed partial class PublisherNativeWriter {
 
     private bool CanRewriteTableStory(uint storyId) {
         PublisherTableState[] tables = _baseline.Tables.Values.Where(table => table.StoryId == storyId).ToArray();
-        return tables.Length != 0 && tables.All(table => _baseline.CellTextEditLimitation(table) == null
+        if (tables.Length == 0 || !tables.All(table => _baseline.CellTextEditLimitation(table) == null
             && _current.Tables.TryGetValue(table.Id, out PublisherTableState? current) && current.StoryId == storyId
-            && _current.CellTextEditLimitation(current) == null);
+            && _current.CellTextEditLimitation(current) == null)) return false;
+        PublisherTableStory before = _baseline.Text.TableStories[storyId], after = _current.Text.TableStories[storyId];
+        return before.Segments.Count == after.Segments.Count && before.Segments.Zip(after.Segments, (a, b) =>
+            StoryEqual(a, b) || CanRewriteStory(a, b, out _)).All(value => value);
     }
+
+    private bool TableStoryUnchanged(uint storyId) => _baseline.Text.TableStories.TryGetValue(storyId, out PublisherTableStory? before)
+        ? _current.Text.TableStories.TryGetValue(storyId, out PublisherTableStory? after) && TableStoryEqual(before, after)
+        : !_current.Text.TableStories.ContainsKey(storyId);
+
+    private static bool TableStoryEqual(PublisherTableStory a, PublisherTableStory b) => ReferenceEquals(a, b)
+        || a.Segments.Count == b.Segments.Count && a.Segments.Zip(b.Segments, StoryEqual).All(value => value);
 
     private bool CanRewriteStoryFrames(uint storyId) {
         int frameCount = _baseline.Text.Frames.Values.Count(frame => frame.StoryId == storyId);

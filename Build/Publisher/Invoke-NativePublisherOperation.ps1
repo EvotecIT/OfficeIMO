@@ -26,7 +26,8 @@ Bounded worker lifetime, including application startup and shutdown.
 .PARAMETER NativeEditText
 Optional single-line replacement for a candidate with one physical page and one
 unlinked text box. Validate/Full only. The writable snapshot is changed before
-native save-as; initial artifacts retain the original content.
+native save-as; initial artifacts retain the original content. An empty value
+clears the text range.
 .EXAMPLE
 ./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -InputPath ./candidate.pub -OutputDirectory ./candidate-native
 .EXAMPLE
@@ -43,7 +44,7 @@ param(
     [ValidateSet('Corpus', 'Validate')]
     [string] $Operation = 'Corpus',
 
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableCellTyping', 'TableCellTypingEarlyRange', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
     [string] $Case = 'Blank',
 
     [string] $InputPath,
@@ -51,8 +52,9 @@ param(
     [ValidateSet('Inspect', 'Resave', 'Full')]
     [string] $Stage = 'Full',
 
-    [ValidateLength(1, 4096)]
-    [ValidatePattern('\A[^\p{Cc}\p{Zl}\p{Zp}]+\z')]
+    [AllowEmptyString()]
+    [ValidateLength(0, 4096)]
+    [ValidatePattern('\A[^\p{Cc}\p{Zl}\p{Zp}]*\z')]
     [string] $NativeEditText,
 
     [ValidateRange(10, 600)]

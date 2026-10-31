@@ -1,0 +1,493 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "TableCellParagraphs",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 1,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [
+      "Baseline",
+      "Item",
+      "Count",
+      "Alpha",
+      "2",
+      "FirstGrows",
+      "First one\rFirst two",
+      "Count",
+      "Alpha",
+      "2",
+      "FinalGrows",
+      "Item",
+      "Count",
+      "Alpha",
+      "Last one\rLast two\rLast three",
+      "AllGrow",
+      "Item one\rItem two",
+      "Count one\rCount two",
+      "Alpha one\rAlpha two",
+      "Value one\rValue two"
+    ],
+    "shapes": [
+      {
+        "name": "Caption-Baseline",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 42.0,
+        "width": 432.0,
+        "height": 20.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "Baseline",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "Item",
+          "Count",
+          "Alpha",
+          "2"
+        ],
+        "left": 72,
+        "top": 64,
+        "width": 360,
+        "height": 132,
+        "cellTyping": {
+          "profile": {
+            "Name": "Baseline"
+          },
+          "observed": [
+            {
+              "cell": 0,
+              "beforeText": "Item\r",
+              "afterText": "Item\r",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 1,
+              "beforeText": "Count\r",
+              "afterText": "Count\r",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 2,
+              "beforeText": "Alpha\r",
+              "afterText": "Alpha\r",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 3,
+              "beforeText": "2\r",
+              "afterText": "2\r",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            }
+          ],
+          "rangeCapture": "FreshWholeCell"
+        }
+      },
+      {
+        "name": "Caption-FirstGrows",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 218.0,
+        "width": 432.0,
+        "height": 20.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "FirstGrows",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "First one\rFirst two",
+          "Count",
+          "Alpha",
+          "2"
+        ],
+        "left": 72,
+        "top": 240,
+        "width": 360,
+        "height": 132,
+        "cellTyping": {
+          "profile": {
+            "Text": {
+              "0": "First one\rFirst two"
+            },
+            "Name": "FirstGrows"
+          },
+          "observed": [
+            {
+              "cell": 0,
+              "beforeText": "First one\rFirst two\r",
+              "afterText": "First one\rFirst two\r",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 1,
+              "beforeText": "Count\r",
+              "afterText": "Count\r",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 2,
+              "beforeText": "Alpha\r",
+              "afterText": "Alpha\r",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 3,
+              "beforeText": "2\r",
+              "afterText": "2\r",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            }
+          ],
+          "rangeCapture": "FreshWholeCell"
+        }
+      },
+      {
+        "name": "Caption-FinalGrows",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 394.0,
+        "width": 432.0,
+        "height": 20.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "FinalGrows",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "Item",
+          "Count",
+          "Alpha",
+          "Last one\rLast two\rLast three"
+        ],
+        "left": 72,
+        "top": 416,
+        "width": 360,
+        "height": 132,
+        "cellTyping": {
+          "profile": {
+            "Text": {
+              "3": "Last one\rLast two\rLast three"
+            },
+            "Name": "FinalGrows"
+          },
+          "observed": [
+            {
+              "cell": 0,
+              "beforeText": "Item\r",
+              "afterText": "Item\r",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 1,
+              "beforeText": "Count\r",
+              "afterText": "Count\r",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 2,
+              "beforeText": "Alpha\r",
+              "afterText": "Alpha\r",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 3,
+              "beforeText": "Last one\rLast two\rLast three\r",
+              "afterText": "Last one\rLast two\rLast three\r",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            }
+          ],
+          "rangeCapture": "FreshWholeCell"
+        }
+      },
+      {
+        "name": "Caption-AllGrow",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 570.0,
+        "width": 432.0,
+        "height": 20.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "AllGrow",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "Item one\rItem two",
+          "Count one\rCount two",
+          "Alpha one\rAlpha two",
+          "Value one\rValue two"
+        ],
+        "left": 72,
+        "top": 592,
+        "width": 360,
+        "height": 132,
+        "cellTyping": {
+          "profile": {
+            "Text": {
+              "3": "Value one\rValue two",
+              "0": "Item one\rItem two",
+              "1": "Count one\rCount two",
+              "2": "Alpha one\rAlpha two"
+            },
+            "Name": "AllGrow"
+          },
+          "observed": [
+            {
+              "cell": 0,
+              "beforeText": "Item one\rItem two\r",
+              "afterText": "Item one\rItem two\r",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 1,
+              "beforeText": "Count one\rCount two\r",
+              "afterText": "Count one\rCount two\r",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 2,
+              "beforeText": "Alpha one\rAlpha two\r",
+              "afterText": "Alpha one\rAlpha two\r",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 3,
+              "beforeText": "Value one\rValue two\r",
+              "afterText": "Value one\rValue two\r",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            }
+          ],
+          "rangeCapture": "FreshWholeCell"
+        }
+      }
+    ]
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "Caption-Baseline",
+          "type": 17,
+          "left": 72.0,
+          "top": 42.0,
+          "width": 432.0,
+          "height": 20.0,
+          "text": "Baseline\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null
+        },
+        {
+          "name": "Baseline",
+          "type": 18,
+          "left": 72.0,
+          "top": 64.0,
+          "width": 360.0,
+          "height": 132.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null
+        },
+        {
+          "name": "Caption-FirstGrows",
+          "type": 17,
+          "left": 72.0,
+          "top": 218.0,
+          "width": 432.0,
+          "height": 20.0,
+          "text": "FirstGrows\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null
+        },
+        {
+          "name": "FirstGrows",
+          "type": 18,
+          "left": 72.0,
+          "top": 240.0,
+          "width": 360.0,
+          "height": 132.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null
+        },
+        {
+          "name": "Caption-FinalGrows",
+          "type": 17,
+          "left": 72.0,
+          "top": 394.0,
+          "width": 432.0,
+          "height": 20.0,
+          "text": "FinalGrows\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null
+        },
+        {
+          "name": "FinalGrows",
+          "type": 18,
+          "left": 72.0,
+          "top": 416.0,
+          "width": 360.0,
+          "height": 132.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null
+        },
+        {
+          "name": "Caption-AllGrow",
+          "type": 17,
+          "left": 72.0,
+          "top": 570.0,
+          "width": 432.0,
+          "height": 20.0,
+          "text": "AllGrow\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null
+        },
+        {
+          "name": "AllGrow",
+          "type": 18,
+          "left": 72.0,
+          "top": 592.0,
+          "width": 360.0,
+          "height": 132.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 0,
+      "shapes": []
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-tablecellparagraphs.pub",
+      "sha256": "c7fab6abeda15e24c465359ef909725155bf1e3cc56b074b79efe33269797482"
+    },
+    "reference": {
+      "name": "native-tablecellparagraphs.pdf",
+      "sha256": "5803e171143c360741aa032418f0b97995df5036a60222c888530c6e21c9b6b8"
+    }
+  }
+}

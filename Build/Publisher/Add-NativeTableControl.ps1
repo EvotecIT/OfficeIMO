@@ -6,6 +6,13 @@ function Add-NativeTableControl {
         $multilingual = 'Za' + [char]0x017C + [char]0x00F3 + [char]0x0142 + [char]0x0107 + ' g' + [char]0x0119 + [char]0x015B + 'l' + [char]0x0105 + ' ja' + [char]0x017A + [char]0x0144 + ' / ' + [char]0x0391 + [char]0x03BB + [char]0x03C6 + [char]0x03B1
         $null = Add-TextFrame $FirstPage 'LabelTitle' $multilingual 18 12 252 42 12
         $profiles = @(@{ Name = 'LabelTable' })
+    } elseif ($Case -eq 'TableCellParagraphs') {
+        $profiles = @(
+            @{ Name = 'Baseline' },
+            @{ Name = 'FirstGrows'; Text = @{ '0' = "First one`rFirst two" } },
+            @{ Name = 'FinalGrows'; Text = @{ '3' = "Last one`rLast two`rLast three" } },
+            @{ Name = 'AllGrow'; Text = @{ '0' = "Item one`rItem two"; '1' = "Count one`rCount two"; '2' = "Alpha one`rAlpha two"; '3' = "Value one`rValue two" } }
+        )
     } else {
         $profiles = @(
             @{ Name = 'Baseline' },
@@ -30,12 +37,16 @@ function Add-NativeTableControl {
             $left = 18; $top = 66; $width = 180; $height = 72
         } else {
             $left = 72; $top = 64 + ($index % 4) * 176; $width = 360; $height = 104
+            if ($Case -eq 'TableCellParagraphs') { $height = 132 }
             $null = Add-TextFrame $owner ('Caption-' + $profile.Name) $profile.Name $left ($top - 22) 432 20 12
         }
         Set-NativePhase ('Table-' + $profile.Name)
         $table = $owner.Shapes.AddTable(2, 2, $left, $top, $width, $height)
         $table.Name = $profile.Name; $objects.Add($table)
         $values = @('Item', 'Count', 'Alpha', '2')
+        if ($profile.ContainsKey('Text')) {
+            foreach ($key in $profile.Text.Keys) { $values[[int]$key] = $profile.Text[$key] }
+        }
         $observed = [Collections.Generic.List[object]]::new()
         for ($row = 1; $row -le 2; $row++) {
             for ($column = 1; $column -le 2; $column++) {
