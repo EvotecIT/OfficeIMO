@@ -29,7 +29,7 @@ param(
     [string] $NativeEditText,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -133,7 +133,10 @@ $layout = $null
 . (Join-Path $PSScriptRoot 'New-NativeReplacementImage.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeCharacterAttributeControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeParagraphFormatControl.ps1')
+. (Join-Path $PSScriptRoot 'Get-NativeParagraphTopologyProfiles.ps1')
+. (Join-Path $PSScriptRoot 'Set-NativeParagraphTopologyFormatting.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeParagraphTopologyControl.ps1')
+. (Join-Path $PSScriptRoot 'Add-NativeTableParagraphTopologyControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeFrameLayoutControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeTableControl.ps1')
 . (Join-Path $PSScriptRoot 'Get-NativeTableGeometry.ps1')
@@ -603,6 +606,9 @@ try {
         }
         'TextNonuniformParagraphs' {
             $pageCount = Add-NativeParagraphTopologyControl -Publication $document -FirstPage $page
+        }
+        'TableNonuniformParagraphs' {
+            $pageCount = Add-NativeTableParagraphTopologyControl -Publication $document -FirstPage $page
         }
         'TextParagraphAttributes' {
             $pageCount = Add-NativeParagraphFormatControl -Publication $document -FirstPage $page
