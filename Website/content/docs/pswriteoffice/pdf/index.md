@@ -12,16 +12,16 @@ Use `New-OfficePdf` with the `Add-OfficePdf*` commands when the script owns the 
 
 ## Copy complete DSL recipes
 
-- [Service invoice](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-ServiceInvoice.ps1): metadata, invoice lines, totals, payment terms, headers, footers, and contact link.
-- [Access audit report](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-AuditReport.ps1): findings, bookmarks, page breaks, remediation sections, and form fields.
-- [Composed service report](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Pdf/Example-PdfReportDsl.ps1): themes, backgrounds, borders, rich text, columns, links, bookmarks, tables, and attachments.
+- [Service invoice](https://github.com/EvotecIT/OfficeIMO/blob/56daee395fd48736e2506fb3e682d21cfddebd28/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-ServiceInvoice.ps1): metadata, invoice lines, totals, payment terms, headers, footers, and contact link.
+- [Access audit report](https://github.com/EvotecIT/OfficeIMO/blob/56daee395fd48736e2506fb3e682d21cfddebd28/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-AuditReport.ps1): findings, bookmarks, page breaks, remediation sections, and form fields.
+- [Composed service report](https://github.com/EvotecIT/OfficeIMO/blob/56daee395fd48736e2506fb3e682d21cfddebd28/PowerShell/PSWriteOffice/Examples/Pdf/Example-PdfReportDsl.ps1): themes, backgrounds, borders, rich text, columns, links, bookmarks, tables, and attachments.
 
 ## Other PDF workflows
 
-- [Attach supporting evidence](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-AttachEvidence.ps1): embed a source file in the delivered report.
-- [Exchange form data](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-FormDataExchange.ps1): export and import interactive form values.
-- [Extract text](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-ExtractText.ps1): feed PDF content into search or review workflows.
-- [Reorder pages](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-ReorderPages.ps1): fix the delivery order without recomposing the report.
+- [Attach supporting evidence](https://github.com/EvotecIT/OfficeIMO/blob/56daee395fd48736e2506fb3e682d21cfddebd28/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-AttachEvidence.ps1): embed a source file in the delivered report.
+- [Exchange form data](https://github.com/EvotecIT/OfficeIMO/blob/56daee395fd48736e2506fb3e682d21cfddebd28/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-FormDataExchange.ps1): export and import interactive form values.
+- [Extract text](https://github.com/EvotecIT/OfficeIMO/blob/56daee395fd48736e2506fb3e682d21cfddebd28/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-ExtractText.ps1): feed PDF content into search or review workflows.
+- [Reorder pages](https://github.com/EvotecIT/OfficeIMO/blob/56daee395fd48736e2506fb3e682d21cfddebd28/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-ReorderPages.ps1): fix the delivery order without recomposing the report.
 
 The [DSL cookbook](/docs/pswriteoffice/dsl-cookbook/) compares fixed-layout PDF composition with the editable Office and Markdown outputs.
 
@@ -60,4 +60,4 @@ This enables a safer pipeline:
 
 PDF features vary by document structure and preservation requirement. Use `Test-OfficePdfRewrite`, diagnostics, and preflight evidence for complex inputs instead of assuming every rewrite is lossless.
 
-See the [PDF examples](https://github.com/EvotecIT/OfficeIMO/tree/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Pdf) and search the [command reference](/api/powershell/) for `OfficePdf`.
+See the [PDF examples](https://github.com/EvotecIT/OfficeIMO/tree/56daee395fd48736e2506fb3e682d21cfddebd28/PowerShell/PSWriteOffice/Examples/Pdf) and search the [command reference](/api/powershell/) for `OfficePdf`.

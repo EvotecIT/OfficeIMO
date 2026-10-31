@@ -2162,12 +2162,10 @@
     {
       "name": "Copy-OfficeExcelSheet",
       "kind": "Cmdlet",
-      "aliases": [
-        "ExcelSheetCopy"
-      ],
+      "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/CopyOfficeExcelSheetCommand.cs",
-      "sourceLine": 30,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/CopyOfficeExcelSheetCommand.cs#L30"
+      "sourceLine": 24,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/CopyOfficeExcelSheetCommand.cs#L24"
     },
     {
       "name": "Copy-OfficeExcelWorkbook",
@@ -3553,30 +3551,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/InvokeOfficeWordMailMergeCommand.cs#L21"
     },
     {
-      "name": "Join-OfficeExcelSheet",
-      "kind": "Cmdlet",
-      "aliases": [
-        "ExcelSheetJoin",
-        "ExcelSheetMerge",
-        "Merge-OfficeExcelSheet"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/JoinOfficeExcelSheetCommand.cs",
-      "sourceLine": 19,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/JoinOfficeExcelSheetCommand.cs#L19"
-    },
-    {
-      "name": "Join-OfficeExcelWorkbook",
-      "kind": "Cmdlet",
-      "aliases": [
-        "ExcelWorkbookJoin",
-        "ExcelWorkbookMerge",
-        "Merge-OfficeExcelWorkbook"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/JoinOfficeExcelWorkbookCommand.cs",
-      "sourceLine": 29,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/JoinOfficeExcelWorkbookCommand.cs#L29"
-    },
-    {
       "name": "Join-OfficePdf",
       "kind": "Cmdlet",
       "aliases": [],
@@ -3604,15 +3578,20 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/MergeOfficeDocumentCommand.cs#L30"
     },
     {
+      "name": "Merge-OfficeExcelSheet",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/MergeOfficeExcelSheetCommand.cs",
+      "sourceLine": 20,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/MergeOfficeExcelSheetCommand.cs#L20"
+    },
+    {
       "name": "Move-OfficeExcelSheet",
       "kind": "Cmdlet",
-      "aliases": [
-        "ExcelSheetOrder",
-        "Set-OfficeExcelSheetOrder"
-      ],
+      "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/MoveOfficeExcelSheetCommand.cs",
-      "sourceLine": 22,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/MoveOfficeExcelSheetCommand.cs#L22"
+      "sourceLine": 16,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/MoveOfficeExcelSheetCommand.cs#L16"
     },
     {
       "name": "Move-OfficePdfPage",

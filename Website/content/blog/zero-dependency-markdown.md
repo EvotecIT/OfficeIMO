@@ -28,7 +28,7 @@ Supported Markdown constructs map to typed public block and inline classes:
 using OfficeIMO.Markdown;
 
 string input = File.ReadAllText("README.md");
-MarkdownDocument doc = MarkdownReader.Parse(input);
+MarkdownDocument doc = MarkdownDocument.Parse(input);
 
 foreach (var block in doc.TopLevelBlocks)
 {
@@ -77,7 +77,7 @@ The builder handles blank-line separation, fence formatting, and list indentatio
 Because the AST is mutable, you can write transformation passes:
 
 ```csharp
-var doc = MarkdownReader.Parse(File.ReadAllText("README.md"));
+var doc = MarkdownDocument.Parse(File.ReadAllText("README.md"));
 
 // Bump all headings down one level
 foreach (var heading in doc.DescendantHeadings())

@@ -88920,19 +88920,24 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
       <command:verb>Copy</command:verb>
       <command:noun>OfficeExcelSheet</command:noun>
       <maml:description>
-        <maml:para>Copies a worksheet within a workbook or from another workbook.</maml:para>
+        <maml:para>Copies selected worksheets within a workbook or from another workbook.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Copies a worksheet within a workbook or from another workbook.</maml:para>
+      <maml:para>Source accepts a native ExcelDocument, a workbook path or literal FileInfo. Sheet accepts names,
+wildcard patterns, one-based positions and native worksheets. Omit Sheet to copy all source sheets,
+or the current worksheet inside a worksheet content block. Native package copy preserves references
+between selected sheets. File targets are saved in place; live documents require an explicit save.</maml:para>
+      <maml:para>PassThru emits native worksheets. For file input, their workbook remains open: close
+the returned worksheet's Document with Close-OfficeExcel when finished.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="Context">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Copy-OfficeExcelSheet</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>CopyMode</maml:name>
           <maml:description>
-            <maml:para>Controls whether cross-workbook copies use package-level copy or value materialization.</maml:para>
+            <maml:para>Gets or sets native package copying or explicit value-only materialization.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">ExcelWorksheetCopyMode</command:parameterValue>
           <command:parameterValueGroup>
@@ -88945,34 +88950,10 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="2" aliases="Name,DestinationSheet">
-          <maml:name>NewName</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
           <maml:description>
-            <maml:para>Name for the copied worksheet.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the object created or changed by the command.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourceDocument</maml:name>
-          <maml:description>
-            <maml:para>Optional source workbook object for cross-workbook copies.</maml:para>
+            <maml:para>Gets or sets a live target workbook; omission uses the enclosing workbook scope.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
           <dev:type>
@@ -88982,21 +88963,9 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourcePath</maml:name>
+          <maml:name>Name</maml:name>
           <maml:description>
-            <maml:para>Optional source workbook path for cross-workbook copies.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="Sheet,WorksheetName">
-          <maml:name>SourceSheet</maml:name>
-          <maml:description>
-            <maml:para>Worksheet to copy. Defaults to the current sheet inside an ExcelSheet block.</maml:para>
+            <maml:para>Gets or sets a new name when copying exactly one worksheet.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -89006,9 +88975,57 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NamePrefix</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets a prefix for each copied worksheet name.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether to return live copied worksheets; their workbook is caller-owned.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Sheet</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets source worksheet names or patterns, one-based positions or native worksheets.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeSheetSelector[]</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeSheetSelector[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Source</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets another workbook as a native ExcelDocument, path or literal FileInfo.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>Object</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>ValidationMode</maml:name>
           <maml:description>
-            <maml:para>Controls how invalid destination sheet names are handled.</maml:para>
+            <maml:para>Gets or sets how invalid or duplicate destination names are handled.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">ExcelSheetNameValidationMode</command:parameterValue>
           <command:parameterValueGroup>
@@ -89028,7 +89045,7 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>CopyMode</maml:name>
           <maml:description>
-            <maml:para>Controls whether cross-workbook copies use package-level copy or value materialization.</maml:para>
+            <maml:para>Gets or sets native package copying or explicit value-only materialization.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">ExcelWorksheetCopyMode</command:parameterValue>
           <command:parameterValueGroup>
@@ -89041,12 +89058,24 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="2" aliases="Name,DestinationSheet">
-          <maml:name>NewName</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Name</maml:name>
           <maml:description>
-            <maml:para>Name for the copied worksheet.</maml:para>
+            <maml:para>Gets or sets a new name when copying exactly one worksheet.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NamePrefix</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets a prefix for each copied worksheet name.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
             <maml:name>String</maml:name>
             <maml:uri />
@@ -89056,7 +89085,7 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Emit the object created or changed by the command.</maml:para>
+            <maml:para>Gets or sets whether to return live copied worksheets; their workbook is caller-owned.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -89065,50 +89094,38 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="InputPath,FilePath">
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>Path</maml:name>
           <maml:description>
-            <maml:para>Target workbook path to update.</maml:para>
+            <maml:para>Gets or sets target workbook paths with filesystem wildcard expansion.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Sheet</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets source worksheet names or patterns, one-based positions or native worksheets.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeSheetSelector[]</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeSheetSelector[]</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourceDocument</maml:name>
+          <maml:name>Source</maml:name>
           <maml:description>
-            <maml:para>Optional source workbook object for cross-workbook copies.</maml:para>
+            <maml:para>Gets or sets another workbook as a native ExcelDocument, path or literal FileInfo.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Object</command:parameterValue>
           <dev:type>
-            <maml:name>ExcelDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourcePath</maml:name>
-          <maml:description>
-            <maml:para>Optional source workbook path for cross-workbook copies.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="Sheet,WorksheetName">
-          <maml:name>SourceSheet</maml:name>
-          <maml:description>
-            <maml:para>Worksheet to copy. Defaults to the current sheet inside an ExcelSheet block.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>Object</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -89116,7 +89133,7 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>ValidationMode</maml:name>
           <maml:description>
-            <maml:para>Controls how invalid destination sheet names are handled.</maml:para>
+            <maml:para>Gets or sets how invalid or duplicate destination names are handled.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">ExcelSheetNameValidationMode</command:parameterValue>
           <command:parameterValueGroup>
@@ -89131,12 +89148,12 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
       </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Document">
+      <command:syntaxItem parameterSetName="LiteralPath">
         <maml:name>Copy-OfficeExcelSheet</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>CopyMode</maml:name>
           <maml:description>
-            <maml:para>Controls whether cross-workbook copies use package-level copy or value materialization.</maml:para>
+            <maml:para>Gets or sets native package copying or explicit value-only materialization.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">ExcelWorksheetCopyMode</command:parameterValue>
           <command:parameterValueGroup>
@@ -89149,24 +89166,36 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Document</maml:name>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+          <maml:name>LiteralPath</maml:name>
           <maml:description>
-            <maml:para>Target workbook to update outside the DSL context.</maml:para>
+            <maml:para>Gets or sets literal target paths, including FileInfo.FullName and provider PSPath.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">ExcelDocument</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
           <dev:type>
-            <maml:name>ExcelDocument</maml:name>
+            <maml:name>String[]</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="2" aliases="Name,DestinationSheet">
-          <maml:name>NewName</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Name</maml:name>
           <maml:description>
-            <maml:para>Name for the copied worksheet.</maml:para>
+            <maml:para>Gets or sets a new name when copying exactly one worksheet.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NamePrefix</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets a prefix for each copied worksheet name.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
             <maml:name>String</maml:name>
             <maml:uri />
@@ -89176,7 +89205,7 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Emit the object created or changed by the command.</maml:para>
+            <maml:para>Gets or sets whether to return live copied worksheets; their workbook is caller-owned.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -89185,38 +89214,26 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourceDocument</maml:name>
+        <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Sheet</maml:name>
           <maml:description>
-            <maml:para>Optional source workbook object for cross-workbook copies.</maml:para>
+            <maml:para>Gets or sets source worksheet names or patterns, one-based positions or native worksheets.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeSheetSelector[]</command:parameterValue>
           <dev:type>
-            <maml:name>ExcelDocument</maml:name>
+            <maml:name>OfficeSheetSelector[]</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourcePath</maml:name>
+          <maml:name>Source</maml:name>
           <maml:description>
-            <maml:para>Optional source workbook path for cross-workbook copies.</maml:para>
+            <maml:para>Gets or sets another workbook as a native ExcelDocument, path or literal FileInfo.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Object</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="Sheet,WorksheetName">
-          <maml:name>SourceSheet</maml:name>
-          <maml:description>
-            <maml:para>Worksheet to copy. Defaults to the current sheet inside an ExcelSheet block.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>Object</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -89224,7 +89241,7 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>ValidationMode</maml:name>
           <maml:description>
-            <maml:para>Controls how invalid destination sheet names are handled.</maml:para>
+            <maml:para>Gets or sets how invalid or duplicate destination names are handled.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">ExcelSheetNameValidationMode</command:parameterValue>
           <command:parameterValueGroup>
@@ -89244,7 +89261,7 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>CopyMode</maml:name>
         <maml:description>
-          <maml:para>Controls whether cross-workbook copies use package-level copy or value materialization.</maml:para>
+          <maml:para>Gets or sets native package copying or explicit value-only materialization.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">ExcelWorksheetCopyMode</command:parameterValue>
         <command:parameterValueGroup>
@@ -89257,24 +89274,48 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
         <maml:name>Document</maml:name>
         <maml:description>
-          <maml:para>Target workbook to update outside the DSL context.</maml:para>
+          <maml:para>Gets or sets a live target workbook; omission uses the enclosing workbook scope.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">ExcelDocument</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
         <dev:type>
           <maml:name>ExcelDocument</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="2" aliases="Name,DestinationSheet">
-        <maml:name>NewName</maml:name>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+        <maml:name>LiteralPath</maml:name>
         <maml:description>
-          <maml:para>Name for the copied worksheet.</maml:para>
+          <maml:para>Gets or sets literal target paths, including FileInfo.FullName and provider PSPath.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Name</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets a new name when copying exactly one worksheet.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NamePrefix</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets a prefix for each copied worksheet name.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
           <maml:name>String</maml:name>
           <maml:uri />
@@ -89284,7 +89325,7 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>PassThru</maml:name>
         <maml:description>
-          <maml:para>Emit the object created or changed by the command.</maml:para>
+          <maml:para>Gets or sets whether to return live copied worksheets; their workbook is caller-owned.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -89293,50 +89334,38 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="InputPath,FilePath">
+      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="None">
         <maml:name>Path</maml:name>
         <maml:description>
-          <maml:para>Target workbook path to update.</maml:para>
+          <maml:para>Gets or sets target workbook paths with filesystem wildcard expansion.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="true" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Sheet</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets source worksheet names or patterns, one-based positions or native worksheets.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeSheetSelector[]</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeSheetSelector[]</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SourceDocument</maml:name>
+        <maml:name>Source</maml:name>
         <maml:description>
-          <maml:para>Optional source workbook object for cross-workbook copies.</maml:para>
+          <maml:para>Gets or sets another workbook as a native ExcelDocument, path or literal FileInfo.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">Object</command:parameterValue>
         <dev:type>
-          <maml:name>ExcelDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SourcePath</maml:name>
-        <maml:description>
-          <maml:para>Optional source workbook path for cross-workbook copies.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="Sheet,WorksheetName">
-        <maml:name>SourceSheet</maml:name>
-        <maml:description>
-          <maml:para>Worksheet to copy. Defaults to the current sheet inside an ExcelSheet block.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>Object</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -89344,7 +89373,7 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>ValidationMode</maml:name>
         <maml:description>
-          <maml:para>Controls how invalid destination sheet names are handled.</maml:para>
+          <maml:para>Gets or sets how invalid or duplicate destination names are handled.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">ExcelSheetNameValidationMode</command:parameterValue>
         <command:parameterValueGroup>
@@ -89360,6 +89389,11 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
       </command:parameter>
     </command:parameters>
     <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+        </dev:type>
+      </command:inputType>
       <command:inputType>
         <dev:type>
           <maml:name>OfficeIMO.Excel.ExcelDocument</maml:name>
@@ -89380,30 +89414,17 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Copy a worksheet and confirm it exists.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$proof = @(
-                Copy-OfficeExcelSheet -Path .\Report.xlsx -SourceSheet Data -NewName DataCopy
-                Get-OfficeExcelSummary -Path .\Report.xlsx -IncludeSheets |
-                    Select-Object -ExpandProperty Sheets |
-                    Where-Object Name -eq 'DataCopy'
-            )
-            $proof</dev:code>
+        <maml:title>Copy a template sheet inside a live workbook.</maml:title>
+        <dev:code>Copy-OfficeExcelSheet -Document $book -Sheet Template -Name October</dev:code>
         <dev:remarks>
-          <maml:para>Creates a copy of the Data worksheet and reads the workbook summary to verify the new tab.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
-        <maml:title>Copy a worksheet from another workbook using the package fast path.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>Copy-OfficeExcelSheet -Path .\Combined.xlsx -SourcePath .\Incoming.xlsx -SourceSheet RawData -NewName IncomingRaw -CopyMode Package
-            Get-OfficeExcelUsedRange -Path .\Combined.xlsx -Sheet IncomingRaw</dev:code>
+        <maml:title>Import regional sheets into an existing workbook.</maml:title>
+        <dev:code>Copy-OfficeExcelSheet -LiteralPath ./Combined.xlsx -Source ./Region.xlsx -Sheet 'Sales*' -NamePrefix 'Region '</dev:code>
         <dev:remarks>
-          <maml:para>Copies the source worksheet package directly so large workbook merges avoid converting rows into PowerShell objects. Use CopyMode Values only when you explicitly want the reader/writer fallback.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -146592,1151 +146613,6 @@ the script needs to work with list objects directly instead of using a text sear
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
-      <command:name>Join-OfficeExcelSheet</command:name>
-      <command:verb>Join</command:verb>
-      <command:noun>OfficeExcelSheet</command:noun>
-      <maml:description>
-        <maml:para>Appends or merges rows from one worksheet into another.</maml:para>
-      </maml:description>
-    </command:details>
-    <maml:description>
-      <maml:para>Appends or merges rows from one worksheet into another.</maml:para>
-    </maml:description>
-    <command:syntax>
-      <command:syntaxItem parameterSetName="Context">
-        <maml:name>Join-OfficeExcelSheet</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>BlankRowsBefore</maml:name>
-          <maml:description>
-            <maml:para>Blank rows to leave before appended data.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IncludeSourceHeader</maml:name>
-          <maml:description>
-            <maml:para>Include the source header row in copied rows.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MatchColumnsByHeader</maml:name>
-          <maml:description>
-            <maml:para>Match source columns to target columns by header text.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoSourceHeader</maml:name>
-          <maml:description>
-            <maml:para>Treat the first source row as data instead of a header row.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>OverwriteExistingCells</maml:name>
-          <maml:description>
-            <maml:para>Allow copied values to replace existing target cells.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourceDocument</maml:name>
-          <maml:description>
-            <maml:para>Optional source workbook object for cross-workbook joins.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>ExcelDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourcePath</maml:name>
-          <maml:description>
-            <maml:para>Optional source workbook path for cross-workbook joins.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourceRange</maml:name>
-          <maml:description>
-            <maml:para>Source A1 range to copy. Defaults to the source used range.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourceSheet</maml:name>
-          <maml:description>
-            <maml:para>Source worksheet name.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>TargetHeaderRow</maml:name>
-          <maml:description>
-            <maml:para>1-based target header row when matching columns by header.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>TargetSheet</maml:name>
-          <maml:description>
-            <maml:para>Target worksheet name. Defaults to the current sheet inside an ExcelSheet block.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>TargetSheetIndex</maml:name>
-          <maml:description>
-            <maml:para>Target worksheet index when using a workbook object or path.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>TargetStartColumn</maml:name>
-          <maml:description>
-            <maml:para>1-based target start column. Defaults to the source range start column.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>TargetStartRow</maml:name>
-          <maml:description>
-            <maml:para>1-based target start row. Defaults to appending after the target used range.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Path">
-        <maml:name>Join-OfficeExcelSheet</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>BlankRowsBefore</maml:name>
-          <maml:description>
-            <maml:para>Blank rows to leave before appended data.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IncludeSourceHeader</maml:name>
-          <maml:description>
-            <maml:para>Include the source header row in copied rows.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MatchColumnsByHeader</maml:name>
-          <maml:description>
-            <maml:para>Match source columns to target columns by header text.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoSourceHeader</maml:name>
-          <maml:description>
-            <maml:para>Treat the first source row as data instead of a header row.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>OverwriteExistingCells</maml:name>
-          <maml:description>
-            <maml:para>Allow copied values to replace existing target cells.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="InputPath,FilePath">
-          <maml:name>Path</maml:name>
-          <maml:description>
-            <maml:para>Target workbook path to update.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourceDocument</maml:name>
-          <maml:description>
-            <maml:para>Optional source workbook object for cross-workbook joins.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>ExcelDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourcePath</maml:name>
-          <maml:description>
-            <maml:para>Optional source workbook path for cross-workbook joins.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourceRange</maml:name>
-          <maml:description>
-            <maml:para>Source A1 range to copy. Defaults to the source used range.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourceSheet</maml:name>
-          <maml:description>
-            <maml:para>Source worksheet name.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>TargetHeaderRow</maml:name>
-          <maml:description>
-            <maml:para>1-based target header row when matching columns by header.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>TargetSheet</maml:name>
-          <maml:description>
-            <maml:para>Target worksheet name. Defaults to the current sheet inside an ExcelSheet block.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>TargetSheetIndex</maml:name>
-          <maml:description>
-            <maml:para>Target worksheet index when using a workbook object or path.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>TargetStartColumn</maml:name>
-          <maml:description>
-            <maml:para>1-based target start column. Defaults to the source range start column.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>TargetStartRow</maml:name>
-          <maml:description>
-            <maml:para>1-based target start row. Defaults to appending after the target used range.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Document">
-        <maml:name>Join-OfficeExcelSheet</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>BlankRowsBefore</maml:name>
-          <maml:description>
-            <maml:para>Blank rows to leave before appended data.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Document</maml:name>
-          <maml:description>
-            <maml:para>Target workbook to update outside the DSL context.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">ExcelDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>ExcelDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IncludeSourceHeader</maml:name>
-          <maml:description>
-            <maml:para>Include the source header row in copied rows.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MatchColumnsByHeader</maml:name>
-          <maml:description>
-            <maml:para>Match source columns to target columns by header text.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoSourceHeader</maml:name>
-          <maml:description>
-            <maml:para>Treat the first source row as data instead of a header row.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>OverwriteExistingCells</maml:name>
-          <maml:description>
-            <maml:para>Allow copied values to replace existing target cells.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourceDocument</maml:name>
-          <maml:description>
-            <maml:para>Optional source workbook object for cross-workbook joins.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>ExcelDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourcePath</maml:name>
-          <maml:description>
-            <maml:para>Optional source workbook path for cross-workbook joins.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourceRange</maml:name>
-          <maml:description>
-            <maml:para>Source A1 range to copy. Defaults to the source used range.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourceSheet</maml:name>
-          <maml:description>
-            <maml:para>Source worksheet name.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>TargetHeaderRow</maml:name>
-          <maml:description>
-            <maml:para>1-based target header row when matching columns by header.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>TargetSheet</maml:name>
-          <maml:description>
-            <maml:para>Target worksheet name. Defaults to the current sheet inside an ExcelSheet block.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>TargetSheetIndex</maml:name>
-          <maml:description>
-            <maml:para>Target worksheet index when using a workbook object or path.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>TargetStartColumn</maml:name>
-          <maml:description>
-            <maml:para>1-based target start column. Defaults to the source range start column.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>TargetStartRow</maml:name>
-          <maml:description>
-            <maml:para>1-based target start row. Defaults to appending after the target used range.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-    </command:syntax>
-    <command:parameters>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>BlankRowsBefore</maml:name>
-        <maml:description>
-          <maml:para>Blank rows to leave before appended data.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Document</maml:name>
-        <maml:description>
-          <maml:para>Target workbook to update outside the DSL context.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">ExcelDocument</command:parameterValue>
-        <dev:type>
-          <maml:name>ExcelDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>IncludeSourceHeader</maml:name>
-        <maml:description>
-          <maml:para>Include the source header row in copied rows.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>MatchColumnsByHeader</maml:name>
-        <maml:description>
-          <maml:para>Match source columns to target columns by header text.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>NoSourceHeader</maml:name>
-        <maml:description>
-          <maml:para>Treat the first source row as data instead of a header row.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>OverwriteExistingCells</maml:name>
-        <maml:description>
-          <maml:para>Allow copied values to replace existing target cells.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="InputPath,FilePath">
-        <maml:name>Path</maml:name>
-        <maml:description>
-          <maml:para>Target workbook path to update.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SourceDocument</maml:name>
-        <maml:description>
-          <maml:para>Optional source workbook object for cross-workbook joins.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
-        <dev:type>
-          <maml:name>ExcelDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SourcePath</maml:name>
-        <maml:description>
-          <maml:para>Optional source workbook path for cross-workbook joins.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SourceRange</maml:name>
-        <maml:description>
-          <maml:para>Source A1 range to copy. Defaults to the source used range.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SourceSheet</maml:name>
-        <maml:description>
-          <maml:para>Source worksheet name.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>TargetHeaderRow</maml:name>
-        <maml:description>
-          <maml:para>1-based target header row when matching columns by header.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>TargetSheet</maml:name>
-        <maml:description>
-          <maml:para>Target worksheet name. Defaults to the current sheet inside an ExcelSheet block.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>TargetSheetIndex</maml:name>
-        <maml:description>
-          <maml:para>Target worksheet index when using a workbook object or path.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>TargetStartColumn</maml:name>
-        <maml:description>
-          <maml:para>1-based target start column. Defaults to the source range start column.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>TargetStartRow</maml:name>
-        <maml:description>
-          <maml:para>1-based target start row. Defaults to appending after the target used range.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-    </command:parameters>
-    <command:inputTypes>
-      <command:inputType>
-        <dev:type>
-          <maml:name>OfficeIMO.Excel.ExcelDocument</maml:name>
-        </dev:type>
-      </command:inputType>
-    </command:inputTypes>
-    <command:returnValues>
-      <command:returnValue>
-        <dev:type>
-          <maml:name>OfficeIMO.Excel.ExcelWorksheetMergeResult</maml:name>
-        </dev:type>
-      </command:returnValue>
-    </command:returnValues>
-    <maml:alertSet>
-      <maml:alert>
-        <maml:para></maml:para>
-      </maml:alert>
-    </maml:alertSet>
-    <command:examples>
-      <command:example>
-        <maml:title>Append source rows below a combined sheet.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$result = Join-OfficeExcelSheet -Path .\Report.xlsx -TargetSheet Combined -SourceSheet Data -MatchColumnsByHeader -BlankRowsBefore 1
-            $result |
-                Select-Object -Property SourceSheet, TargetSheet, RowsCopied, ColumnsCopied</dev:code>
-        <dev:remarks>
-          <maml:para>Copies rows from Data into Combined, aligns columns by header, and returns the merge result.</maml:para>
-        </dev:remarks>
-      </command:example>
-    </command:examples>
-    <command:relatedLinks />
-  </command:command>
-  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
-    <command:details>
-      <command:name>Join-OfficeExcelWorkbook</command:name>
-      <command:verb>Join</command:verb>
-      <command:noun>OfficeExcelWorkbook</command:noun>
-      <maml:description>
-        <maml:para>Merges worksheets from one or more workbooks into a target workbook.</maml:para>
-      </maml:description>
-    </command:details>
-    <maml:description>
-      <maml:para>Merges worksheets from one or more workbooks into a target workbook.</maml:para>
-    </maml:description>
-    <command:syntax>
-      <command:syntaxItem parameterSetName="Path">
-        <maml:name>Join-OfficeExcelWorkbook</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>CopyMode</maml:name>
-          <maml:description>
-            <maml:para>Controls whether cross-workbook copies use package-level copy or value materialization.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">ExcelWorksheetCopyMode</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Values</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Package</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>ExcelWorksheetCopyMode</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="InputPath,FilePath,OutputPath">
-          <maml:name>Path</maml:name>
-          <maml:description>
-            <maml:para>Target workbook path to create or update.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SheetNamePrefix</maml:name>
-          <maml:description>
-            <maml:para>Prefix added to every imported worksheet name.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourceDocument</maml:name>
-          <maml:description>
-            <maml:para>Optional source workbook object.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>ExcelDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="1" aliases="FullName,LiteralPath">
-          <maml:name>SourcePath</maml:name>
-          <maml:description>
-            <maml:para>Source workbook paths to merge into the target workbook.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="SheetName,Sheet,WorksheetName">
-          <maml:name>SourceSheet</maml:name>
-          <maml:description>
-            <maml:para>Specific source worksheet names to import. Defaults to all source sheets.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ValidationMode</maml:name>
-          <maml:description>
-            <maml:para>Controls how invalid or duplicate destination sheet names are handled.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">ExcelSheetNameValidationMode</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Sanitize</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>ExcelSheetNameValidationMode</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Document">
-        <maml:name>Join-OfficeExcelWorkbook</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>CopyMode</maml:name>
-          <maml:description>
-            <maml:para>Controls whether cross-workbook copies use package-level copy or value materialization.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">ExcelWorksheetCopyMode</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Values</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Package</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>ExcelWorksheetCopyMode</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Document</maml:name>
-          <maml:description>
-            <maml:para>Target workbook to update outside the DSL context.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">ExcelDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>ExcelDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SheetNamePrefix</maml:name>
-          <maml:description>
-            <maml:para>Prefix added to every imported worksheet name.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SourceDocument</maml:name>
-          <maml:description>
-            <maml:para>Optional source workbook object.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>ExcelDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="1" aliases="FullName,LiteralPath">
-          <maml:name>SourcePath</maml:name>
-          <maml:description>
-            <maml:para>Source workbook paths to merge into the target workbook.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="SheetName,Sheet,WorksheetName">
-          <maml:name>SourceSheet</maml:name>
-          <maml:description>
-            <maml:para>Specific source worksheet names to import. Defaults to all source sheets.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ValidationMode</maml:name>
-          <maml:description>
-            <maml:para>Controls how invalid or duplicate destination sheet names are handled.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">ExcelSheetNameValidationMode</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Sanitize</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>ExcelSheetNameValidationMode</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-    </command:syntax>
-    <command:parameters>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>CopyMode</maml:name>
-        <maml:description>
-          <maml:para>Controls whether cross-workbook copies use package-level copy or value materialization.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">ExcelWorksheetCopyMode</command:parameterValue>
-        <command:parameterValueGroup>
-          <command:parameterValue required="false" variableLength="false">Values</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Package</command:parameterValue>
-        </command:parameterValueGroup>
-        <dev:type>
-          <maml:name>ExcelWorksheetCopyMode</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Document</maml:name>
-        <maml:description>
-          <maml:para>Target workbook to update outside the DSL context.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">ExcelDocument</command:parameterValue>
-        <dev:type>
-          <maml:name>ExcelDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="InputPath,FilePath,OutputPath">
-        <maml:name>Path</maml:name>
-        <maml:description>
-          <maml:para>Target workbook path to create or update.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SheetNamePrefix</maml:name>
-        <maml:description>
-          <maml:para>Prefix added to every imported worksheet name.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SourceDocument</maml:name>
-        <maml:description>
-          <maml:para>Optional source workbook object.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
-        <dev:type>
-          <maml:name>ExcelDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="1" aliases="FullName,LiteralPath">
-        <maml:name>SourcePath</maml:name>
-        <maml:description>
-          <maml:para>Source workbook paths to merge into the target workbook.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-        <dev:type>
-          <maml:name>String[]</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="SheetName,Sheet,WorksheetName">
-        <maml:name>SourceSheet</maml:name>
-        <maml:description>
-          <maml:para>Specific source worksheet names to import. Defaults to all source sheets.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
-        <dev:type>
-          <maml:name>String[]</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>ValidationMode</maml:name>
-        <maml:description>
-          <maml:para>Controls how invalid or duplicate destination sheet names are handled.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">ExcelSheetNameValidationMode</command:parameterValue>
-        <command:parameterValueGroup>
-          <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Sanitize</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
-        </command:parameterValueGroup>
-        <dev:type>
-          <maml:name>ExcelSheetNameValidationMode</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-    </command:parameters>
-    <command:inputTypes>
-      <command:inputType>
-        <dev:type>
-          <maml:name>OfficeIMO.Excel.ExcelDocument</maml:name>
-        </dev:type>
-      </command:inputType>
-      <command:inputType>
-        <dev:type>
-          <maml:name>System.String[]</maml:name>
-        </dev:type>
-      </command:inputType>
-    </command:inputTypes>
-    <command:returnValues>
-      <command:returnValue>
-        <dev:type>
-          <maml:name>OfficeIMO.Excel.ExcelWorkbookMergeResult</maml:name>
-        </dev:type>
-      </command:returnValue>
-    </command:returnValues>
-    <maml:alertSet>
-      <maml:alert>
-        <maml:para></maml:para>
-      </maml:alert>
-    </maml:alertSet>
-    <command:examples>
-      <command:example>
-        <maml:title>Merge workbook sheets using the package fast path.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$sources = Get-ChildItem .\Incoming\*.xlsx | Select-Object -ExpandProperty FullName
-            $results = Join-OfficeExcelWorkbook -Path .\Combined.xlsx -SourcePath $sources -CopyMode Package -SheetNamePrefix Import
-            $results | Select-Object SheetCount, SourceSheets, TargetSheets</dev:code>
-        <dev:remarks>
-          <maml:para>Copies worksheets between packages without importing rows into PowerShell objects, which is the preferred path for large workbook merge workflows.</maml:para>
-        </dev:remarks>
-      </command:example>
-      <command:example>
-        <maml:title>Import selected source sheets with a prefix.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$merge = Join-OfficeExcelWorkbook -Path .\Target.xlsx -SourcePath .\Source.xlsx -SourceSheet Data,Summary -SheetNamePrefix 'Imported '
-            Get-OfficeExcelSummary -Path .\Target.xlsx |
-                Select-Object Path, WorksheetCount</dev:code>
-        <dev:remarks>
-          <maml:para>Copies selected worksheets from Source.xlsx into Target.xlsx using OfficeIMO workbook merge logic.</maml:para>
-        </dev:remarks>
-      </command:example>
-    </command:examples>
-    <command:relatedLinks />
-  </command:command>
-  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
-    <command:details>
       <command:name>Join-OfficePdf</command:name>
       <command:verb>Join</command:verb>
       <command:noun>OfficePdf</command:noun>
@@ -148846,151 +147722,63 @@ document for Document input. Native merge options determine which content is imp
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
-      <command:name>Move-OfficeExcelSheet</command:name>
-      <command:verb>Move</command:verb>
+      <command:name>Merge-OfficeExcelSheet</command:name>
+      <command:verb>Merge</command:verb>
       <command:noun>OfficeExcelSheet</command:noun>
       <maml:description>
-        <maml:para>Moves a worksheet to a new workbook position.</maml:para>
+        <maml:para>Appends worksheet rows or merges a source range into a target worksheet.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Moves a worksheet to a new workbook position.</maml:para>
+      <maml:para>Source accepts a native ExcelDocument, a workbook path or FileInfo. Omit Source to copy rows
+within the target workbook. File targets are saved in place; live documents remain caller-owned
+and require an explicit save. The result reports the actual copied rows and columns.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="Context">
-        <maml:name>Move-OfficeExcelSheet</maml:name>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="TargetIndex">
-          <maml:name>Index</maml:name>
-          <maml:description>
-            <maml:para>Zero-based destination tab index.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the moved worksheet.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
-          <maml:name>Sheet</maml:name>
-          <maml:description>
-            <maml:para>Worksheet name to move. Defaults to the current sheet inside an ExcelSheet block.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SheetIndex</maml:name>
-          <maml:description>
-            <maml:para>Worksheet index to move when using a workbook object or path.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Path">
-        <maml:name>Move-OfficeExcelSheet</maml:name>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="TargetIndex">
-          <maml:name>Index</maml:name>
-          <maml:description>
-            <maml:para>Zero-based destination tab index.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the moved worksheet.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="InputPath,FilePath">
-          <maml:name>Path</maml:name>
-          <maml:description>
-            <maml:para>Workbook path to update.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
-          <maml:name>Sheet</maml:name>
-          <maml:description>
-            <maml:para>Worksheet name to move. Defaults to the current sheet inside an ExcelSheet block.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SheetIndex</maml:name>
-          <maml:description>
-            <maml:para>Worksheet index to move when using a workbook object or path.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
       <command:syntaxItem parameterSetName="Document">
-        <maml:name>Move-OfficeExcelSheet</maml:name>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Merge-OfficeExcelSheet</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Address</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the target start cell; omission appends after the used range.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>BlankRowsBefore</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets blank rows before appended data; an explicit Address takes precedence.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
           <maml:description>
-            <maml:para>Workbook to update outside the DSL context.</maml:para>
+            <maml:para>Gets or sets the live target workbook; omission uses the enclosing worksheet scope.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">ExcelDocument</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
           <dev:type>
             <maml:name>ExcelDocument</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="TargetIndex">
-          <maml:name>Index</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>HeaderRow</maml:name>
           <maml:description>
-            <maml:para>Zero-based destination tab index.</maml:para>
+            <maml:para>Gets or sets the one-based target header row used for matching columns.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
             <maml:name>Int32</maml:name>
             <maml:uri />
@@ -148998,9 +147786,9 @@ document for Document input. Native merge options determine which content is imp
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
+          <maml:name>IncludeSourceHeader</maml:name>
           <maml:description>
-            <maml:para>Emit the moved worksheet.</maml:para>
+            <maml:para>Gets or sets whether to copy the source header along with its data rows.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -149009,10 +147797,97 @@ document for Document input. Native merge options determine which content is imp
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MatchColumnsByHeader</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether columns are aligned by header text rather than position.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoSourceHeader</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether the first source row is data rather than a header.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>OverwriteExistingCells</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether source values may replace existing target cells.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Sheet</maml:name>
           <maml:description>
-            <maml:para>Worksheet name to move. Defaults to the current sheet inside an ExcelSheet block.</maml:para>
+            <maml:para>Gets or sets the target worksheet name, one-based position or native worksheet.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeSheetSelector</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeSheetSelector</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Source</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets another workbook as a native ExcelDocument, path or literal FileInfo.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>Object</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>SourceRange</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the source A1 range; omission copies its used range.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>SourceSheet</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the source worksheet name, one-based position or native worksheet.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">OfficeSheetSelector</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeSheetSelector</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="Path">
+        <maml:name>Merge-OfficeExcelSheet</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Address</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the target start cell; omission appends after the used range.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -149022,13 +147897,280 @@ document for Document input. Native merge options determine which content is imp
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SheetIndex</maml:name>
+          <maml:name>BlankRowsBefore</maml:name>
           <maml:description>
-            <maml:para>Worksheet index to move when using a workbook object or path.</maml:para>
+            <maml:para>Gets or sets blank rows before appended data; an explicit Address takes precedence.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
             <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>HeaderRow</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the one-based target header row used for matching columns.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>IncludeSourceHeader</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether to copy the source header along with its data rows.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MatchColumnsByHeader</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether columns are aligned by header text rather than position.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoSourceHeader</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether the first source row is data rather than a header.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>OverwriteExistingCells</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether source values may replace existing target cells.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="None">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets target workbook paths with filesystem wildcard expansion.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Sheet</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the target worksheet name, one-based position or native worksheet.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeSheetSelector</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeSheetSelector</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Source</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets another workbook as a native ExcelDocument, path or literal FileInfo.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>Object</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>SourceRange</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the source A1 range; omission copies its used range.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>SourceSheet</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the source worksheet name, one-based position or native worksheet.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">OfficeSheetSelector</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeSheetSelector</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="LiteralPath">
+        <maml:name>Merge-OfficeExcelSheet</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Address</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the target start cell; omission appends after the used range.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>BlankRowsBefore</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets blank rows before appended data; an explicit Address takes precedence.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>HeaderRow</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the one-based target header row used for matching columns.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>IncludeSourceHeader</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether to copy the source header along with its data rows.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+          <maml:name>LiteralPath</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets literal target paths, including FileInfo.FullName and provider PSPath.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MatchColumnsByHeader</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether columns are aligned by header text rather than position.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoSourceHeader</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether the first source row is data rather than a header.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>OverwriteExistingCells</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether source values may replace existing target cells.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Sheet</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the target worksheet name, one-based position or native worksheet.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeSheetSelector</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeSheetSelector</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Source</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets another workbook as a native ExcelDocument, path or literal FileInfo.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>Object</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>SourceRange</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the source A1 range; omission copies its used range.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>SourceSheet</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the source worksheet name, one-based position or native worksheet.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">OfficeSheetSelector</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeSheetSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -149036,58 +148178,10 @@ document for Document input. Native merge options determine which content is imp
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Document</maml:name>
-        <maml:description>
-          <maml:para>Workbook to update outside the DSL context.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">ExcelDocument</command:parameterValue>
-        <dev:type>
-          <maml:name>ExcelDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="TargetIndex">
-        <maml:name>Index</maml:name>
-        <maml:description>
-          <maml:para>Zero-based destination tab index.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>PassThru</maml:name>
+        <maml:name>Address</maml:name>
         <maml:description>
-          <maml:para>Emit the moved worksheet.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="InputPath,FilePath">
-        <maml:name>Path</maml:name>
-        <maml:description>
-          <maml:para>Workbook path to update.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
-        <maml:name>Sheet</maml:name>
-        <maml:description>
-          <maml:para>Worksheet name to move. Defaults to the current sheet inside an ExcelSheet block.</maml:para>
+          <maml:para>Gets or sets the target start cell; omission appends after the used range.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -149097,13 +148191,314 @@ document for Document input. Native merge options determine which content is imp
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SheetIndex</maml:name>
+        <maml:name>BlankRowsBefore</maml:name>
         <maml:description>
-          <maml:para>Worksheet index to move when using a workbook object or path.</maml:para>
+          <maml:para>Gets or sets blank rows before appended data; an explicit Address takes precedence.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <dev:type>
           <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the live target workbook; omission uses the enclosing worksheet scope.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
+        <dev:type>
+          <maml:name>ExcelDocument</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>HeaderRow</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the one-based target header row used for matching columns.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>IncludeSourceHeader</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether to copy the source header along with its data rows.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="PSPath,FullName">
+        <maml:name>LiteralPath</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets literal target paths, including FileInfo.FullName and provider PSPath.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>MatchColumnsByHeader</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether columns are aligned by header text rather than position.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoSourceHeader</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether the first source row is data rather than a header.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>OverwriteExistingCells</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether source values may replace existing target cells.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="None">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets target workbook paths with filesystem wildcard expansion.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Sheet</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the target worksheet name, one-based position or native worksheet.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeSheetSelector</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeSheetSelector</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Source</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets another workbook as a native ExcelDocument, path or literal FileInfo.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Object</command:parameterValue>
+        <dev:type>
+          <maml:name>Object</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>SourceRange</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the source A1 range; omission copies its used range.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>SourceSheet</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the source worksheet name, one-based position or native worksheet.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">OfficeSheetSelector</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeSheetSelector</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+        </dev:type>
+      </command:inputType>
+      <command:inputType>
+        <dev:type>
+          <maml:name>OfficeIMO.Excel.ExcelDocument</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Excel.ExcelWorksheetMergeResult</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Append monthly rows by their column headers.</maml:title>
+        <dev:code>Merge-OfficeExcelSheet -Path ./Sales.xlsx -Sheet Year -SourceSheet October -MatchColumnsByHeader</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Merge a literal source file at a chosen target cell.</maml:title>
+        <dev:code>Get-Item -LiteralPath './Combined[1].xlsx' | Merge-OfficeExcelSheet -Sheet Combined -Source (Get-Item -LiteralPath './Branch[1].xlsx') -SourceSheet Sales -Address B5 -HeaderRow 4 -MatchColumnsByHeader</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
+      <command:name>Move-OfficeExcelSheet</command:name>
+      <command:verb>Move</command:verb>
+      <command:noun>OfficeExcelSheet</command:noun>
+      <maml:description>
+        <maml:para>Moves a worksheet to a one-based workbook position.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Uses the explicit or enclosing live workbook. Save it explicitly to persist the new order.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Default">
+        <maml:name>Move-OfficeExcelSheet</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>ExcelDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether to return the moved native worksheet.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Position</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the one-based destination position.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Sheet</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets a worksheet name, one-based position or native worksheet.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeSheetSelector</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeSheetSelector</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
+        <dev:type>
+          <maml:name>ExcelDocument</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>PassThru</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether to return the moved native worksheet.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Position</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the one-based destination position.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Sheet</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets a worksheet name, one-based position or native worksheet.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeSheetSelector</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeSheetSelector</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -149116,7 +148511,13 @@ document for Document input. Native merge options determine which content is imp
         </dev:type>
       </command:inputType>
     </command:inputTypes>
-    <command:returnValues />
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Excel.ExcelSheet</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
     <maml:alertSet>
       <maml:alert>
         <maml:para></maml:para>
@@ -149124,19 +148525,11 @@ document for Document input. Native merge options determine which content is imp
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Move the summary sheet to the front and verify order.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$proof = @(
-                Move-OfficeExcelSheet -Path .\Report.xlsx -Sheet Summary -Index 0
-                Get-OfficeExcelSummary -Path .\Report.xlsx -IncludeSheets |
-                    Select-Object -ExpandProperty Sheets |
-                    Select-Object -First 3 -Property Index, Name
-            )
-            $proof</dev:code>
+        <maml:title>Move the summary worksheet to the front.</maml:title>
+        <dev:code>$book | Move-OfficeExcelSheet -Sheet Summary -Position 1
+            Save-OfficeExcel -Document $book</dev:code>
         <dev:remarks>
-          <maml:para>Moves Summary to the first worksheet tab and reads back the first sheets from workbook summary.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
