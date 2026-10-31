@@ -206,6 +206,7 @@ public sealed partial class PdfRedactionWorkflowTests {
             InputPath = input,
             Recipe = recipe
         });
+        Assert.True(planned.Succeeded, string.Join(Environment.NewLine, planned.Diagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
         var decisions = new PdfRedactionDecisionManifest {
             SourceSha256 = planned.SourceSha256,
             RecipeSha256 = planned.RecipeSha256,
@@ -676,6 +677,7 @@ public sealed partial class PdfRedactionWorkflowTests {
             InputPath = input,
             Recipe = firstRecipe
         });
+        Assert.True(first.Succeeded, string.Join(Environment.NewLine, first.Diagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
         PdfRedactionWorkflowCandidate candidate = Assert.Single(first.Candidates);
 
         Assert.Equal("account-id", candidate.RuleName);
@@ -799,6 +801,9 @@ public sealed partial class PdfRedactionWorkflowTests {
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
         Assert.False(result.PublishedAtomically);
         Assert.Equal(2, result.Items.Count);
+        Assert.True(result.Items.Any(static item => item.Succeeded),
+            string.Join(Environment.NewLine, result.Items.SelectMany(item => item.Diagnostics)
+                .Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
         Assert.Single(result.Items, static item => item.Succeeded);
         Assert.Single(result.Items, static item => !item.Succeeded);
         Assert.True(File.Exists(Path.Combine(evidenceRoot, "good.redaction.json")));
