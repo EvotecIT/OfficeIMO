@@ -18,6 +18,9 @@ function Set-NativeParagraphTopologyFormatting {
             3 { $format.Alignment = 0; $format.LeftIndent = 18; $format.FirstLineIndent = 6; $format.SpaceBefore = 7; $format.SpaceAfter = 4 }
         }
         if ($Profile.ContainsKey('FrenchParagraph') -and $paragraph -eq $Profile.FrenchParagraph) { $range.LanguageID = 1036 }
+        $runFormatting = if ($Profile.ContainsKey('MixedRuns')) {
+            @(Set-NativeMixedRunFormatting -ParagraphRange $range -FrenchMiddle:($Profile.ContainsKey('FrenchRunParagraph') -and $paragraph -eq $Profile.FrenchRunParagraph))
+        } else { $null }
         [pscustomobject]@{
             sourceOrdinal = $Profile.Order[$paragraph]
             text = [string]$range.Text
@@ -28,6 +31,7 @@ function Set-NativeParagraphTopologyFormatting {
             firstLineIndent = [double]$format.FirstLineIndent
             languageId = [int]$range.LanguageID
             textStyle = [string]$format.TextStyle
+            mixedRuns = $runFormatting
         }
     }
 }

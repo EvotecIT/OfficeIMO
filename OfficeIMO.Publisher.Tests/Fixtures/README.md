@@ -68,6 +68,12 @@ paragraph replacements, equal native templates with different source text,
 retained empty paragraphs and exact native language selection. The table control
 edits first/final cells and keeps two neighbors unchanged. Fitting Arial 12-point
 bodies isolate native paragraph definitions and CR roles from general row reflow.
+TextMixedRunTextReplacements and TableMixedRunTextReplacements each provide
+thirteen independent pages with three styled runs per paragraph: blue 14-point
+bold text, red 12-point italic text and black 12-point regular text. Documented [native word ranges](https://learn.microsoft.com/en-us/office/vba/api/publisher.textrange.words) author their boundaries. Final states vary run lengths while
+deleting/reordering/duplicating paragraphs and include equivalent templates,
+middle-run-only edits and opaque language differences confined to the middle
+run. The table uses fitting first/final cells and unchanged neighbors.
 TextStories has three separate stories, with an empty
 paragraph inside its middle story. TextFormattingPages retains 96 paragraphs,
 including overflow beyond its sole text frame, across two native paragraph-formatting

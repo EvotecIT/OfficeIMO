@@ -104,10 +104,10 @@ internal sealed partial class PublisherNativeWriter {
             // separately requires complete, unambiguous source definitions.
             var retained = new HashSet<OfficeRichTextParagraph>(before.Paragraphs.Where(p => p.Label == null), PublisherTextComparison.Paragraphs);
             var formats = new HashSet<OfficeRichTextParagraph>(before.Paragraphs.Where(p => p.Label == null
-                && p.Runs.Count == 1 && p.Runs[0].Text.Length > 0), PublisherTextComparison.ParagraphFormats);
+                && p.Runs.Count > 0 && p.Runs.All(r => r.Text.Length > 0)), PublisherTextComparison.ParagraphFormats);
             extended = true;
             return after.Paragraphs.All(p => p.Label == null && (retained.Contains(p)
-                || p.Runs.Count == 1 && p.Runs[0].Text.Length > 0 && formats.Contains(p)));
+                || p.Runs.Count > 0 && p.Runs.All(r => r.Text.Length > 0) && formats.Contains(p)));
         }
         for (int paragraph = 0; paragraph < after.Paragraphs.Count; paragraph++) {
             OfficeRichTextParagraph a = before.Paragraphs[reshape ? 0 : paragraph], b = after.Paragraphs[paragraph];

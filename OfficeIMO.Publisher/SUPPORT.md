@@ -206,14 +206,16 @@ Equal copied empty paragraphs with different native CR definitions are refused.
 For nonempty retained paragraphs, the final destination keeps the original
 story's final CR typing definition. Moving the original final paragraph into the interior requires an observed
 intermediate CR definition that matches its last visible body definition.
-Nonempty single-run text can change during nonuniform count changes when its
-complete editable paragraph/run formatting remains unchanged. Exact retained
+Text can change during nonuniform count changes when its complete editable
+paragraph/run formatting and ordered run count remain unchanged. Every run must
+remain nonempty. Exact retained
 snapshots and values resolve first. Other paragraphs match by formatting, and
-every matching native template must have a uniform nonempty body and agree on
-complete paragraph/body definitions and the destination CR. Empty or unsupported
+every matching native template must have a uniform native definition for each
+corresponding nonempty run and agree on complete paragraph/run definitions and
+the destination CR. Empty or unsupported
 matching source bodies remain ambiguity barriers. Equal visible formatting does
 not choose between conflicting opaque native definitions. Count-changing
-formatting rewrites, mixed-run replacements and filling nonuniform empty source
+formatting rewrites, run splitting/merging and filling nonuniform empty source
 paragraphs remain outside this profile.
 A newly authored empty final paragraph is refused when its requested typing
 cannot be represented safely. A zero-paragraph story remains unsupported
@@ -250,6 +252,19 @@ storage, text, effective fonts/language and table partitions are checked
 separately. These fitting controls use Arial 12-point bodies with distinct
 paragraph formatting and language metadata. Broader producer/style profiles,
 general row reflow and repair-free opening remain unassessed.
+
+The `sourceEditing.mixedRunTextReplacement` record extends that mapping to
+multiple ordered runs per paragraph. Each source run maps to a complete uniform
+native definition; new run lengths remap endpoints without changing those
+definitions. Twenty public saves from the thirteen-page
+`TextMixedRunTextReplacements` and `TableMixedRunTextReplacements` controls cover
+three styled runs, growth/shrinkage, reorder/duplication, sole first/final
+paragraphs, equivalent templates with different run lengths, middle-run-only
+changes and exact language selection alongside rewritten text. Forty selected
+initial/resaved page comparisons match independent final states, and 480
+neighboring-page comparisons remain unchanged. Native resave checks effective
+formatting and language at every run and CR boundary. Empty, merged or split
+replacement runs and conflicting middle-run native definitions refuse output.
 
 When ranges no longer fit the original allocation, the codec can append aligned
 formatting pages and directory pages, relocate enlarged BTE indexes and resources,

@@ -465,6 +465,17 @@ Forty selected-page and 520 neighboring-page stage comparisons match independent
 native controls. This does not qualify simultaneous formatting changes,
 mixed-run or empty-source replacements, general row reflow or repair-free opening.
 
+The `sourceEditing.mixedRunTextReplacement` record qualifies multiple ordered
+runs within that replacement contract. All runs stay nonempty and retain their
+complete editable formatting; every source run must map to a uniform complete
+native definition, with agreement across all matching templates. Twenty native
+outputs cover three visible styles per paragraph, different old/new run lengths,
+paragraph reorder/duplication and hidden middle-run language ambiguity. Forty
+selected-page and 480 neighboring-page stage comparisons match independent
+native controls. Native resaving preserves effective styles and language at
+every run/CR boundary. Run splitting/merging, empty-source refill and simultaneous
+formatting rewrites remain outside this profile.
+
 The `sourceEditing.tableTrackGeometry` record covers saved table endpoints and
 native row-growth controls. The reader recovers laid-out tracks from cumulative
 coordinates, retaining reported nominal fallback for incomplete axes. Independent

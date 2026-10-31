@@ -47,7 +47,7 @@ internal static partial class PublisherQuillParagraphWriter {
             if (!values.TryGetValue(template.Paragraph, out RetentionCandidates? candidates))
                 values.Add(template.Paragraph, new RetentionCandidates(template));
             else candidates.Add(template);
-            if (template.Paragraph.Runs.Count == 1) {
+            if (template.Paragraph.Runs.Count > 0) {
                 if (!replacements.TryGetValue(template.Paragraph, out TextReplacementCandidates? matching))
                     replacements.Add(template.Paragraph, new TextReplacementCandidates(template));
                 else matching.Add(template);
@@ -64,7 +64,7 @@ internal static partial class PublisherQuillParagraphWriter {
                     if (!candidates.IsUnambiguous(last)) return false;
                     template = candidates.First;
                 } else {
-                    if (paragraph.Runs.Count != 1 || paragraph.Runs[0].Text.Length == 0
+                    if (paragraph.Runs.Count == 0 || paragraph.Runs.Any(r => r.Text.Length == 0)
                         || !replacements.TryGetValue(paragraph, out TextReplacementCandidates? matching) || !matching.IsUnambiguous(last)) return false;
                     template = matching.First; replaceText = true;
                 }
@@ -73,10 +73,16 @@ internal static partial class PublisherQuillParagraphWriter {
             // travel with that paragraph, including its typing and opaque fields.
             byte[]? terminator = template.Length == 0 ? template.Terminator : last ? final : template.InteriorTerminator;
             if (terminator == null) return false;
-            int length = replaceText ? paragraph.Runs[0].Text.Length : template.Length;
-            if (replaceText) AppendRange(pc, checked(position + length * 2), template.Body[0].Style);
-            else foreach (var range in template.Body) AppendRange(pc, checked(position + range.AbsoluteEnd), range.Style);
-            position = checked(position + (length + 1) * 2);
+            if (replaceText) {
+                for (int run = 0; run < paragraph.Runs.Count; run++) {
+                    position = checked(position + paragraph.Runs[run].Text.Length * 2);
+                    AppendRange(pc, position, template.ReplacementBody![run]);
+                }
+                position = checked(position + 2);
+            } else {
+                foreach (var range in template.Body) AppendRange(pc, checked(position + range.AbsoluteEnd), range.Style);
+                position = checked(position + (template.Length + 1) * 2);
+            }
             AppendRange(pc, position, terminator);
             pp.Add(new PublisherQuillFormattingRange(position, template.Definition));
         }
@@ -95,6 +101,7 @@ internal static partial class PublisherQuillParagraphWriter {
     private sealed class RetainedParagraph {
         internal RetainedParagraph(OfficeRichTextParagraph paragraph, byte[] definition, List<PublisherQuillFormattingRange> body, byte[] terminator, int length) {
             Paragraph = paragraph; Definition = definition; Body = body; Terminator = terminator; Length = length;
+            ReplacementBody = MapRuns();
         }
         internal OfficeRichTextParagraph Paragraph { get; }
         internal byte[] Definition { get; }
@@ -102,6 +109,22 @@ internal static partial class PublisherQuillParagraphWriter {
         internal byte[] Terminator { get; }
         internal byte[]? InteriorTerminator { get; set; }
         internal int Length { get; }
+        internal IReadOnlyList<byte[]>? ReplacementBody { get; }
+
+        // A public run may start inside a native range, but must not cross a
+        // native definition boundary when its text length changes.
+        private IReadOnlyList<byte[]>? MapRuns() {
+            var result = new List<byte[]>(Paragraph.Runs.Count);
+            int position = 0, native = 0;
+            foreach (var run in Paragraph.Runs) {
+                if (run.Text.Length == 0) return null;
+                while (native < Body.Count && Body[native].AbsoluteEnd <= position) native++;
+                int end = checked(position + run.Text.Length * 2);
+                if (native >= Body.Count || end > Body[native].AbsoluteEnd) return null;
+                result.Add(Body[native].Style); position = end;
+            }
+            return result.Count > 0 && position == checked(Length * 2) ? result : null;
+        }
     }
 
     private sealed class RetentionCandidates {
@@ -118,17 +141,18 @@ internal static partial class PublisherQuillParagraphWriter {
         internal bool IsUnambiguous(bool final) => _sameBody && (final || _sameInterior && First.InteriorTerminator != null);
     }
 
-    // Replacement text has no original range endpoints. Only a uniform native
-    // body can be extended, and all same-format candidates must agree in full.
+    // Replacement runs have new endpoints. Each corresponding source run needs
+    // a uniform native definition, and all same-format candidates must agree.
     private sealed class TextReplacementCandidates {
         internal TextReplacementCandidates(RetainedParagraph first) {
-            First = first; _sameBody = first.Length > 0 && first.Body.Count == 1;
+            First = first; _sameBody = first.ReplacementBody != null;
         }
         internal RetainedParagraph First { get; }
         private bool _sameBody, _sameInterior = true;
         internal void Add(RetainedParagraph other) {
-            _sameBody &= First.Length > 0 && First.Body.Count == 1 && other.Length > 0 && other.Body.Count == 1
-                && First.Definition.SequenceEqual(other.Definition) && First.Body[0].Style.SequenceEqual(other.Body[0].Style);
+            _sameBody &= First.ReplacementBody != null && other.ReplacementBody != null
+                && First.Definition.SequenceEqual(other.Definition) && First.ReplacementBody.Count == other.ReplacementBody.Count
+                && First.ReplacementBody.Zip(other.ReplacementBody, (a, b) => a.SequenceEqual(b)).All(equal => equal);
             _sameInterior &= First.InteriorTerminator != null && other.InteriorTerminator != null
                 && First.InteriorTerminator.SequenceEqual(other.InteriorTerminator);
         }

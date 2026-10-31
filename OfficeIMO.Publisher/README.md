@@ -80,9 +80,10 @@ duplicated without changing their content or formatting. Pass the original
 paragraph snapshots to identify the exact native source; copied values require
 unambiguous native definitions. Retained empty paragraphs keep their own complete
 native CR typing in interior and final positions. Nonuniform count changes
-can also include nonempty single-run text replacements when
+can also include text replacements with the same ordered, nonempty runs when
 complete paragraph/run formatting stays unchanged and all matching native
-templates agree. Empty or unsupported matching source bodies, conflicting opaque
+templates agree for every run. Each source run must have a uniform complete native
+definition. Empty or unsupported matching source bodies, conflicting opaque
 metadata and simultaneous formatting changes refuse this replacement path. A changed story
 can use one existing frame or a complete resolved chain of ordinary, visible,
 untransformed document-page frames. Native links, ownership and frame identities
@@ -439,8 +440,8 @@ snapshots select their exact native definitions; copied values require
 unambiguous definitions within that cell. Retained empty paragraphs keep their
 own complete native CR definition in interior and final positions. Count-changing
 text replacement also requires unchanged complete paragraph/run formatting and
-agreement among all matching definitions on a
-uniform nonempty body and the destination CR. Unknown
+ordered run count, with a uniform nonempty native definition for each run and
+agreement among all matching templates on those definitions and the destination CR. Unknown
 native partition records, arbitrary count-changing rewrites of nonuniform cell
 definitions and unsupported typing encodings refuse output. Publisher can expand rows when text
 wraps or exceeds a cell, so retained stored bounds do not guarantee fixed native
