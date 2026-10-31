@@ -169,7 +169,6 @@ public sealed class PublisherNativeWritingTests {
     [InlineData("text-frame")]
     [InlineData("shape")]
     [InlineData("picture")]
-    [InlineData("table-cell")]
     [InlineData("table-bounds")]
     [InlineData("table")]
     [InlineData("source-free")]
@@ -196,7 +195,6 @@ public sealed class PublisherNativeWritingTests {
             case "text-frame": document.AddTextFrame(page.Id, 40, 300, 200, 60, Paragraphs("New story")); break;
             case "shape": document.AddShape(page.Id, OfficeShape.Rectangle(40, 30), 40, 300); break;
             case "picture": document.AddPicture(page.Id, PictureBytes(), 40, 300, 40, 30); break;
-            case "table-cell": document.ReplaceTableCellParagraphs(page.Tables[0].Id, 0, 0, Paragraphs("Changed cell")); break;
             case "table-bounds":
                 PublisherTable table = page.Tables[0]; document.SetTableBounds(table.Id, table.X + 6, table.Y, table.Width, table.Height); break;
             case "table": document.AddTable(page.Id, 40, 300, new[] { 60D }, new[] { 30D }); break;

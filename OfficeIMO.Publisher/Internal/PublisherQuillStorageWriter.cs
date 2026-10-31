@@ -4,7 +4,8 @@ namespace OfficeIMO.Publisher.Internal;
 internal static class PublisherQuillStorageWriter {
     internal static byte[]? TryWrite(PublisherQuillSourceLayout layout, byte[] text,
         IReadOnlyList<byte[]> pc, IReadOnlyList<byte[]> pp, IReadOnlyList<int> storyLengths,
-        IReadOnlyDictionary<string, byte[]> resources, long maximumBytes, CancellationToken token) {
+        IReadOnlyDictionary<string, byte[]> resources, long maximumBytes, CancellationToken token,
+        IReadOnlyDictionary<PublisherQuillChunk, byte[]>? tableChunks = null) {
         PublisherBinaryData data = layout.Data; byte[] source = data.Bytes;
         int count = checked(layout.Chunks.Count - layout.CharacterPages.Length - layout.ParagraphPages.Length + pc.Count + pp.Count);
         if (pc.Count == 0 || pp.Count == 0 || count > PublisherQuillSourceLayout.MaximumDescriptors
@@ -22,6 +23,11 @@ internal static class PublisherQuillStorageWriter {
             if (resource.Key is not ("FONT" or "PL  ")) return null;
             PublisherQuillChunk original = layout.Find(resource.Key);
             replacements.Add(original, (Append(resource.Value.Length, false), resource.Value));
+        }
+        if (tableChunks != null) foreach (var table in tableChunks) {
+            token.ThrowIfCancellationRequested();
+            if (table.Key.Tag != "TCD " || !layout.Chunks.Contains(table.Key) || table.Value.Length != table.Key.Length) return null;
+            replacements.Add(table.Key, (table.Key.Offset + shift, table.Value));
         }
         var rows = new List<PublisherQuillOutputDescriptor>();
         foreach (PublisherQuillChunk chunk in layout.Chunks) {

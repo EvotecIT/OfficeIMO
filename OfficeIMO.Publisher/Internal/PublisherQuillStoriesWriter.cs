@@ -6,6 +6,7 @@ namespace OfficeIMO.Publisher.Internal;
 internal static class PublisherQuillStoriesWriter {
     internal static byte[]? TryRewrite(byte[] source, IReadOnlyList<PublisherQuillStoryStyles> bindings,
         IReadOnlyDictionary<uint, PublisherTextStory> before, IReadOnlyDictionary<uint, PublisherTextStory> after,
+        IReadOnlyDictionary<uint, PublisherTableStory> beforeTables, IReadOnlyDictionary<uint, PublisherTableStory> afterTables,
         OfficeLegacyImportLimits limits, long maximumBytes, CancellationToken token) {
         var context = new PublisherParseContext(new PublisherReadOptions { Limits = limits }, token);
         PublisherQuillSourceLayout? layout = PublisherQuillSourceLayout.TryRead(source, context);
@@ -16,6 +17,7 @@ internal static class PublisherQuillStoriesWriter {
         if (count == 0 || before.Count != count || after.Count != count || ids.Length != 8 + count * 4
             || data.U32(ids.Offset + 4) != count || lengths.Length != 22 + count * 8
             || data.U32(lengths.Offset) != count || data.U32(lengths.Offset + 4) != 8 || data.U32(lengths.Offset + 8) != 255) return null;
+        if (!PublisherQuillTableTextWriter.TryPlan(layout, before, after, beforeTables, afterTables, token, out var tableChunks)) return null;
         var pc = new List<PublisherQuillFormattingRange>(); var pp = new List<PublisherQuillFormattingRange>();
         var replacement = new StringBuilder(); int originalStart = 0;
         PublisherQuillStoryStyles[] ordered = bindings.OrderBy(binding => binding.StoryOrdinal).ToArray();
@@ -44,10 +46,10 @@ internal static class PublisherQuillStoriesWriter {
             characterPages = PublisherQuillPageAllocator.PackMinimum(pc, capacity, token);
             paragraphPages = PublisherQuillPageAllocator.PackMinimum(pp, capacity, token);
             return characterPages == null || paragraphPages == null ? null : PublisherQuillPageAllocator.TryWrite(layout, encoded,
-                characterPages, paragraphPages, ordered.Select(binding => after[binding.StoryId].Text.Length).ToArray(), maximumBytes, token, replacements);
+                characterPages, paragraphPages, ordered.Select(binding => after[binding.StoryId].Text.Length).ToArray(), maximumBytes, token, replacements, tableChunks);
         }
         return PublisherQuillPageAllocator.TryWrite(layout, encoded, characterPages, paragraphPages,
-            ordered.Select(binding => after[binding.StoryId].Text.Length).ToArray(), maximumBytes, token, replacements);
+            ordered.Select(binding => after[binding.StoryId].Text.Length).ToArray(), maximumBytes, token, replacements, tableChunks);
     }
 
     private static IReadOnlyList<byte[]>? Pack(IReadOnlyList<PublisherQuillFormattingRange> ranges, int pageCount, CancellationToken token) {

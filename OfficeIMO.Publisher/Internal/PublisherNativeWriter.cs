@@ -89,7 +89,7 @@ internal sealed partial class PublisherNativeWriter {
             "Guarded fixed-size OfficeArt slots changed. Streams outside the prepared replacements and directory metadata are retained. Repair-free opening, native edit acceptance and opaque semantic preservation require independent qualification.",
             OfficeConversionLossKind.Unassessed, "Escher/EscherStm"));
         if (writer._quillBytes != null) diagnostics.Add(Finding("PUB_NATIVE_QUILL_TEXT_UNQUALIFIED",
-            "The bounded ordinary-story Quill profile was written from retained source definitions with supported character and paragraph formatting, font and opaque color edits. Paragraph-count changes require uniform source definitions; formatting pages, indexes and directory pages may be allocated or retired. Unrelated logical streams are retained; cached thumbnail invalidation is reported separately. Native opening, editing, resave/reopen and opaque record preservation remain unassessed.",
+            "The bounded ordinary-story or fixed-cell Quill profile was written from retained source definitions with supported character and paragraph formatting, font and opaque color edits. Table cells retain their grid and paragraph boundaries, with relative text endpoints remapped. Ordinary paragraph-count changes require uniform source definitions; formatting pages, indexes and directory pages may be allocated or retired. Unrelated logical streams are retained; cached thumbnail invalidation is reported separately. Native opening, editing, resave/reopen and opaque record preservation remain unassessed.",
             OfficeConversionLossKind.Unassessed, "Quill"));
         return new PublisherNativePreparation(output, diagnostics, writer._styleDependencies);
     }

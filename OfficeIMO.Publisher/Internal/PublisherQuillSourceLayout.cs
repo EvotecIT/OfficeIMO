@@ -29,10 +29,12 @@ internal sealed class PublisherQuillSourceLayout {
         int pc = chunks.Count(chunk => chunk.Tag == "FDPC"), pp = chunks.Count(chunk => chunk.Tag == "FDPP");
         if (pc < 1 || pp < 1 || chunks.Count > MaximumDescriptors) return null;
         string[] expected = new[] { "TEXT", "STSH", "STSH", "STSH" }.Concat(Enumerable.Repeat("FDPP", pp))
-            .Concat(Enumerable.Repeat("FDPC", pc)).Concat(new[] { "SYID", "SGP ", "INK ", "BTEP", "BTEC", "FONT", "STRS", "MCLD", "PL  " }).ToArray();
+            .Concat(Enumerable.Repeat("FDPC", pc)).Concat(new[] { "SYID", "SGP ", "INK ", "BTEP", "BTEC", "FONT" })
+            .Concat(Enumerable.Repeat("TCD ", chunks.Count(chunk => chunk.Tag == "TCD "))).Concat(new[] { "STRS", "MCLD", "PL  " }).ToArray();
         if (!chunks.Select(chunk => chunk.Tag).SequenceEqual(expected)
             || !chunks.Where(chunk => chunk.Tag == "STSH").Select(chunk => chunk.Id).SequenceEqual(new[] { 0, 1, 2 })
-            || chunks.Where(chunk => chunk.Tag is not ("STSH" or "FDPC" or "FDPP")).Any(chunk => chunk.Id != 0)
+            || chunks.Where(chunk => chunk.Tag is not ("STSH" or "FDPC" or "FDPP" or "TCD ")).Any(chunk => chunk.Id != 0)
+            || chunks.Where(chunk => chunk.Tag == "TCD ").Select(chunk => chunk.Id).Distinct().Count() != chunks.Count(chunk => chunk.Tag == "TCD ")
             || data.U16(8) != 4 || data.U16(10) != 7 || data.U16(12) != chunks.Count
             || data.U32(20) != source.Length)
             return null;

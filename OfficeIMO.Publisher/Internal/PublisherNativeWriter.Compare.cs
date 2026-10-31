@@ -20,7 +20,7 @@ internal sealed partial class PublisherNativeWriter {
         }
         if (!MapEqual(_baseline.Text.Chains, _current.Text.Chains, (a, b) => a.SequenceEqual(b))
             || !MapEqual(_baseline.Text.TableStories, _current.Text.TableStories, (a, b) => ReferenceEquals(a, b)
-                || a.Segments.Count == b.Segments.Count && a.Segments.Zip(b.Segments, StoryEqual).All(value => value))
+                || a.Segments.Count == b.Segments.Count && (_quillBytes != null || a.Segments.Zip(b.Segments, StoryEqual).All(value => value)))
             || !MapEqual(_baseline.TableStoryReferences, _current.TableStoryReferences, (a, b) => a == b))
             Reject("Quill", "Frame chains or table story ownership changed. Quill rewriting is unavailable.");
         if (!MapEqual(_baseline.Text.WrapInfo, _current.Text.WrapInfo, (a, b) => Equals(a, b))
@@ -38,12 +38,14 @@ internal sealed partial class PublisherNativeWriter {
     }
 
     private bool TryRewriteStories() {
-        if (!SameKeys(_baseline.Text.Stories, _current.Text.Stories) || _baseline.Text.TableStories.Count != 0) return false;
+        if (!SameKeys(_baseline.Text.Stories, _current.Text.Stories)
+            || !SameKeys(_baseline.Text.TableStories, _current.Text.TableStories)) return false;
         bool extended = false;
         foreach (var entry in _baseline.Text.Stories) {
             PublisherTextStory current = _current.Text.Stories[entry.Key];
             if (StoryEqual(entry.Value, current)) continue;
-            if (!CanRewriteStory(entry.Value, current, out bool changedFormatting) || !CanRewriteStoryFrames(entry.Key)) return false;
+            if (!CanRewriteStory(entry.Value, current, out bool changedFormatting)
+                || !(_baseline.Text.TableStories.ContainsKey(entry.Key) ? CanRewriteTableStory(entry.Key) : CanRewriteStoryFrames(entry.Key))) return false;
             extended |= changedFormatting;
         }
         if (!extended && _baseline.Text.Stories.Count == 1 && _baseline.Text.Frames.Count == 1 && _styleDependencies.Count == 1) {
@@ -52,8 +54,15 @@ internal sealed partial class PublisherNativeWriter {
             if (_quillBytes != null) return true;
         }
         _quillBytes = PublisherQuillStoriesWriter.TryRewrite(_imported.NativeSource!.QuillBytes, _imported.Styles.Stories,
-            _baseline.Text.Stories, _current.Text.Stories, _sourceLimits, _maximumBytes, _token);
+            _baseline.Text.Stories, _current.Text.Stories, _baseline.Text.TableStories, _current.Text.TableStories, _sourceLimits, _maximumBytes, _token);
         return _quillBytes != null;
+    }
+
+    private bool CanRewriteTableStory(uint storyId) {
+        PublisherTableState[] tables = _baseline.Tables.Values.Where(table => table.StoryId == storyId).ToArray();
+        return tables.Length != 0 && tables.All(table => _baseline.CellTextEditLimitation(table) == null
+            && _current.Tables.TryGetValue(table.Id, out PublisherTableState? current) && current.StoryId == storyId
+            && _current.CellTextEditLimitation(current) == null);
     }
 
     private bool CanRewriteStoryFrames(uint storyId) {

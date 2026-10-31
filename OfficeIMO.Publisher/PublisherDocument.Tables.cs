@@ -5,7 +5,7 @@ namespace OfficeIMO.Publisher;
 
 public sealed partial class PublisherDocument {
     /// <summary>Replaces the styled paragraphs of the cell anchored at the given zero-based grid coordinates. Other cells, merged ownership and the complete story remain intact.</summary>
-    /// <remarks>Compatible tables sharing the story update together. Covered merged coordinates, unresolved partitions and stories also used by ordinary frames are rejected. Clearing retains the cell boundary and its terminator convention. Existing objects remain snapshots. Validation, cancellation or projection failure leaves the document unchanged; concurrent mutation is unsupported.</remarks>
+    /// <remarks>Compatible tables sharing the story update together. Covered merged coordinates, unresolved partitions and stories also used by ordinary frames are rejected. Clearing retains the cell boundary and its terminator convention. Qualified imported tables support bounded native text save-back with fixed grid and per-cell paragraph counts; unsupported native definitions, including distinct empty-cell typing styles, refuse output even with loss-policy allowance. Existing objects remain snapshots. Validation, cancellation or projection failure leaves the document unchanged; concurrent mutation is unsupported.</remarks>
     public void ReplaceTableCellParagraphs(uint tableId, int rowIndex, int columnIndex,
         IReadOnlyList<OfficeRichTextParagraph> paragraphs, CancellationToken cancellationToken = default) {
         if (paragraphs == null) throw new ArgumentNullException(nameof(paragraphs));
