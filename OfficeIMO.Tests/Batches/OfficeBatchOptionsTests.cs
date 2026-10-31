@@ -76,7 +76,7 @@ public sealed class OfficeBatchOptionsTests {
         using var scope = new JobDirectory(); var request = scope.Job();
         request.ConversionOptions.PdfLoad = new() { Password = "runtime-value" };
         Assert.Throws<NotSupportedException>(() => request.ToJson(scope.Root)); request.ConversionOptions.PdfLoad = null;
-        request.ConversionOptions.Word = new() { PdfOptions = new PdfCreateOptions { DefaultFontSize = 16 } };
+        request.ConversionOptions.Word = new() { PdfOptions = new PdfCreateOptions { DefaultFontSize = OfficeLength.Points(16) } };
         Assert.Throws<NotSupportedException>(() => request.ToJson(scope.Root)); request.ConversionOptions.Word = null;
         request.ConversionOptions.PlainText = new() { PdfOptions = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(16) } };
         Assert.Throws<NotSupportedException>(() => request.ToJson(scope.Root)); request.ConversionOptions.PlainText = null;

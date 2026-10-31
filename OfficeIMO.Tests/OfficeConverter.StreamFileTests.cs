@@ -31,7 +31,7 @@ public sealed class OfficeConverterStreamFileTests {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => OfficeConverter.ConvertAsync(source, OfficeDocumentFormat.Markdown,
-            destination, cancellationToken: cancellation.Token));
+            destination, options: null, cancellationToken: cancellation.Token));
         Assert.False(Directory.Exists(Path.GetDirectoryName(destination)));
     }
 

@@ -66,7 +66,7 @@ public sealed class OfficeConverterStreamIdentityTests {
         byte[] pixel = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
         using (var document = WordDocument.Create()) {
             using var image = new MemoryStream(pixel);
-            document.AddParagraph().AddImage(image, "pixel.png", 10, 10).Image!.FileName = hardLink ? "sidecar.png" : collideWithOutput ? "output.md" : "source.docx";
+            document.AddParagraph().AddImage(image, "pixel.png", OfficeLength.Pixels(10), OfficeLength.Pixels(10)).FileName = hardLink ? "sidecar.png" : collideWithOutput ? "output.md" : "source.docx";
             document.Save(input);
         }
         byte[] original = File.ReadAllBytes(input), existingOutput = Encoding.UTF8.GetBytes("Keep the caller's output");

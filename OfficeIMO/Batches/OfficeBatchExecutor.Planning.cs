@@ -54,7 +54,7 @@ internal static partial class OfficeBatchExecutor {
                         EnsureNoLinks(input); EnsureNoLinks(output);
                         bool directoryPackage = ValidateSelectedInput(runner, settings, route, input);
                         OfficeBatchItemReport? skip = OfficeBatchOutputSelection.ObserveSkip(input, output, settings.SkipExistingOutputs, settings.SkipUpToDate);
-                        bool duplicate = !destinations.Add(OfficePathIdentity.GetPathIdentityKey(output));
+                        bool duplicate = !destinations.Add(OfficePathIdentity.NormalizeDirectoryEntry(output));
                         bool collision = duplicate || File.Exists(output) || Directory.Exists(output);
                         if (collision) {
                             result.Collisions++;

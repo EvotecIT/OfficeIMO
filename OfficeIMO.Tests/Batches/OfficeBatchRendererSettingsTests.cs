@@ -13,17 +13,18 @@ public sealed class OfficeBatchRendererSettingsTests {
             string input = Path.Combine(root, "source.docx"), output = Path.Combine(root, "pdf"), path = Path.Combine(root, "job.json");
             using (var document = WordDocument.Create()) { document.AddParagraph("Saved renderer settings"); document.Save(input); }
             var renderer = new WordPdfExportOptions {
-                PageSize = new PdfPageSize(500, 700), Margins = new PdfPageMargins(30, 40, 50, 60),
+                PageSize = new PdfPageSize(OfficeLength.Points(500), OfficeLength.Points(700)),
+                Margins = new PdfPageMargins(OfficeLength.Points(30), OfficeLength.Points(40), OfficeLength.Points(50), OfficeLength.Points(60)),
                 Title = "Saved renderer", IncludePageNumbers = true, PageNumberFormat = "Page {PAGE}",
                 ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
             };
             new OfficeBatchOptions { InputPaths = [input], OutputDirectory = output, ConversionOptions = new() { Word = renderer } }.Save(path);
             var restored = OfficeBatchOptions.Load(path);
             var actual = Assert.IsType<WordPdfExportOptions>(restored.ConversionOptions.Word);
-            Assert.Equal(500, actual.PageSize!.Value.Width);
-            Assert.Equal(700, actual.PageSize.Value.Height);
-            Assert.Equal(50, actual.Margins!.Value.Right);
-            Assert.Equal(60, actual.Margins.Value.Bottom);
+            Assert.Equal(500, actual.PageSize!.Value.Width.ToPoints());
+            Assert.Equal(700, actual.PageSize.Value.Height.ToPoints());
+            Assert.Equal(50, actual.Margins!.Value.Right.ToPoints());
+            Assert.Equal(60, actual.Margins.Value.Bottom.ToPoints());
             Assert.True(actual.IncludePageNumbers);
             Assert.Equal("Page {PAGE}", actual.PageNumberFormat);
             Assert.False(actual.ResourcePolicy.AllowSystemFontEmbedding);
