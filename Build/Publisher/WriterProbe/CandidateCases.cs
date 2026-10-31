@@ -5,6 +5,8 @@ internal static class CandidateCases {
     private static readonly CandidatePlacement DefaultPlacement = new(72, 72, 288, 108);
 
     internal static CandidatePublicationSpec Create(string kind, string? value, string? secondValue = null) {
+        if (kind == "shared-image-pages") return CandidateImagePages.Create(ReadImage(value), ReadImage(secondValue),
+            includeNativeNames: true, shareFirstImage: true);
         if (kind == "cropped-image-pages") return CandidateImagePages.Create(ReadImage(value), ReadImage(secondValue),
             includeNativeNames: true, crop: new OfficeIMO.Drawing.OfficeImageSourceCrop(0.25, 0.125, 0.0625, 0.1875));
         if (kind is "image-pages" or "named-image-pages")

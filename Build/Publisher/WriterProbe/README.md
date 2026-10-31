@@ -33,6 +33,7 @@ dotnet $probe create object-pages ./candidate-object-pages.pub ./picture.png
 dotnet $probe create image-pages ./candidate-image-pages.pub ./first.png ./last.png
 dotnet $probe create named-image-pages ./candidate-named-images.pub ./first.png ./last.png
 dotnet $probe create cropped-image-pages ./candidate-cropped-images.pub ./first.png ./last.png
+dotnet $probe create shared-image-pages ./candidate-shared-images.pub ./first.png ./last.png
 dotnet $probe create text ./candidate-text.pub 'Template-free publication'
 dotnet $probe create styled-text ./candidate-styled-text.pub
 dotnet $probe create shape ./candidate-shape.pub
@@ -281,11 +282,11 @@ and repair-free opening remain unassessed.
 
 ## Creation cases
 
-All cases use a single Letter page, one master and the same ordered
+All cases use Letter-size physical pages, one master and the same ordered
 `CandidatePublicationSpec`. Object IDs, story keys, layout identifiers and SPIDs
 are assigned once and shared by the Contents, OfficeArt and Quill serializers.
 Text boxes and rectangles each own an independent story; pictures have no story.
-The current drawing specification supports one picture per publication.
+Page, picture and image-asset counts depend on the selected case.
 
 | Case | Objects and content |
 | --- | --- |
@@ -295,6 +296,7 @@ The current drawing specification supports one picture per publication.
 | `object-pages` | Builds three pages with an empty applied master through the public authoring model. A red rectangle without outline is on the first page, the middle page is empty, and an uncropped picture is on the last page. The rectangle has no stored story. Image path required. |
 | `image-pages` | Builds three pages with an empty applied master through the public authoring model. Two distinct uncropped PNG assets are on the first and last pages; the middle page is empty. Two image paths required. |
 | `named-image-pages` | Uses the same public model as `image-pages`, with owned native filename resources and complete OfficeArt basename properties for subsequent image replacement. Two image paths required. |
+| `shared-image-pages` | Uses public existing-image authoring for first/last-page placements of one asset, plus a distinct last-page asset. Native FBSE counts and delayed payloads follow model identity. Two PNG paths required. |
 | `cropped-image-pages` | Uses the named-image model and public `SetPictureCrop` on the first picture, with distinct left/top/right/bottom fractions `0.25/0.125/0.0625/0.1875`. The shared OfficeArt encoder owns the native values. Two PNG paths required for this qualified specimen. |
 | `text` | Text box at `(72,72)`, size `288×108` points; optional plain text argument. |
 | `styled-text` | Text box at the same position, containing the three styled runs below. |
@@ -438,7 +440,9 @@ The `imagePageCreation` record qualifies two distinct embedded PNGs on the first
 and last of three physical pages, with an empty middle page. The public authoring
 model supplies separate assets; the probe calculates their one-based FBSE indices
 and consecutive delayed BLIP offsets through the shared image codec. It does not
-deduplicate equal image bytes or qualify shared-asset identity.
+deduplicate equal image bytes. The separate `sharedImageAuthoring` record qualifies
+explicit model asset reuse, derived reference counts, and selected replacement
+before and after native resave against independent `SharedImagePages` controls.
 
 The generated file and a public `SetPictureBounds` edit each match independently
 authored `ImagePages` and `ImagePagesEdited` controls before and after native

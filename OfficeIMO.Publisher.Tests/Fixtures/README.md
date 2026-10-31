@@ -75,6 +75,15 @@ retains a generated PNG-replacement result after Publisher saves it: the selecte
 picture has no local filename reference, older filename chunks remain, and an
 unused image slot is retired. Its public regression replaces the image, saves,
 reloads and replaces it again without changing the first picture or old assets.
+SharedImagePages places one PNG on the first and last pages and a distinct wide
+PNG on the last page, with an empty middle page. Its native image store has two
+entries with reference counts 2 and 1. SharedImagePagesReplacement replaces the
+first placement with the wide PNG while preserving its former sibling.
+NormalizedSharedPictures retains the generated shared-image specimen after native
+resave removes both local filename references and embedded markers; the public
+save regression retains siblings and source assets. Provenance distinguishes
+independent controls from the native-resaved generated fixture.
+
 Text and TextLong use identical page geometry, frame geometry and Arial formatting; their
 only authored difference is the text. TextParagraphs has one Arial 12-point story
 with an empty paragraph between two text paragraphs. Its retained character

@@ -77,6 +77,10 @@ public sealed class PublisherPictureCreationTests {
         Assert.Equal(source, Assert.Single(document.Images).GetBytes());
         Assert.Equal(first.Id, Assert.Single(document.Pages[0].Pictures).Id);
         Assert.Equal(1, document.ReadReport.CurrentObjectCount);
+        pages = document.Pages; images = document.Images;
+        failure = Assert.Throws<ArgumentException>(() => document.AddPicture(pageId, Assert.Single(images).Id, 60, 10, 40, 30));
+        Assert.Contains("single static PNG or JPEG with normal encoded orientation", failure.Message);
+        Assert.Same(pages, document.Pages); Assert.Same(images, document.Images);
     }
 
     [Fact]
@@ -155,6 +159,7 @@ public sealed class PublisherPictureCreationTests {
         Assert.Equal(2, document.ReadReport.CurrentObjectCount);
         var pages = document.Pages; var images = document.Images;
         Assert.Throws<InvalidDataException>(() => document.AddPicture(page, Png(), 70, 50, 40, 40));
+        Assert.Throws<InvalidDataException>(() => document.AddPicture(page, picture.ImageId!.Value, 70, 50, 40, 40));
         Assert.Same(pages, document.Pages); Assert.Same(images, document.Images);
         document.ReplacePictureImage(picture.Id, PublisherPictureEditingFixture.Image(OfficeColor.White));
         Assert.Equal(2, document.ReadReport.CurrentObjectCount); Assert.Equal(2, Assert.Single(document.Images).Id);

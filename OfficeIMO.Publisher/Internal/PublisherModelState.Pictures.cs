@@ -27,12 +27,28 @@ internal sealed partial class PublisherModelState {
         if ((long)SourceObjectCount + _publication.AuthoredObjectCount >= _decoded.Options.Limits.MaxItems)
             throw new InvalidDataException("Publisher current object limit exceeded.");
         var payload = ValidatePictureBytes(bytes, token);
-        if (payload.Decode.FrameCount != 1 || payload.Decode.IsAnimated || payload.Decode.SourceOrientation != OfficeImageOrientation.Normal)
-            throw new ArgumentException("New pictures require a single static PNG or JPEG with normal encoded orientation.", nameof(bytes));
+        ValidateNewPicture(payload.Decode, nameof(bytes));
         PublisherPublicationState candidate = _publication.AddPicture(page, payload.Bytes, payload.ContentType, x, y, width, height, out pictureId);
         if (candidate.AdditionalImageBytes > _decoded.Options.MaximumTotalImageBytes - _decoded.ImageBytes)
             throw new ArgumentException("New picture exceeds the configured publication image byte limit.", nameof(bytes));
         return WithPublication(candidate);
+    }
+
+    internal PublisherModelState AddPicture(uint pageId, int imageId, double x, double y, double width, double height,
+        CancellationToken token, out uint pictureId) {
+        token.ThrowIfCancellationRequested();
+        PublisherPageState page = _publication.PicturePage(pageId, x, y, width, height);
+        if ((long)SourceObjectCount + _publication.AuthoredObjectCount >= _decoded.Options.Limits.MaxItems)
+            throw new InvalidDataException("Publisher current object limit exceeded.");
+        if (!_publication.Images.TryGetValue(imageId, out PublisherImage? image))
+            throw new ArgumentOutOfRangeException(nameof(imageId), "The publication has no such image asset.");
+        ValidateNewPicture(ValidatePictureContent(image.Bytes, token).Decode, nameof(imageId));
+        return WithPublication(_publication.AddPicture(page, imageId, x, y, width, height, out pictureId));
+    }
+
+    private static void ValidateNewPicture(OfficeRasterDecodeInfo decode, string parameter) {
+        if (decode.FrameCount != 1 || decode.IsAnimated || decode.SourceOrientation != OfficeImageOrientation.Normal)
+            throw new ArgumentException("New pictures require a single static PNG or JPEG with normal encoded orientation.", parameter);
     }
 
     // Addition and replacement share content validation and byte ownership.
@@ -40,7 +56,13 @@ internal sealed partial class PublisherModelState {
     private (byte[] Bytes, string ContentType, OfficeRasterDecodeInfo Decode) ValidatePictureBytes(byte[] bytes, CancellationToken token) {
         if (bytes.Length == 0 || bytes.Length > _decoded.Options.MaximumImageBytes)
             throw new ArgumentException("Picture bytes must fit the configured per-image limit.", nameof(bytes));
-        byte[] owned = (byte[])bytes.Clone();
+        return ValidatePictureContent((byte[])bytes.Clone(), token);
+    }
+
+    private (byte[] Bytes, string ContentType, OfficeRasterDecodeInfo Decode) ValidatePictureContent(byte[] bytes, CancellationToken token) {
+        if (bytes.Length == 0 || bytes.Length > _decoded.Options.MaximumImageBytes)
+            throw new ArgumentException("Picture bytes must fit the configured per-image limit.", nameof(bytes));
+        byte[] owned = bytes;
         if (!OfficeImageReader.TryIdentifyByContent(owned, null, token, out OfficeImageInfo info)
             || info.Format is not (OfficeImageFormat.Png or OfficeImageFormat.Jpeg))
             throw new ArgumentException("Pictures require PNG or JPEG content.", nameof(bytes));

@@ -60,6 +60,7 @@ public sealed class PublisherNativeImageWritingTests {
     [InlineData("PictureOwnership", true)]
     [InlineData("Newsletter", true)]
     [InlineData("PictureCropped", false)]
+    [InlineData("NormalizedSharedPictures", true)]
     public void Native_image_saves_replace_one_placement_and_retain_source_assets_including_after_repeated_edits(string fixture, bool repeat) {
         byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture($"NativeComparison/{fixture}/native-{fixture.ToLowerInvariant()}.pub"));
         PublisherDocument document = PublisherDocument.Load(source);

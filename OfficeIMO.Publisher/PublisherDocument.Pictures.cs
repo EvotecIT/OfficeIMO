@@ -31,6 +31,24 @@ public sealed partial class PublisherDocument {
         return result;
     }
 
+    /// <summary>Appends an uncropped picture that shares an existing document image asset. Bounds use page-local points.</summary>
+    /// <remarks>The image identifier comes from this document's Images collection. Only single static PNG or JPEG images with normal encoded orientation are admitted. No asset is copied or reserved. The new picture has independent bounds, crop and paint; replacing its image leaves other placements unchanged. Failed validation, cancellation or projection leaves the publication and identifiers unchanged. This is in-memory authoring, without native PUB saving.</remarks>
+    public PublisherPicture AddPicture(uint pageId, int imageId, double x, double y, double width, double height,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!Finite(x)) throw new ArgumentOutOfRangeException(nameof(x));
+        if (!Finite(y)) throw new ArgumentOutOfRangeException(nameof(y));
+        if (!Finite(width) || width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+        if (!Finite(height) || height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (!Finite(x + width)) throw new ArgumentOutOfRangeException(nameof(width));
+        if (!Finite(y + height)) throw new ArgumentOutOfRangeException(nameof(height));
+        var model = _model ?? throw new NotSupportedException("This publication has no editable model.");
+        PublisherDocument candidate = model.AddPicture(pageId, imageId, x, y, width, height, cancellationToken, out uint id).Project(cancellationToken);
+        PublisherPicture result = candidate.Pages.Concat(candidate.MasterPages).SelectMany(page => page.Pictures).Single(picture => picture.Id == id);
+        Commit(candidate, cancellationToken);
+        return result;
+    }
+
     /// <summary>Replaces one supported picture placement's embedded image with owned PNG or JPEG bytes. Other placements sharing its old asset remain unchanged.</summary>
     /// <remarks>Retains picture identity, page/master ownership, crop, bounds and drawing order. Original native assets remain available in Images. Fetch current page, picture and image snapshots after an edit. Failed validation, cancellation or projection leaves the document unchanged. Qualified imported pictures support bounded native save-back with explicit loss-policy allowance; unsafe source bindings refuse output. Asset identifiers are document-scoped and may be remapped on native reload.</remarks>
     public void ReplacePictureImage(uint pictureId, byte[] bytes, CancellationToken cancellationToken = default) {

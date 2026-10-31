@@ -39,10 +39,10 @@ internal static class PublisherContentsSourceWriter {
                 byte[] chunk;
                 PublisherBlock? slot = null;
                 if (reference.Length == 0) {
-                    // Native resave can drop the local filename reference from
-                    // an embedded picture while retaining old resource chunks.
+                    // Native resave can drop the local filename reference and
+                    // embedded marker while retaining old resource chunks.
                     // Own a fresh resource; never guess which orphan to reuse.
-                    if (shape.Chunk.Kind != 0x20 || marker.Length != 1) return null;
+                    if (shape.Chunk.Kind != 0x20) return null;
                     chunk = PublisherOplWriter.Chunk(name);
                 } else {
                     if (reference[0].Type != 0x70

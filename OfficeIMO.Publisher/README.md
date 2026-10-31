@@ -237,8 +237,19 @@ The new picture has no crop, fill, outline, effects, story or wrap references an
 is appended in drawing order. Pictures added to a master stay owned once and
 render on every assigned page. Creation does not add text-wrap exclusions.
 
-Input bytes are copied and retained in their original encoding. Each call creates
-one placement and a separate asset, even for identical input. Object and image IDs
+The byte-array overload copies and retains the original encoding. Each call creates
+one placement and a separate asset, even for identical input. To reuse a document
+image, pass its document-scoped ID instead of bytes:
+
+```csharp
+var repeated = newsletter.AddPicture(firstPage.Id, illustration.ImageId!.Value,
+    48, 480, 72, 48);
+```
+
+The ID overload appends a placement without copying or reserving an asset. Bounds,
+crop and paint belong to each placement. Replacing one placement leaves its siblings
+on the original asset; superseded edit-owned bytes are released only after their
+last placement is replaced. Source-native assets remain retained. Object and image IDs
 are reserved together and neither is consumed on failure. Existing image replacement
 and movement operations remain available; replacement retains its existing PNG/JPEG
 contract. Per-image, current-object, image-store, retained-byte and cumulative scene

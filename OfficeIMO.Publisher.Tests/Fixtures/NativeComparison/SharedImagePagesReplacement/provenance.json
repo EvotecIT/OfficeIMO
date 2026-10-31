@@ -1,0 +1,42 @@
+{
+  "schema": "officeimo.publisher.native-shared-image-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case SharedImagePagesReplacement",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-sharedimagepagesreplacement.pub",
+      "sha256": "2ceb7a49c7a28dbe5a9aeda1bdfb8a92a964cc468a0d757adfeac1ebf9d04ff5"
+    },
+    {
+      "name": "native-sharedimagepagesreplacement.pdf",
+      "sha256": "b60c33b8ce4cf008bc9d9e82bd23c004feb023b850181c8df17923776f241e18"
+    },
+    {
+      "name": "native-sharedimagepagesreplacement.json",
+      "sha256": "69c9c59995b293d7cd78568c08c42562f42bbd4e343678f7909b51bba4dbe718"
+    },
+    {
+      "name": "native-sharedimagepagesreplacement.png",
+      "sha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483"
+    },
+    {
+      "name": "native-sharedimagepagesreplacement-replacement.png",
+      "sha256": "98e64eb0771135ce8a3672978263e86118439752c2625a7cdb64f3347d1e58d8"
+    }
+  ],
+  "observed": "Three physical pages, empty middle page, first image on first and last page, distinct wide image on last page. First placement replaced with wide PNG, preserving the shared last-page placement.",
+  "limits": "Independent native authoring reference. Does not establish generic model serialization, managed/native sampling parity or repair-free opening."
+}

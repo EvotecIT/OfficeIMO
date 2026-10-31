@@ -8,11 +8,19 @@ namespace OfficeIMO.Publisher.WriterProbe;
 internal static class CandidateOfficeArt {
     internal static IReadOnlyList<ImageBinding> BindImages(Graph graph) {
         var images = new List<ImageBinding>();
+        var assets = new Dictionary<int, ImageBinding>();
         uint offset = 0;
         foreach (ObjectBinding item in graph.Objects.Where(item => item.Source.Image != null)) {
             byte[] image = item.Source.Image!;
+            if (item.Source.ImageId is { } imageId && assets.TryGetValue(imageId, out ImageBinding? existing)) {
+                if (!existing.Image.SequenceEqual(image)) throw new InvalidDataException("One model image identifier has conflicting payloads.");
+                existing.ObjectIds.Add(item.Id);
+                continue;
+            }
             byte[] blip = OfficeArtBlipStoreEntryWriter.CreateBlipRecord(image, ContentType(image));
-            images.Add(new ImageBinding(item.Id, checked((uint)images.Count + 1), offset, image, blip));
+            var binding = new ImageBinding(new List<uint> { item.Id }, checked((uint)images.Count + 1), offset, image, blip);
+            images.Add(binding);
+            if (item.Source.ImageId is { } id) assets.Add(id, binding);
             offset = checked(offset + (uint)blip.Length);
         }
         if (images.Count > 4095) throw new NotSupportedException("The OfficeArt store supports at most 4,095 image entries.");
@@ -32,16 +40,16 @@ internal static class CandidateOfficeArt {
             writer.Write(DrawingId); writer.Write(shapeCount); // IDCL
         }));
         var groupRecords = new List<byte[]> { fdgg };
-        // Each closed-profile AddPicture call owns one asset and one FBSE
-        // reference. Equal bytes do not imply shared model asset identity.
+        // Native references follow model asset identity, never byte equality.
         if (images.Count != 0) groupRecords.Add(Art(checked((ushort)((images.Count << 4) | 15)), 0xF001,
             images.Select(image => OfficeArtBlipStoreEntryWriter.CreateDelayed(image.Image,
-                ContentType(image.Image), image.Offset, referenceCount: 1)).ToArray()));
+                ContentType(image.Image), image.Offset, referenceCount: checked((uint)image.ObjectIds.Count))).ToArray()));
         byte[] dgg = Art(15, 0xF000, groupRecords.ToArray());
         byte[] root = Art(15, 0xF004,
             Art(1, 0xF009, new byte[16]),
             Art(2, 0xF00A, Bytes(writer => { writer.Write(RootShapeId); writer.Write(5U); })));
-        var imageIndices = images.ToDictionary(image => image.ObjectId, image => image.Index);
+        var imageIndices = images.SelectMany(image => image.ObjectIds.Select(id => (Id: id, image.Index)))
+            .ToDictionary(item => item.Id, item => item.Index);
         byte[][] shapes = new[] { root }.Concat(graph.Objects.Select(item => Leaf(item, graph.Source.WidthEmu,
             graph.Source.HeightEmu, imageIndices.TryGetValue(item.Id, out uint index) ? index : null))).ToArray();
         byte[] drawing = Art(15, 0xF002,
@@ -52,7 +60,7 @@ internal static class CandidateOfficeArt {
 
     internal static byte[] CreateImageDelayStream(IReadOnlyList<ImageBinding> images) => Join(images.Select(image => image.Blip).ToArray());
 
-    internal sealed record ImageBinding(uint ObjectId, uint Index, uint Offset, byte[] Image, byte[] Blip);
+    internal sealed record ImageBinding(List<uint> ObjectIds, uint Index, uint Offset, byte[] Image, byte[] Blip);
 
     private static string ContentType(byte[] image) =>
         image.Length >= 8 && image[0] == 0x89 && image[1] == 0x50 ? "image/png" : "image/jpeg";

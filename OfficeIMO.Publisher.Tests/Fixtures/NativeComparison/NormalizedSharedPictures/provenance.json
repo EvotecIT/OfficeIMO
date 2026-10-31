@@ -1,0 +1,18 @@
+{
+  "schema": "officeimo.publisher.native-normalized-shared-pictures.v1",
+  "source": "Public shared-image placement model, internal template-free shared-image-pages synthesis, then Microsoft Publisher native Full save/reopen.",
+  "inputSha256": "473e11570b6dfa83f92f9e8c2a6c0dececf1c0fc869c021a7860f35002d04d74",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "automationSecurity": 3
+  },
+  "file": {
+    "name": "native-normalizedsharedpictures.pub",
+    "sha256": "583707d22880ff6847da9f81761a3454f60dd3b8f8686df101185c95f0190f8a"
+  },
+  "observed": "Three ordinary pictures retain active image bindings 1/1/2, but no local Contents filename0x3A reference or embedded marker3. Picture-owned orphan filename resources274/275/276 remain.",
+  "reproduction": "Create shared-image-pages from ImagePagesCropped PNG sources, invoke isolated native Validate/Full, retain native-resaved.pub.",
+  "limits": "Native-resaved synthesis fixture; independent native authoring, repair-free opening and generic save support are separate criteria."
+}

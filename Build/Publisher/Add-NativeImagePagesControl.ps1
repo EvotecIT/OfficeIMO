@@ -23,11 +23,16 @@ function Add-NativeImagePagesControl {
     Applies the independently specified four-edge source crop to the first picture.
     .PARAMETER CropLast
     Applies that crop to the final JPEG placement after native replacement.
+    .PARAMETER SharedImages
+    Adds another placement of the first image to the last physical page.
+    .PARAMETER ReplaceSharedFirst
+    Replaces the first placement with the wide PNG, retaining the shared last-page placement.
     .OUTPUTS
     The physical page count.
     #>
     param($Document, $FirstPage, [string]$ImagePath, [string]$SecondImagePath, [switch]$Edited, [switch]$ReplaceLast,
-        [string]$ReplacementJpegPath, [switch]$Cropped, [switch]$CropLast)
+        [string]$ReplacementJpegPath, [switch]$Cropped, [switch]$CropLast, [switch]$SharedImages,
+        [switch]$ReplaceSharedFirst)
 
     $middle = $Document.Pages.Add(1, 1)
     $objects.Add($middle)
@@ -48,6 +53,20 @@ function Add-NativeImagePagesControl {
         $first.Left = 72; $first.Top = 144; $first.Width = 96; $first.Height = 96
     }
     $expectedShapes.Add([pscustomobject]@{ name = 'FirstPageImage'; kind = 'Image'; left = 72; top = 144; width = 96; height = 96 })
+    if ($SharedImages) {
+        $shared = $last.Shapes.AddPicture($ImagePath, 0, -1, 72, 144, 96, 96)
+        $shared.Name = 'SharedLastPageImage'
+        $objects.Add($shared)
+        $expectedShapes.Add([pscustomobject]@{ name = 'SharedLastPageImage'; kind = 'Image'; left = 72; top = 144; width = 96; height = 96 })
+    }
+    if ($ReplaceSharedFirst) {
+        $format = $first.PictureFormat
+        $objects.Add($format)
+        $format.Replace($SecondImagePath, 1)
+        $first.LockAspectRatio = 0
+        $format.CropLeft = 0; $format.CropTop = 0; $format.CropRight = 0; $format.CropBottom = 0
+        $first.Left = 72; $first.Top = 144; $first.Width = 96; $first.Height = 96
+    }
     $bounds = if ($Edited) { @(252, 180, 144, 72) } else { @(216, 144, 192, 96) }
     $second = $last.Shapes.AddPicture($SecondImagePath, 0, -1, $bounds[0], $bounds[1], $bounds[2], $bounds[3])
     $second.Name = 'LastPageImage'

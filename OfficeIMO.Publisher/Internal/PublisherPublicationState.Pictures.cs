@@ -22,17 +22,29 @@ internal sealed partial class PublisherPublicationState {
         double x, double y, double width, double height, out uint pictureId) {
         if (NextObjectId == 0) throw new InvalidOperationException("The publication object identifier space is exhausted.");
         if (NextImageId == 0) throw new InvalidOperationException("The publication image identifier space is exhausted.");
+        var images = Images.ToDictionary(item => item.Key, item => item.Value);
+        images.Add(NextImageId, new PublisherImage(NextImageId, contentType, bytes));
+        return AppendPicture(page, NextImageId, images, NextImageId == int.MaxValue ? 0 : NextImageId + 1,
+            x, y, width, height, out pictureId);
+    }
+
+    internal PublisherPublicationState AddPicture(PublisherPageState page, int imageId,
+        double x, double y, double width, double height, out uint pictureId) =>
+        AppendPicture(page, imageId, Images, NextImageId, x, y, width, height, out pictureId);
+
+    private PublisherPublicationState AppendPicture(PublisherPageState page, int imageId,
+        IReadOnlyDictionary<int, PublisherImage> images, int nextImageId,
+        double x, double y, double width, double height, out uint pictureId) {
+        if (NextObjectId == 0) throw new InvalidOperationException("The publication object identifier space is exhausted.");
         pictureId = NextObjectId;
         var pictures = Pictures.ToDictionary(item => item.Key, item => item.Value);
         var paint = new OfficeShape { Kind = OfficeShapeKind.Rectangle, Width = width, Height = height };
-        pictures.Add(pictureId, new PublisherPicture(pictureId, page.Id, NextImageId, x, y, width, height,
+        pictures.Add(pictureId, new PublisherPicture(pictureId, page.Id, imageId, x, y, width, height,
             OfficeTransform.Translate(x, y), default, true, true, paint, isAuthored: true));
-        var images = Images.ToDictionary(item => item.Key, item => item.Value);
-        images.Add(NextImageId, new PublisherImage(NextImageId, contentType, bytes));
         var owners = ObjectOwners.ToDictionary(item => item.Key, item => item.Value); owners.Add(pictureId, page.Id);
         uint createdId = pictureId;
         return new PublisherPublicationState(Pages.Select(item => item.Id == page.Id ? item.WithObject(createdId) : item),
             owners, pictures, images, Text, TableStoryReferences, _sourceImageIds,
-            NextImageId == int.MaxValue ? 0 : NextImageId + 1, createdId == uint.MaxValue ? 0 : createdId + 1, Shapes, Tables);
+            nextImageId, createdId == uint.MaxValue ? 0 : createdId + 1, Shapes, Tables);
     }
 }
