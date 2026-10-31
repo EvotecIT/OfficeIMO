@@ -22,8 +22,9 @@ internal static class Program {
                 else Console.WriteLine(json);
                 return 0;
             }
-            if (args.Length is >= 3 and <= 4 && args[0] == "create") {
-                CandidatePublicationSpec specification = CandidateCases.Create(args[1], args.Length == 4 ? args[3] : null);
+            if (args.Length is >= 3 and <= 5 && args[0] == "create") {
+                CandidatePublicationSpec specification = CandidateCases.Create(args[1], args.Length >= 4 ? args[3] : null,
+                    args.Length == 5 ? args[4] : null);
                 byte[] bytes = CandidateWriter.Create(specification);
                 WriteNew(args[2], bytes);
                 Console.WriteLine(JsonSerializer.Serialize(new {
@@ -61,6 +62,7 @@ internal static class Program {
             Console.Error.WriteLine("inventory <input.pub> [report.json]\ndiff <left.pub> <right.pub> [report.json]\ncreate <blank|text|styled-text|shape|image|combined> <candidate.pub> [text-or-image-path]\ncreate <blank-pages|text-pages> <candidate.pub> <page-count>\npreserve <input.pub> <candidate.pub>\nedit <input.pub> <candidate.pub> <object-id> <x> <y> <width> <height> [RRGGBB]\nedit-text <input.pub> <candidate.pub> <story-id> <text>\nedit-story <input.pub> <candidate.pub> <story-id> <runs.json>\nrender <input.pub> <unused-output-directory>");
             Console.Error.WriteLine("edit-paragraphs <input.pub> <candidate.pub> <story-id> <paragraph-run-arrays.json>");
             Console.Error.WriteLine("create object-pages <candidate.pub> <image-path>");
+            Console.Error.WriteLine("create image-pages <candidate.pub> <first-image-path> <last-image-path>");
             return 2;
         } catch (Exception exception) {
             Console.Error.WriteLine(exception.GetType().Name + ": " + exception.Message);

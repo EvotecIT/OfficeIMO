@@ -6,8 +6,20 @@ namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Constructs the probe's calculated, format-owned OfficeArt drawing topology.</summary>
 internal static class CandidateOfficeArt {
-    internal static byte[] Create(Graph graph) {
-        byte[]? image = Image(graph);
+    internal static IReadOnlyList<ImageBinding> BindImages(Graph graph) {
+        var images = new List<ImageBinding>();
+        uint offset = 0;
+        foreach (ObjectBinding item in graph.Objects.Where(item => item.Source.Image != null)) {
+            byte[] image = item.Source.Image!;
+            byte[] blip = OfficeArtBlipStoreEntryWriter.CreateBlipRecord(image, ContentType(image));
+            images.Add(new ImageBinding(item.Id, checked((uint)images.Count + 1), offset, image, blip));
+            offset = checked(offset + (uint)blip.Length);
+        }
+        if (images.Count > 4095) throw new NotSupportedException("The OfficeArt store supports at most 4,095 image entries.");
+        return images;
+    }
+
+    internal static byte[] Create(Graph graph, IReadOnlyList<ImageBinding> images) {
         uint shapeCount = (uint)graph.Objects.Count + 1;
         uint lastShapeId = RootShapeId + shapeCount - 1;
         byte[] fdgg = Art(0, 0xF006, Bytes(writer => {
@@ -20,32 +32,33 @@ internal static class CandidateOfficeArt {
             writer.Write(DrawingId); writer.Write(shapeCount); // IDCL
         }));
         var groupRecords = new List<byte[]> { fdgg };
-        if (image != null) groupRecords.Add(Art(31, 0xF001,
-            OfficeArtBlipStoreEntryWriter.CreateDelayed(image, ContentType(image), delayedStreamOffset: 0)));
+        // Each closed-profile AddPicture call owns one asset and one FBSE
+        // reference. Equal bytes do not imply shared model asset identity.
+        if (images.Count != 0) groupRecords.Add(Art(checked((ushort)((images.Count << 4) | 15)), 0xF001,
+            images.Select(image => OfficeArtBlipStoreEntryWriter.CreateDelayed(image.Image,
+                ContentType(image.Image), image.Offset, referenceCount: 1)).ToArray()));
         byte[] dgg = Art(15, 0xF000, groupRecords.ToArray());
         byte[] root = Art(15, 0xF004,
             Art(1, 0xF009, new byte[16]),
             Art(2, 0xF00A, Bytes(writer => { writer.Write(RootShapeId); writer.Write(5U); })));
-        byte[][] shapes = new[] { root }.Concat(graph.Objects.Select(item => Leaf(item, graph.Source.WidthEmu, graph.Source.HeightEmu))).ToArray();
+        var imageIndices = images.ToDictionary(image => image.ObjectId, image => image.Index);
+        byte[][] shapes = new[] { root }.Concat(graph.Objects.Select(item => Leaf(item, graph.Source.WidthEmu,
+            graph.Source.HeightEmu, imageIndices.TryGetValue(item.Id, out uint index) ? index : null))).ToArray();
         byte[] drawing = Art(15, 0xF002,
             Art((ushort)(DrawingId << 4), 0xF008, Bytes(writer => { writer.Write(shapeCount); writer.Write(lastShapeId); })),
             Art(15, 0xF003, shapes));
         return Join(dgg, new byte[4], drawing);
     }
 
-    internal static byte[] CreateImageDelayStream(Graph graph) {
-        byte[]? image = Image(graph);
-        return image == null ? Array.Empty<byte>() : OfficeArtBlipStoreEntryWriter.CreateBlipRecord(image, ContentType(image));
-    }
+    internal static byte[] CreateImageDelayStream(IReadOnlyList<ImageBinding> images) => Join(images.Select(image => image.Blip).ToArray());
 
-    private static byte[]? Image(Graph graph) => graph.Objects.SingleOrDefault(item => item.Source.Image != null)?.Source.Image;
+    internal sealed record ImageBinding(uint ObjectId, uint Index, uint Offset, byte[] Image, byte[] Blip);
 
     private static string ContentType(byte[] image) =>
         image.Length >= 8 && image[0] == 0x89 && image[1] == 0x50 ? "image/png" : "image/jpeg";
 
-    private static byte[] Leaf(ObjectBinding item, uint width, uint height) {
+    private static byte[] Leaf(ObjectBinding item, uint width, uint height, uint? imageIndex) {
         bool isTextBox = item.Source.Kind == CandidateObjectKind.TextBox;
-        bool hasImage = item.Source.Image != null;
         var properties = new List<(ushort Id, uint Value)> {
             (0x181, 0x0000FF), // Solid red in the common OfficeArt RGB encoding.
             (0x1BF, 0x00100010),
@@ -66,7 +79,7 @@ internal static class CandidateOfficeArt {
             if (item.Source.ColumnSpacing.HasValue)
                 properties.Add((0x8D, checked((uint)(item.Source.ColumnSpacing.Value * 12700))));
         }
-        if (hasImage) properties.Add((0x4104, 1)); // Picture index carries the native BLIP-ID flag.
+        if (imageIndex.HasValue) properties.Add((0x4104, imageIndex.Value)); // Native BLIP-ID flag.
         byte[] fopt = Bytes(writer => {
             foreach (var property in properties.OrderBy(property => property.Id & 0x3FFF)) {
                 writer.Write(property.Id); writer.Write(property.Value);

@@ -20,6 +20,13 @@ The generation signature does not establish qualification for every Publisher
 release or object type. Independent producer files exercise real native storage;
 they are not produced by an OfficeIMO writer.
 
+The opt-in [native writer probe](../Build/Publisher/WriterProbe/README.md)
+separately qualifies source-free closed specimens. Its two-image page profile
+retains distinct embedded PNGs and their page bindings through native resave;
+moving and resizing the second picture through the public source-save API leaves
+the first picture and image payloads unchanged. Public template-free native save,
+shared-image authoring and repair-free acceptance remain unavailable or unqualified.
+
 Two independent native controls qualify twelve whole-frame character-attribute
 combinations and all eighteen automation underline choices across five physical
 pages. Saved Quill underline values differ from the automation enum. Seven native

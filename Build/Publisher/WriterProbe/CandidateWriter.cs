@@ -14,11 +14,12 @@ internal static class CandidateWriter {
 
     internal static byte[] Create(CandidatePublicationSpec specification) {
         NativePublicationGraph.Graph graph = NativePublicationGraph.Create(specification, DocumentId);
+        IReadOnlyList<CandidateOfficeArt.ImageBinding> images = CandidateOfficeArt.BindImages(graph);
         var streams = new List<OfficeCompoundStream> {
             new OfficeCompoundStream("Contents", Contents(graph)),
             new OfficeCompoundStream("Quill/QuillSub/CONTENTS", QuillCandidate.Create(graph.Stories)),
-            new OfficeCompoundStream("Escher/EscherStm", CandidateOfficeArt.Create(graph)),
-            new OfficeCompoundStream("Escher/EscherDelayStm", CandidateOfficeArt.CreateImageDelayStream(graph)),
+            new OfficeCompoundStream("Escher/EscherStm", CandidateOfficeArt.Create(graph, images)),
+            new OfficeCompoundStream("Escher/EscherDelayStm", CandidateOfficeArt.CreateImageDelayStream(images)),
             new OfficeCompoundStream("\u0003Internal", InternalHeader()),
             new OfficeCompoundStream("\u0001CompObj", OfficeOleCompoundObjectWriter.Write(PublicationClassId,
                 "Microsoft Publisher 3.0", "MSPublisher.3", string.Empty))

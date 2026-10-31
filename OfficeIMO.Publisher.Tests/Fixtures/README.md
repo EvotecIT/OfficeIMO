@@ -52,6 +52,12 @@ and resized blue rectangle and a moved, stretched picture. The middle page stays
 empty. They qualify creation and subsequent source editing of the story-free
 writer specimen; the native producer's own rectangle retains an intrinsic empty
 story. Source PNGs are retained with their native PUB/PDF/contract files.
+ImagePages and ImagePagesEdited independently author two distinct embedded PNGs
+on the first and last of three pages, with an empty middle page. The second
+picture moves and shrinks in the edited state; the first remains unchanged.
+They qualify native image-store indices and delayed offsets in the template-free
+probe, public reload and bounds editing. Both synthetic PNGs are retained with
+each native control.
 Text and TextLong use identical page geometry, frame geometry and Arial formatting; their
 only authored difference is the text. TextParagraphs has one Arial 12-point story
 with an empty paragraph between two text paragraphs. Its retained character

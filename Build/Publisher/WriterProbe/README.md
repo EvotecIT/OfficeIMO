@@ -30,6 +30,7 @@ dotnet $probe create blank ./candidate-blank.pub
 dotnet $probe create blank-pages ./candidate-two-blank-pages.pub 2
 dotnet $probe create text-pages ./candidate-text-pages.pub 3
 dotnet $probe create object-pages ./candidate-object-pages.pub ./picture.png
+dotnet $probe create image-pages ./candidate-image-pages.pub ./first.png ./last.png
 dotnet $probe create text ./candidate-text.pub 'Template-free publication'
 dotnet $probe create styled-text ./candidate-styled-text.pub
 dotnet $probe create shape ./candidate-shape.pub
@@ -49,7 +50,8 @@ Inventory input is bounded to 64 MiB, plain text to 4,096 characters and images
 to 1 MiB. Reports can contain complete recovered text; use synthetic fixtures.
 The `blank-pages` case requires a physical page count from 1 to 16. Other creation
 cases place their objects on a single physical page, except `text-pages`, which
-requires 2 to 16 pages and places independent stories on the first and last pages.
+requires 2 to 16 pages and places independent stories on the first and last pages,
+and the three-page `object-pages` and `image-pages` specimens.
 
 `inventory` records compound metadata and hashes, known Contents fields, Quill
 directories, OfficeArt envelopes and a separate OfficeIMO reader result.
@@ -289,6 +291,7 @@ The current drawing specification supports one picture per publication.
 | `blank-pages` | Requested count of empty physical pages, with one shared empty master; count argument required. |
 | `text-pages` | Builds a source-free publication through `PublisherDocument.Create`, `AddPage` and `AddTextFrame`, then projects the first/final frames and stories into the native codecs. Intermediate pages are empty. Arial 12/18 body text, explicit zero column gap; count argument required. |
 | `object-pages` | Builds three pages with an empty applied master through the public authoring model. A red rectangle without outline is on the first page, the middle page is empty, and an uncropped picture is on the last page. The rectangle has no stored story. Image path required. |
+| `image-pages` | Builds three pages with an empty applied master through the public authoring model. Two distinct uncropped PNG assets are on the first and last pages; the middle page is empty. Two image paths required. |
 | `text` | Text box at `(72,72)`, size `288×108` points; optional plain text argument. |
 | `styled-text` | Text box at the same position, containing the three styled runs below. |
 | `shape` | Solid red rectangle at `(72,72)`, size `288×108`, with a CR-only story. |
@@ -424,8 +427,22 @@ the native references disable it. Enlarged image edges therefore differ. This
 is separate from the native file's qualified pixel appearance, and does not
 establish general managed/native rendering parity. The closed profile does not
 qualify arbitrary model serialization, interleaved object order, additional
-paint states, multiple images or master content. Repair-free opening remains
+paint states or master content. Repair-free opening remains
 unassessed.
+
+The `imagePageCreation` record qualifies two distinct embedded PNGs on the first
+and last of three physical pages, with an empty middle page. The public authoring
+model supplies separate assets; the probe calculates their one-based FBSE indices
+and consecutive delayed BLIP offsets through the shared image codec. It does not
+deduplicate equal image bytes or qualify shared-asset identity.
+
+The generated file and a public `SetPictureBounds` edit each match independently
+authored `ImagePages` and `ImagePagesEdited` controls before and after native
+resave: twelve page pairs at 144 dpi. Public reload preserves both complete PNG
+payloads and picture/page bindings. The edit changes only the second picture's
+anchor values; the first picture, image store and all other streams remain
+byte-identical. Image replacement on generated files, generic object ordering
+and repair-free opening remain unqualified.
 
 Successful native opening, usable text ranges, saving, reopening and PDF export
 are separate observations. Retain the candidate SHA-256, application version,
