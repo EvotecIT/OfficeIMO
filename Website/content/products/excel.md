@@ -88,15 +88,18 @@ workbook.Save();
 
 ## Convert XLS, XLSX, and XLSB
 
+File-to-file conversion uses the `OfficeIMO` package.
+
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Excel;
 
 using ExcelDocument legacy = ExcelDocument.Load("finance.xls");
 legacy.Save("finance-modernized.xlsx");
 
-ExcelDocument.Convert("finance.xls", "finance.xlsx");
-ExcelDocument.Convert("finance.xlsx", "finance.xls");
-ExcelDocument.Convert("model.xlsb", "model.xlsx");
+OfficeConverter.Convert("finance.xls", "finance.xlsx");
+OfficeConverter.Convert("finance.xlsx", "finance.xls");
+OfficeConverter.Convert("model.xlsb", "model.xlsx");
 ```
 
 The destination extension selects the writer. XLS bytes are never disguised as XLSX, and XLSB output is written through its own binary workbook path. Use conversion analysis when your service needs a no-loss gate.

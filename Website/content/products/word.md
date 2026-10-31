@@ -89,7 +89,10 @@ document.Save();
 
 ## Convert DOC and DOCX
 
+File-to-file conversion uses the `OfficeIMO` package.
+
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Word;
 
 // The normal loader detects the legacy DOC container.
@@ -97,11 +100,11 @@ using WordDocument legacy = WordDocument.Load("contract.doc");
 legacy.Save("contract-modernized.docx");
 
 // Bidirectional conversion uses the same import and save preflight.
-WordDocument.Convert("contract.doc", "contract.docx");
-WordDocument.Convert("contract.docx", "contract.doc");
+OfficeConverter.Convert("contract.doc", "contract.docx");
+OfficeConverter.Convert("contract.docx", "contract.doc");
 ```
 
-Use `AnalyzeConversion(...)` before writing when your application needs to reject approximation, static visual fallback, source retention, or known loss.
+Use `OfficeConverter.Analyze(...)` before writing when your application needs to reject approximation, static visual fallback, source retention, or known loss.
 
 ## Compatibility
 

@@ -187,6 +187,10 @@ function Find-Mentions([string] $code, [string[]] $usings, [string[]] $contextPa
     foreach ($match in [regex]::Matches($code, '(?<![\w.\-$@])[A-Z][A-Za-z0-9_]*(?:\.[A-Z][A-Za-z0-9_]*)*')) {
         if ($isPowerShell -and $commandAliases.ContainsKey($match.Value)) { continue }
         $parts = $match.Value.Split('.')
+        # Initializer keys name properties, not types: PageSize = OfficePageSizes.A4
+        # must not link a former PageSize type from an older merged API index.
+        if (-not $isPowerShell -and $parts.Count -eq 1 -and
+            $code.Substring($match.Index + $match.Length) -match '^\s*=(?!=|>)') { continue }
         $type = $null
         $memberIndex = -1
         for ($i = $parts.Count; $i -ge 1 -and -not $type; $i--) {

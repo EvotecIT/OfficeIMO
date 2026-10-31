@@ -4,51 +4,53 @@ description: "Modernize PowerPoint 97–2003 PPT presentations or create support
 meta.eyebrow: "PowerPoint conversion"
 meta.source_format: "PPT"
 meta.destination_format: "PPTX"
-meta.package: "OfficeIMO.PowerPoint"
-meta.package_url: "https://www.nuget.org/packages/OfficeIMO.PowerPoint"
+meta.package: "OfficeIMO"
+meta.package_url: "https://www.nuget.org/packages/OfficeIMO"
 meta.runtime: ".NET on Windows, Linux, and macOS"
-meta.primary_label: "Get OfficeIMO.PowerPoint"
-meta.primary_url: "https://www.nuget.org/packages/OfficeIMO.PowerPoint"
+meta.primary_label: "Get OfficeIMO"
+meta.primary_url: "https://www.nuget.org/packages/OfficeIMO"
 meta.secondary_label: "Check PowerPoint compatibility"
 meta.secondary_url: "/compatibility/#powerpoint"
 meta.summary_title: "PPT and PPTX summary"
 meta.limit: "Legacy and modern PowerPoint formats differ. Review diagnostics for masters, media, charts, animation, embedded objects, and drawing effects."
 meta.related_label: "Explore all conversion guides"
 meta.related_url: "/convert/guides/"
-meta.howto.name: "Convert PPT to PPTX with OfficeIMO.PowerPoint"
+meta.howto.name: "Convert PPT to PPTX with OfficeIMO"
 meta.howto.description: "Analyze a legacy presentation and create a modern PPTX file without PowerPoint automation."
 meta.howto.steps:
   - name: "Install"
-    text: "Add the OfficeIMO.PowerPoint NuGet package."
+    text: "Add the OfficeIMO NuGet package."
   - name: "Analyze"
     text: "Review slide, shape, media, chart, and preservation findings."
   - name: "Convert"
-    text: "Call PowerPointDocument.Convert for the PPT and PPTX paths."
+    text: "Call OfficeConverter.Convert for the PPT and PPTX paths."
   - name: "Review"
     text: "Validate the slides important to the presentation workflow."
 ---
 
 `OfficeIMO.PowerPoint` handles legacy PPT, POT, and PPS files as well as modern PPTX, PPTM, POTX, and PPSX presentations. Applications can use the same conversion surface in services, desktop software, containers, and scheduled jobs without launching Microsoft PowerPoint.
 
+File-to-file conversion uses `OfficeConverter` from the `OfficeIMO` package.
+
 ## PPT to PPTX
 
 ```csharp
-using OfficeIMO.PowerPoint;
+using OfficeIMO;
 
-PowerPointDocumentConversionReport preview =
-    PowerPointDocument.AnalyzeConversion("briefing.ppt", "briefing.pptx");
+OfficeConversionReport preview =
+    OfficeConverter.Analyze("briefing.ppt", "briefing.pptx");
 
-PowerPointDocumentConversionResult result =
-    PowerPointDocument.Convert("briefing.ppt", "briefing.pptx");
+OfficeConversionReport result =
+    OfficeConverter.Convert("briefing.ppt", "briefing.pptx");
 ```
 
 ## PPTX to PPT
 
 ```csharp
-using OfficeIMO.PowerPoint;
+using OfficeIMO;
 
-PowerPointDocumentConversionResult result =
-    PowerPointDocument.Convert("briefing.pptx", "briefing.ppt");
+OfficeConversionReport result =
+    OfficeConverter.Convert("briefing.pptx", "briefing.ppt");
 ```
 
 Slides contain more than text boxes. Masters, layouts, groups, charts, embedded objects, custom XML, animation, media, and drawing effects can cross format generations differently. The compatibility report makes those decisions visible and can block output when the selected policy does not allow the required fallback.

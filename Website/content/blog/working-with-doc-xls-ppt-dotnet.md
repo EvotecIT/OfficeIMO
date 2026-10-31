@@ -57,16 +57,20 @@ The [format compatibility dashboard](/compatibility/) shows the current evidence
 For routine content, the default conversion path may be enough:
 
 ```csharp
-WordDocument.Convert("archive.doc", "archive.docx");
-ExcelDocument.Convert("forecast.xls", "forecast.xlsx");
-PowerPointDocument.Convert("briefing.ppt", "briefing.pptx");
+using OfficeIMO;
+
+OfficeConverter.Convert("archive.doc", "archive.docx");
+OfficeConverter.Convert("forecast.xls", "forecast.xlsx");
+OfficeConverter.Convert("briefing.ppt", "briefing.pptx");
 ```
 
 For governed archives or business-critical documents, preview the conversion first:
 
 ```csharp
-WordDocumentConversionReport report =
-    WordDocument.AnalyzeConversion("contract.docx", "contract.doc");
+using OfficeIMO;
+
+OfficeConversionReport report =
+    OfficeConverter.Analyze("contract.docx", "contract.doc");
 ```
 
 The application can then reject blocked findings, allow a known approximation, request a visual fallback, or retain the source according to its own policy.

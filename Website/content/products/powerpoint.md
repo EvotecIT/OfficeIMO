@@ -87,16 +87,19 @@ presentation.Save();
 
 ## Convert PPT and PPTX
 
+File-to-file conversion uses the `OfficeIMO` package.
+
 ```csharp
+using OfficeIMO;
 using OfficeIMO.PowerPoint;
 
-var analysis = PowerPointDocument.AnalyzeConversion(
+var analysis = OfficeConverter.Analyze(
     "archive-deck.ppt",
     "archive-deck.pptx");
 
-if (!analysis.Compatibility.HasBlockedFeatures)
+if (!analysis.HasLoss)
 {
-    PowerPointDocument.Convert(
+    OfficeConverter.Convert(
         "archive-deck.ppt",
         "archive-deck.pptx");
 }
