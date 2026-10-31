@@ -169,7 +169,8 @@ rich-text API; the contributor JSON commands retain their narrower input schema.
 The multiple-story/page path retains existing story identities and order, admits
 one frame or a complete resolved ordinary document-page chain per changed story,
 and admits known directory chains with at most 20 descriptors per page and
-65,535 in total, with no table stories. It verifies every FDPC/FDPP page against its BTE index
+65,535 in total. Table stories use the separately qualified fixed-cell profile.
+It verifies every FDPC/FDPP page against its BTE index
 and shares byte-identical OPLs within each page.
 Story lengths, endpoints, page offsets and later-page header starts are remapped;
 unrelated Quill payloads remain byte-identical. Through the public
@@ -389,3 +390,10 @@ resave with retired image slots. Its recipes bind input and replacement hashes
 to independent raw image/filename/crop checks and native before/after PDFs.
 Qualification covers delayed image streams; no-delay embedded-BLIP appends,
 exact cropped rendering parity and repair-free opening remain separate gaps.
+
+The `sourceEditing.tableText` record covers existing cell text saves with fixed
+grid, cell order and per-cell paragraph counts, including ordinary stories in
+the same publication and re-editing a native resave. Independent checks bind
+relative `TCD ` cell endpoints, native cell text/style/positions and unchanged
+PDF pixels/spans across resave. The package support contract lists native typing
+style, print-layout, rendering and broader table-profile limits.

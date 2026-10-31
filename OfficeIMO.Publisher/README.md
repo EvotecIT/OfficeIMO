@@ -87,6 +87,10 @@ Existing qualified pictures can save a replacement PNG or JPEG. Replacing one
 placement retains the original asset and leaves other placements sharing it
 unchanged, including master pictures. Native image slots and filename resources
 are allocated together; asset IDs are document-scoped and can change on reload.
+Existing qualified tables can save cell text and supported run formatting while
+retaining the grid, cell ownership and each cell's paragraph count. Cell text
+endpoints are remapped with the complete story; preceding ordinary stories can
+also change length without detaching table cells.
 Paragraph edits include alignment, before/after spacing, margins, first-line or
 hanging indents, explicit absolute/multiple line spacing, and ordinary left tabs.
 For native center/right paragraphs, use tab settings with
@@ -96,7 +100,7 @@ spacing. The support contract defines native units and representability limits.
 Ambiguous source definitions, unsupported directory layouts and zero-paragraph
 native story states are refused. The [support contract](SUPPORT.md)
 defines the precise restrictions. Other in-memory edits, including new objects,
-table changes and page/master relationships, cannot be saved
+table bounds/grid changes and page/master relationships, cannot be saved
 as native PUB through this profile. Source-free native creation is unavailable.
 
 The default loss policy is `Block`, including unassessed fidelity. Edited native
@@ -401,6 +405,10 @@ terminator convention, including when clearing and refilling a cell. Compatible
 tables sharing a story update together. Conflicting cell grids, unresolved
 boundaries and stories also referenced by ordinary text frames reject cell edits.
 Complete text remains inspectable when a cell overflows its rendered frame.
+Native source saving supports qualified fixed cell partitions and supported
+text formatting. Unknown native partition records, changed per-cell paragraph
+counts and empty cells with distinct native typing definitions refuse output.
+These native limits are separate from in-memory cell editing.
 
 `SetTableBounds` uses positive finite frame dimensions and proportionally scales
 column and row tracks. Imported differences between track sums and frame size

@@ -131,7 +131,7 @@ chain, frame identities, page ownership and geometry; it does not relink frames.
 Unresolved, unavailable, grouped, transformed and master-page chains refuse
 changed-story output. Story identities and order remain fixed. Known source layouts
 can have chained directory pages, with at most 20 descriptors per page and 65,535
-descriptors in total, and no table stories. Repeated
+descriptors in total. Existing table stories use the fixed-cell profile below. Repeated
 byte-identical OPLs can share native page storage, with all story lengths, range
 endpoints, page indexes and later-page start headers remapped. The original
 single-story/one-page path retains its accepted encoding. In multi-paragraph stories, existing empty paragraphs can remain empty or
@@ -286,6 +286,37 @@ unqualified. Cropped raster-matrix rounding has a measured residual of about
 rendering parity remains unqualified. Repair-free opening and broader producer
 coverage also remain unassessed; changed native image output reports
 `PUB_NATIVE_IMAGE_REPLACEMENT_UNQUALIFIED`.
+
+Native table-cell text saving retains existing tables, tracks, merged ownership,
+cell order, bounds and paint. Each cell retains its paragraph count and final
+terminator convention. Supported run/paragraph formatting uses the same Quill
+writer as ordinary stories; cell partitions use separately validated `TCD `
+records. Their descriptor uses flag 1 and secondary kind `PLC `; the payload
+has the fixed cell count, retained header and story-relative UTF-16 endpoints.
+Nonfinal endpoints include their terminating character; the final endpoint is
+exclusive. Source endpoints must exactly match the recovered cell partitions.
+After editing, endpoints, complete story lengths, formatting pages and directory
+locations are rewritten together. Ordinary stories in table-bearing documents
+can also change length without changing relative cell ownership.
+
+Unknown partition headers/descriptors, unresolved or conflicting ownership,
+table stories also used by ordinary frames, changed per-cell paragraph counts
+and distinct empty-cell typing definitions refuse edited output. Table creation,
+bounds/grid changes, cell merges and table styling have no native save profile.
+These limits apply with `Allow`; unchanged content still returns an exact copy.
+
+The `sourceEditing.tableText` qualification record covers six public saves over
+twelve native document-page states: first/final/all cell replacements, bold/italic
+retention, a preceding title-story length change, combined image replacement and
+re-editing a native-resaved table. Independent decoding verifies complete stories,
+cell endpoints and direct formatting; native PDF text occupies the original cell
+positions. Native table bounds and before/after PDF pixels/spans remain equal.
+The TableLabel control retains Publisher's multiple-label print layout in its
+native PDF; its document page and table geometry are recorded separately. Native
+PDF cell sizes retain the source's 9.984-point spans for nominal ten-point text;
+exact managed/native font metrics and rendering parity remain unqualified.
+Broader table profiles and repair-free opening remain unassessed. Changed Quill
+output reports `PUB_NATIVE_QUILL_TEXT_UNQUALIFIED` and is blocked by default.
 
 Two independent reading controls cover 17 whole-frame profiles over five pages,
 including indexed arrays with two tabs and left/center/right tabbed lines. The
