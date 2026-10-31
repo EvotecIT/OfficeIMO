@@ -18,7 +18,7 @@ public sealed class PdfFormPageRewriteTests {
         byte[] bytes = File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "PdfFormOcr", "reportlab-scanned-form.pdf"));
         PdfDocument source = PdfDocument.Load(bytes);
         PdfDocument result = operation switch {
-            "insert" => PdfDocument.Create(compose => { compose.Page(page => page.Size(300, 400)); compose.Page(page => page.Size(300, 400)); }).Pages.Insert(2, source),
+            "insert" => PdfDocument.Create(compose => { compose.Page(page => page.Size(OfficeLength.Points(300), OfficeLength.Points(400))); compose.Page(page => page.Size(OfficeLength.Points(300), OfficeLength.Points(400))); }).Pages.Insert(2, source),
             "extract" => source.Pages.Extract(1),
             "reorder" => source.Pages.Reorder(2, 1),
             _ => source.Pages.Move(3, 1)
@@ -107,7 +107,7 @@ public sealed class PdfFormPageRewriteTests {
             "insert" => target.Pages.Insert(2, selected).ToBytes(),
             _ => PdfPageInterleaver.Interleave(new[] {
                 new PdfInterleaveSource(source) { Pages = PdfPageSelector.Parse("1") },
-                new PdfInterleaveSource(PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400))).ToBytes())
+                new PdfInterleaveSource(PdfDocument.Create(compose => compose.Page(page => page.Size(OfficeLength.Points(300), OfficeLength.Points(400)))).ToBytes())
             }).ToBytes()
         };
         using var independent = PdfPigDocument.Open(output);
@@ -174,7 +174,7 @@ public sealed class PdfFormPageRewriteTests {
     public void PartialSelectionFollowsKidsWhenChildParentIsMissingOrWrong(string firstChildParent) {
         PdfDocument partial = PdfDocument.Load(PdfPageInterleaver.Interleave(new[] {
             new PdfInterleaveSource(CreateHierarchicalForm(firstChildParent)) { Pages = PdfPageSelector.Parse("1") },
-            new PdfInterleaveSource(PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400))).ToBytes())
+            new PdfInterleaveSource(PdfDocument.Create(compose => compose.Page(page => page.Size(OfficeLength.Points(300), OfficeLength.Points(400)))).ToBytes())
         }).ToBytes());
         Assert.Equal(new[] { "Parent.First", "Parent.Second" }, partial.Inspect().FormFieldNames.OrderBy(name => name, StringComparer.Ordinal).ToArray());
         using PdfPigDocument independent = PdfPigDocument.Open(partial.ToBytes());
@@ -187,7 +187,7 @@ public sealed class PdfFormPageRewriteTests {
         byte[] source = CreateHierarchicalForm(fields: "<< /T (Parent) /FT /Tx /Kids [7 0 R 8 0 R 9 0 R] >>");
         var error = Assert.Throws<NotSupportedException>(() => PdfPageInterleaver.Interleave(new[] {
             new PdfInterleaveSource(source) { Pages = PdfPageSelector.Parse("1") },
-            new PdfInterleaveSource(PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400))).ToBytes())
+            new PdfInterleaveSource(PdfDocument.Create(compose => compose.Page(page => page.Size(OfficeLength.Points(300), OfficeLength.Points(400)))).ToBytes())
         }));
         Assert.Contains("indirect AcroForm field roots", error.Message, StringComparison.Ordinal);
     }
