@@ -703,7 +703,7 @@ public class PdfRedactionVerificationTests {
         PdfRedactionProofResult proof = PdfRedactionProofTestSupport.BuildAndVerifyRedactionRemovalProof();
 
         Assert.True(proof.Plan.HasMatches);
-        Assert.Contains(proof.Plan.Matches, match => match.Text != null && match.Text.Contains("PAY-SECRET-2026", StringComparison.Ordinal));
+        Assert.Contains(proof.Plan.Matches, static match => match.Kind == OfficeIMO.Pdf.PdfRedactionMatchKind.TextBlock && match.Text == null);
         Assert.True(proof.Verification.IsVerified);
         Assert.True(proof.Verification.RawPdfBytesChecked);
         Assert.True(proof.Verification.EncodedPdfStringsChecked);
@@ -1352,7 +1352,7 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
-    public void Apply_PreservesSharedImageAliasesWhenAContentOwnerCannotBeDecoded() {
+    public void Apply_RefusesWhenAnUnreadableContentOwnerKeepsTheOriginalImage() {
         const string pageContent = "q 20 0 0 20 20 30 cm /ImShared Do Q";
         const string undecodableFormContent = "/ImShared Do";
         const string imageBytes = "abc";
@@ -1369,14 +1369,11 @@ public class PdfRedactionVerificationTests {
         PdfLogicalImage image = GetSingleImage(source);
         PdfRedactionArea area = CreateImageCoveringArea(image, Assert.Single(image.Placements));
 
-        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
-        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(redacted).Map;
-        PdfStream form = Assert.IsType<PdfStream>(Assert.Single(objects.Values, static item =>
-            item.Value is PdfStream stream && stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Form").Value);
-        PdfDictionary resources = Assert.IsType<PdfDictionary>(form.Dictionary.Items["Resources"]);
-        PdfDictionary xObjects = Assert.IsType<PdfDictionary>(resources.Items["XObject"]);
-
-        Assert.True(xObjects.Items.ContainsKey("ImShared"));
+        // The unreadable form may paint the alias, so it can't be dropped, and the original pixels stay
+        // reachable through it. That can't be proven clean, so the rewrite is refused on both routes.
+        InvalidOperationException direct = Assert.Throws<InvalidOperationException>(() => PdfRedactionApplier.Apply(source, new[] { area }));
+        Assert.Contains("no page paints", direct.Message, StringComparison.Ordinal);
+        Assert.Throws<InvalidOperationException>(() => PdfDocument.Load(source).Redactions.Apply(PdfDocument.Load(source).Redactions.Plan(new[] { area })));
     }
 
     [Fact]

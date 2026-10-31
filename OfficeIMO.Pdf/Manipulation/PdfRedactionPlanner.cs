@@ -88,16 +88,27 @@ internal static partial class PdfRedactionPlanner {
         var glyphTextSpansByPage = new Dictionary<int, IReadOnlyList<PdfTextSpan>>();
         var hiddenImagePlacementsByPage = new Dictionary<int, IReadOnlyList<PdfImagePlacement>>();
         var inconclusiveOptionalContentPages = new HashSet<int>();
+        var staleSelectionPages = new HashSet<int>();
+        var generatedMarksByPage = new Dictionary<int, HashSet<int>>();
 
+        PdfReadDocument? glyphDocument = null;
         foreach (PdfRedactionArea area in areaArray) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (area.RequiresGlyphRewrite && area.PageNumber <= readDocument.Pages.Count) {
+            if (area.GlyphSelection is PdfRedactionGlyphSelection selection && area.PageNumber <= readDocument.Pages.Count) {
                 if (!glyphTextSpansByPage.TryGetValue(area.PageNumber, out IReadOnlyList<PdfTextSpan>? glyphSpans)) {
-                    glyphSpans = readDocument.Pages[area.PageNumber - 1].GetGlyphTextSpans(
-                        includeHiddenOptionalContentText, cancellationToken);
+                    // A selection can name glyphs in hidden layers and artifacts, so resolve it against all of them.
+                    glyphDocument ??= PdfReadDocument.Open(pdf, PdfLoadOptions.WithArtifactText(options), cancellationToken);
+                    glyphSpans = glyphDocument.Pages[area.PageNumber - 1].GetGlyphTextSpans(
+                        includeHiddenOptionalContent: true, cancellationToken);
                     glyphTextSpansByPage.Add(area.PageNumber, glyphSpans);
                 }
-                AddGlyphTextMatches(area, glyphSpans, matches, cancellationToken);
+                bool resolved = AddSelectedGlyphMatches(area, selection, glyphSpans, matches, cancellationToken);
+                // Verification plans run on the rewritten output, where selected glyphs are expected to be gone.
+                if (!resolved && !excludeGeneratedRedactionMarks && staleSelectionPages.Add(area.PageNumber)) {
+                    findings.Add(new PdfDiagnosticFinding(PdfDiagnosticSeverity.Error, "redaction-search-selection-stale",
+                        "This search mark no longer matches the document. Search again before applying it.",
+                        pageNumber: area.PageNumber));
+                }
             } else {
                 AddTextMatches(area, logical, matches);
             }
@@ -119,6 +130,11 @@ internal static partial class PdfRedactionPlanner {
                     AddHiddenTextMatches(area, hiddenSpans, matches);
                 }
             }
+            if (area.IsHiddenOnly) {
+                // A hidden-only selection paints nothing, so it has no claim on what shares its rectangle.
+                AddAnnotationMatches(area, info.Pages, matches, readDocument);
+                continue;
+            }
             if (includeHiddenOptionalContentText && area.PageNumber <= readDocument.Pages.Count) {
                 if (!hiddenImagePlacementsByPage.TryGetValue(area.PageNumber, out IReadOnlyList<PdfImagePlacement>? hiddenImagePlacements)) {
                     hiddenImagePlacements = readDocument.Pages[area.PageNumber - 1]
@@ -129,15 +145,55 @@ internal static partial class PdfRedactionPlanner {
             } else {
                 AddImageMatches(area, logical.Images, matches, findings);
             }
-            AddAnnotationMatches(area, info.Pages, matches);
+            AddAnnotationMatches(area, info.Pages, matches, readDocument);
             if (area.PageNumber <= readDocument.Pages.Count) {
                 PdfReadPage page = readDocument.Pages[area.PageNumber - 1];
                 if (!nestedPathPrimitivesByPage.TryGetValue(area.PageNumber, out IReadOnlyList<PdfPageVisualPrimitive>? primitives)) {
                     primitives = page.GetIdentityVisualPrimitives(cancellationToken);
                     nestedPathPrimitivesByPage.Add(area.PageNumber, primitives);
                 }
-                AddPathMatches(area, page, primitives, matches, findings, excludeGeneratedRedactionMarks);
+                if (!generatedMarksByPage.TryGetValue(area.PageNumber, out HashSet<int>? generatedMarks)) {
+                    generatedMarks = excludeGeneratedRedactionMarks
+                        ? FindGeneratedRedactionMarks(areaArray, area.PageNumber, page, primitives) : new HashSet<int>();
+                    generatedMarksByPage.Add(area.PageNumber, generatedMarks);
+                }
+                AddPathMatches(area, page, primitives, matches, findings, generatedMarks);
             }
+        }
+
+        PdfRedactionFormAnalysis forms = PdfRedactionApplier.AnalyzeFormFields(readDocument, areaArray);
+        foreach (PdfRedactionAffectedField field in forms.Fields) {
+            int pageNumber = field.Pages.Count > 0 ? field.Pages.Min() : areaArray[0].PageNumber;
+            double x = 0D, y = 0D, width = 0D, height = 0D;
+            if (field.FirstWidget is PdfDictionary widget) PdfRedactionApplier.TryReadFieldRectangle(readDocument.Objects, widget, out x, out y, out width, out height);
+            // The field name, never the value: the plan is shown to people deciding about that value.
+            matches.Add(new PdfRedactionMatch(PdfRedactionMatchKind.FormField, areaArray.FirstOrDefault(area => area.PageNumber == pageNumber) ?? areaArray[0],
+                pageNumber, x, y, width, height, field.Name, "Field", null));
+        }
+        if (forms.Fields.Any(static field => field.NameHoldsSearch)) findings.Add(new PdfDiagnosticFinding(PdfDiagnosticSeverity.Error,
+            "redaction-search-field-name-unsupported", "A form field name holds searched text and cannot be changed safely."));
+        if (forms.XfaHoldsSearch) {
+            matches.Add(new PdfRedactionMatch(PdfRedactionMatchKind.FormField, areaArray[0], areaArray[0].PageNumber, 0D, 0D, 0D, 0D, "XFA form data", "XFA", null));
+            if (!forms.XfaCanBeRemoved && !excludeGeneratedRedactionMarks) {
+                findings.Add(new PdfDiagnosticFinding(PdfDiagnosticSeverity.Error, "redaction-search-form-xfa-unsupported",
+                    "This form's content is defined by XFA data that holds the searched text, and removing that data would remove the form. It can't be redacted by search."));
+            }
+        }
+
+        var searchedMetadata = PdfRedactionApplier.SearchMetadataHolders(readDocument.Objects, readDocument.CatalogDictionary, readDocument.TrailerRaw,
+            readDocument.Pages.Select(static page => page.ObjectNumber).ToArray(), areaArray.Select(static area => area.SearchCriteria).OfType<PdfRedactionSearchCriteria>().Distinct().ToArray(), readDocument.ReadOptions.Limits);
+        if (searchedMetadata.Owners.Count > 0 || searchedMetadata.Info) findings.Add(new PdfDiagnosticFinding(PdfDiagnosticSeverity.Info,
+            "redaction-search-metadata", "Metadata holding searched text will be removed, including matching catalog or page XMP and the Info dictionary."));
+
+        var imageFingerprints = new Dictionary<int, IReadOnlyList<string>>();
+        foreach (PdfRedactionMatch match in matches) {
+            if (match.Kind != PdfRedactionMatchKind.ImagePlacement || match.ObjectNumber is not int imageObject) continue;
+            if (!imageFingerprints.TryGetValue(imageObject, out IReadOnlyList<string>? fingerprints)) {
+                fingerprints = readDocument.Objects.TryGetValue(imageObject, out PdfIndirectObject? indirect) && indirect.Value is PdfStream image
+                    ? PdfRedactionApplier.FingerprintImageData(readDocument.Objects, image) : Array.Empty<string>();
+                imageFingerprints.Add(imageObject, fingerprints);
+            }
+            match.ImageDataSha256 = fingerprints;
         }
 
         findings.Add(new PdfDiagnosticFinding(
@@ -200,15 +256,42 @@ internal static partial class PdfRedactionPlanner {
         }
     }
 
-    private static void AddGlyphTextMatches(PdfRedactionArea area, IReadOnlyList<PdfTextSpan> spans,
+    // Reports what the mark removes, not everything its rectangle touches. Returns false when a selected glyph is missing.
+    private static bool AddSelectedGlyphMatches(PdfRedactionArea area, PdfRedactionGlyphSelection selection, IReadOnlyList<PdfTextSpan> spans,
         List<PdfRedactionMatch> matches, CancellationToken cancellationToken) {
+        var resolved = new HashSet<int>();
+        var blockText = new System.Text.StringBuilder();
+        PdfTextSpanBounds? blockBounds = null;
         foreach (PdfTextSpan span in spans) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!PdfTextSpanGeometry.IntersectsAreaAtCharacterLevel(span, area)) continue;
-            PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionGlyphBounds(span, 0D, span.Advance);
-            matches.Add(new PdfRedactionMatch(PdfRedactionMatchKind.TextBlock, area, area.PageNumber,
-                bounds.Left, bounds.Bottom, bounds.Width, bounds.Height, span.Text, null, null));
+            if (!area.TargetsSpan(PdfTextSpanGeometry.GetRedactionBounds(span)) || !span.TryGetGlyphs(out IReadOnlyList<PdfTextGlyph> glyphs)) continue;
+            PdfTextGlyph[] selected = glyphs.Where(glyph => selection.Contains(glyph.X, glyph.Y, glyph.EncodedBytes)).ToArray();
+            if (selected.Length == 0) continue;
+            PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries);
+            double left = double.PositiveInfinity, bottom = double.PositiveInfinity;
+            double right = double.NegativeInfinity, top = double.NegativeInfinity;
+            foreach (PdfTextGlyph glyph in selected) {
+                selection.MarkResolved(glyph.X, glyph.Y, glyph.EncodedBytes, resolved);
+                PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionGlyphBounds(span, boundaries[glyph.TextStart], glyph.PaintedAdvance);
+                left = Math.Min(left, bounds.Left); bottom = Math.Min(bottom, bounds.Bottom);
+                right = Math.Max(right, bounds.Right); top = Math.Max(top, bounds.Top);
+            }
+            string text = string.Concat(selected.Select(static glyph => glyph.Text));
+            if (selection.IsCompleteBlock) {
+                blockText.Append(text);
+                blockBounds = blockBounds is PdfTextSpanBounds current
+                    ? new PdfTextSpanBounds(Math.Min(current.Left, left), Math.Min(current.Bottom, bottom), Math.Max(current.Right, right), Math.Max(current.Top, top))
+                    : new PdfTextSpanBounds(left, bottom, right, top);
+                continue;
+            }
+            matches.Add(new PdfRedactionMatch(PdfRedactionMatchKind.TextBlock, area, area.PageNumber, left, bottom, right - left, top - bottom, text, null, null));
         }
+        // A block is one reviewed item, whatever text runs it was written in.
+        if (blockBounds is PdfTextSpanBounds block) {
+            matches.Add(new PdfRedactionMatch(PdfRedactionMatchKind.TextBlock, area, area.PageNumber, block.Left, block.Bottom,
+                block.Right - block.Left, block.Top - block.Bottom, blockText.ToString(), null, null));
+        }
+        return resolved.Count == selection.Count;
     }
 
     private static double GetEffectiveFontSize(PdfLogicalTextBlock block) {
@@ -249,14 +332,15 @@ internal static partial class PdfRedactionPlanner {
         return new PdfTextSpanBounds(x, block.BaselineY - fontSize * 0.25D, x + width, block.BaselineY + fontSize);
     }
 
-    private static void AddAnnotationMatches(PdfRedactionArea area, IReadOnlyList<PdfPageInfo> pages, List<PdfRedactionMatch> matches) {
+    private static void AddAnnotationMatches(PdfRedactionArea area, IReadOnlyList<PdfPageInfo> pages, List<PdfRedactionMatch> matches, PdfReadDocument document) {
         foreach (PdfPageInfo page in pages) {
             if (page.PageNumber != area.PageNumber) {
                 continue;
             }
 
             foreach (PdfAnnotation annotation in page.Annotations) {
-                if (!area.IntersectsRectangle(annotation.X1, annotation.Y1, annotation.Width, annotation.Height)) {
+                if (!area.IntersectsUnderlay(annotation.X1, annotation.Y1, annotation.Width, annotation.Height) &&
+                    !PdfRedactionApplier.CarriesSearchedText(document.Objects, document.Pages[page.PageNumber - 1].ObjectNumber, annotation, new[] { area })) {
                     continue;
                 }
 
@@ -357,21 +441,17 @@ internal static partial class PdfRedactionPlanner {
         IReadOnlyList<PdfPageVisualPrimitive> primitives,
         List<PdfRedactionMatch> matches,
         List<PdfDiagnosticFinding> findings,
-        bool excludeGeneratedRedactionMarks) {
-        PdfVisualBounds visualArea = page.TransformBoundsToVisual(area.X, area.Y, area.Right, area.Top);
-        int generatedMarkIndex = excludeGeneratedRedactionMarks
-            ? FindGeneratedRedactionMarkIndex(area, visualArea, primitives)
-            : -1;
+        HashSet<int> generatedMarks) {
         for (int i = 0; i < primitives.Count; i++) {
             PdfPageVisualPrimitive primitive = primitives[i];
-            if (i == generatedMarkIndex) continue;
+            if (generatedMarks.Contains(i)) continue;
             double strokePadding = primitive.HasStrokePaint ? Math.Max(0D, primitive.StrokeWidth) / 2D : 0D;
             double left = primitive.X - strokePadding;
             double top = primitive.Y - strokePadding;
             double right = primitive.X + primitive.Width + strokePadding;
             double bottom = primitive.Y + primitive.Height + strokePadding;
             PdfVisualBounds userBounds = page.TransformVisualBoundsToUser(left, top, right, bottom);
-            if (!area.IntersectsRectangle(userBounds.Left, userBounds.Top, userBounds.Width, userBounds.Height)) continue;
+            if (!area.IntersectsUnderlay(userBounds.Left, userBounds.Top, userBounds.Width, userBounds.Height)) continue;
             matches.Add(new PdfRedactionMatch(
                 PdfRedactionMatchKind.VectorPath,
                 area,
@@ -395,6 +475,21 @@ internal static partial class PdfRedactionPlanner {
                     : "The redaction area intersects a page-level vector path. Applying the plan removes supported intersecting paths when path removal is enabled; otherwise applied-plan verification remains unverified while the path survives.",
                 pageNumber: area.PageNumber));
         }
+    }
+
+    // Marks on adjacent lines overlap, so one area's mark must not read as residual content in the next.
+    private static HashSet<int> FindGeneratedRedactionMarks(
+        IReadOnlyList<PdfRedactionArea> areas,
+        int pageNumber,
+        PdfReadPage page,
+        IReadOnlyList<PdfPageVisualPrimitive> primitives) {
+        var marks = new HashSet<int>();
+        foreach (PdfRedactionArea area in areas) {
+            if (area.PageNumber != pageNumber) continue;
+            int mark = FindGeneratedRedactionMarkIndex(area, page.TransformBoundsToVisual(area.X, area.Y, area.Right, area.Top), primitives);
+            if (mark >= 0) marks.Add(mark);
+        }
+        return marks;
     }
 
     private static int FindGeneratedRedactionMarkIndex(

@@ -8,6 +8,7 @@ internal static partial class PdfTextEditor {
         Func<TextSearchUnit, IEnumerable<TextSearchRange>>? findRanges = null,
         bool includeUnsafeSpans = false, int maximumHits = int.MaxValue,
         Action<int, int, IReadOnlyList<TextSearchHit>>? pageSearched = null,
+        bool hiddenOptionalContentOnly = false,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(text, nameof(text));
@@ -31,7 +32,8 @@ internal static partial class PdfTextEditor {
             PdfReadPage page = document.Pages[pageNumber - 1];
             (double originX, double originY) = page.GetPageBoundaryOrigin();
             double pageHeight = page.GetPageSize().Height;
-            PdfTextSpan[] spans = (includeUnsafeSpans ? page.GetGlyphTextSpans(cancellationToken: cancellationToken) : page.GetTextSpans(cancellationToken))
+            PdfTextSpan[] spans = (hiddenOptionalContentOnly ? (IReadOnlyList<PdfTextSpan>)GetHiddenLayerGlyphSpans(page, cancellationToken)
+                    : includeUnsafeSpans ? page.GetGlyphTextSpans(cancellationToken: cancellationToken) : page.GetTextSpans(cancellationToken))
                 .Where(span => includeUnsafeSpans
                     ? !string.IsNullOrEmpty(span.Text)
                     : IsFindSpan(span, snapshot.IncludeTextRenderingMode3, pageHeight))
@@ -103,6 +105,13 @@ internal static partial class PdfTextEditor {
             pageSearched?.Invoke(pageIndex + 1, pages.Length, ordered);
         }
         return hits;
+    }
+
+    private static PdfTextSpan[] GetHiddenLayerGlyphSpans(PdfReadPage page, CancellationToken cancellationToken) {
+        var visible = new HashSet<PdfContentOrderKey>(page.GetGlyphTextSpans(cancellationToken: cancellationToken)
+            .Select(static span => span.ContentOrderKey).OfType<PdfContentOrderKey>());
+        return page.GetGlyphTextSpans(includeHiddenOptionalContent: true, cancellationToken: cancellationToken)
+            .Where(span => span.ContentOrderKey is not PdfContentOrderKey key || !visible.Contains(key)).ToArray();
     }
 
     private static List<int[]> SplitTableSearchFlows(ref List<TextLayoutEngine.TextLine> lines,

@@ -304,7 +304,7 @@ internal static class PdfContentStreamTextRewriter {
         for (int spanIndex = 0; spanIndex < spans.Length; spanIndex++) {
             PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionBounds(spans[spanIndex]);
             for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++) {
-                if (targets[targetIndex].Intersects(bounds, spans[spanIndex].TextRenderingMode)) return true;
+                if (targets[targetIndex].TargetsSpan(bounds, spans[spanIndex].TextRenderingMode)) return true;
             }
         }
         return false;
@@ -365,9 +365,10 @@ internal static class PdfContentStreamTextRewriter {
                         span.TextToPageTransform.Value.B * span.TextToPageTransform.Value.B)
                     : 1D;
                 double advance = Math.Abs(glyph.Width1000 / 1000D * fontSize * horizontalScaling * baselineScale);
+                (double originX, double originY) = PdfTextSpanGeometry.GetGlyphOrigin(span, offset);
                 for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++) {
                     PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionGlyphBounds(span, offset, advance);
-                    if (targets[targetIndex].Intersects(bounds, span.TextRenderingMode)) {
+                    if (targets[targetIndex].TargetsGlyph(bounds, span.TextRenderingMode, originX, originY, glyph.Bytes)) {
                         remove = true;
                         break;
                     }
@@ -533,7 +534,7 @@ internal static class PdfContentStreamTextRewriter {
         return builder.ToString();
     }
 
-    private static int FindOperationStart(string content, int previousOperatorEnd, int operatorOffset) {
+    internal static int FindOperationStart(string content, int previousOperatorEnd, int operatorOffset) {
         int index = Math.Max(0, previousOperatorEnd);
         while (index < operatorOffset) {
             if (char.IsWhiteSpace(content[index])) {
@@ -633,7 +634,9 @@ internal readonly struct PdfContentStreamTextRewriteTarget {
     internal bool MatchesRenderingMode(int textRenderingMode) =>
         !TextRenderingMode.HasValue || TextRenderingMode.Value == textRenderingMode;
 
-    internal bool Intersects(PdfTextSpanBounds bounds, int textRenderingMode) =>
-        MatchesRenderingMode(textRenderingMode) &&
-        Area.IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);
+    internal bool TargetsSpan(PdfTextSpanBounds bounds, int textRenderingMode) =>
+        MatchesRenderingMode(textRenderingMode) && Area.TargetsSpan(bounds);
+
+    internal bool TargetsGlyph(PdfTextSpanBounds bounds, int textRenderingMode, double originX, double originY, byte[] encodedBytes) =>
+        MatchesRenderingMode(textRenderingMode) && Area.TargetsGlyph(bounds, originX, originY, encodedBytes);
 }

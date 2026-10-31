@@ -307,8 +307,8 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Theory]
         [InlineData("BT /F1 20 Tf -8 Tc 72 720 Td (AB) Tj ET", "A")]
-        [InlineData("BT /F1 12 Tf 14 TL 72 720 Td (Alpha secret) Tj T* (account Omega) Tj ET", "secret account")]
-        [InlineData("BT /F1 20 Tf 72 720 Td [(Alpha ) 120 (secret) -120 ( Omega)] TJ ET", "secret")]
+        [InlineData("BT /F1 20 Tf 72 720 Td (secret) Tj ET BT /F1 20 Tf 72 720 Td (private) Tj ET", "secret")]
+        [InlineData("BT /F1 20 Tf 72 720 Td (Alpha secret) Tj ET BT /F1 20 Tf 72.3 720.2 Td (Alpha sacred) Tj ET", "secret")]
         public void PreciseSelectionBlocksOverlappingUnselectedGlyphs(string content, string literal) {
             byte[] bytes = BuildTextContentRedactionSource(content);
             PdfDocument source = PdfDocument.Load(bytes);

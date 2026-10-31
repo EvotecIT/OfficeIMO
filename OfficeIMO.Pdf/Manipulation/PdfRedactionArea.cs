@@ -23,7 +23,7 @@ public sealed class PdfRedactionArea {
         : this(pageNumber, x, y, width, height, label, textRenderingMode: null, exactGeometry: null, contentScope, appearanceMode) {
     }
 
-    private PdfRedactionArea(int pageNumber, double x, double y, double width, double height, string? label, int? textRenderingMode, PdfRedactionGeometry? exactGeometry, PdfRedactionContentScope contentScope, PdfRedactionAppearanceMode appearanceMode, bool requiresGlyphRewrite = false) {
+    private PdfRedactionArea(int pageNumber, double x, double y, double width, double height, string? label, int? textRenderingMode, PdfRedactionGeometry? exactGeometry, PdfRedactionContentScope contentScope, PdfRedactionAppearanceMode appearanceMode, PdfRedactionGlyphSelection? glyphSelection = null, PdfRedactionSearchCriteria? searchCriteria = null) {
         if (pageNumber < 1) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber), "Page number must be greater than zero.");
         }
@@ -51,12 +51,13 @@ public sealed class PdfRedactionArea {
         Y = y;
         Width = width;
         Height = height;
-        Label = label;
+        OriginalLabel = label;
         ContentScope = contentScope;
         AppearanceMode = appearanceMode;
         TextRenderingMode = textRenderingMode;
         ExactGeometry = exactGeometry;
-        RequiresGlyphRewrite = requiresGlyphRewrite;
+        GlyphSelection = glyphSelection;
+        SearchCriteria = searchCriteria;
     }
 
     /// <summary>One-based page number.</summary>
@@ -75,7 +76,9 @@ public sealed class PdfRedactionArea {
     public double Height { get; }
 
     /// <summary>Optional caller label.</summary>
-    public string? Label { get; }
+    public string? Label => OriginalLabel is string label && SearchCriteria?.Matches(label) == true ? "search" : OriginalLabel;
+
+    internal string? OriginalLabel { get; }
 
     /// <summary>Intersecting content removal policy for this reviewed area.</summary>
     public PdfRedactionContentScope ContentScope { get; }
@@ -92,14 +95,37 @@ public sealed class PdfRedactionArea {
     /// <summary>Returns this area with a different review label, preserving its geometry and removal policy.</summary>
     /// <remarks>Use this when editing a search-derived mark. Reconstructing a rectangle loses its precise glyph and rotated geometry evidence.</remarks>
     public PdfRedactionArea WithLabel(string? label) =>
-        new PdfRedactionArea(PageNumber, X, Y, Width, Height, label, TextRenderingMode, ExactGeometry, ContentScope, AppearanceMode, RequiresGlyphRewrite);
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, label, TextRenderingMode, ExactGeometry, ContentScope, AppearanceMode, GlyphSelection, SearchCriteria);
 
     internal int? TextRenderingMode { get; }
 
     internal PdfRedactionGeometry? ExactGeometry { get; }
 
-    // A precise search plan must never silently expand removal to an entire text object.
-    internal bool RequiresGlyphRewrite { get; }
+    // A search mark removes only the glyphs it selected. The rectangle stays the visible mark and the
+    // underlay boundary, and it must never silently expand removal to an entire text object.
+    internal PdfRedactionGlyphSelection? GlyphSelection { get; }
+
+    internal bool RequiresGlyphRewrite => GlyphSelection is not null;
+
+    internal bool IsHiddenOnly => GlyphSelection?.IsHiddenOnly == true;
+
+    // What the search looked for, kept so copies outside the page content can be cleared and checked.
+    internal PdfRedactionSearchCriteria? SearchCriteria { get; }
+
+    /// <summary>Decides whether this area removes one glyph: by identity for search marks, by geometry otherwise.</summary>
+    internal bool TargetsGlyph(PdfTextSpanBounds bounds, double originX, double originY, IReadOnlyList<byte>? encodedBytes) =>
+        IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height) &&
+        (GlyphSelection is null || encodedBytes is not null && GlyphSelection.Contains(originX, originY, encodedBytes));
+
+    /// <summary>Decides whether vector content or an annotation is under this area: the matched ink for search marks, the geometry otherwise.</summary>
+    /// <remarks>Images keep the full rectangle, because that is what clears descender ink on a scan.</remarks>
+    internal bool IntersectsUnderlay(double x, double y, double width, double height) =>
+        GlyphSelection is null ? IntersectsRectangle(x, y, width, height) : !IsHiddenOnly && GlyphSelection.OverlapsInk(x, y, width, height);
+
+    /// <summary>Decides whether a text run can hold a glyph this area removes.</summary>
+    internal bool TargetsSpan(PdfTextSpanBounds bounds) =>
+        IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height) &&
+        (GlyphSelection is null || GlyphSelection.HasOriginWithin(bounds));
 
     internal bool IntersectsRectangle(double x, double y, double width, double height) =>
         ExactGeometry?.IntersectsRectangle(x, y, width, height) ??
@@ -124,16 +150,19 @@ public sealed class PdfRedactionArea {
         PdfRedactionGeometry.RectangleIntersectsQuadrilateral(X, Y, Width, Height, first, second, third, fourth);
 
     internal PdfRedactionArea WithExactGeometry(PdfRedactionGeometry exactGeometry) =>
-        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, TextRenderingMode, exactGeometry, ContentScope, AppearanceMode, RequiresGlyphRewrite);
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, OriginalLabel, TextRenderingMode, exactGeometry, ContentScope, AppearanceMode, GlyphSelection, SearchCriteria);
 
     internal PdfRedactionArea WithTextRenderingMode(int textRenderingMode) =>
-        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, textRenderingMode, ExactGeometry, ContentScope, AppearanceMode, RequiresGlyphRewrite);
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, OriginalLabel, textRenderingMode, ExactGeometry, ContentScope, AppearanceMode, GlyphSelection, SearchCriteria);
 
     internal PdfRedactionArea WithPolicies(PdfRedactionContentScope contentScope, PdfRedactionAppearanceMode appearanceMode) =>
-        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, TextRenderingMode, ExactGeometry, contentScope, appearanceMode, RequiresGlyphRewrite);
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, OriginalLabel, TextRenderingMode, ExactGeometry, contentScope, appearanceMode, GlyphSelection, SearchCriteria);
 
-    internal PdfRedactionArea RequiringGlyphRewrite() =>
-        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, TextRenderingMode, ExactGeometry, ContentScope, AppearanceMode, requiresGlyphRewrite: true);
+    internal PdfRedactionArea WithSearchCriteria(PdfRedactionSearchCriteria? searchCriteria) =>
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, OriginalLabel, TextRenderingMode, ExactGeometry, ContentScope, AppearanceMode, GlyphSelection, searchCriteria);
+
+    internal PdfRedactionArea WithGlyphSelection(PdfRedactionGlyphSelection glyphSelection) =>
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, OriginalLabel, TextRenderingMode, ExactGeometry, ContentScope, AppearanceMode, glyphSelection, SearchCriteria);
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 }

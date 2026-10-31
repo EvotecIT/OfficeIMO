@@ -2288,9 +2288,67 @@ precise removal policy; constructing a new rectangle from its bounds loses that
 evidence. After checking the search plan's `IsReviewable` and `Findings`, pass the
 selected, relabeled areas to `source.Redactions.Plan(...)` for a fresh impact review.
 
-Matched-glyph selection rejects partial ligatures, ambiguous ActualText mappings,
-unsupported clipping or glyph evidence, and areas that intersect unselected text
-(including hidden layers and tightly spaced lines whose conservative glyph bounds overlap).
+Matched-glyph selection removes exactly the selected glyphs, identified by page
+position and encoded bytes, and paints the full mark over them. The mark can reach
+into a neighbouring line: on single-spaced text it clips the descender tips of the
+line above, and that line stays in the file and remains extractable. A search mark
+cannot be saved as a `/Redact` annotation, because an annotation records only a
+rectangle.
+
+Both selection modes also cover copies the page text doesn't show. Occurrences in
+hidden layers are removed without a mark and without touching what overlaps them
+(whole-block search takes the hidden line that holds the match). Tagged `Alt`,
+`ActualText`, `E` and `TU` entries holding the searched text are removed, in property
+lists and inline marked content alike, and the output is refused if those entries or
+a Form XObject that no page paints still hold it.
+
+A search mark keeps its full height, but only image pixels follow that rectangle.
+Vector paths and annotations are removed when they overlap the matched glyphs, so a
+table rule or link on the next line stays. Annotations holding the searched text in
+their contents or appearance go on every searched page, even one with no text match,
+and appear in the plan as annotation matches. Such a page paints no mark.
+
+Search also covers form fields, whether or not `/Fields` lists the widget. A field holding
+the searched text in `/V`, `/DV`, `/RV`, `/TU`, `/TM`, widget `/Contents`, a caption or its appearance has the whole
+value cleared, because cutting a word out can't be proven safe against formats, comb
+layouts and scripts. The field and its widgets stay, appearances keep their border and
+background, choice options holding the text are dropped and selections renumbered, and a
+button state holding it is renamed with the button set to off. Each field appears in the
+plan as a `FormField` match carrying its name, never its value. A field has one value, so
+one reaching a searched page is cleared on every page; a field with no widget on a
+searched page stays. XFA data holding the text is removed from hybrid forms, and a form
+that depends on XFA is refused. Output still holding a searched value is refused. Field
+names themselves are not changed: a field name containing searched text blocks the plan.
+JavaScript actions, field `/AA` and document `/Names` JavaScript retain the active-content
+refusal. Catalog XMP, XMP on searched pages, and `/Info` holding searched text are removed regardless of `CleanupScope` and disclosed in the plan. A final check of
+saved string objects and decoded text-bearing streams refuses unexpected residue; PDF
+names and dictionary keys are excluded. A search with no live match is blocked if an
+earlier revision still holds searched text. Search labels and evidence omit matched
+values; `FormField` matches retain the field name. Signed files are not rewritten: use
+an unsigned derivative workflow and re-sign the result. Unpainted forms holding the searched text
+are removed too.
+
+Whole-block search removes the block's own glyphs and marks its full rectangle, so a
+neighbouring line stays. Text with no glyph mapping can only go as a rectangle, which
+is allowed when nothing else is in reach and refused otherwise. Text overlapping a
+block that isn't part of it is refused.
+
+Rewriting a repeated image or form paints a scrubbed copy, so the original entry is
+dropped from any resources that no longer paint it. A placement outside the reviewed
+areas keeps the original. If a reviewed image, its `/SMask` or `/Mask` data, or an inline
+image survives in unpainted content, or the same data is held by a pattern, soft-mask
+group or annotation appearance on a reviewed page, `Apply` refuses the output and
+`VerifyAppliedPlan` reports it.
+
+`TextAndUnderlay` still removes image pixels and intersecting vector paths across the
+whole mark, so scanned ink under a match is erased, including descenders, while
+neighbouring OCR text stays. `TextOnly` keeps the image, and refuses when other text
+reaches the mark over that image.
+
+Selection is refused for partial ligatures, ambiguous ActualText mappings, unsupported
+clipping or glyph evidence, and any text that overlaps the match or would have more
+than a quarter of its lower body covered by the mark (including hidden layers, very
+tight line spacing and diagonal text).
 Inspect `IsReviewable` and `Findings`: a blocked selection cannot be applied, even
 when other criteria matched safely. Its reviewed areas never fall back to complete
 text-object removal. Ordinary `Apply(plan)` also verifies preservation for these
@@ -2307,8 +2365,7 @@ and fractional review geometry. Independently produced TrueType and CFF regressi
 inputs cover neighboring text, bookmarks and ink preservation; the
 [viewer checks](../Build/PdfViewerVerification/README.md) describe independent
 readback and rendering. Outlined letters require a reviewed area because they are
-vector paths rather than searchable text. Tight spacing can still block a substring
-when its review envelope intersects an unselected glyph.
+vector paths rather than searchable text.
 
 `source.Redactions.ApplyForSharing(plan, sanitizationOptions, verificationOptions: verification)` applies the reviewed redaction, sanitizes with the explicit policy, and verifies the final bytes. It requires successful sanitization, policy-specific preservation, unchanged page content and geometry, and final redaction checks. It does not bypass active-content or protected-document mutation gates. A policy that changes page content, such as flattening optional content, may need to be applied before planning redaction.
 

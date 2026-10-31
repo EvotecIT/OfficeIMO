@@ -68,18 +68,19 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
-        public void SharingStillRejectsGlobalMarkerWhenPolicyRetainsMetadata() {
+        public void SharingClearsMatchingMetadataEvenWhenSanitizationRetainsMetadata() {
             PdfDocument source = CreateSource();
             byte[] original = source.ToBytes();
             PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("PRIVATE-MARKER"));
             PdfRedactionVerificationOptions verification = CreateVerification();
 
-            InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
-                source.Redactions.ApplyForSharing(plan, new PdfSanitizationOptions {
-                    ContentKindsToRemove = PdfSanitizationContentKind.EmbeddedFiles
-                }, verificationOptions: verification));
+            PdfRedactionSharingResult result = source.Redactions.ApplyForSharing(plan, new PdfSanitizationOptions {
+                ContentKindsToRemove = PdfSanitizationContentKind.EmbeddedFiles
+            }, verificationOptions: verification);
 
-            Assert.Contains("PRIVATE-MARKER", error.Message);
+            Assert.True(result.Summary.IsVerified);
+            Assert.Null(PdfDocument.Load(result.ToBytes()).Inspect().Metadata.Author);
+            Assert.DoesNotContain("PRIVATE-MARKER", System.Text.Encoding.GetEncoding(28591).GetString(result.ToBytes()), StringComparison.Ordinal);
             Assert.Equal(original, source.ToBytes());
         }
 

@@ -13,12 +13,18 @@ public sealed class PdfRedactionPlan {
         IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>>? reviewedTextObjectScopes = null,
         bool searchMatchCase = true,
         System.Text.RegularExpressions.RegexOptions searchRegexOptions = System.Text.RegularExpressions.RegexOptions.CultureInvariant,
-        TimeSpan? searchRegexTimeout = null) {
+        TimeSpan? searchRegexTimeout = null,
+        IReadOnlyCollection<int>? searchPageNumbers = null) {
         Preflight = preflight;
         Areas = Array.AsReadOnly(areas.ToArray());
-        Matches = matches;
+        PdfRedactionSearchCriteria[] textCriteria = areas.Select(static area => area.SearchCriteria).OfType<PdfRedactionSearchCriteria>().Distinct().ToArray();
+        Matches = Array.AsReadOnly(matches.Select(match => match.Kind != PdfRedactionMatchKind.FormField && match.Text is string text && textCriteria.Any(criterion => criterion.Matches(text))
+            ? match.WithText(null) : match).ToArray());
         Findings = findings;
-        SearchCriteria = Array.AsReadOnly(searchCriteria?.ToArray() ?? Array.Empty<string>());
+        RequestedSearchCriteria = Array.AsReadOnly(searchCriteria?.ToArray() ?? Array.Empty<string>());
+        SearchCriteria = Array.AsReadOnly(RequestedSearchCriteria.Select(static criterion => criterion.Split(':')[0]).ToArray());
+        SearchPageNumbers = searchPageNumbers?.ToArray() ?? Areas.Where(static area => area.SearchCriteria is not null)
+            .SelectMany(static area => area.SearchCriteria!.PageNumbers).Distinct().ToArray();
         SourceSha256 = sourceSha256;
         PageIdentities = pageIdentities ?? Array.Empty<string>();
         ReviewedTextObjectScopes = reviewedTextObjectScopes ?? Array.Empty<IReadOnlyList<PdfRedactionTextObjectScope>>();
@@ -39,8 +45,11 @@ public sealed class PdfRedactionPlan {
     /// <summary>Diagnostics and warnings for the plan.</summary>
     public IReadOnlyList<PdfDiagnosticFinding> Findings { get; }
 
-    /// <summary>Stable descriptions of literal, regex, logical-kind, or form-field criteria used to derive the areas.</summary>
+    /// <summary>Kinds of criteria used to derive the areas. Searched values are kept private.</summary>
     public IReadOnlyList<string> SearchCriteria { get; }
+
+    internal IReadOnlyList<string> RequestedSearchCriteria { get; }
+    internal IReadOnlyCollection<int> SearchPageNumbers { get; }
 
     /// <summary>SHA-256 fingerprint of the exact PDF bytes inspected while creating this plan.</summary>
     public string SourceSha256 { get; }
@@ -108,6 +117,9 @@ public sealed class PdfRedactionPlan {
         Guard.NotNull(reviewedAreas, nameof(reviewedAreas));
         Guard.NotNull(reviewedTextObjectScopes, nameof(reviewedTextObjectScopes));
         IReadOnlyDictionary<int, string> stablePageReferences = CreateStablePageReferenceLabels(document);
+        // A cleared field changes on every page its widgets reach, including pages with no area.
+        var affectedFields = new HashSet<string>(reviewedAreas.Where(static area => area.SearchCriteria is not null)
+            .SelectMany(static area => area.SearchCriteria!.AffectedFields), StringComparer.Ordinal);
         var identities = new string[document.Pages.Count];
         for (int i = 0; i < document.Pages.Count; i++) {
             PdfReadPage page = document.Pages[i];
@@ -131,10 +143,10 @@ public sealed class PdfRedactionPlan {
             AppendUnredactedPathIdentity(identity, document, page, pageAreas, drawingEffects);
             AppendUnredactedImageIdentity(identity, document, page, pageNumber, pageAreas, drawingEffects);
             if (includeInteractiveContent) {
-                AppendUnredactedAnnotationIdentity(identity, document, page, pageAreas, stablePageReferences);
+                AppendUnredactedAnnotationIdentity(identity, document, page, pageAreas, stablePageReferences, affectedFields);
                 AppendUnredactedLinkIdentity(identity, page, pageAreas);
             }
-            AppendPageRenderingResourceIdentity(identity, document, page);
+            AppendPageRenderingResourceIdentity(identity, document, page, reviewedAreas);
             identity.Append("|C:OCProperties:");
             PdfRedactionImageIdentity.AppendObjectGraph(
                 identity,
@@ -269,7 +281,7 @@ public sealed class PdfRedactionPlan {
                 path.Y - strokePadding,
                 path.X + path.Width + strokePadding,
                 path.Y + path.Height + strokePadding);
-            return IntersectsReviewedArea(
+            return IntersectsReviewedUnderlay(
                 reviewedAreas,
                 userBounds.Left,
                 userBounds.Top,
@@ -401,7 +413,8 @@ public sealed class PdfRedactionPlan {
     private static void AppendPageRenderingResourceIdentity(
         System.Text.StringBuilder identity,
         PdfReadDocument document,
-        PdfReadPage page) {
+        PdfReadPage page,
+        IReadOnlyList<PdfRedactionArea> reviewedAreas) {
         PdfDictionary? current = page.PageDictionary;
         var visited = new HashSet<int>();
         while (current != null) {
@@ -414,7 +427,8 @@ public sealed class PdfRedactionPlan {
                 PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("ExtGState", out PdfObject? states) ? states : null, document.Objects);
                 identity.Append("|R:Properties:");
                 PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("Properties", out PdfObject? properties) ? properties : null, document.Objects);
-                AppendFormRenderingResourceIdentity(identity, document.Objects, resources);
+                AppendFormRenderingResourceIdentity(identity, document.Objects, resources,
+                    PdfRedactionApplier.FindUnpaintedFormsHoldingSearch(document.Objects, page.PageDictionary, reviewedAreas));
                 break;
             }
             if (!current.Items.TryGetValue("Parent", out PdfObject? parentObject) ||
@@ -429,7 +443,8 @@ public sealed class PdfRedactionPlan {
     private static void AppendFormRenderingResourceIdentity(
         System.Text.StringBuilder identity,
         Dictionary<int, PdfIndirectObject> objects,
-        PdfDictionary pageResources) {
+        PdfDictionary pageResources,
+        HashSet<PdfStream> removedForms) {
         const int maximumDepth = 64;
         const int maximumContexts = 16384;
         var visited = new HashSet<(PdfStream Form, PdfDictionary Resources)>();
@@ -448,6 +463,8 @@ public sealed class PdfRedactionPlan {
                 if (PdfObjectLookup.ResolveChain(objects, entry.Value) is not PdfStream form ||
                     PdfObjectLookup.ResolveChain(objects, form.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null) is not PdfName { Name: "Form" }) continue;
 
+                // These are unpainted, and the rewrite removes them, so they aren't part of what the page shows.
+                if (removedForms.Contains(form)) continue;
                 PdfDictionary? declaredResources = form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceValue)
                     ? PdfObjectLookup.ResolveChain(objects, formResourceValue) as PdfDictionary
                     : null;
@@ -504,7 +521,7 @@ public sealed class PdfRedactionPlan {
             double width = primitive.Width + strokePadding * 2D;
             double height = primitive.Height + strokePadding * 2D;
             PdfVisualBounds userBounds = page.TransformVisualBoundsToUser(x, y, x + width, y + height);
-            if (IntersectsReviewedArea(pageAreas, userBounds.Left, userBounds.Top, userBounds.Width, userBounds.Height)) continue;
+            if (IntersectsReviewedUnderlay(pageAreas, userBounds.Left, userBounds.Top, userBounds.Width, userBounds.Height)) continue;
 
             identity.Append("|P:").Append((int)primitive.Kind)
                 .Append(':').Append(FormatIdentityNumber(primitive.X))
@@ -736,12 +753,17 @@ public sealed class PdfRedactionPlan {
         PdfReadDocument document,
         PdfReadPage page,
         IReadOnlyList<PdfRedactionArea> pageAreas,
-        IReadOnlyDictionary<int, string> stablePageReferences) {
+        IReadOnlyDictionary<int, string> stablePageReferences,
+        HashSet<string> affectedFields) {
         IReadOnlyList<PdfAnnotation> annotations = page.GetAnnotationsForContentSafety();
         for (int i = 0; i < annotations.Count; i++) {
             PdfAnnotation annotation = annotations[i];
             if (annotation.HasReadableRectangle &&
-                IntersectsReviewedArea(pageAreas, annotation.X1, annotation.Y1, annotation.Width, annotation.Height)) continue;
+                IntersectsReviewedUnderlay(pageAreas, annotation.X1, annotation.Y1, annotation.Width, annotation.Height)) continue;
+            if (affectedFields.Count > 0 && annotation.SourceDictionary is PdfDictionary widget &&
+                affectedFields.Contains(PdfRedactionApplier.GetFieldName(document.Objects, widget))) continue;
+            // Carrying the searched text takes it out of the kept set wherever it sits.
+            if (PdfRedactionApplier.CarriesSearchedText(document.Objects, page.ObjectNumber, annotation, pageAreas)) continue;
 
             identity.Append("|A:");
             AppendIdentityString(identity, annotation.Subtype);
@@ -821,7 +843,7 @@ public sealed class PdfRedactionPlan {
         IReadOnlyList<PdfLinkAnnotation> links = page.GetLinkAnnotations();
         for (int i = 0; i < links.Count; i++) {
             PdfLinkAnnotation link = links[i];
-            if (IntersectsReviewedArea(pageAreas, link.X1, link.Y1, link.Width, link.Height)) continue;
+            if (IntersectsReviewedUnderlay(pageAreas, link.X1, link.Y1, link.Width, link.Height)) continue;
 
             identity.Append("|L:")
                 .Append(FormatIdentityNumber(link.X1)).Append(',')
@@ -880,6 +902,18 @@ public sealed class PdfRedactionPlan {
         for (int i = 0; i < areas.Count; i++) {
             PdfRedactionArea area = areas[i];
             if (area.IntersectsRectangle(x, y, width, height)) return true;
+        }
+        return false;
+    }
+
+    private static bool IntersectsReviewedUnderlay(
+        IReadOnlyList<PdfRedactionArea> areas,
+        double x,
+        double y,
+        double width,
+        double height) {
+        for (int i = 0; i < areas.Count; i++) {
+            if (areas[i].IntersectsUnderlay(x, y, width, height)) return true;
         }
         return false;
     }
