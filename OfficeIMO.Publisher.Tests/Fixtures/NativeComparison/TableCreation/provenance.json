@@ -1,0 +1,34 @@
+{
+  "schema": "officeimo.publisher.native-table-creation-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableCreation",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-tablecreation.json",
+      "sha256": "cec25943d60c65f23d1c325eb9347bf38b26686ad8758778ed912d229d68c88c"
+    },
+    {
+      "name": "native-tablecreation.pdf",
+      "sha256": "6aa13ec6a91bebd0b5184e3586d7afde40ac85eeb9c2891c80e1c25122ebadb3"
+    },
+    {
+      "name": "native-tablecreation.pub",
+      "sha256": "ed1d3b526f5add13e3f259192c4a5a7284a087c8f3f513584d2298c88e6a8863"
+    }
+  ],
+  "observed": "Two-by-two table, columns120/180pt, rows42/54pt, zero padding, no autoformat, Arial12,18pt line height, bold first row and independent label.",
+  "limits": "Closed native table reference; merged/styled/large tables, generic native creation and repair-free opening remain separate."
+}

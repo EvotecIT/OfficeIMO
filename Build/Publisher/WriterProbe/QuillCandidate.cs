@@ -28,7 +28,16 @@ internal static class QuillCandidate {
             })));
         }
         records.AddRange(QuillDefaultLibraries.Create());
-        if (graph.Objects.Any(frame => frame.Source.FrameOrder != 0))
+        foreach (var story in stories.Where(story => story.Source.CellEnds != null)) {
+            IReadOnlyList<int> ends = story.Source.CellEnds!;
+            byte[] body = Bytes(writer => {
+                writer.Write((uint)(ends.Count - 1)); writer.Write(0U); writer.Write(0xFF00U);
+                for (int index = 0; index < ends.Count; index++)
+                    writer.Write((uint)(ends[index] - (index == ends.Count - 1 ? 0 : 1)));
+            });
+            records.Add(new QuillRecord("TCD ", checked((ushort)(story.Key - 1)), body, DescriptorTag: "PLC "));
+        }
+        if (graph.Objects.Any(frame => frame.Source.FrameOrder != 0 || frame.Source.Table != null))
             records.Add(new QuillRecord("MCLD", 0, QuillLayoutCatalog.Create(graph)));
         if (text != null) {
             // TEXT is first, so its absolute formatting endpoint follows its
@@ -40,10 +49,17 @@ internal static class QuillCandidate {
             int storyStart = FirstPayloadOffset;
             foreach (var story in stories) {
                 int storyEnd = storyStart + story.Source.Text.Length * 2;
-                if (story.Source.Paragraph == null)
+                if (story.Source.Paragraphs == null) {
                     characterRanges.Add(new PublisherQuillFormattingRange(storyEnd, Chunk(Scalar(0x0C, 0x22, 18 * 12700))));
-                else characterRanges.AddRange(QuillCharacterFormatting.FromParagraph(story.Source.Paragraph, storyStart));
-                paragraphRanges.Add(new PublisherQuillFormattingRange(storyEnd, QuillParagraphFormatting.Create(story.Source.Paragraph)));
+                    paragraphRanges.Add(new PublisherQuillFormattingRange(storyEnd, Chunk()));
+                } else {
+                    int paragraphStart = storyStart;
+                    foreach (var paragraph in story.Source.Paragraphs) {
+                        characterRanges.AddRange(QuillCharacterFormatting.FromParagraph(paragraph, paragraphStart));
+                        paragraphStart += (paragraph.Runs.Sum(run => run.Text.Length) + 1) * 2;
+                        paragraphRanges.Add(new PublisherQuillFormattingRange(paragraphStart, QuillParagraphFormatting.Create(paragraph)));
+                    }
+                }
                 storyStart = storyEnd;
             }
             records.AddRange(QuillTextFormatting.CreateRecords(textEnd, firstPageOffset, characterRanges, paragraphRanges));
@@ -64,7 +80,7 @@ internal static class QuillCandidate {
             foreach (var (record, offset) in positionedRecords) {
                 writer.Write((ushort)24); writer.Write(Encoding.ASCII.GetBytes(record.Tag));
                 writer.Write(record.Id); writer.Write((ushort)1); writer.Write((ushort)0);
-                writer.Write(Encoding.ASCII.GetBytes(record.Tag));
+                writer.Write(Encoding.ASCII.GetBytes(record.DescriptorTag ?? record.Tag));
                 writer.Write(offset); writer.Write(record.Body.Length);
             }
             writer.Write(new byte[FirstPayloadOffset - directoryEnd]);
@@ -93,4 +109,4 @@ internal static class QuillCandidate {
     private static int Align(int offset, int alignment) => checked((offset + alignment - 1) / alignment * alignment);
 }
 
-internal sealed record QuillRecord(string Tag, ushort Id, byte[] Body, int Alignment = 1);
+internal sealed record QuillRecord(string Tag, ushort Id, byte[] Body, int Alignment = 1, string? DescriptorTag = null);

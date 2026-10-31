@@ -5,6 +5,10 @@ internal static class CandidateCases {
     private static readonly CandidatePlacement DefaultPlacement = new(72, 72, 288, 108);
 
     internal static CandidatePublicationSpec Create(string kind, string? value, string? secondValue = null) {
+        if (kind is "table" or "table-edited") {
+            if (value != null || secondValue != null) throw new ArgumentException("The table specimens use fixed cell text.");
+            return CandidateTableCreation.Create(kind == "table-edited");
+        }
         if (kind is "linked-story" or "linked-story-overflow") {
             if (value != null || secondValue != null) throw new ArgumentException("The linked story specimens use fixed text.");
             return CandidateLinkedStory.Create(kind == "linked-story-overflow");

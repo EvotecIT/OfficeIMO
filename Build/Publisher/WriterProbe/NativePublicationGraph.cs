@@ -47,6 +47,9 @@ internal static class NativePublicationGraph {
         ObjectBinding[] namedPictures = objects.Where(item => item.Source.ImageName != null).ToArray();
         var pictureResources = namedPictures.Select((item, index) => (item.Id, ResourceId: colorSchemeId + 1 + (uint)index))
             .ToDictionary(pair => pair.Id, pair => pair.ResourceId);
+        ObjectBinding[] tables = objects.Where(item => item.Source.Table != null).ToArray();
+        var tableCells = tables.Select((item, index) => (item.Id, CellsId: colorSchemeId + 1 + (uint)namedPictures.Length + (uint)index))
+            .ToDictionary(pair => pair.Id, pair => pair.CellsId);
         byte[] references = Variable(2, 0xA0, Enumerable.Range(0, orderedPageCount)
             .Select(index => Scalar(0, 0x70, firstPageId + (uint)index)).ToArray());
         byte[] document = Chunk(Scalar(1, 0x20, orderedPageCount), references, Scalar(3, 0x70, printBlockId),
@@ -74,8 +77,10 @@ internal static class NativePublicationGraph {
         foreach (ObjectBinding item in objects) {
             var fields = new List<byte[]>();
             if (item.Story != null) {
-                fields.Add(Scalar(0x27, 0x20, item.Story.Key)); fields.Add(Scalar(0x28, 0x20, item.Source.FrameOrder));
+                fields.Add(Scalar(0x27, 0x20, item.Story.Key));
+                if (item.Source.Table == null) fields.Add(Scalar(0x28, 0x20, item.Source.FrameOrder));
             }
+            if (item.Source.Table != null) fields.AddRange(CandidateTableRecords.Fields(item.Source.Table, tableCells[item.Id]));
             if (pictureResources.TryGetValue(item.Id, out uint resource)) fields.Add(Scalar(0x3A, 0x70, resource));
             chunks.Add(new NativeRecord(item.Source.NativeKind, item.OwnerPageId, Chunk(fields.ToArray())));
         }
@@ -85,7 +90,7 @@ internal static class NativePublicationGraph {
         chunks.Add(new NativeRecord(0x5B, documentId, Chunk(
             Scalar(1, 0x70, quillDocumentId + 1), Scalar(2, 0x70, quillDocumentId + 2),
             Variable(10, 0x98, Scalar(1, 0x20, 0x08000000)))));
-        ObjectBinding[] frames = objects.Where(item => item.Story != null)
+        ObjectBinding[] frames = objects.Where(item => item.Story != null && item.Source.Table == null)
             .OrderBy(item => item.Story!.Key).ThenBy(item => item.Source.FrameOrder).ToArray();
         chunks.Add(new NativeRecord(0x61, quillDocumentId, frames.Length != 0
             ? Chunk(Scalar(1, 0x20, (uint)frames.Length), Variable(2, 0xA0, frames
@@ -95,7 +100,7 @@ internal static class NativePublicationGraph {
         // is separate from the frame reference count and from retained native keys.
         chunks.Add(new NativeRecord(0x65, quillDocumentId, stories.Count != 0
             ? Chunk(Scalar(1, 0x20, (uint)stories.Count), Variable(2, 0xA0, stories.Select(story =>
-                StoryCatalogEntry(story, frames.Count(frame => frame.Story == story))).ToArray()))
+                StoryCatalogEntry(story, story.Source.CellEnds == null ? frames.Count(frame => frame.Story == story) : 1)).ToArray()))
             : Chunk()));
         // The normal native loader requires OhPrintBlock (document field 3).
         // Normal opening accesses row zero of Rgdnb. One empty typed OplDnb
@@ -107,6 +112,8 @@ internal static class NativePublicationGraph {
         foreach (ObjectBinding picture in namedPictures)
             chunks.Add(new NativeRecord(0x66, picture.Id, Chunk(Variable(3, 0xC0,
                 Encoding.Unicode.GetBytes(picture.Source.ImageName + "\0")))));
+        foreach (ObjectBinding table in tables)
+            chunks.Add(new NativeRecord(0x63, table.Id, CandidateTableRecords.Cells(table.Source.Table!)));
         return new Graph(specification, chunks, objects, stories);
     }
 
@@ -128,6 +135,7 @@ internal static class NativePublicationGraph {
         // The native OplQsb schema calls field 2 CRef; omission defaults to one.
         // IdLayout remains an independent identifier in field 7.
         if (frameCount != 1) fields.Add(ShortScalar(2, 0x18, checked((ushort)frameCount)));
+        if (story.Source.CellEnds != null) fields.Add(ShortScalar(3, 0x10, 0)); // Table story role (Tdet).
         fields.Add(Scalar(7, 0x20, story.LayoutId));
         return Variable(0, 0x88, fields.ToArray());
     }

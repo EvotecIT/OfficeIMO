@@ -36,6 +36,7 @@ internal sealed class PublisherQuillSourceLayout {
             .Concat(Enumerable.Repeat("TCD ", chunks.Count(chunk => chunk.Tag == "TCD "))).Concat(new[] { "STRS", "MCLD" })
             .Concat(chunks.Any(chunk => chunk.Tag == "PL  ") ? new[] { "PL  " } : Array.Empty<string>()).ToArray();
         string[] minimal = new[] { "TEXT", "SYID", "STRS", "STSH", "STSH", "INK ", "FONT" }
+            .Concat(Enumerable.Repeat("TCD ", chunks.Count(chunk => chunk.Tag == "TCD ")))
             .Concat(chunks.Any(chunk => chunk.Tag == "MCLD") ? new[] { "MCLD" } : Array.Empty<string>())
             .Concat(Enumerable.Repeat("FDPC", pc)).Concat(Enumerable.Repeat("FDPP", pp)).Concat(new[] { "BTEC", "BTEP" }).ToArray();
         bool compact = chunks.Select(chunk => chunk.Tag).SequenceEqual(minimal);

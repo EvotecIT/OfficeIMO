@@ -15,7 +15,7 @@ internal static class QuillLayoutCatalog {
                 fields.Write((ushort)0x0A00);
                 fields.Write((ushort)0x2201); fields.Write(18U * 12700);
             })));
-            int count = graph.Objects.Count(frame => frame.Story == story);
+            int count = story.Source.CellEnds?.Count ?? graph.Objects.Count(frame => frame.Story == story);
             writer.Write((uint)count);
             for (int index = 0; index < count; index++)
                 writer.Write(Chunk()); // Kind 9 layout slot; no copied native cache or opaque bytes.

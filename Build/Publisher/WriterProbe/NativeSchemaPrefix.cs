@@ -26,9 +26,12 @@ internal static class NativeSchemaPrefix {
             new(0x61, Marker6: true, Marker7: false, Trait9: 2, Trait12: 5),
             new(0x65, Marker6: false, Marker7: false, Trait9: 2, Trait12: 5)
         };
-        foreach (uint kind in objectKinds) classes.Add(kind == 0x20
-            ? new ClassDescriptor(0x20, Marker6: false, Marker7: false, Trait9: null, Trait12: 3)
-            : new ClassDescriptor(1, Marker6: true, Marker7: false, Trait9: 1, Trait12: 1));
+        foreach (uint kind in objectKinds) classes.Add(kind switch {
+            0x20 => new ClassDescriptor(0x20, Marker6: false, Marker7: false, Trait9: null, Trait12: 3),
+            0x10 => new ClassDescriptor(0x10, Marker6: false, Marker7: false, Trait9: 1, Trait12: 2),
+            _ => new ClassDescriptor(1, Marker6: true, Marker7: false, Trait9: 1, Trait12: 1)
+        });
+        if (objectKinds.Contains(0x10U)) classes.Add(new ClassDescriptor(0x63, Marker6: false, Marker7: false, Trait9: 1, Trait12: 5));
         byte[] catalog = Chunk(Scalar(1, 0x20, (uint)classes.Count), Scalar(2, 0x20, ObservedPropertyVersion),
             Variable(3, 0x90, classes.OrderBy(item => item.Id).Select(Class).ToArray()));
         int propertiesEnd = FixedHeaderBytes + Properties(documentId, 0, 0, 0).Length;

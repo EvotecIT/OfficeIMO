@@ -1,0 +1,23 @@
+{
+  "schema": "officeimo.publisher.generated-table-fixture.v1",
+  "reproduction": "WriterProbe create table|table-edited <output.pub>; native Validate/Full",
+  "sourcePublication": null,
+  "files": [
+    {
+      "name": "generated-table.pub",
+      "sha256": "6d955f8c0a0ddea91d28a4e54645dee6745db093ae4f282412018ec14f259da7"
+    },
+    {
+      "name": "native-normalized.pub",
+      "sha256": "e0a919356d487600e2817f76e8d707964654b763ef7634341abff2b9a2540838"
+    },
+    {
+      "name": "generated-edited.pub",
+      "sha256": "5ecc3ab03d4b0e7fb75bbe6022bedefcca0ecded5827efc2cd2cf9d418bd8603"
+    }
+  ],
+  "nativeProducer": "Microsoft Publisher16.0.20527.20088",
+  "independentReference": "../TableCreation and ../TableCreationEdited",
+  "profile": "One borderless unmerged table with4cells and one separate label; edited firstcell2paragraphs and finalcellrefilled.",
+  "limits": "Repair-free and public generic native creation remain unqualified."
+}

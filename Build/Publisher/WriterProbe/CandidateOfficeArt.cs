@@ -67,6 +67,7 @@ internal static class CandidateOfficeArt {
 
     private static byte[] Leaf(ObjectBinding item, uint width, uint height, uint? imageIndex) {
         bool isTextBox = item.Source.Kind == CandidateObjectKind.TextBox;
+        bool isTable = item.Source.Kind == CandidateObjectKind.Table;
         var properties = new List<(ushort Id, uint Value)> {
             (0x181, 0x0000FF), // Solid red in the common OfficeArt RGB encoding.
             (0x1BF, 0x00100010),
@@ -80,7 +81,7 @@ internal static class CandidateOfficeArt {
             properties[0] = (0x181, fill.HasValue ? (uint)(fill.Value.R | fill.Value.G << 8 | fill.Value.B << 16) : 0);
             properties[1] = (0x1BF, fill.HasValue ? 0x00100010U : 0x00100000U);
         }
-        if (isTextBox) {
+        if (isTextBox || isTable) {
             properties[1] = (0x1BF, 0x00100000); // Text frame has no fill.
             properties.Add((0x81, 0)); properties.Add((0x82, 0));
             properties.Add((0x83, 0)); properties.Add((0x84, 0));
@@ -106,7 +107,7 @@ internal static class CandidateOfficeArt {
         }
         uint Coord(double points, uint pageSize) => unchecked((uint)(int)(points * 12700 - pageSize / 2D));
         return Art(15, 0xF004,
-            Art((ushort)(((item.Source.Kind == CandidateObjectKind.Picture ? 75 : isTextBox ? 202 : 1) << 4) | 2), 0xF00A,
+            Art((ushort)(((item.Source.Kind == CandidateObjectKind.Picture ? 75 : isTable ? 201 : isTextBox ? 202 : 1) << 4) | 2), 0xF00A,
                 Bytes(writer => { writer.Write(item.Spid); writer.Write(0xA00U); })),
             Art((ushort)((propertyCount << 4) | 3), 0xF00B, fopt),
             Art(0, 0xF010, Client((0x2001, Coord(item.Source.Placement.Left, width)), (0x2002, Coord(item.Source.Placement.Top, height)),

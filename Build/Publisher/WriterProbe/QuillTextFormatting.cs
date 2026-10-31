@@ -16,10 +16,19 @@ internal static class QuillTextFormatting {
             throw new ArgumentException("Paragraph formatting must cover the complete text section.", nameof(paragraphRanges));
         int characterPageOffset = firstPageOffset;
         int paragraphPageOffset = checked(characterPageOffset + PageBytes);
-        yield return new QuillRecord("FDPC", 0, PublisherQuillFormattingPage.Write(characterRanges), PageBytes);
-        yield return new QuillRecord("FDPP", 0, PublisherQuillFormattingPage.Write(paragraphRanges), PageBytes);
+        yield return new QuillRecord("FDPC", 0, Page(characterRanges), PageBytes);
+        yield return new QuillRecord("FDPP", 0, Page(paragraphRanges), PageBytes);
         yield return new QuillRecord("BTEC", 0, Index(absoluteTextEnd, characterPageOffset));
         yield return new QuillRecord("BTEP", 0, Index(absoluteTextEnd, paragraphPageOffset));
+    }
+
+    private static byte[] Page(IReadOnlyList<PublisherQuillFormattingRange> ranges) {
+        // Preserve earlier unshared encodings. Table cells can exceed that
+        // envelope while repeating the same few native style definitions.
+        if (8 + ranges.Count * 6 + ranges.Sum(range => range.Style.Length) <= PageBytes)
+            return PublisherQuillFormattingPage.Write(ranges);
+        return PublisherQuillFormattingPage.TryWriteShared(ranges)
+            ?? throw new NotSupportedException("The specimen exceeds one native formatting page even with shared styles.");
     }
 
     private static byte[] Index(int absoluteTextEnd, int absolutePageOffset) => Bytes(writer => {

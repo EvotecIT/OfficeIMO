@@ -29,7 +29,7 @@ param(
     [string] $NativeEditText,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'TextPages', 'ObjectPages', 'ObjectPagesEdited', 'MixedObjectPages', 'MixedObjectPagesEdited', 'MasterContent', 'MasterContentEdited', 'LinkedStory', 'LinkedStoryOverflow', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextMixedRunTextReplacements', 'TextFormattingTopology', 'TextEmptyRefill', 'TextRunSegmentation', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableMixedRunTextReplacements', 'TableFormattingTopology', 'TableEmptyRefill', 'TableRunSegmentation', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')]
+    [ValidateSet('Blank', 'BlankPages', 'TextPages', 'ObjectPages', 'ObjectPagesEdited', 'MixedObjectPages', 'MixedObjectPagesEdited', 'MasterContent', 'MasterContentEdited', 'LinkedStory', 'LinkedStoryOverflow', 'TableCreation', 'TableCreationEdited', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextMixedRunTextReplacements', 'TextFormattingTopology', 'TextEmptyRefill', 'TextRunSegmentation', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableMixedRunTextReplacements', 'TableFormattingTopology', 'TableEmptyRefill', 'TableRunSegmentation', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -136,6 +136,7 @@ $layout = $null
 . (Join-Path $PSScriptRoot 'Add-NativeMixedPagesControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeMasterContentControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeLinkedStoryControl.ps1')
+. (Join-Path $PSScriptRoot 'Add-NativeTableCreationControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeImagePagesControl.ps1')
 . (Join-Path $PSScriptRoot 'New-NativeReplacementImage.ps1')
 . (Join-Path $PSScriptRoot 'New-NativeReplacementJpeg.ps1')
@@ -748,6 +749,11 @@ try {
             $document.PageSetup.PageWidth = 612
             $document.PageSetup.PageHeight = 792
             $pageCount = Add-NativeLinkedStoryControl -Document $document -FirstPage $page -Overflow:($Case -eq 'LinkedStoryOverflow')
+        }
+        { $_ -in @('TableCreation', 'TableCreationEdited') } {
+            $document.PageSetup.PageWidth = 612
+            $document.PageSetup.PageHeight = 792
+            $pageCount = Add-NativeTableCreationControl -FirstPage $page -Edited:($Case -eq 'TableCreationEdited')
         }
         'Newsletter' {
             $pageCount = 2
