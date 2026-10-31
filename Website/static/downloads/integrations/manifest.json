@@ -11,11 +11,11 @@
   "articleSources": [
     {
       "path": "content/docs/integrations/supplier-review/index.md",
-      "codeSha256": "4be92afcd8b8380d9bebfe195d9bf8b1e6340525422a6a573eabf98922129142"
+      "codeSha256": "a946d3d773b1346c427c073ab20d5f5d5c14d7a81377f4edd4235607d948a038"
     },
     {
       "path": "content/docs/integrations/event-brief/index.md",
-      "codeSha256": "491f4e32b4652426c9c78989d974568d875188560c9f548abdfbfd8f32dae3a0"
+      "codeSha256": "f57c77d7cb96a7bbafb3cc37b10b40fc3d8e1e2d6a97f015df838b7794058d1a"
     },
     {
       "path": "content/docs/integrations/report-email/index.md",
@@ -31,58 +31,58 @@
   "artifacts": [
     {
       "path": "/downloads/integrations/events/EventIncidentBrief.docx",
-      "bytes": 20902,
-      "sha256": "9f8396aceaddba7a3cfda46e444ffaf67ee244a7faa8e967f0f6cf6fc9fa8c5f"
+      "bytes": 21229,
+      "sha256": "517ffafc9f85078a64acf518a4a1028e987d2bb53e6e7d18e3da2b6a249ebf36"
     },
     {
       "path": "/downloads/integrations/events/EventIncidentBrief.pdf",
-      "bytes": 2100,
-      "sha256": "4777896243ebde9247cd4a904e1c23ef7ba8ec5ff1afc1f8eb854a3354378cce"
+      "bytes": 20962,
+      "sha256": "0b08e139d5acf4e6f4df821bd789d16242418b81cd7b03980a99fee2e4c89dcb"
     },
     {
       "path": "/downloads/integrations/events/EventRegister.xlsx",
-      "bytes": 5681,
-      "sha256": "f780023ec1d59af25d935bc2ecf448fe6a2e9432018aeb3a323b3fd995d8f45d"
+      "bytes": 7860,
+      "sha256": "fece18ba1b346155adfdb5338da890b443914a1af1227eb4597de8dfbec6e79b"
     },
     {
       "path": "/downloads/integrations/events/preview.png",
-      "bytes": 99129,
-      "sha256": "e58cc53380fb6449c73848e63b7eeb4b29dd1eb4bdcbc92ceb7b06f20a0106de"
+      "bytes": 99423,
+      "sha256": "f12bfcfd70d70f1a2759725ecb8b2fd71e0c2ffcf8528f0dad918ae6a37340d5"
     },
     {
       "path": "/downloads/integrations/events/workbook.png",
-      "bytes": 22211,
-      "sha256": "1e26139c5c9e1811e938813b89ee0f285ed8a596bb6d6fb8cbdde8bc8dc418f0"
+      "bytes": 57981,
+      "sha256": "e21f3a5d6cf6f91c8dca1d8713d34f12c5d4eed913a9ccb8ef7e9663e630cbc9"
     },
     {
       "path": "/downloads/integrations/mail/ReportReview.eml",
-      "bytes": 11288,
-      "sha256": "725a4ba20deba7cd1bf6573d1fe28069ab105d96ec6ae4d22f8cf15f562da92e"
+      "bytes": 39886,
+      "sha256": "404a1aad99c3f4d8b9ba7a4e91325669ea447275ba985613b9aa05e3bfec2ac2"
     },
     {
       "path": "/downloads/integrations/supplier/preview.png",
-      "bytes": 91114,
-      "sha256": "37d1ed7554e1549681dd36b3a025fee7b09b557649992a67c89260ca417ba431"
+      "bytes": 88355,
+      "sha256": "6be78511ab5d45d655e85a537a6d8c43acd02e48bf705ddbdfec703b74034198"
     },
     {
       "path": "/downloads/integrations/supplier/SupplierOffers.xlsx",
-      "bytes": 5128,
-      "sha256": "a12147c93332a54f7f177593936770544c372d56067fed1f34e7e3b7ff075933"
+      "bytes": 7308,
+      "sha256": "a2521f20c67d10d5cb5b4f4578ec1113df0511eb16871e34f9122e83412c2c55"
     },
     {
       "path": "/downloads/integrations/supplier/SupplierReview.docx",
-      "bytes": 20817,
-      "sha256": "d6f4a8c331c3ccf047b1a93d726dd84a01460d63cf5a803d2d607e7e4c436420"
+      "bytes": 21142,
+      "sha256": "dce3b5888aeeaba1098157abe06c737f2ded68ae7da2dae602747505f652b412"
     },
     {
       "path": "/downloads/integrations/supplier/SupplierReview.pdf",
-      "bytes": 2141,
-      "sha256": "78f2d4b65fe31cf02a50d97b56b48ec9b220e96dc76458d3099f33c660c23e6b"
+      "bytes": 21255,
+      "sha256": "b09633be24d6c3945b446f3fbcf0ff3ca404f1bd79b1059fb296d8a5b4a5748c"
     },
     {
       "path": "/downloads/integrations/supplier/workbook.png",
-      "bytes": 9833,
-      "sha256": "16f313eac51a2a02ca7b962f6fd9a5c43817a2103cce9d31680e2fdf2a6c6e82"
+      "bytes": 21574,
+      "sha256": "371cfdbab5ad7860e29154720af2e496dea15d118fa7ae80a0709b218e4dd417"
     }
   ]
 }
