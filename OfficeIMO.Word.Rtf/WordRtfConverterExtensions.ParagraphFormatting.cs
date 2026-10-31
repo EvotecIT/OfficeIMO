@@ -34,7 +34,7 @@ public static partial class WordRtfConverterExtensions {
     private static void CopyParagraphBorder(BorderValues? style, OfficeLength? width, string? colorHex, RtfParagraphBorder destination, RtfDocument document) {
         destination.DirectStyle = style.HasValue ? ToRtfParagraphBorderStyle(style) : null;
         if (width.HasValue) {
-            destination.Width = checked((int)Math.Round(width.Value.ToPoints() * 8D, MidpointRounding.AwayFromZero));
+            destination.Width = checked((int)Math.Round(width.Value.ToPoints() * 20D, MidpointRounding.AwayFromZero));
         }
 
         if (!string.IsNullOrWhiteSpace(colorHex) &&
@@ -246,7 +246,7 @@ public static partial class WordRtfConverterExtensions {
 
         setStyle(ToWordParagraphBorderStyle(source.Style));
         if (source.Width.HasValue && source.Width.Value >= 0) {
-            setWidth((uint)source.Width.Value);
+            setWidth(ToWordBorderSize(source.Width.Value));
         }
 
         if (source.ColorIndex.HasValue) {
