@@ -187,7 +187,7 @@ namespace OfficeIMO.Word.Pdf {
                 && _renderingProfileDefaultFontSizeAssignmentVersion.HasValue
                 && _pdfOptions.DefaultFontSizeAssignmentVersion
                     == _renderingProfileDefaultFontSizeAssignmentVersion.Value;
-            PdfCore.PdfCreateOptions target = _pdfOptions ?? new PdfCore.PdfCreateOptions();
+            PdfCore.PdfCreateOptions target = _pdfOptions ?? PdfCore.PdfCreateOptions.CreateNeutralOptions();
             target.UseRenderingProfile(profile, mode);
             if (createdPdfOptions) {
                 _pdfOptions = target;
@@ -254,7 +254,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>Creates an independent copy of renderer settings, including PDF options.</summary>
         public WordPdfExportOptions Clone() {
             var copy = CloneForConversion();
-            copy.PdfOptions = PdfOptions?.Clone();
+            copy._pdfOptions = PdfOptions?.Clone();
             return copy;
         }
 

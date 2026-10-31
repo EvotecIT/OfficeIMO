@@ -2074,14 +2074,17 @@ public sealed class PdfRenderingProfileTests {
         Assert.Equal(PdfStandardFont.Courier, options.PdfOptions.DefaultFont);
     }
 
-    [Fact]
-    public void ExcelRenderingProfilePreservesWorksheetPageSizeUntilCallerOverridesIt() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ExcelRenderingProfilePreservesWorksheetPageSizeUntilCallerOverridesIt(bool cloneOptions) {
         using var workbook = OfficeIMO.Excel.ExcelDocument.Create(new MemoryStream());
         OfficeIMO.Excel.ExcelSheet sheet = workbook.AddSheet("Profile");
         sheet.CellValue(1, 1, "Profile page size");
         sheet.SetPaperSize(OfficeIMO.Excel.ExcelPaperSize.A3);
         var options = new OfficeIMO.Excel.Pdf.ExcelPdfExportOptions()
             .UseRenderingProfile(OfficeRenderingProfile.Managed);
+        if (cloneOptions) options = options.Clone();
 
         byte[] worksheetSized = (OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdf(
             workbook,

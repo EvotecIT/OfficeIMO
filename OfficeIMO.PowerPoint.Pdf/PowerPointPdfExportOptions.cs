@@ -179,7 +179,7 @@ public sealed class PowerPointPdfExportOptions {
             && _renderingProfileOwnedFontAssignmentVersion.HasValue
             && _pdfOptions.FontConfigurationAssignmentVersion
                 == _renderingProfileOwnedFontAssignmentVersion.Value;
-        PdfCore.PdfCreateOptions target = _pdfOptions ?? new PdfCore.PdfCreateOptions();
+        PdfCore.PdfCreateOptions target = _pdfOptions ?? PdfCore.PdfCreateOptions.CreateNeutralOptions();
         target.UseRenderingProfile(profile, mode);
         if (createdPdfOptions) {
             _pdfOptions = target;
@@ -274,7 +274,7 @@ public sealed class PowerPointPdfExportOptions {
     /// <summary>Creates an independent copy of renderer settings, including PDF options.</summary>
     public PowerPointPdfExportOptions Clone() {
         var copy = CloneForConversion();
-        copy.PdfOptions = PdfOptions?.Clone();
+        copy._pdfOptions = PdfOptions?.Clone();
         return copy;
     }
 
@@ -282,7 +282,7 @@ public sealed class PowerPointPdfExportOptions {
         if (MaximumEmbeddedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumEmbeddedImageBytes));
         if (MaximumTotalEmbeddedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumTotalEmbeddedImageBytes));
         var clone = (PowerPointPdfExportOptions)MemberwiseClone();
-        clone.PdfOptions = PdfOptions?.CreateDocumentSnapshot(useThemeDefaults: false);
+        clone._pdfOptions = PdfOptions?.CreateDocumentSnapshot(useThemeDefaults: false);
         clone.EmbeddedImageBytesRead = 0;
         clone.SelectedSlides = SelectedSlides == null ? null : new HashSet<PowerPointSlide>(SelectedSlides);
         clone.ResourcePolicy = ResourcePolicy.Clone();

@@ -297,7 +297,7 @@ namespace OfficeIMO.Excel.Pdf {
                     && _renderingProfilePageSizeConfigurationState.HasValue
                     && _pdfOptions.PageSizeConfigurationState
                         == _renderingProfilePageSizeConfigurationState.Value);
-            PdfCore.PdfCreateOptions target = _pdfOptions ?? new PdfCore.PdfCreateOptions();
+            PdfCore.PdfCreateOptions target = _pdfOptions ?? PdfCore.PdfCreateOptions.CreateNeutralOptions();
             target.UseRenderingProfile(profile, mode);
             if (createdPdfOptions) {
                 _pdfOptions = target;
@@ -432,13 +432,13 @@ namespace OfficeIMO.Excel.Pdf {
         /// <summary>Creates an independent copy of renderer settings, including PDF options.</summary>
         public ExcelPdfExportOptions Clone() {
             var copy = CloneForConversion();
-            copy.PdfOptions = PdfOptions?.Clone();
+            copy._pdfOptions = PdfOptions?.Clone();
             return copy;
         }
 
         internal ExcelPdfExportOptions CloneForConversion() {
             var clone = (ExcelPdfExportOptions)MemberwiseClone();
-            clone.PdfOptions = PdfOptions?.CreateDocumentSnapshot(useThemeDefaults: false);
+            clone._pdfOptions = PdfOptions?.CreateDocumentSnapshot(useThemeDefaults: false);
             clone.SheetNames = SheetNames?.ToArray();
             clone.ResourcePolicy = ResourcePolicy.Clone();
             clone.Warnings = new List<ExcelPdfExportWarning>();
