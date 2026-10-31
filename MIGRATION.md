@@ -3465,7 +3465,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
-| Conversion | `HTML p elements: margin-top 0; margin-bottom 1em` | Changed | `HTML p elements: margin-top 1em; margin-bottom 1em` | HTML to PDF and image rendering use browser paragraph defaults: one em above and below each p element, including Document mode. Adjacent block margins still collapse into one gap. A bottom margin at the end of a page is dropped rather than opening an empty page when the content fits. HTML that relied on no paragraph top margin gains space above paragraphs; set p { margin-top: 0 } to keep the previous layout. |
+| Conversion | `HTML p elements: margin-top 0; margin-bottom 1em` | Changed | `HTML p elements: margin-top 1em; margin-bottom 1em` | HTML to PDF and image rendering use browser paragraph defaults: one em above and below each p element, including Document mode. Adjacent block margins still collapse into one gap. Word-to-HTML output keeps paragraphs inside list items at zero margin, so exported Word lists retain their compact spacing. A bottom margin at the end of a page is dropped rather than opening an empty page when the content fits. HTML that relied on no paragraph top margin gains space above paragraphs; set p { margin-top: 0 } to keep the previous layout. |
 
 </details>
 
