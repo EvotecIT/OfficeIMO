@@ -1,9 +1,10 @@
 namespace OfficeIMO.Publisher.Internal;
 
-/// <summary>Composes shape edits and owned picture filenames with native chunk-directory relocation.</summary>
+/// <summary>Composes page relationships, shape edits and owned picture filenames with native chunk-directory relocation.</summary>
 internal static class PublisherContentsSourceWriter {
     internal static byte[]? Rewrite(byte[] source, PublisherContents contents, IReadOnlyDictionary<uint, uint> alignments,
-        IReadOnlyDictionary<uint, string> pictureNames, PublisherParseContext context, long maximumBytes) {
+        IReadOnlyDictionary<uint, string> pictureNames, IReadOnlyDictionary<uint, uint?> masterAssignments,
+        PublisherParseContext context, long maximumBytes) {
         var data = new PublisherBinaryData(source, "Contents");
         var blocks = new PublisherBlockReader(data, context);
         var edits = new List<PublisherNativeStreamEdit>();
@@ -70,8 +71,29 @@ internal static class PublisherContentsSourceWriter {
             edits.Add(new(shape.Chunk.Offset, length, replacement));
             growth.Add(shape.Chunk.Offset, replacement.Length - length);
         }
+        foreach (var pair in masterAssignments) {
+            context.Token.ThrowIfCancellationRequested();
+            PublisherSourcePage? page = contents.Pages.SingleOrDefault(item => item.Id == pair.Key);
+            if (page == null || page.IsMaster || !page.MasterReferenceQualified || !page.DisplayMaster.HasValue
+                || !contents.Chunks.TryGetValue(pair.Key, out PublisherContentChunk? chunk) || chunk.Kind != 0x43) return null;
+            if (pair.Value.HasValue && !contents.Pages.Any(item => item.IsMaster && item.Id == pair.Value.Value)) return null;
+            var fields = blocks.Chunk(chunk.Offset, chunk.End);
+            PublisherBlock[] display = fields.Where(field => field.Id == 7).ToArray(), reference = fields.Where(field => field.Id == 0x0D).ToArray();
+            if (display.Length > 1 || display.Any(field => field.Type != 8)
+                || reference.Length > 1 || reference.Any(field => field.Type != 0x68)) return null;
+            var changes = new Dictionary<byte, byte[]> {
+                // Native IgnoreMaster=true writes an explicit false display token;
+                // enabling formatting restores the qualified omitted default.
+                [7] = pair.Value.HasValue ? Array.Empty<byte>() : new byte[] { 7, 8 }
+            };
+            if (pair.Value.HasValue) changes.Add(0x0D, PublisherOplWriter.UInt32(0x0D, pair.Value.Value, 0x68));
+            int length = data.Offset(data.U32(chunk.Offset));
+            byte[] replacement = PublisherOplWriter.Rewrite(data, chunk.Offset, length, fields, changes, context);
+            edits.Add(new(chunk.Offset, length, replacement));
+            growth.Add(chunk.Offset, replacement.Length - length);
+        }
         int delta = growth.Values.Sum();
-        if (delta != 0 || additions.Count > 0) {
+        if (growth.Values.Any(value => value != 0) || additions.Count > 0) {
             sections ??= blocks.Chunk(trailer);
             PublisherBlock[] directories = sections.Where(field => field.Type == 0x90).ToArray();
             if (directories.Length != 1 || data.U32(8) != source.Length) return null;

@@ -29,14 +29,20 @@ internal static partial class PublisherModelImporter {
             double registrationX = source.Width / 2;
             bool qualified = !page.IsMaster || !page.NativeLayout.HasValue || page.NativeLayout.Value is 0 or 1 or 3;
             if (page.IsMaster) registrationX = page.NativeLayout switch { 0 => 0, 1 => source.Width, _ => registrationX };
+            bool masterQualified = page.IsMaster || page.MasterReferenceQualified && page.DisplayMaster.HasValue
+                && (page.Master.GetValueOrDefault() == 0 || source.Pages.Any(master => master.IsMaster && master.Id == page.Master));
+            if (!masterQualified) context.Add("PUB_MASTER_ASSIGNMENT_UNASSESSED",
+                "The native master reference or display flag is unqualified. The retained reference may be rendered, but master assignment editing is unavailable.",
+                OfficeConversionLossKind.Unassessed, "Contents/page/" + page.Id);
             return new PublisherPageState(page.Id, page.Name, page.IsMaster, source.Width, source.Height,
-                page.Master, registrationX, source.Height / 2, qualified, page.Background.GetValueOrDefault() != 0,
+                !page.IsMaster && page.DisplayMaster == false || page.Master.GetValueOrDefault() == 0 ? null : page.Master,
+                registrationX, source.Height / 2, qualified, page.Background.GetValueOrDefault() != 0,
                 ordered.TryGetValue(page.Id, out List<uint>? ids) ? ids : Array.Empty<uint>(),
                 new PublisherFrameEditRange(registrationX + int.MinValue / 12700D, source.Height / 2 + int.MinValue / 12700D,
                     registrationX + int.MaxValue / 12700D, source.Height / 2 + int.MaxValue / 12700D),
                 masterSide: !page.IsMaster || !qualified ? null : page.NativeLayout switch {
                     0 => PublisherMasterPageSide.Left, 1 => PublisherMasterPageSide.Right, _ => PublisherMasterPageSide.Single
-                });
+                }, masterAssignmentQualified: masterQualified);
         }).ToArray();
         var pageMap = pages.ToDictionary(page => page.Id);
         var pictures = new Dictionary<uint, PublisherPicture>();

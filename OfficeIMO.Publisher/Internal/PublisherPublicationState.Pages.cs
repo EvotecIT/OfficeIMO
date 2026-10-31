@@ -39,8 +39,8 @@ internal sealed partial class PublisherPublicationState {
         PublisherPageState? page = Pages.SingleOrDefault(item => item.Id == pageId);
         if (page == null) throw new ArgumentOutOfRangeException(nameof(pageId), "The publication has no such page.");
         if (page.IsMaster) throw new NotSupportedException("Master inheritance is not supported; assign a master to a document page.");
-        if (!page.SupportsPlacementEditing || page.HasUnassessedBackground)
-            throw new NotSupportedException("The page's registration or background is not qualified for master assignment.");
+        if (!page.SupportsPlacementEditing || page.HasUnassessedBackground || !page.MasterAssignmentQualified)
+            throw new NotSupportedException("The page's registration, background or native master relationship is not qualified for master assignment.");
         if (masterId.HasValue) QualifiedMaster(masterId.Value);
         return WithPages(Pages.Select(item => item.Id == pageId ? item.WithMaster(masterId) : item), NextObjectId);
     }

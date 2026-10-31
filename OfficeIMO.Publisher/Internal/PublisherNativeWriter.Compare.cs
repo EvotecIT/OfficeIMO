@@ -16,11 +16,12 @@ internal sealed partial class PublisherNativeWriter {
             }
             if (!TryRewriteStories()) Reject("Quill", "Stories or formatting changed outside the supported existing-story and formatting-page profiles. StyleDependencies identifies the original stories, definition ordinals and direct native OPL spans.");
         }
-        if (!PagesEqual() || !MapEqual(_baseline.ObjectOwners, _current.ObjectOwners, (a, b) => a == b)
+        if (!PageDefinitionsEqual() || !MapEqual(_baseline.ObjectOwners, _current.ObjectOwners, (a, b) => a == b)
             || !SameKeys(_baseline.Text.Frames, _current.Text.Frames) || !SameKeys(_baseline.Shapes, _current.Shapes)
             || !SameKeys(_baseline.Pictures, _current.Pictures) || !SameKeys(_baseline.Tables, _current.Tables)) {
             Reject("Contents", "Page/master topology, object ownership, order or object identities changed. Authored objects have no native records in this operation."); return;
         }
+        CompareMasterAssignments();
         if (!MapEqual(_baseline.Text.Chains, _current.Text.Chains, (a, b) => a.SequenceEqual(b))
             || !MapEqual(_baseline.Text.TableStories, _current.Text.TableStories, (a, b) => ReferenceEquals(a, b)
                 || a.Segments.Count == b.Segments.Count && (_quillBytes != null || a.Segments.Zip(b.Segments, StoryEqual).All(value => value)))
@@ -135,10 +136,11 @@ internal sealed partial class PublisherNativeWriter {
         return true;
     }
 
-    private bool PagesEqual() => _baseline.Pages.Count == _current.Pages.Count
+    private bool PageDefinitionsEqual() => _baseline.Pages.Count == _current.Pages.Count
         && _baseline.Pages.Zip(_current.Pages, (a, b) => ReferenceEquals(a, b)
             || a.Id == b.Id && a.Name == b.Name && a.IsMaster == b.IsMaster && a.HasNativeOrigin == b.HasNativeOrigin
-            && a.Width == b.Width && a.Height == b.Height && a.MasterPageId == b.MasterPageId && a.MasterSide == b.MasterSide
+            && a.Width == b.Width && a.Height == b.Height && a.MasterSide == b.MasterSide
+            && a.MasterAssignmentQualified == b.MasterAssignmentQualified
             && a.RegistrationX == b.RegistrationX && a.RegistrationY == b.RegistrationY
             && a.SupportsPlacementEditing == b.SupportsPlacementEditing && a.HasUnassessedBackground == b.HasUnassessedBackground
             && a.FrameEditRange == b.FrameEditRange && a.ObjectIds.SequenceEqual(b.ObjectIds)).All(value => value);

@@ -17,14 +17,16 @@ function Add-NativeComparisonLayout {
     The authored page count, panel width and native master assignment IDs.
     #>
     param(
-        [ValidateSet('Brochure', 'MultipleMasters', 'TwoPageMaster', 'MultipleMastersEdited', 'TwoPageMasterEdited')]
+        [ValidateSet('Brochure', 'MultipleMasters', 'TwoPageMaster', 'MultipleMastersEdited', 'TwoPageMasterEdited', 'MultipleMastersReassigned', 'MultipleMastersIgnored', 'TwoPageMasterReassigned', 'TwoPageMasterIgnored')]
         [string] $Case,
         $Document,
         $FirstPage
     )
 
     $edited = $Case.EndsWith('Edited', [StringComparison]::Ordinal)
-    $baseCase = $Case -replace 'Edited$', ''
+    $baseCase = $Case -replace '(Edited|Reassigned|Ignored)$', ''
+    $reassigned = $Case.EndsWith('Reassigned', [StringComparison]::Ordinal)
+    $ignored = $Case.EndsWith('Ignored', [StringComparison]::Ordinal)
     $moveX = if ($edited) { 6 } else { 0 }
     $moveY = if ($edited) { 12 } else { 0 }
     $suffix = if ($edited) { ' updated' } else { '' }
@@ -77,7 +79,8 @@ function Add-NativeComparisonLayout {
         $null = Add-TextFrame $defaultMaster 'MasterAlphaMarker' ('Master Alpha' + $suffix) (18 + $moveX) (24 + $moveY) 252 24 10
         Set-NativePhase 'MultipleMasters-AddBetaMarker'
         $null = Add-TextFrame $alternateMaster 'MasterBetaMarker' ('Master Beta' + $suffix) (342 + $moveX) (24 + $moveY) 252 24 10
-        $assignedMasters = @($defaultMaster, $alternateMaster, $defaultMaster)
+        $assignedMasters = if ($reassigned) { @($alternateMaster, $defaultMaster, $alternateMaster) }
+            else { @($defaultMaster, $alternateMaster, $defaultMaster) }
     } else {
         $beforeIds = @([int]$defaultMaster.PageID)
         # Add returns one member without documenting which side. Resolve both
@@ -106,13 +109,22 @@ function Add-NativeComparisonLayout {
         $null = Add-TextFrame $newMasters[0] 'LeftMasterMarker' ('Paired master left' + $suffix) (18 + $moveX) (24 + $moveY) 252 24 10
         Set-NativePhase 'TwoPageMaster-AddRightMarker'
         $null = Add-TextFrame $newMasters[1] 'RightMasterMarker' ('Paired master right' + $suffix) (342 + $moveX) (24 + $moveY) 252 24 10
-        $assignedMasters = @($defaultMaster, $newMasters[0], $newMasters[1])
+        $assignedMasters = if ($reassigned) { @($newMasters[1], $newMasters[0], $defaultMaster) }
+            else { @($defaultMaster, $newMasters[0], $newMasters[1]) }
     }
 
     $assignments = [Collections.Generic.List[object]]::new()
     for ($index = 0; $index -lt 3; $index++) {
         Set-NativePhase ($Case + '-AssignPhysicalMaster-' + ($index + 1))
         $physicalPages[$index].Master = $assignedMasters[$index]
+        if ($ignored -or $reassigned) {
+            Set-NativePhase ($Case + '-SetIgnoreMaster-' + ($index + 1))
+            $suppress = $ignored -and $index -ne 1
+            $physicalPages[$index].IgnoreMaster = $suppress
+            if ([bool]$physicalPages[$index].IgnoreMaster -ne $suppress) {
+                throw 'Publisher did not retain the requested IgnoreMaster state.'
+            }
+        }
         Set-NativePhase ($Case + '-AddPhysicalText-' + ($index + 1))
         $null = Add-TextFrame $physicalPages[$index] ('PageIdentity' + ($index + 1)) ($baseCase + ' page ' + ($index + 1)) (72 + $moveX) (96 + $moveY) 468 48 16
         $assignments.Add([pscustomobject]@{

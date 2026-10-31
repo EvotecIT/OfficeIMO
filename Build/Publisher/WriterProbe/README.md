@@ -492,6 +492,15 @@ stable, but native/managed text origins differ by up to 0.07 pt horizontally and
 parity selection, repair-free opening and generic public native creation remain
 unqualified.
 
+The `masterAssignmentEditing` record qualifies existing physical-page direct
+assignment and master-formatting suppression through public native source saves.
+The native `IgnoreMaster` control keeps its selected reference while hiding the
+definition's applied content. Reassignment restores formatting and selects the
+requested existing definition. Independent single/paired reassigned and ignored
+controls distinguish this from deleting a native reference. Unknown relationship
+encodings remain explicit gaps and are not rewritten. New topology and generic
+native creation remain separate contracts.
+
 The `linkedStoryCreation` record qualifies a three-frame story whose chain order
 differs from physical page order. Frame catalog rows are ordered by story and
 ordinal; the story's `CRef` count is independent of `IdLayout`. Generated Quill

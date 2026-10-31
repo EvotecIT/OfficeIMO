@@ -101,19 +101,21 @@ internal sealed class PublisherPageState {
     internal PublisherPageState(uint id, string name, bool isMaster, double width, double height, uint? masterPageId,
         double registrationX, double registrationY, bool supportsPlacementEditing, bool hasUnassessedBackground,
         IReadOnlyList<uint> objectIds, PublisherFrameEditRange frameEditRange, bool hasNativeOrigin = true,
-        PublisherMasterPageSide? masterSide = null) {
+        PublisherMasterPageSide? masterSide = null, bool masterAssignmentQualified = true) {
         Id = id; Name = name; IsMaster = isMaster; Width = width; Height = height; MasterPageId = masterPageId;
         RegistrationX = registrationX; RegistrationY = registrationY; SupportsPlacementEditing = supportsPlacementEditing;
         HasUnassessedBackground = hasUnassessedBackground; ObjectIds = Array.AsReadOnly(objectIds.ToArray());
         FrameEditRange = frameEditRange;
         HasNativeOrigin = hasNativeOrigin;
         MasterSide = masterSide;
+        MasterAssignmentQualified = masterAssignmentQualified;
     }
     internal uint Id { get; }
     internal string Name { get; }
     internal bool IsMaster { get; }
     internal bool HasNativeOrigin { get; }
     internal PublisherMasterPageSide? MasterSide { get; }
+    internal bool MasterAssignmentQualified { get; }
     internal double Width { get; }
     internal double Height { get; }
     internal uint? MasterPageId { get; }
@@ -125,7 +127,7 @@ internal sealed class PublisherPageState {
     internal PublisherFrameEditRange FrameEditRange { get; }
     internal PublisherPageState WithObject(uint id) => new(Id, Name, IsMaster, Width, Height, MasterPageId,
         RegistrationX, RegistrationY, SupportsPlacementEditing, HasUnassessedBackground,
-        ObjectIds.Concat(new[] { id }).ToArray(), FrameEditRange, HasNativeOrigin, MasterSide);
+        ObjectIds.Concat(new[] { id }).ToArray(), FrameEditRange, HasNativeOrigin, MasterSide, MasterAssignmentQualified);
     internal PublisherPageState WithMaster(uint? masterId) => new(Id, Name, IsMaster, Width, Height, masterId,
-        RegistrationX, RegistrationY, SupportsPlacementEditing, HasUnassessedBackground, ObjectIds, FrameEditRange, HasNativeOrigin, MasterSide);
+        RegistrationX, RegistrationY, SupportsPlacementEditing, HasUnassessedBackground, ObjectIds, FrameEditRange, HasNativeOrigin, MasterSide, MasterAssignmentQualified);
 }

@@ -23,7 +23,7 @@ public sealed class PublisherPage {
     public bool HasNativeOrigin { get; }
     /// <summary>Page or master name; empty when unnamed.</summary>
     public string Name { get; }
-    /// <summary>Current applied master page identifier, or null when no master is assigned.</summary>
+    /// <summary>Current applied master page identifier, or null when none applies, including native pages that suppress master formatting. A suppressed source can retain a latent native reference separately.</summary>
     public uint? MasterPageId { get; }
     /// <summary>Registration of this master definition; null for document pages or an unqualified native master layout. Applied positions can differ from definition coordinates for left/right masters.</summary>
     public PublisherMasterPageSide? MasterSide { get; }

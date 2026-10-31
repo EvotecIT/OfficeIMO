@@ -136,8 +136,17 @@ spacing. The support contract defines native units and representability limits.
 Ambiguous source definitions, unsupported directory layouts and zero-paragraph
 native story states are refused. The [support contract](SUPPORT.md)
 defines the precise restrictions. Other in-memory edits, including new objects,
-table bounds/grid changes and page/master relationships, cannot be saved
+table bounds/grid changes and new page/master topology, cannot be saved
 as native PUB through this profile. Source-free native creation is unavailable.
+
+Existing physical pages can save `SetPageMaster(pageId, existingMasterId)` and
+`SetPageMaster(pageId, null)` through the same native source-save API. Clearing
+uses Publisher's master-formatting suppression while retaining its latent selected
+master reference. Reassignment selects the existing definition and enables its
+formatting. Reading a suppressed native page exposes no applied `MasterPageId`
+and leaves its master content out of that page's drawing; the definition and its
+stories remain available in `MasterPages` and `TextStories`. Unqualified reference
+or display tokens reject assignment edits; other unsupported topology remains refused.
 
 The default loss policy is `Block`, including unassessed fidelity. Edited native
 output requires explicit `Allow`; this policy still refuses unsupported edits and

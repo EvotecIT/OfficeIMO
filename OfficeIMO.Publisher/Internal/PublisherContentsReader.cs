@@ -73,8 +73,13 @@ internal sealed partial class PublisherContentsReader {
             string name = nameField.HasValue && nameField.Value.Type == 0xC0
                 ? _data.Utf16(nameField.Value.Offset + 4, nameField.Value.Length - 4).TrimEnd('\0') : string.Empty;
             if (result.Pages.Count >= _context.Options.MaximumPages) throw new InvalidDataException("Publisher page limit exceeded.");
+            PublisherBlock[] masterReferences = fields.Where(field => field.Id == 0x0D).ToArray();
+            PublisherBlock[] masterDisplay = fields.Where(field => field.Id == 7).ToArray();
+            bool? displayMaster = masterDisplay.Length == 0 ? true
+                : masterDisplay.Length == 1 && masterDisplay[0].Type == 8 ? false : null;
             var page = new PublisherSourcePage(pageId, name, Field(fields, 0x0D)?.Value, Field(fields, 0x0A)?.Value,
-                isMaster, Field(fields, 0x10)?.Value);
+                isMaster, Field(fields, 0x10)?.Value, displayMaster,
+                masterReferences.Length <= 1 && masterReferences.All(field => field.Type == 0x68));
             result.Pages.Add(page);
             PublisherBlock? shapes = Field(fields, 2);
             if (shapes.HasValue) {
@@ -161,8 +166,10 @@ internal sealed class PublisherContentChunk {
 }
 
 internal sealed class PublisherSourcePage {
-    internal PublisherSourcePage(uint id, string name, uint? master, uint? background, bool isMaster = false, uint? nativeLayout = null) {
+    internal PublisherSourcePage(uint id, string name, uint? master, uint? background, bool isMaster = false, uint? nativeLayout = null,
+        bool? displayMaster = true, bool masterReferenceQualified = true) {
         Id = id; Name = name; Master = master; Background = background; IsMaster = isMaster; NativeLayout = nativeLayout;
+        DisplayMaster = displayMaster; MasterReferenceQualified = masterReferenceQualified;
     }
     internal uint Id { get; }
     internal string Name { get; }
@@ -171,6 +178,9 @@ internal sealed class PublisherSourcePage {
     internal bool IsMaster { get; }
     /// <summary>Native page layout code, including the left and right members of a paired master.</summary>
     internal uint? NativeLayout { get; }
+    /// <summary>Qualified applied-master formatting state; null retains an unassessed source flag.</summary>
+    internal bool? DisplayMaster { get; }
+    internal bool MasterReferenceQualified { get; }
 }
 
 internal sealed class PublisherSourceShape {

@@ -164,7 +164,6 @@ public sealed class PublisherNativeWritingTests {
     [InlineData("background-format")]
     [InlineData("page")]
     [InlineData("master")]
-    [InlineData("assignment")]
     [InlineData("continuation")]
     [InlineData("text-frame")]
     [InlineData("shape")]
@@ -190,7 +189,6 @@ public sealed class PublisherNativeWritingTests {
                     originalParagraph.Indent, originalParagraph.LineHeightFactor).WithTabStops(originalParagraph.TabStops) }); break;
             case "page": document.AddPage(); break;
             case "master": document.AddMasterPage("New master"); break;
-            case "assignment": document.SetPageMaster(page.Id, null); break;
             case "continuation": document.AddLinkedTextFrame(page.TextFrames[0].Id, page.Id, 40, 300, 200, 60); break;
             case "text-frame": document.AddTextFrame(page.Id, 40, 300, 200, 60, Paragraphs("New story")); break;
             case "shape": document.AddShape(page.Id, OfficeShape.Rectangle(40, 30), 40, 300); break;

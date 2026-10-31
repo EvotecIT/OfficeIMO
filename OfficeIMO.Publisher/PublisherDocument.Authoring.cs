@@ -31,7 +31,7 @@ public sealed partial class PublisherDocument {
     }
 
     /// <summary>Assigns a qualified direct master to a document page, or clears the assignment when the master identifier is null. Inherited objects remain owned once by their master.</summary>
-    /// <remarks>Master inheritance, unassessed backgrounds and unqualified registrations are rejected. Dimensions and imported master registration remain unchanged. Validation, cancellation or projection failure preserves the previous publication; existing snapshots remain detached.</remarks>
+    /// <remarks>Qualified existing-source assignments can be saved natively. Clearing suppresses native master formatting while retaining its latent source reference; assigning a definition enables formatting. Master inheritance, unassessed backgrounds, native relationship tokens and registrations are rejected when unqualified. Dimensions and imported registration remain unchanged. Validation, cancellation or projection failure preserves the previous publication; existing snapshots remain detached.</remarks>
     public void SetPageMaster(uint pageId, uint? masterPageId, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PublisherModelState model = _model ?? throw new NotSupportedException("This publication has no editable model.");
