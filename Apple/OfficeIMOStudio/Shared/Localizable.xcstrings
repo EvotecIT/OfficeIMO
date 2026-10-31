@@ -6196,42 +6196,42 @@
         }
       }
     },
-    "Each match removes its whole block of text, including the words around it. Check each one before redacting." : {
+    "Each match removes a whole area of text, which can include nearby lines as well as the match. Review the page before you redact, and use Undo if too much is removed." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Jeder Treffer entfernt seinen ganzen Textblock, auch die Wörter darum herum. Prüfe jeden Treffer vor dem Schwärzen."
+            "value" : "Jeder Treffer entfernt einen ganzen Textbereich, der neben dem Treffer auch benachbarte Zeilen umfassen kann. Prüfe die Seite vor dem Schwärzen und verwende „Widerrufen“, falls zu viel entfernt wird."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cada coincidencia elimina todo su bloque de texto, incluidas las palabras de alrededor. Revisa cada una antes de censurar."
+            "value" : "Cada coincidencia elimina toda un área de texto, que puede incluir líneas cercanas además de la coincidencia. Revisa la página antes de censurar y usa Deshacer si se elimina demasiado."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chaque résultat supprime tout son bloc de texte, y compris les mots voisins. Vérifiez chacun avant de caviarder."
+            "value" : "Chaque résultat supprime toute une zone de texte, qui peut inclure des lignes voisines en plus du résultat. Vérifiez la page avant de caviarder et utilisez Annuler si trop de contenu est supprimé."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ogni corrispondenza rimuove l’intero blocco di testo, comprese le parole vicine. Controlla ciascuna prima di oscurare."
+            "value" : "Ogni corrispondenza rimuove un’intera area di testo, che può includere righe vicine oltre alla corrispondenza. Controlla la pagina prima di oscurare e usa Annulla se viene rimosso troppo."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Każde dopasowanie usuwa cały blok tekstu, także otaczające słowa. Sprawdź każde przed utajnieniem."
+            "value" : "Każde dopasowanie usuwa cały obszar tekstu, który oprócz dopasowania może obejmować sąsiednie wiersze. Sprawdź stronę przed utajnieniem i użyj Cofnij, jeśli usunięto za dużo."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cada correspondência remove todo o bloco de texto, incluindo as palavras ao redor. Verifique cada uma antes de ocultar."
+            "value" : "Cada correspondência remove toda uma área de texto, que pode incluir linhas próximas além da correspondência. Revise a página antes de ocultar e use Desfazer se for removido demais."
           }
         }
       }
@@ -18516,42 +18516,42 @@
         }
       }
     },
-    "This text is too close to the lines around it to remove on its own. You can remove the whole block of text that contains it instead." : {
+    "This text is too close to the content around it to remove on its own. You can remove a whole area of text instead, which can include nearby lines." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieser Text liegt zu nah an den umgebenden Zeilen, um ihn einzeln zu entfernen. Du kannst stattdessen den ganzen Textblock entfernen, der ihn enthält."
+            "value" : "Dieser Text liegt zu nah am umgebenden Inhalt, um ihn einzeln zu entfernen. Du kannst stattdessen einen ganzen Textbereich entfernen, der auch benachbarte Zeilen umfassen kann."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Este texto está demasiado cerca de las líneas contiguas para eliminarlo por separado. Puedes eliminar todo el bloque de texto que lo contiene."
+            "value" : "Este texto está demasiado cerca del contenido contiguo para eliminarlo por separado. Puedes eliminar toda un área de texto, que puede incluir líneas cercanas."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ce texte est trop proche des lignes voisines pour être supprimé seul. Vous pouvez supprimer tout le bloc de texte qui le contient."
+            "value" : "Ce texte est trop proche du contenu voisin pour être supprimé seul. Vous pouvez supprimer toute une zone de texte, qui peut inclure des lignes voisines."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Questo testo è troppo vicino alle righe adiacenti per essere rimosso da solo. Puoi rimuovere l’intero blocco di testo che lo contiene."
+            "value" : "Questo testo è troppo vicino al contenuto adiacente per essere rimosso da solo. Puoi rimuovere un’intera area di testo, che può includere righe vicine."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ten tekst jest zbyt blisko sąsiednich wierszy, by usunąć go osobno. Możesz zamiast tego usunąć cały blok tekstu, który go zawiera."
+            "value" : "Ten tekst jest zbyt blisko otaczającej treści, by usunąć go osobno. Możesz zamiast tego usunąć cały obszar tekstu, który może obejmować sąsiednie wiersze."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Este texto está muito perto das linhas ao redor para ser removido sozinho. Você pode remover todo o bloco de texto que o contém."
+            "value" : "Este texto está muito perto do conteúdo ao redor para ser removido sozinho. Você pode remover toda uma área de texto, que pode incluir linhas próximas."
           }
         }
       }

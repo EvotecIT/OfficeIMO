@@ -332,7 +332,7 @@ struct RedactSheet: View {
                         search()
                     }
                 } footer: {
-                    Text("This text is too close to the lines around it to remove on its own. You can remove the whole block of text that contains it instead.")
+                    Text("This text is too close to the content around it to remove on its own. You can remove a whole area of text instead, which can include nearby lines.")
                 }
             }
             if searched != nil {
@@ -352,7 +352,7 @@ struct RedactSheet: View {
                     Text("Matches (\(marks.count))")
                 } footer: {
                     if find.wholeBlocks {
-                        Text("Each match removes its whole block of text, including the words around it. Check each one before redacting.")
+                        Text("Each match removes a whole area of text, which can include nearby lines as well as the match. Review the page before you redact, and use Undo if too much is removed.")
                     }
                 }
                 Section {
