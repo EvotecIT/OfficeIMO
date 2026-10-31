@@ -52,6 +52,37 @@ public sealed class DrawingChartRadialLayoutTests {
     [Theory]
     [InlineData(OfficeChartType.Pie)]
     [InlineData(OfficeChartType.Doughnut)]
+    public void OutsideValueLabelsPaintInTheirFrames(OfficeChartType kind) {
+        OfficeColor ink = OfficeColor.Parse("#ED05AF");
+        var data = new OfficeChartData(new[] { "Healthy", "Risk", "Watch" }, new[] {
+            new OfficeSeries("Count", new[] { 3d, 2d, 3d })
+        });
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            kind, data, global::OfficeIMO.OfficeLength.Points(450), global::OfficeIMO.OfficeLength.Points(195),
+            style: new OfficeChartStyle(dataLabelTextColor: ink),
+            layout: new OfficeChartLayout(showLegend: false, showDataLabels: true,
+                showDataLabelValues: true, dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd)));
+        OfficeDrawingText[] labels = drawing.Elements.OfType<OfficeDrawingText>()
+            .Where(text => text.Text == "2" || text.Text == "3").ToArray();
+        Assert.Equal(3, labels.Length);
+        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, 1D, OfficeColor.White);
+        foreach (OfficeDrawingText label in labels) {
+            bool painted = false;
+            for (int y = Math.Max(0, (int)Math.Floor(label.Y));
+                y < Math.Min(image.Height, (int)Math.Ceiling((label.Y + label.Height))); y++) {
+                for (int x = Math.Max(0, (int)Math.Floor(label.X));
+                    x < Math.Min(image.Width, (int)Math.Ceiling((label.X + label.Width))); x++) {
+                    OfficeColor pixel = image.GetPixel(x, y);
+                    if (pixel.R - pixel.G > 40 && pixel.B - pixel.G > 30) painted = true;
+                }
+            }
+            Assert.True(painted, $"Value label {label.Text} must paint inside its frame.");
+        }
+    }
+
+    [Theory]
+    [InlineData(OfficeChartType.Pie)]
+    [InlineData(OfficeChartType.Doughnut)]
     public void OutsideLabelsUseLeadersAndDoNotOverlapOnEitherSide(OfficeChartType kind) {
         string[] categories = Enumerable.Range(0, 12).Select(index => $"Cat{index}").ToArray();
         var data = new OfficeChartData(categories, new[] {
