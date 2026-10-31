@@ -91,8 +91,7 @@ namespace OfficeIMO.Excel {
             Locking.ExecuteWrite(EnsureLock(), () => {
                 Sheets workbookSheets = WorkbookRoot.Sheets ?? throw new InvalidOperationException("Workbook sheets collection is missing.");
                 List<Sheet> orderedSheets = workbookSheets.Elements<Sheet>().ToList();
-                int activeIndex = orderedSheets.FindIndex(candidate => ReferenceEquals(candidate, sheet.SheetElement)
-                    || string.Equals(candidate.Name?.Value, sheet.Name, StringComparison.Ordinal));
+                int activeIndex = orderedSheets.FindIndex(candidate => ReferenceEquals(candidate, sheet.SheetElement));
                 if (activeIndex < 0) {
                     throw new ArgumentException("Worksheet not found in workbook.", nameof(sheet));
                 }
