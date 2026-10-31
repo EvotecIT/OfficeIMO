@@ -449,7 +449,7 @@ Describe 'Excel DSL surface' {
         $summary.Schema.HasTimelines | Should -BeTrue
     }
 
-    It 'joins selected worksheets from another workbook with a stable prefix' {
+    It 'copies selected worksheets from another workbook with a stable prefix' {
         $source = Join-Path $TestDrive 'WorkbookJoinSource.xlsx'
         $target = Join-Path $TestDrive 'WorkbookJoinTarget.xlsx'
 
@@ -468,10 +468,12 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $join = Join-OfficeExcelWorkbook -Path $target -SourcePath $source -SourceSheet South -SheetNamePrefix 'Imported '
-        $join.SheetCount | Should -Be 1
-        $join.SourceSheets | Should -Contain 'South'
-        $join.TargetSheets | Should -Contain 'Imported South'
+        $copy = Copy-OfficeExcelSheet -Path $target -Source $source -Sheet South -NamePrefix 'Imported ' -PassThru
+        try {
+            $copy.Name | Should -Be 'Imported South'
+        } finally {
+            $copy.Document | Close-OfficeExcel
+        }
 
         $summary = Get-OfficeExcelSummary -Path $target -IncludeSheets
         $summary.Sheets.Name | Should -Contain 'Imported South'
@@ -851,12 +853,6 @@ Describe 'Excel DSL surface' {
         }
 
         Test-Path $path | Should -BeTrue
-    }
-
-    It 'exports workbook merge aliases from the manifest' {
-        (Get-Alias -Name Merge-OfficeExcelWorkbook -ErrorAction Stop).ResolvedCommandName | Should -Be 'Join-OfficeExcelWorkbook'
-        (Get-Alias -Name ExcelWorkbookJoin -ErrorAction Stop).ResolvedCommandName | Should -Be 'Join-OfficeExcelWorkbook'
-        (Get-Alias -Name ExcelWorkbookMerge -ErrorAction Stop).ResolvedCommandName | Should -Be 'Join-OfficeExcelWorkbook'
     }
 
     It 'preserves legacy Excel table data parameter aliases' {
@@ -3672,10 +3668,16 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        Copy-OfficeExcelSheet -Path $path -SourceSheet 'Data' -NewName 'DataCopy' -PassThru | Should -Not -BeNullOrEmpty
-        Move-OfficeExcelSheet -Path $path -Sheet 'DataCopy' -Index 0
-        Copy-OfficeExcelSheet -Path $path -SourcePath $sourcePath -SourceSheet 'External' -NewName 'ExternalCopy' -CopyMode Package -PassThru | Should -Not -BeNullOrEmpty
-        $join = Join-OfficeExcelSheet -Path $path -TargetSheet 'Data' -SourceSheet 'More' -MatchColumnsByHeader
+        $copy = Copy-OfficeExcelSheet -Path $path -Sheet Data -Name DataCopy -PassThru
+        try {
+            $copy.Name | Should -Be 'DataCopy'
+            Move-OfficeExcelSheet -Document $copy.Document -Sheet $copy -Position 1
+            $copy.Document | Save-OfficeExcel
+        } finally {
+            $copy.Document | Close-OfficeExcel
+        }
+        Copy-OfficeExcelSheet -Path $path -Source $sourcePath -Sheet External -Name ExternalCopy -CopyMode Package
+        $join = Merge-OfficeExcelSheet -Path $path -Sheet 'Data' -SourceSheet 'More' -MatchColumnsByHeader
         Set-OfficeExcelPrintArea -Path $path -Sheet 'Data' -Range 'A1:B4'
         Set-OfficeExcelPrintTitles -Path $path -Sheet 'Data' -FirstRow 1 -LastRow 1
 
@@ -3720,12 +3722,12 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $results = @(Join-OfficeExcelWorkbook -Path $targetPath -SourcePath @($sourceAPath, $sourceBPath) -CopyMode Package -SheetNamePrefix 'Merged')
-        $results.Count | Should -Be 2
-        $results[0].SheetCount | Should -Be 1
-        $results[1].SheetCount | Should -Be 1
-        $results[0].TargetSheets | Should -Contain 'MergedFirst'
-        $results[1].TargetSheets | Should -Contain 'MergedSecond'
+        New-OfficeExcel -Path $targetPath {
+            Add-OfficeExcelSheet -Name Summary
+        }
+        foreach ($sourcePath in $sourceAPath, $sourceBPath) {
+            Copy-OfficeExcelSheet -Path $targetPath -Source $sourcePath -CopyMode Package -NamePrefix Merged
+        }
 
         $summary = Get-OfficeExcelSummary -Path $targetPath -IncludeSheets
         $summary.Sheets.Name | Should -Contain 'MergedFirst'

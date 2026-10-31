@@ -3,3 +3,4 @@ OfficeIMO.Excel.ExcelChart.ApplyDashboardPreset(OfficeIMO.Excel.ExcelDashboardCh
 OfficeIMO.Excel.ExcelSheet.SetTabColor(OfficeIMO.OfficeColor color) -> void
 OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.MaxNames.get -> int
 OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.MaxNames.set -> void
+OfficeIMO.Excel.ExcelSheet.Document.get -> OfficeIMO.Excel.ExcelDocument!

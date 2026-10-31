@@ -2322,7 +2322,7 @@
           ]
         }
       ],
-      "notes": "-Source is another workbook as a path or ExcelDocument (replaces -SourcePath/-SourceDocument); without it the copy is within the target. -Sheet selects the source sheets (wildcards copy several, with -NamePrefix), which also covers merging a whole workbook into an open document (Join-OfficeExcelWorkbook -Document). -Path/-LiteralPath name the target workbook, saved in place.",
+      "notes": "-Source is another workbook as a path or ExcelDocument (replaces -SourcePath/-SourceDocument); without it the copy is within the target. -Sheet selects the source sheets (wildcards copy several, with -NamePrefix), which also covers merging a whole workbook into an open document (Join-OfficeExcelWorkbook -Document). -Path/-LiteralPath name the target workbook, saved in place. -PassThru returns live native worksheets; their Document property exposes the owning workbook, which the caller saves and closes explicitly.",
       "examples": [
         {
           "title": "Duplicate a sheet",

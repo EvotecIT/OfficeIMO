@@ -313,6 +313,7 @@
     }
   ],
   "additions": [
+    "ExcelSheet.Document : ExcelDocument — exposes the owning workbook so native worksheets returned by file operations can be saved and disposed explicitly",
     "ExcelSheet.Report(ExcelReportOptions options = null) : ExcelReportBuilder",
     "ExcelSheet.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) : ExcelTable and AddTable(DataTable table, ...) : ExcelTable",
     "ExcelSheet.AddChart<T>(OfficeChartType type, IEnumerable<T> data, Func<T, object> category, params OfficeSeries[] series) : ExcelChart and the nameof() overload",

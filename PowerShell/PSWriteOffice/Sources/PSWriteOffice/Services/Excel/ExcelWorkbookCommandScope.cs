@@ -15,7 +15,10 @@ internal sealed class ExcelWorkbookCommandScope : IDisposable
 
     public ExcelDocument Document { get; }
 
-    public bool OwnsDocument { get; }
+    public bool OwnsDocument { get; private set; }
+
+    /// <summary>Leaves a requested native output's workbook open for its caller to close explicitly.</summary>
+    public void TransferOwnership() => OwnsDocument = false;
 
     public void SaveIfOwned()
     {

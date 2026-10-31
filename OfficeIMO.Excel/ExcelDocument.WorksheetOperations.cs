@@ -151,8 +151,7 @@ namespace OfficeIMO.Excel {
                     throw new ArgumentOutOfRangeException(nameof(targetIndex), $"Index {targetIndex.ToString(CultureInfo.InvariantCulture)} is out of range (0..{(orderedSheets.Count - 1).ToString(CultureInfo.InvariantCulture)}).");
                 }
 
-                Sheet? target = orderedSheets.FirstOrDefault(s => ReferenceEquals(s, sheet.SheetElement)
-                    || string.Equals(s.Name?.Value, sheet.Name, StringComparison.Ordinal));
+                Sheet? target = orderedSheets.FirstOrDefault(s => ReferenceEquals(s, sheet.SheetElement));
                 if (target == null) {
                     throw new ArgumentException("Worksheet not found in workbook.", nameof(sheet));
                 }
@@ -181,6 +180,11 @@ namespace OfficeIMO.Excel {
             if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
             if (!ReferenceEquals(targetSheet.Document, this)) {
                 throw new ArgumentException("Target worksheet must belong to this workbook.", nameof(targetSheet));
+            }
+            if (sourceSheet.Document.WorkbookRoot.Sheets == null ||
+                !sourceSheet.Document.WorkbookRoot.Sheets.Elements<Sheet>()
+                    .Any(sheet => ReferenceEquals(sheet, sourceSheet.SheetElement))) {
+                throw new ArgumentException("Source worksheet no longer belongs to its workbook.", nameof(sourceSheet));
             }
 
             options ??= new ExcelWorksheetMergeOptions();
