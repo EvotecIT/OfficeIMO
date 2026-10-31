@@ -4923,7 +4923,7 @@
           ]
         }
       ],
-      "notes": "Advanced: everyday placement uses layouts or -Column/-Span. Boxes expose X/Y/Width/Height as OfficeLength so they feed -X/-Y directly.",
+      "notes": "Advanced: everyday placement uses layouts or -Column/-Span. Boxes expose Left/Top/Width/Height as OfficeLength so they feed -X/-Y directly.",
       "examples": [
         {
           "title": "Get the content area",
@@ -4933,7 +4933,7 @@
         {
           "title": "Place shapes in equal columns",
           "description": "Computes three columns and places one labelled shape exactly in each.",
-          "code": "$deck = New-OfficePowerPoint -Path .\\Reports\\Pillars.pptx\n$columns = Get-OfficePowerPointLayoutBox -Document $deck -Columns 3 -Margin 1.5cm -Gutter 1cm\n$pillars = 'Secure', 'Reliable', 'Affordable'\nPowerPointSlide -Document $deck -Title 'Our pillars' {\n    for ($i = 0; $i -lt $columns.Count; $i++) {\n        $box = $columns[$i]\n        PowerPointShape -Type RoundRectangle -Name $pillars[$i] -X $box.X -Y $box.Y -Width $box.Width -Height $box.Height\n        PowerPointTextBox $pillars[$i] -X $box.X -Y $box.Y -Width $box.Width -Height 2cm\n    }\n}\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
+          "code": "$deck = New-OfficePowerPoint -Path .\\Reports\\Pillars.pptx\n$columns = Get-OfficePowerPointLayoutBox -Document $deck -Columns 3 -Margin 1.5cm -Gutter 1cm\n$pillars = 'Secure', 'Reliable', 'Affordable'\nPowerPointSlide -Document $deck -Title 'Our pillars' {\n    for ($i = 0; $i -lt $columns.Count; $i++) {\n        $box = $columns[$i]\n        PowerPointShape -Type RoundRectangle -Name $pillars[$i] -X $box.Left -Y $box.Top -Width $box.Width -Height $box.Height\n        PowerPointTextBox $pillars[$i] -X $box.Left -Y $box.Top -Width $box.Width -Height 2cm\n    }\n}\nSave-OfficePowerPoint -Document $deck\nClose-OfficePowerPoint -Document $deck"
         }
       ]
     },

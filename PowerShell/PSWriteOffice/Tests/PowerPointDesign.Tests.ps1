@@ -93,12 +93,10 @@ Describe 'PowerPointDesign workflows' {
         $themeBefore.MasterIndex | Should -Be 0
         $themeBefore.Colors.Count | Should -BeGreaterThan 0
 
-        Set-OfficePowerPointThemeColor -Presentation $presentation -Colors @{
+        Set-OfficePowerPointTheme -Document $presentation -Colors @{
             Accent1 = '#C00000'
             Accent2 = '00B0F0'
-        } -AllMasters
-        Set-OfficePowerPointThemeFonts -Presentation $presentation -MajorLatin 'Aptos' -MinorLatin 'Calibri' -AllMasters
-        Set-OfficePowerPointThemeName -Presentation $presentation -Name 'Contoso Theme' -AllMasters
+        } -HeadingFont 'Aptos' -BodyFont 'Calibri' -Name 'Contoso Theme' -AllMasters
 
         $slide | Set-OfficePowerPointSlide -Document $presentation -TemplateLayout $alternativeLayout | Out-Null
 
@@ -150,18 +148,18 @@ Describe 'PowerPointDesign workflows' {
             $updatedSlide.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointSlide'
             $colorSlide.BackgroundColor | Should -Be 'f4f7fb'
 
-            $contentBox = Get-OfficePowerPointLayoutBox -Presentation $presentation -MarginCm 1.5
+            $contentBox = Get-OfficePowerPointLayoutBox -Document $presentation -Margin '1.5cm'
             [math]::Round($contentBox.Left.ToCentimeters(), 2) | Should -Be 1.5
             [math]::Round($contentBox.Top.ToCentimeters(), 2) | Should -Be 1.5
             [math]::Round($contentBox.Width.ToCentimeters(), 2) | Should -Be 27
             [math]::Round($contentBox.Height.ToCentimeters(), 2) | Should -Be 17
 
-            $columns = @(Get-OfficePowerPointLayoutBox -Presentation $presentation -ColumnCount 2 -MarginCm 1.5 -GutterCm 1.0)
+            $columns = @(Get-OfficePowerPointLayoutBox -Document $presentation -Columns 2 -Margin '1.5cm' -Gutter '1cm')
             $columns.Count | Should -Be 2
             [math]::Round($columns[0].Width.ToCentimeters(), 2) | Should -Be 13
             [math]::Round($columns[1].Left.ToCentimeters(), 2) | Should -Be 15.5
 
-            $rows = @(Get-OfficePowerPointLayoutBox -Presentation $presentation -RowCount 2 -MarginCm 1.5 -GutterCm 0.5)
+            $rows = @(Get-OfficePowerPointLayoutBox -Document $presentation -Rows 2 -Margin '1.5cm' -Gutter '0.5cm')
             $rows.Count | Should -Be 2
             [math]::Round($rows[0].Height.ToCentimeters(), 2) | Should -Be 8.25
             [math]::Round($rows[1].Top.ToCentimeters(), 2) | Should -Be 10.25

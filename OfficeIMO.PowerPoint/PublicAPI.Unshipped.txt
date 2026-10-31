@@ -27,6 +27,9 @@ OfficeIMO.PowerPoint.PowerPointContentPlanSlide.TemplateLayout.set -> void
 OfficeIMO.PowerPoint.PowerPointDeckContinuationOptions.ContinuationTitleFormat.get -> string?
 OfficeIMO.PowerPoint.PowerPointDeckPlan.AddContent(string? title, System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointLayoutBlock!>! blocks, OfficeIMO.PowerPoint.PowerPointLayout layout = OfficeIMO.PowerPoint.PowerPointLayout.Auto, string? subtitle = null) -> OfficeIMO.PowerPoint.PowerPointDeckPlan!
 OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind.Content = 15 -> OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind
+OfficeIMO.PowerPoint.PowerPointDocument.ApplyTheme(OfficeIMO.OfficeTheme! theme, int? masterIndex = null) -> void
+OfficeIMO.PowerPoint.PowerPointDocument.GetTheme(int masterIndex = 0) -> OfficeIMO.OfficeTheme!
+OfficeIMO.PowerPoint.PowerPointDocument.SetThemeName(string! name, int masterIndex = 0) -> void
 OfficeIMO.PowerPoint.PowerPointKpiDirection
 OfficeIMO.PowerPoint.PowerPointKpiDirection.Down = 1 -> OfficeIMO.PowerPoint.PowerPointKpiDirection
 OfficeIMO.PowerPoint.PowerPointKpiDirection.Up = 0 -> OfficeIMO.PowerPoint.PowerPointKpiDirection

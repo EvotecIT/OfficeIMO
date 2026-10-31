@@ -2379,7 +2379,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.PowerPoint
 
 <details>
-<summary>568 changes</summary>
+<summary>570 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -2455,6 +2455,8 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Authoring | `OfficeIMO.PowerPoint.PowerPointPresentation.AddColumnGuides(int columnCount, long marginEmus, long gutterEmus, bool includeOuterEdges = True, bool clearExisting = False)` | Changed | `OfficeIMO.PowerPoint.PowerPointDocument.AddColumnGuides(int count, OfficeLength margin, OfficeLength gutter, ...) : IReadOnlyList<PowerPointGuideInfo>` | Add\* methods return the created object. |
 | Authoring | `OfficeIMO.PowerPoint.PowerPointPresentation.AddGuide(PowerPointGuideOrientation orientation, long positionEmus)` | Changed | `OfficeIMO.PowerPoint.PowerPointDocument.AddGuide(PowerPointGuideOrientation orientation, OfficeLength position) : PowerPointGuideInfo` | Add\* methods return the created object. |
 | Authoring | `OfficeIMO.PowerPoint.PowerPointPresentation.AddRowGuides(int rowCount, long marginEmus, long gutterEmus, bool includeOuterEdges = True, bool clearExisting = False)` | Changed | `OfficeIMO.PowerPoint.PowerPointDocument.AddRowGuides(int count, OfficeLength margin, OfficeLength gutter, ...) : IReadOnlyList<PowerPointGuideInfo>` | Add\* methods return the created object. |
+| Authoring | `OfficeIMO.PowerPoint.PowerPointPresentation.SetThemeColor(PowerPointThemeColor color, string hexValue, int masterIndex = 0)` | Changed | `OfficeIMO.PowerPoint.PowerPointDocument.SetThemeColor(PowerPointThemeColor color, string hexValue, int masterIndex = 0)` | New charts use current native theme colors after edits, including when authoring tokens were already cached. Semantic series, point, marker and hatch paint resolves through the deck theme before native serialization. Chart creation, updates and text defaults use the consuming slide master and its theme overrides. |
+| Authoring | `OfficeIMO.PowerPoint.PowerPointPresentation.SetThemeFonts(PowerPointThemeFontSet fonts, int masterIndex = 0, bool keepExistingWhenNull = true)` | Changed | `OfficeIMO.PowerPoint.PowerPointDocument.SetThemeFonts(PowerPointThemeFontSet fonts, int masterIndex = 0, bool keepExistingWhenNull = true)` | Subsequent authoring reads updated fonts while retaining unrelated theme tokens. With keepExistingWhenNull:false, unspecified fonts have empty typefaces in the required DrawingML slots so saved presentations remain valid. |
 | Authoring | `OfficeIMO.PowerPoint.PowerPointPresentation.ToImages()` | Removed | &mdash; | Use ToImage/SaveAsImage/SaveAsImages with PowerPointImageExportOptions. |
 | Authoring | `OfficeIMO.PowerPoint.PowerPointPresentation.ToImages(PowerPointPresentationImageExportOptions options)` | Removed | &mdash; | Use ToImage/SaveAsImage/SaveAsImages with PowerPointImageExportOptions. |
 | Authoring | `OfficeIMO.PowerPoint.PowerPointSlide.AddChart(OfficeChartKind chartKind, OfficeChartData data, long left = 0, long top = 0, long width = 5486400, long height = 3200400, PowerPointChartAccessibilityOptions accessibility = null)` | Changed | `OfficeIMO.PowerPoint.PowerPointSlide.AddChart(OfficeChartType chartKind, OfficeChartData data, OfficeChartOptions options)` | Shared OfficeChartType, typed AddChart, OfficeLength geometry (raw EMU defaults 5486400 x 3200400 today). |

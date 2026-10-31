@@ -8,7 +8,9 @@ namespace PSWriteOffice.Foundation;
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public sealed class OfficeColorTransformationAttribute : ArgumentTransformationAttribute {
     /// <inheritdoc />
-    public override object Transform(EngineIntrinsics engineIntrinsics, object inputData) {
+    public override object Transform(EngineIntrinsics engineIntrinsics, object inputData) => Bind(inputData);
+
+    internal static OfficeColor Bind(object? inputData) {
         var value = OfficeArgumentValue.Unwrap(inputData);
         if (value is OfficeColor color) return color;
         if (value is string text) {

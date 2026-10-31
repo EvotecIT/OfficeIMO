@@ -25,16 +25,19 @@ namespace OfficeIMO.PowerPoint {
         internal const uint SlideNumberIndex = 12U;
         internal const uint DateIndex = 10U;
 
-        internal static void Apply(PresentationPart presentationPart, PowerPointLayoutTheme theme) {
+        internal static void Apply(PresentationPart presentationPart, PowerPointLayoutTheme theme,
+            SlideMasterPart? selectedMaster = null) {
             if (presentationPart.Presentation == null) return;
             P.SlideSize? size = presentationPart.Presentation.SlideSize;
             double width = (size?.Cx?.Value ?? 12192000) / 12700D;
             double height = (size?.Cy?.Value ?? 6858000) / 12700D;
             var grid = new PowerPointLayoutGrid(width, height, theme.MarginLeft, theme.MarginRight, theme.MarginTop);
 
-            presentationPart.Presentation.DefaultTextStyle = new P.DefaultTextStyle(DefaultTextStyleXml(theme));
+            if (selectedMaster == null)
+                presentationPart.Presentation.DefaultTextStyle = new P.DefaultTextStyle(DefaultTextStyleXml(theme));
 
             foreach (SlideMasterPart masterPart in presentationPart.SlideMasterParts) {
+                if (selectedMaster != null && masterPart != selectedMaster) continue;
                 if (masterPart.ThemePart != null) WriteTheme(masterPart.ThemePart, theme);
                 WriteMaster(masterPart, theme, grid);
                 foreach (SlideLayoutPart layoutPart in masterPart.SlideLayoutParts) {
@@ -42,7 +45,7 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            WriteDefaultTableTextColor(presentationPart, theme);
+            if (selectedMaster == null) WriteDefaultTableTextColor(presentationPart, theme);
 
             presentationPart.Presentation.Save();
         }

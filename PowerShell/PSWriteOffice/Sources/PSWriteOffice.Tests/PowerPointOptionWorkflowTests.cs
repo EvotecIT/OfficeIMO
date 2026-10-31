@@ -3,6 +3,9 @@ using System.Management.Automation.Runspaces;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 using PSWriteOffice.Cmdlets.PowerPoint;
+using PSWriteOffice.Cmdlets.OpenDocument;
+using OfficeIMO.OpenDocument;
+using OfficeIMO.PowerPoint.OpenDocument;
 
 namespace PSWriteOffice.Tests;
 
@@ -15,6 +18,9 @@ public sealed class PowerPointOptionWorkflowTests {
     [InlineData("Image", "", true)]
     [InlineData("Image", "-NoPictures -NoSlideContent", false)]
     [InlineData("Image", "-NoPictures:$false -NoSlideContent:$false", true)]
+    [InlineData("OpenDocument", "", true)]
+    [InlineData("OpenDocument", "-NoImages -NoSpeakerNotes -NoBasicFormatting -LossPolicy Block", false)]
+    [InlineData("OpenDocument", "-NoImages:$false -NoSpeakerNotes:$false -NoBasicFormatting:$false", true)]
     public void NegativeRenderFlagsPreserveDefaultsAndExplicitFalse(string format, string arguments, bool included) {
         using var runspace = Open();
         using var shell = PowerShell.Create();
@@ -28,6 +34,13 @@ public sealed class PowerPointOptionWorkflowTests {
             Assert.Equal(included, options.IncludePictures);
             Assert.Equal(included, options.IncludeSpeakerNotes);
             if (arguments.Contains("-Font", StringComparison.Ordinal)) Assert.Equal("Aptos Display", options.FontFamily);
+        } else if (format == "OpenDocument") {
+            var options = Assert.IsType<PowerPointOpenDocumentConversionOptions>(value);
+            Assert.Equal(included, options.IncludeImages);
+            Assert.Equal(included, options.IncludeSpeakerNotes);
+            Assert.Equal(included, options.IncludeBasicFormatting);
+            Assert.Equal(arguments.Contains("Block", StringComparison.Ordinal)
+                ? OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported : OdfConversionLossPolicy.ReportOnly, options.LossPolicy);
         } else {
             var options = Assert.IsType<PowerPointImageExportOptions>(value);
             Assert.Equal(included, options.IncludePictures);
@@ -53,6 +66,7 @@ public sealed class PowerPointOptionWorkflowTests {
         var state = InitialSessionState.CreateDefault();
         state.Commands.Add(new SessionStateCmdletEntry("New-OfficePowerPointPdfOptions", typeof(NewOfficePowerPointPdfOptionsCommand), null));
         state.Commands.Add(new SessionStateCmdletEntry("New-OfficePowerPointImageOptions", typeof(NewOfficePowerPointImageOptionsCommand), null));
+        state.Commands.Add(new SessionStateCmdletEntry("New-OfficePowerPointOpenDocumentOptions", typeof(NewOfficePowerPointOpenDocumentOptionsCommand), null));
         var runspace = RunspaceFactory.CreateRunspace(state);
         runspace.Open();
         return runspace;
