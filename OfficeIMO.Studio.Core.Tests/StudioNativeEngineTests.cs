@@ -562,6 +562,18 @@ public sealed class StudioNativeEngineTests : IDisposable {
     }
 
     [Fact]
+    public async Task Exporting_a_simple_pdf_to_word_gives_no_notes() {
+        string text = Path.Combine(_root, "simple.txt");
+        File.WriteAllText(text, "Quarterly notes");
+        string pdf = Path.Combine(_root, "simple.pdf");
+        await PdfConversion.ConvertAsync(text, pdf, default);
+
+        PdfConversionResult result = await PdfConversion.ConvertPdfAsync(File.ReadAllBytes(pdf), null, "word", Path.Combine(_root, "simple.docx"), default);
+
+        Assert.Empty(result.Notes);
+    }
+
+    [Fact]
     public async Task Notes_change_and_go_as_undoable_edits() {
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePdf(1), null, default);
         await document.AddAnnotationAsync(new StudioNativeAnnotationRequest("note", 1, Bounds: new StudioNativeRectangle(100, 100, 18, 18),
