@@ -2288,9 +2288,23 @@ precise removal policy; constructing a new rectangle from its bounds loses that
 evidence. After checking the search plan's `IsReviewable` and `Findings`, pass the
 selected, relabeled areas to `source.Redactions.Plan(...)` for a fresh impact review.
 
-Matched-glyph selection rejects partial ligatures, ambiguous ActualText mappings,
-unsupported clipping or glyph evidence, and areas that intersect unselected text
-(including hidden layers and tightly spaced lines whose conservative glyph bounds overlap).
+Matched-glyph selection removes exactly the selected glyphs, identified by page
+position and encoded bytes, and paints the full mark over them. The mark can reach
+into a neighbouring line: on single-spaced text it clips the descender tips of the
+line above, and that line stays in the file and remains extractable. Occurrences in
+hidden layers are selected too, and tagged `Alt`, `ActualText`, `E` and `TU` entries
+holding the matched wording are removed. A search mark cannot be saved as a `/Redact`
+annotation, because an annotation records only a rectangle.
+
+`TextAndUnderlay` still removes image pixels and intersecting vector paths across the
+whole mark, so scanned ink under a match is erased, including descenders, while
+neighbouring OCR text stays. `TextOnly` keeps the image, and refuses when other text
+reaches the mark over that image.
+
+Selection is refused for partial ligatures, ambiguous ActualText mappings, unsupported
+clipping or glyph evidence, and any text that overlaps the match or would have more
+than a quarter of its lower body covered by the mark (including hidden layers, very
+tight line spacing and diagonal text).
 Inspect `IsReviewable` and `Findings`: a blocked selection cannot be applied, even
 when other criteria matched safely. Its reviewed areas never fall back to complete
 text-object removal. Ordinary `Apply(plan)` also verifies preservation for these
@@ -2307,8 +2321,7 @@ and fractional review geometry. Independently produced TrueType and CFF regressi
 inputs cover neighboring text, bookmarks and ink preservation; the
 [viewer checks](../Build/PdfViewerVerification/README.md) describe independent
 readback and rendering. Outlined letters require a reviewed area because they are
-vector paths rather than searchable text. Tight spacing can still block a substring
-when its review envelope intersects an unselected glyph.
+vector paths rather than searchable text.
 
 `source.Redactions.ApplyForSharing(plan, sanitizationOptions, verificationOptions: verification)` applies the reviewed redaction, sanitizes with the explicit policy, and verifies the final bytes. It requires successful sanitization, policy-specific preservation, unchanged page content and geometry, and final redaction checks. It does not bypass active-content or protected-document mutation gates. A policy that changes page content, such as flattening optional content, may need to be applied before planning redaction.
 

@@ -40,6 +40,17 @@ internal static class PdfTextSpanGeometry {
     internal static PdfTextSpanBounds GetRedactionGlyphBounds(PdfTextSpan span, double advanceOffset, double advance) =>
         GetAxisAlignedBoundsCore(span, advanceOffset, advance, 1D, -0.25D, useSourceTransform: true);
 
+    /// <summary>Returns the lower body of a glyph, from its baseline to half its em height.</summary>
+    /// <remarks>Letters of any height have ink here, so covering this box covers the glyph, while the descender and ascender bands of a neighbouring line stay outside it.</remarks>
+    internal static PdfTextSpanBounds GetGlyphBodyBounds(PdfTextSpan span, double advanceOffset, double advance) =>
+        GetAxisAlignedBoundsCore(span, advanceOffset, advance, 0.5D, 0D, useSourceTransform: true);
+
+    /// <summary>Projects a baseline advance offset to its page-space origin, as <see cref="PdfTextSpan.TryGetGlyphs"/> does.</summary>
+    internal static (double X, double Y) GetGlyphOrigin(PdfTextSpan span, double advanceOffset) {
+        double radians = span.RotationDegrees * Math.PI / 180D;
+        return (span.X + Math.Cos(radians) * advanceOffset, span.Y + Math.Sin(radians) * advanceOffset);
+    }
+
     private static PdfTextSpanBounds GetAxisAlignedBoundsCore(PdfTextSpan span, double advanceOffset, double advance,
         double firstNormalFactor, double secondNormalFactor, bool useSourceTransform = false) {
 #if NET6_0_OR_GREATER
@@ -108,6 +119,12 @@ internal static class PdfTextSpanGeometry {
     }
 
     internal static bool IntersectsAreaAtCharacterLevel(PdfTextSpan span, PdfRedactionArea area) {
+        if (area.GlyphSelection is PdfRedactionGlyphSelection selection) {
+            return span.TryGetGlyphs(out IReadOnlyList<PdfTextGlyph> glyphs)
+                ? glyphs.Any(glyph => selection.Contains(glyph.X, glyph.Y, glyph.EncodedBytes))
+                : area.TargetsSpan(GetRedactionBounds(span));
+        }
+
         if (!PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries)) {
             PdfTextSpanBounds bounds = GetRedactionBounds(span);
             return area.IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);

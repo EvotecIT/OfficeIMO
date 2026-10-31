@@ -88,9 +88,17 @@ internal static partial class PdfRedactionApplier {
         PdfRedactionApplyOptions? applyOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
         PdfLoadOptions? readOptions = null) {
+        Guard.NotNull(areas, nameof(areas));
+        PdfRedactionArea[] areaArray = areas.ToArray();
+        if (areaArray.Any(static area => area.RequiresGlyphRewrite)) {
+            // Search marks need the plan route, which proves the exact glyph outcome before returning.
+            return Apply(pdf, PdfRedactionPlanner.Plan(pdf, areaArray, layoutOptions, readOptions, applyOptions?.CancellationToken ?? default),
+                applyOptions, layoutOptions, readOptions);
+        }
+
         return ApplyCore(
             pdf,
-            areas,
+            areaArray,
             applyOptions,
             layoutOptions,
             readOptions,
@@ -277,6 +285,7 @@ internal static partial class PdfRedactionApplier {
         RedactionMutation mutation = ApplyToObjects(objects, document, plan, areaArray, effectiveOptions, limits, sourceStreamIdentities, mutationScope, paintMarks, imageTargets);
         effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         bool cleanupChanged = ApplyCleanupPolicy(objects, catalogObjectNumber, effectiveOptions.CleanupScope);
+        cleanupChanged = RemoveAlternateTextHoldingMatches(objects, areaArray) || cleanupChanged;
         if (!mutation.HasChanges && !cleanupChanged) {
             generatedGrowth = default;
             appliedImageMatches = mutation.AppliedImageMatches;

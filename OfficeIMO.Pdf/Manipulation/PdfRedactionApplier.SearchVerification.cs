@@ -68,7 +68,13 @@ internal static partial class PdfRedactionApplier {
             if (page.Value.Any(static area => area.RequiresGlyphRewrite)) {
                 foreach (Regex regex in regexes) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (PdfTextEditor.HasRegexRedactionMatch(output, regex, pageNumber, outputOptions, workBudget, cancellationToken))
+                    if (PdfTextEditor.HasRegexRedactionMatch(output, regex, pageNumber, outputOptions, workBudget, cancellationToken) ||
+                        PdfTextEditor.HasHiddenLayerRegexRedactionMatch(output, regex, pageNumber, outputOptions, workBudget, cancellationToken))
+                        ThrowSurvivingText(pageNumber);
+                }
+                foreach (string literal in literals) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (PdfTextEditor.HasHiddenLayerRedactionMatch(output, literal, plan.SearchMatchCase, pageNumber, outputOptions, workBudget, cancellationToken))
                         ThrowSurvivingText(pageNumber);
                 }
             }

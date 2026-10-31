@@ -15,6 +15,9 @@ public sealed partial class PdfDocumentRedactions {
         options.CancellationToken.ThrowIfCancellationRequested();
         if (options.MaximumAnnotations <= 0 || options.MaximumAnnotations > 64) throw new ArgumentOutOfRangeException(nameof(options), "MaximumAnnotations must be from 1 through 64.");
         if (options.Region.Areas.Count > options.MaximumAnnotations) throw new InvalidOperationException("The redaction region exceeds the configured annotation limit.");
+        // An annotation records only a rectangle, which would remove whatever else the search mark touches.
+        if (options.Region.Areas.Any(static area => area.RequiresGlyphRewrite))
+            throw new InvalidOperationException("A search mark can't be saved as a redaction annotation because it removes exact characters, not a rectangle. Apply it directly, or draw the area by hand.");
         PdfDocument current = _document;
         for (int index = 0; index < options.Region.Areas.Count; index++) {
             options.CancellationToken.ThrowIfCancellationRequested();

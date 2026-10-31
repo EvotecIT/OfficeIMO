@@ -1,0 +1,345 @@
+using OfficeIMO.Pdf;
+using System.Text.RegularExpressions;
+using Xunit;
+
+namespace OfficeIMO.Tests.Pdf {
+    public partial class PdfRedactionApplierTests {
+        // 12 pt Helvetica at the 1.15 em leading of ordinary single-spaced text.
+        private const string SingleSpaced = "BT /F1 12 Tf 13.8 TL 72 720 Td (The Revenue line above) Tj T* " +
+            "(Quarterly invoice Revenue grew) Tj T* (Gypsy typography below) Tj ET";
+
+        [Theory]
+        [InlineData("invoice", 1)]
+        [InlineData("Revenue", 2)]
+        public void SearchRemovesOnlyMatchedGlyphsFromSingleSpacedText(string literal, int occurrences) {
+            byte[] bytes = BuildTextContentRedactionSource(SingleSpaced);
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral(literal));
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            AssertRemovedExactly(bytes, result.Pdf, literal, occurrences);
+            Assert.All(plan.Matches.Where(match => match.Kind == PdfRedactionMatchKind.TextBlock),
+                match => Assert.Equal(literal, match.Text));
+        }
+
+        [Fact]
+        public void SearchKeepsTheFullMarkOverDescendersAndAscenders() {
+            PdfDocument source = PdfDocument.Load(BuildTextContentRedactionSource(SingleSpaced));
+            PdfRedactionArea area = Assert.Single(source.Redactions.Search(PreciseOptions().AddLiteral("invoice")).Areas);
+            Assert.Equal(15D, area.Height, 5);
+            Assert.Equal(720D - 13.8D - 3D, area.Y, 5);
+        }
+
+        [Fact]
+        public void RepeatedWordOnAdjacentLinesCanBeRemovedOneOccurrenceAtATime() {
+            byte[] bytes = BuildTextContentRedactionSource(
+                "BT /F1 12 Tf 13.8 TL 72 720 Td (secret first) Tj T* (secret second) Tj ET");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan search = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            Assert.True(search.IsReviewable, DescribeFindings(search));
+            Assert.Equal(2, search.Areas.Count);
+
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(source.Redactions.Plan(new[] { search.Areas[0] }));
+
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            string text = result.ToDocument().Read().Text;
+            Assert.Single(Regex.Matches(text, "secret"));
+            Assert.Contains("secret second", text, StringComparison.Ordinal);
+            Assert.Contains("first", text, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData("BT /F1 12 Tf 13.8 TL 72 720 Td (Alpha ) Tj (sec) Tj (ret) Tj ( Omega) Tj T* (next line) Tj ET")]
+        [InlineData("BT /F1 12 Tf 13.8 TL 72 720 Td [(Alpha se) 40 (cr) -30 (et Omega)] TJ T* (next line) Tj ET")]
+        [InlineData("BT /F1 12 Tf 13.8 TL 72 720 Td (Alpha ) ' (secret Omega) Tj 0 -13.8 Td (next line) Tj ET")]
+        public void MatchesAcrossTextRunsAndKerningKeepTheirNeighbours(string content) {
+            byte[] bytes = BuildTextContentRedactionSource(content);
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            AssertRemovedExactly(bytes, result.Pdf, "secret");
+            Assert.Contains("next line", result.ToDocument().Read().Text, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData("BT /F1 12 Tf 14 TL 72 720 Td (Alpha secret) Tj T* (account Omega) Tj ET", "secret account")]
+        [InlineData("BT /F1 20 Tf 72 720 Td [(Alpha ) 120 (secret) -120 ( Omega)] TJ ET", "secret")]
+        public void SearchMarksMayTouchKeptTextWithoutRemovingIt(string content, string literal) {
+            byte[] bytes = BuildTextContentRedactionSource(content);
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral(literal));
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            string text = result.ToDocument().Read().Text;
+            Assert.Contains("Alpha", text, StringComparison.Ordinal);
+            Assert.Contains("Omega", text, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void ManualRectangleOverTheSameGeometryStillRemovesTheNeighbouringLine() {
+            byte[] bytes = BuildTextContentRedactionSource(SingleSpaced);
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionArea mark = Assert.Single(source.Redactions.Search(PreciseOptions().AddLiteral("invoice")).Areas);
+            var rectangle = new PdfRedactionArea(1, mark.X, mark.Y, mark.Width, mark.Height, "manual", PdfRedactionContentScope.TextOnly);
+
+            string text = source.Redactions.Apply(new[] { rectangle }).Read().Text;
+
+            Assert.DoesNotContain("invoice", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("line above", text.Replace("\n", " "), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void TightLeadingThatHidesTheNeighbourIsRefused() {
+            byte[] bytes = BuildTextContentRedactionSource("BT /F1 12 Tf 8 TL 72 720 Td (Alpha above text) Tj T* (Alpha secret text) Tj ET");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            Assert.False(plan.IsReviewable);
+            Assert.Contains(plan.Findings, finding => finding.Code == "redaction-search-unselected-text-intersection");
+            Assert.Throws<InvalidOperationException>(() => source.Redactions.Apply(plan));
+            Assert.Equal(bytes, source.ToBytes());
+        }
+
+        [Fact]
+        public void DiagonalTextKeepsTheRefusalBecauseItsMarkWouldCoverTheNeighbour() {
+            byte[] bytes = BuildTextContentRedactionSource(
+                "BT /F1 12 Tf 0.7071 0.7071 -0.7071 0.7071 200 400 Tm 13.8 TL (A confidential word here) Tj T* (Another nearby line of text) Tj ET");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("confidential"));
+            Assert.False(plan.IsReviewable, DescribeFindings(plan));
+            Assert.Contains(plan.Findings, finding => finding.Code == "redaction-search-unselected-text-intersection");
+        }
+
+        [Theory]
+        [InlineData("0 1 -1 0 200 300")]
+        [InlineData("-1 0 0 -1 500 600")]
+        public void RotatedSingleSpacedTextKeepsTheNeighbouringLine(string matrix) {
+            byte[] bytes = BuildTextContentRedactionSource(
+                "BT /F1 12 Tf " + matrix + " Tm 13.8 TL (Alpha secret Omega) Tj T* (Gypsy next line) Tj ET");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            AssertRemovedExactly(bytes, result.Pdf, "secret");
+        }
+
+        [Fact]
+        public void IdenticalTextPaintedTwiceIsRemovedFromBothLayers() {
+            byte[] bytes = BuildTextContentRedactionSource(
+                "BT /F1 12 Tf 72 720 Td (Alpha secret Omega) Tj ET BT /F1 12 Tf 72 720 Td (Alpha secret Omega) Tj ET");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            if (!plan.IsReviewable) {
+                Assert.Contains(plan.Findings, finding => finding.Code == "redaction-search-unselected-text-intersection");
+                return;
+            }
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            Assert.DoesNotContain("secret", result.ToDocument().Read().Text, StringComparison.Ordinal);
+            Assert.DoesNotContain(ReadAllGlyphs(result.Pdf), glyph => glyph.Text == "s" && glyph.Y == 720D);
+        }
+
+        [Fact]
+        public void BoldEffectFromTextPaintedTwiceWithAnOffsetIsRemovedFromBothCopies() {
+            byte[] bytes = BuildTextContentRedactionSource(
+                "BT /F1 12 Tf 72 720 Td (Alpha secret Omega) Tj ET BT /F1 12 Tf 72.3 720 Td (Alpha secret Omega) Tj ET");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            AssertRemovedExactly(bytes, result.Pdf, "secret", expectedOccurrences: 2);
+        }
+
+        [Fact]
+        public void MatchesInHiddenLayersAreRemovedWhereverTheyAre() {
+            const string content = "BT /F1 12 Tf 13.8 TL 72 720 Td (Alpha secret Omega) Tj T* (Keep this line) Tj ET " +
+                "/OC /Layer BDC BT /F1 12 Tf 72 400 Td (Layer secret note) Tj ET EMC";
+            byte[] bytes = BuildLayeredSource(content);
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+            Assert.Equal(2, plan.Areas.Count);
+
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            AssertRemovedExactly(bytes, result.Pdf, "secret", expectedOccurrences: 2);
+        }
+
+        [Fact]
+        public void FormXObjectInvokedTwiceLosesOnlyTheSelectedPlacement() {
+            byte[] form = System.Text.Encoding.ASCII.GetBytes("BT /F1 12 Tf 0 0 Td (Form secret text) Tj ET");
+            byte[] bytes = BuildPdf(new[] {
+                "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+                "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+                "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Resources << /Font << /F1 4 0 R >> /XObject << /Fm1 6 0 R >> >> >>\nendobj",
+                "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+                BuildStreamObject(5, System.Text.Encoding.ASCII.GetBytes("q 1 0 0 1 72 720 cm /Fm1 Do Q q 1 0 0 1 72 706.2 cm /Fm1 Do Q")),
+                "6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 -20 300 20] /Resources << /Font << /F1 4 0 R >> >> /Length " + form.Length + " >>\nstream\n" +
+                    System.Text.Encoding.ASCII.GetString(form) + "\nendstream\nendobj"
+            }, rootObjectNumber: 1);
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan search = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            Assert.True(search.IsReviewable, DescribeFindings(search));
+            Assert.Equal(2, search.Areas.Count);
+
+            PdfRedactionApplyResult one = source.Redactions.ApplyWithEvidence(source.Redactions.Plan(new[] { search.Areas[0] }));
+            Assert.True(one.Evidence.IsVerified, one.Evidence.Summary);
+            Assert.Single(Regex.Matches(one.ToDocument().Read().Text, "secret"));
+            Assert.Equal(2, Regex.Matches(one.ToDocument().Read().Text, "Form").Count);
+
+            PdfRedactionApplyResult both = source.Redactions.ApplyWithEvidence(search);
+            Assert.True(both.Evidence.IsVerified, both.Evidence.Summary);
+            AssertRemovedExactly(bytes, both.Pdf, "secret", expectedOccurrences: 2);
+            Assert.DoesNotContain("Form secret", PdfEncoding.Latin1GetString(both.Pdf), StringComparison.Ordinal);
+            Assert.Empty(PdfReadDocument.Open(both.Pdf).Objects.Values.Select(item => item.Value).OfType<PdfStream>()
+                .Where(stream => PdfEncoding.Latin1GetString(OfficeIMO.Pdf.Filters.StreamDecoder.DecodeRequired(stream, PdfReadDocument.Open(both.Pdf).Objects, int.MaxValue)).IndexOf("secret", StringComparison.Ordinal) >= 0));
+        }
+
+        [Fact]
+        public void TaggedAlternateTextHoldingTheMatchIsRemovedAndOtherDescriptionsStay() {
+            byte[] bytes = BuildPdf(new[] {
+                "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R >>\nendobj",
+                "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+                "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+                "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+                BuildStreamObject(5, System.Text.Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Alpha secret Omega) Tj ET")),
+                "6 0 obj\n<< /Type /StructTreeRoot /K [7 0 R 8 0 R] >>\nendobj",
+                "7 0 obj\n<< /Type /StructElem /S /P /P 6 0 R /Alt (the secret alt) /ActualText (Alpha secret actual) >>\nendobj",
+                "8 0 obj\n<< /Type /StructElem /S /P /P 6 0 R /Alt (A harmless picture) >>\nendobj"
+            }, rootObjectNumber: 1);
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionArea mark = Assert.Single(source.Redactions.Search(PreciseOptions().AddLiteral("secret")).Areas);
+
+            string raw = PdfEncoding.Latin1GetString(source.Redactions.Apply(source.Redactions.Plan(new[] { mark })).ToBytes());
+
+            Assert.DoesNotContain("secret", raw, StringComparison.Ordinal);
+            Assert.Contains("A harmless picture", raw, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void SelectionMustBelongToTheDocumentItIsAppliedTo() {
+            PdfDocument first = PdfDocument.Load(BuildTextContentRedactionSource(SingleSpaced));
+            PdfRedactionArea mark = Assert.Single(first.Redactions.Search(PreciseOptions().AddLiteral("invoice")).Areas);
+            byte[] otherBytes = BuildTextContentRedactionSource(SingleSpaced.Replace("invoice", "pricing"));
+            PdfDocument other = PdfDocument.Load(otherBytes);
+
+            PdfRedactionPlan plan = other.Redactions.Plan(new[] { mark });
+
+            Assert.False(plan.IsReviewable);
+            Assert.Contains(plan.Findings, finding => finding.Code == "redaction-search-selection-stale");
+            Assert.Throws<InvalidOperationException>(() => other.Redactions.Apply(new[] { mark }));
+            Assert.Equal(otherBytes, other.ToBytes());
+        }
+
+        [Fact]
+        public void DirectAreaRouteAppliesSearchMarksByIdentity() {
+            byte[] bytes = BuildTextContentRedactionSource(SingleSpaced);
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionArea mark = Assert.Single(source.Redactions.Search(PreciseOptions().AddLiteral("invoice")).Areas);
+            AssertRemovedExactly(bytes, source.Redactions.Apply(new[] { mark }).ToBytes(), "invoice");
+        }
+
+        [Fact]
+        public void SearchMarksCannotBecomeRectangleAnnotations() {
+            PdfDocument source = PdfDocument.Load(BuildTextContentRedactionSource(SingleSpaced));
+            PdfRedactionArea mark = Assert.Single(source.Redactions.Search(PreciseOptions().AddLiteral("invoice")).Areas);
+            Assert.Throws<InvalidOperationException>(() => source.Redactions.AddAnnotation(
+                new PdfRedactionAnnotationOptions(PdfRedactionRegion.Group(1, new[] { mark }))));
+        }
+
+        [Fact]
+        public void ImageUnderAMatchIsWipedAcrossTheFullMarkAndNeighbouringTextStays() {
+            byte[] bytes = BuildScanWithTextLayer(out string content);
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionSearchOptions options = PreciseOptions().AddLiteral("secret");
+            options.ContentScope = PdfRedactionContentScope.TextAndUnderlay;
+            PdfRedactionPlan plan = source.Redactions.Search(options);
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+            Assert.Contains(plan.Matches, match => match.Kind == PdfRedactionMatchKind.ImagePlacement);
+
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            AssertRemovedExactly(bytes, result.Pdf, "secret");
+            Assert.Contains(result.Evidence.Items, item => item.ReviewedMatch.Kind == PdfRedactionMatchKind.ImagePlacement);
+        }
+
+        [Fact]
+        public void KeepingTheImageUnderAMatchWithNearbyTextIsRefused() {
+            byte[] bytes = BuildScanWithTextLayer(out _);
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            Assert.False(plan.IsReviewable);
+            Assert.Contains(plan.Findings, finding => finding.Code == "redaction-search-unselected-text-intersection");
+            Assert.Throws<InvalidOperationException>(() => source.Redactions.Apply(plan));
+            Assert.Equal(bytes, source.ToBytes());
+        }
+
+        [Theory]
+        [InlineData(PdfStandardEncryptionAlgorithm.Aes128)]
+        [InlineData(PdfStandardEncryptionAlgorithm.Aes256)]
+        public void EncryptedSingleSpacedSourceStaysEncrypted(PdfStandardEncryptionAlgorithm algorithm) {
+            byte[] bytes = BuildTextContentRedactionSource(SingleSpaced);
+            byte[] encrypted = PdfDocument.Load(bytes).Security.Encrypt(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner", Algorithm = algorithm }).Pdf;
+            PdfDocument source = PdfDocument.Load(encrypted, new PdfLoadOptions { Password = "owner" });
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("invoice"));
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+
+            byte[] output = source.Redactions.Apply(plan).ToBytes();
+
+            Assert.ThrowsAny<Exception>(() => PdfReadDocument.Open(output));
+            PdfDocument opened = PdfDocument.Load(output, new PdfLoadOptions { Password = "owner" });
+            Assert.DoesNotContain("invoice", opened.Read().Text, StringComparison.Ordinal);
+            Assert.Contains("line above", opened.Read().Text.Replace("\n", " "), StringComparison.Ordinal);
+        }
+
+        private byte[] BuildLayeredSource(string content) => BuildPdf(new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [6 0 R] /D << /BaseState /ON /OFF [6 0 R] >> >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Resources << /Font << /F1 4 0 R >> /Properties << /Layer 6 0 R >> >> >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, System.Text.Encoding.ASCII.GetBytes(content)),
+            "6 0 obj\n<< /Type /OCG /Name (Hidden layer) >>\nendobj"
+        }, rootObjectNumber: 1);
+
+        private byte[] BuildScanWithTextLayer(out string content) {
+            // An uncompressed grey image stands in for a scanned page; the OCR layer is invisible text over it.
+            const int width = 306, height = 396;
+            byte[] pixels = Enumerable.Repeat((byte)0xF0, width * height).ToArray();
+            content = "q 612 0 0 792 0 0 cm /Im1 Do Q BT 3 Tr /F1 12 Tf 13.8 TL 72 720 Td (Alpha secret Omega) Tj T* (Gypsy next line) Tj ET";
+            return BuildPdf(new[] {
+                "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+                "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+                "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Resources << /Font << /F1 4 0 R >> /XObject << /Im1 6 0 R >> >> >>\nendobj",
+                "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+                BuildStreamObject(5, System.Text.Encoding.ASCII.GetBytes(content)),
+                "6 0 obj\n<< /Type /XObject /Subtype /Image /Width " + width + " /Height " + height + " /ColorSpace /DeviceGray /BitsPerComponent 8 /Length " + pixels.Length +
+                    " >>\nstream\n" + PdfEncoding.Latin1GetString(pixels) + "\nendstream\nendobj"
+            }, rootObjectNumber: 1);
+        }
+
+        private static IReadOnlyList<(string Text, double X, double Y)> ReadAllGlyphs(byte[] bytes) =>
+            PdfReadDocument.Open(bytes).Pages[0].GetGlyphTextSpans(includeHiddenOptionalContent: true).SelectMany(span => {
+                Assert.True(span.TryGetGlyphs(out IReadOnlyList<PdfTextGlyph> glyphs));
+                return glyphs.Select(glyph => (glyph.Text, Math.Round(glyph.X, 3), Math.Round(glyph.Y, 3)));
+            }).ToArray();
+
+        // The kept glyphs must be exactly the source glyphs minus the matched characters.
+        private static void AssertRemovedExactly(byte[] before, byte[] after, string literal, int expectedOccurrences = 1) {
+            List<(string Text, double X, double Y)> expected = ReadAllGlyphs(before).ToList();
+            IReadOnlyList<(string Text, double X, double Y)> actual = ReadAllGlyphs(after);
+            string lost = string.Concat(expected.Except(actual).Select(static glyph => glyph.Text));
+            Assert.Equal(string.Concat(Enumerable.Repeat(literal, expectedOccurrences)).Length, expected.Count - actual.Count);
+            Assert.Equal(literal.OrderBy(static c => c).Distinct(), lost.OrderBy(static c => c).Distinct());
+            Assert.Empty(actual.Except(expected));
+        }
+    }
+}

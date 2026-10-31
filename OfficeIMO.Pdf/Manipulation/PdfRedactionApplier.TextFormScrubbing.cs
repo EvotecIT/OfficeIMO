@@ -35,6 +35,7 @@ internal static partial class PdfRedactionApplier {
                 effectiveFontDecoders,
                 effectiveFontWidthProviders,
                 effectiveVerticalWritingFonts));
+        var replacedInvocations = new Dictionary<string, int>(StringComparer.Ordinal);
         for (int invocationIndex = invocations.Length - 1; invocationIndex >= 0; invocationIndex--) {
             ImageResourceInvocation invocation = invocations[invocationIndex];
             if (!TryGetFormXObject(objects, xObjects, invocation.Name, out PdfReference reference, out PdfStream formStream) ||
@@ -84,6 +85,8 @@ internal static partial class PdfRedactionApplier {
                     string resourceName = CreateUniqueResourceName(xObjects, invocation.Name);
                     xObjects.Items[resourceName] = reference;
                     rewrittenContent = ReplaceInvocationResourceName(rewrittenContent, invocation, resourceName);
+                    replacedInvocations.TryGetValue(invocation.Name, out int replaced);
+                    replacedInvocations[invocation.Name] = replaced + 1;
                 } else if (sharedReference) {
                     xObjects.Items[invocation.Name] = reference;
                 }
@@ -92,6 +95,12 @@ internal static partial class PdfRedactionApplier {
             } finally {
                 activeForms.Remove(activeObjectNumber);
             }
+        }
+
+        // Once every placement uses a scrubbed copy, the original form is unused but would stay in the file.
+        foreach (KeyValuePair<string, int> replaced in replacedInvocations) {
+            if (replaced.Value == invocations.Count(candidate => string.Equals(candidate.Name, replaced.Key, StringComparison.Ordinal)))
+                xObjects.Items.Remove(replaced.Key);
         }
 
         return new TextFormScrubContentResult(changed, rewrittenContent);

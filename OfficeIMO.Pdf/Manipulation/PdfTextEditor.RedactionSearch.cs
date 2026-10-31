@@ -4,6 +4,11 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfTextEditor {
+    // A search mark may reach into a neighbouring line, but a kept glyph must stay readable. Past this
+    // share of a glyph's body the mark hides the glyph, or the text overlaps the match: either way the
+    // selection cannot be treated as separate from it.
+    private const double MaximumNeighbourBodyCoverage = 0.25D;
+
     internal static bool HasRegexRedactionMatch(byte[] pdf, Regex expression, int pageNumber, PdfLoadOptions? readOptions,
         PdfRedactionSearchWorkBudget budget, CancellationToken cancellationToken) =>
         FindHits(pdf, expression.ToString(), new PdfTextSearchOptions { IncludeTextRenderingMode3 = true, PageNumbers = new[] { pageNumber } },
@@ -11,23 +16,44 @@ internal static partial class PdfTextEditor {
                 .Where(static match => match.Length > 0).Select(static match => new TextSearchRange(match.Index, match.Length, match.Value)),
             includeUnsafeSpans: true, cancellationToken: cancellationToken).Count > 0;
 
+    // Hidden layers are read separately so their text cannot interleave with the visible lines.
+    internal static bool HasHiddenLayerRedactionMatch(byte[] pdf, string literal, bool matchCase, int pageNumber, PdfLoadOptions? readOptions,
+        PdfRedactionSearchWorkBudget budget, CancellationToken cancellationToken) =>
+        HasOptionalContent(pdf, readOptions, cancellationToken) &&
+        FindHits(pdf, literal, new PdfTextSearchOptions { MatchCase = matchCase, IncludeTextRenderingMode3 = true, PageNumbers = new[] { pageNumber } },
+            readOptions, budget, includeUnsafeSpans: true, hiddenOptionalContentOnly: true, cancellationToken: cancellationToken).Count > 0;
+
+    internal static bool HasHiddenLayerRegexRedactionMatch(byte[] pdf, Regex expression, int pageNumber, PdfLoadOptions? readOptions,
+        PdfRedactionSearchWorkBudget budget, CancellationToken cancellationToken) =>
+        HasOptionalContent(pdf, readOptions, cancellationToken) &&
+        FindHits(pdf, expression.ToString(), new PdfTextSearchOptions { IncludeTextRenderingMode3 = true, PageNumbers = new[] { pageNumber } },
+            readOptions, budget, unit => budget.Matches(expression, unit.Text)
+                .Where(static match => match.Length > 0).Select(static match => new TextSearchRange(match.Index, match.Length, match.Value)),
+            includeUnsafeSpans: true, hiddenOptionalContentOnly: true, cancellationToken: cancellationToken).Count > 0;
+
+    private static bool HasOptionalContent(byte[] pdf, PdfLoadOptions? readOptions, CancellationToken cancellationToken) =>
+        PdfReadDocument.Open(pdf, readOptions, cancellationToken).CatalogDictionary?.Items.ContainsKey("OCProperties") == true;
+
     // Reuse the editor's source-range, line-flow and table boundaries instead of
     // approximating a substring's position from logical-block text lengths.
     internal static IReadOnlyList<PdfRedactionArea> FindRedactionAreas(
         byte[] pdf, PdfRedactionSearchOptions search, Regex[] expressions, PdfLoadOptions? readOptions,
         PdfRedactionSearchWorkBudget budget, out IReadOnlyList<PdfDiagnosticFinding> findings) {
-        var areas = new List<PdfRedactionArea>();
-        var areaKeys = new HashSet<(int Page, double Left, double Bottom, double Right, double Top)>();
+        var drafts = new List<MatchedGlyphDraft>();
+        var draftKeys = new Dictionary<(int Page, double Left, double Bottom, double Right, double Top), MatchedGlyphDraft>();
         var diagnostics = new List<PdfDiagnosticFinding>();
         var selected = new HashSet<(int Page, PdfContentOrderKey Owner, int Run, int TextStart)>();
-        var diagnosticKeys = new HashSet<(int Page, string Code)>();
+        var diagnosticKeys = new HashSet<(int Page, string Code, string Message)>();
         var options = new PdfTextSearchOptions {
             MatchCase = search.MatchCase, IncludeTextRenderingMode3 = true,
             PageNumbers = search.PageNumbers.ToArray()
         };
+        bool searchHiddenLayers = HasOptionalContent(pdf, readOptions, search.CancellationToken);
         for (int index = 0; index < search.LiteralText.Count; index++) {
             string literal = search.LiteralText[index];
             AddHits(FindHits(pdf, literal, options, readOptions, budget, includeUnsafeSpans: true,
+                cancellationToken: search.CancellationToken, maximumHits: search.MaximumCandidates), "literal:" + literal);
+            if (searchHiddenLayers) AddHits(FindHits(pdf, literal, options, readOptions, budget, includeUnsafeSpans: true, hiddenOptionalContentOnly: true,
                 cancellationToken: search.CancellationToken, maximumHits: search.MaximumCandidates), "literal:" + literal);
         }
         for (int index = 0; index < expressions.Length; index++) {
@@ -36,32 +62,53 @@ internal static partial class PdfTextEditor {
                 unit => RegexRanges(unit.Text, expression), includeUnsafeSpans: true,
                 cancellationToken: search.CancellationToken, maximumHits: search.MaximumCandidates),
                 "regex:" + search.RegularExpressions[index]);
+            if (searchHiddenLayers) AddHits(FindHits(pdf, expression.ToString(), options, readOptions, budget,
+                unit => RegexRanges(unit.Text, expression), includeUnsafeSpans: true, hiddenOptionalContentOnly: true,
+                cancellationToken: search.CancellationToken, maximumHits: search.MaximumCandidates),
+                "regex:" + search.RegularExpressions[index]);
         }
-        if (areas.Count > 0) {
+        PdfRedactionArea[] areas = drafts
+            .GroupBy(static draft => (draft.Page, draft.Left, draft.Bottom, draft.Right, draft.Top))
+            .Select(group => {
+                MatchedGlyphDraft first = group.First();
+                return new PdfRedactionArea(first.Page, first.Left, first.Bottom, first.Right - first.Left, first.Top - first.Bottom, first.Label, search.ContentScope)
+                    .WithGlyphSelection(new PdfRedactionGlyphSelection(group.SelectMany(static draft => draft.Glyphs),
+                        group.SelectMany(static draft => draft.MatchedTexts)));
+            }).ToArray();
+        if (areas.Length > 0) {
             PdfReadDocument document = PdfReadDocument.Open(pdf, PdfLoadOptions.WithArtifactText(readOptions), search.CancellationToken);
             foreach (IGrouping<int, PdfRedactionArea> pageAreas in areas.GroupBy(static area => area.PageNumber)) {
-                foreach (PdfTextSpan span in document.Pages[pageAreas.Key - 1].GetGlyphTextSpans(
-                    includeHiddenOptionalContent: true, cancellationToken: search.CancellationToken)) {
+                PdfReadPage page = document.Pages[pageAreas.Key - 1];
+                // TextOnly keeps the image under the mark, so a nearby line would be left over retained pixels
+                // of the match. Those areas keep the strict rectangle check; full removal wipes the pixels.
+                IReadOnlyList<PdfImagePlacement> images = page.GetImagePlacementsIncludingHiddenOptionalContent(pageAreas.Key);
+                PdfRedactionArea[] imageAreas = pageAreas.Where(area => area.ContentScope == PdfRedactionContentScope.TextOnly &&
+                    images.Any(image => area.IntersectsRectangle(image.X, image.Y, image.Width, image.Height))).ToArray();
+                foreach (PdfTextSpan span in page.GetGlyphTextSpans(includeHiddenOptionalContent: true, cancellationToken: search.CancellationToken)) {
                     search.CancellationToken.ThrowIfCancellationRequested();
                     if (!CanSelectGlyphs(span, out IReadOnlyList<PdfTextGlyph> glyphs)) {
-                        PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionGlyphBounds(span, 0D, span.Advance);
-                        if (IntersectsAreas(pageAreas, bounds)) Block(pageAreas.Key, "redaction-search-glyph-mapping-unsupported",
-                            "A precise search area intersects text without an unambiguous encoded glyph mapping.");
+                        if (string.IsNullOrWhiteSpace(span.Text)) continue;
+                        if (IntersectsAreas(pageAreas, PdfTextSpanGeometry.GetGlyphBodyBounds(span, 0D, span.Advance)) ||
+                            IntersectsAreas(imageAreas, PdfTextSpanGeometry.GetRedactionGlyphBounds(span, 0D, span.Advance)))
+                            Block(pageAreas.Key, "redaction-search-glyph-mapping-unsupported", GlyphMappingMessage);
                         continue;
                     }
                     PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries);
                     foreach (PdfTextGlyph glyph in glyphs) {
                         budget.Charge(1L);
                         if (selected.Contains(GlyphKey(pageAreas.Key, span, glyph))) continue;
-                        PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionGlyphBounds(span, boundaries[glyph.TextStart], glyph.PaintedAdvance);
-                        if (IntersectsAreas(pageAreas, bounds)) Block(pageAreas.Key, "redaction-search-unselected-text-intersection",
-                            "A precise search area would remove an unselected glyph. Use reviewed geometry or complete-block selection instead.");
+                        double offset = boundaries[glyph.TextStart];
+                        if (IntersectsAreas(imageAreas, PdfTextSpanGeometry.GetRedactionGlyphBounds(span, offset, glyph.PaintedAdvance)))
+                            Block(pageAreas.Key, "redaction-search-unselected-text-intersection", UnselectedTextMessage);
+                        if (string.IsNullOrWhiteSpace(glyph.Text)) continue;
+                        if (GetCoveredShare(pageAreas, PdfTextSpanGeometry.GetGlyphBodyBounds(span, offset, glyph.PaintedAdvance)) > MaximumNeighbourBodyCoverage)
+                            Block(pageAreas.Key, "redaction-search-unselected-text-intersection", UnselectedTextMessage);
                     }
                 }
             }
         }
         findings = diagnostics.AsReadOnly();
-        return areas.AsReadOnly();
+        return areas;
 
         IEnumerable<TextSearchRange> RegexRanges(string text, Regex expression) {
             foreach (Match match in budget.Matches(expression, text)) {
@@ -73,14 +120,13 @@ internal static partial class PdfTextEditor {
 
         void AddHits(IReadOnlyList<TextSearchHit> hits, string label) {
             foreach (TextSearchHit hit in hits) {
-                int firstArea = areas.Count;
+                int firstDraft = drafts.Count;
                 PdfTextSpan? previousSpan = null;
                 foreach (TextSourceSegment segment in hit.Segments) {
                     search.CancellationToken.ThrowIfCancellationRequested();
                     PdfTextSpan span = segment.Span;
                     if (!CanSelectGlyphs(span, out IReadOnlyList<PdfTextGlyph> glyphs)) {
-                        Block(hit.PageNumber, "redaction-search-glyph-mapping-unsupported",
-                            "The matched text does not have an unambiguous encoded glyph mapping. Precise selection cannot be reviewed.");
+                        Block(hit.PageNumber, "redaction-search-glyph-mapping-unsupported", GlyphMappingMessage);
                         continue;
                     }
                     int end = segment.Start + segment.Length;
@@ -88,50 +134,52 @@ internal static partial class PdfTextEditor {
                     if (covered.Length == 0 || covered[0].TextStart != segment.Start ||
                         covered[covered.Length - 1].TextStart + covered[covered.Length - 1].TextLength != end) {
                         Block(hit.PageNumber, "redaction-search-partial-glyph",
-                            "The match selects only part of an encoded glyph, such as a ligature. Precise selection requires complete glyph boundaries.");
+                            "The match covers only part of a joined character, such as a ligature. Search for the whole word or draw the area by hand.");
                         continue;
                     }
                     PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries);
                     double left = double.PositiveInfinity, bottom = double.PositiveInfinity;
                     double right = double.NegativeInfinity, top = double.NegativeInfinity;
+                    var coveredGlyphs = new List<PdfRedactionSelectedGlyph>(covered.Length);
                     foreach (PdfTextGlyph glyph in covered) {
                         budget.Charge(1L);
                         selected.Add(GlyphKey(hit.PageNumber, span, glyph));
+                        coveredGlyphs.Add(new PdfRedactionSelectedGlyph(glyph.X, glyph.Y, glyph.EncodedBytes));
                         PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionGlyphBounds(span, boundaries[glyph.TextStart], glyph.PaintedAdvance);
                         left = Math.Min(left, bounds.Left); bottom = Math.Min(bottom, bounds.Bottom);
                         right = Math.Max(right, bounds.Right); top = Math.Max(top, bounds.Top);
                     }
-                    if (!areaKeys.Add((hit.PageNumber, left, bottom, right, top))) continue;
+                    (int, double, double, double, double) key = (hit.PageNumber, left, bottom, right, top);
+                    if (draftKeys.TryGetValue(key, out MatchedGlyphDraft? existing)) {
+                        // Coincident glyphs share one rectangle, and each of them still has to go.
+                        existing.Glyphs.AddRange(coveredGlyphs);
+                        existing.MatchedTexts.Add(hit.Match.Text);
+                        continue;
+                    }
                     // A phrase may cross adjacent native text shows (including explicit spaces).
                     // Small kerning gaps inside one TJ operator belong to the same phrase geometry.
                     // Independent text operators still have to touch; wide TJ positioning remains separate.
-                    // The unselected-glyph sweep above still checks the complete resulting geometry.
                     double joinTolerance = previousSpan?.ContentOrderKey is not null && previousSpan.ContentOrderKey.Equals(span.ContentOrderKey)
                         ? Math.Max(0.0000001D, Math.Min(previousSpan.FontSize, span.FontSize) * 0.25D) : 0.0000001D;
-                    if (areas.Count > firstArea && CanJoin(areas[areas.Count - 1], hit.PageNumber, left, bottom, right, top, joinTolerance)) {
-                        PdfRedactionArea previous = areas[areas.Count - 1];
-                        double joinedLeft = Math.Min(previous.X, left);
-                        double joinedBottom = Math.Min(previous.Y, bottom);
-                        areas[areas.Count - 1] = new PdfRedactionArea(hit.PageNumber, joinedLeft, joinedBottom,
-                            Math.Max(previous.Right, right) - joinedLeft, Math.Max(previous.Top, top) - joinedBottom,
-                            label, search.ContentScope).RequiringGlyphRewrite();
+                    if (drafts.Count > firstDraft && drafts[drafts.Count - 1].CanJoin(hit.PageNumber, left, bottom, right, top, joinTolerance)) {
+                        MatchedGlyphDraft previous = drafts[drafts.Count - 1];
+                        previous.Join(left, bottom, right, top);
+                        previous.Glyphs.AddRange(coveredGlyphs);
+                        previous.MatchedTexts.Add(hit.Match.Text);
+                        draftKeys[key] = previous;
                         previousSpan = span;
                         continue;
                     }
-                    if (areas.Count >= search.MaximumCandidates) throw new InvalidOperationException("Redaction search exceeded the configured candidate limit.");
-                    areas.Add(new PdfRedactionArea(hit.PageNumber, left, bottom, right - left, top - bottom, label, search.ContentScope)
-                        .RequiringGlyphRewrite());
+                    if (drafts.Count >= search.MaximumCandidates) throw new InvalidOperationException("Redaction search exceeded the configured candidate limit.");
+                    var draft = new MatchedGlyphDraft(hit.PageNumber, left, bottom, right, top, label);
+                    draft.Glyphs.AddRange(coveredGlyphs);
+                    draft.MatchedTexts.Add(hit.Match.Text);
+                    drafts.Add(draft);
+                    draftKeys[key] = draft;
                     previousSpan = span;
                 }
             }
         }
-
-        bool CanJoin(PdfRedactionArea previous, int page, double left, double bottom, double right, double top, double tolerance) =>
-            previous.PageNumber == page && (
-                Math.Abs(previous.Y - bottom) < 0.0000001D && Math.Abs(previous.Top - top) < 0.0000001D &&
-                left <= previous.Right + tolerance && right >= previous.X - tolerance ||
-                Math.Abs(previous.X - left) < 0.0000001D && Math.Abs(previous.Right - right) < 0.0000001D &&
-                bottom <= previous.Top + tolerance && top >= previous.Y - tolerance);
 
         bool IntersectsAreas(IEnumerable<PdfRedactionArea> candidates, PdfTextSpanBounds bounds) {
             foreach (PdfRedactionArea area in candidates) {
@@ -141,8 +189,55 @@ internal static partial class PdfTextEditor {
             return false;
         }
 
+        double GetCoveredShare(IEnumerable<PdfRedactionArea> candidates, PdfTextSpanBounds body) {
+            double covered = 0D;
+            double total = (body.Right - body.Left) * (body.Top - body.Bottom);
+            if (total <= 0D) return 0D;
+            foreach (PdfRedactionArea area in candidates) {
+                budget.Charge(1L);
+                double width = Math.Min(area.Right, body.Right) - Math.Max(area.X, body.Left);
+                double height = Math.Min(area.Top, body.Top) - Math.Max(area.Y, body.Bottom);
+                if (width > 0D && height > 0D) covered += width * height;
+            }
+            return covered / total;
+        }
+
         void Block(int page, string code, string message) {
-            if (diagnosticKeys.Add((page, code))) diagnostics.Add(new PdfDiagnosticFinding(PdfDiagnosticSeverity.Error, code, message, pageNumber: page));
+            if (diagnosticKeys.Add((page, code, message))) diagnostics.Add(new PdfDiagnosticFinding(PdfDiagnosticSeverity.Error, code, message, pageNumber: page));
+        }
+    }
+
+    // Studio matches on this text, so keep the wording as it is.
+    private const string UnselectedTextMessage =
+        "A precise search area would remove an unselected glyph. Use reviewed geometry or complete-block selection instead.";
+
+    private const string GlyphMappingMessage =
+        "This text can't be traced to exact characters in the file, so it can't be removed on its own. Select the whole block or draw the area by hand.";
+
+    private sealed class MatchedGlyphDraft {
+        internal MatchedGlyphDraft(int page, double left, double bottom, double right, double top, string label) {
+            Page = page; Left = left; Bottom = bottom; Right = right; Top = top; Label = label;
+        }
+
+        internal int Page { get; }
+        internal double Left { get; private set; }
+        internal double Bottom { get; private set; }
+        internal double Right { get; private set; }
+        internal double Top { get; private set; }
+        internal string Label { get; }
+        internal List<PdfRedactionSelectedGlyph> Glyphs { get; } = new();
+        internal List<string> MatchedTexts { get; } = new();
+
+        internal bool CanJoin(int page, double left, double bottom, double right, double top, double tolerance) =>
+            Page == page && (
+                Math.Abs(Bottom - bottom) < 0.0000001D && Math.Abs(Top - top) < 0.0000001D &&
+                left <= Right + tolerance && right >= Left - tolerance ||
+                Math.Abs(Left - left) < 0.0000001D && Math.Abs(Right - right) < 0.0000001D &&
+                bottom <= Top + tolerance && top >= Bottom - tolerance);
+
+        internal void Join(double left, double bottom, double right, double top) {
+            Left = Math.Min(Left, left); Bottom = Math.Min(Bottom, bottom);
+            Right = Math.Max(Right, right); Top = Math.Max(Top, top);
         }
     }
 

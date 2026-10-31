@@ -88,16 +88,26 @@ internal static partial class PdfRedactionPlanner {
         var glyphTextSpansByPage = new Dictionary<int, IReadOnlyList<PdfTextSpan>>();
         var hiddenImagePlacementsByPage = new Dictionary<int, IReadOnlyList<PdfImagePlacement>>();
         var inconclusiveOptionalContentPages = new HashSet<int>();
+        var staleSelectionPages = new HashSet<int>();
 
+        PdfReadDocument? glyphDocument = null;
         foreach (PdfRedactionArea area in areaArray) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (area.RequiresGlyphRewrite && area.PageNumber <= readDocument.Pages.Count) {
+            if (area.GlyphSelection is PdfRedactionGlyphSelection selection && area.PageNumber <= readDocument.Pages.Count) {
                 if (!glyphTextSpansByPage.TryGetValue(area.PageNumber, out IReadOnlyList<PdfTextSpan>? glyphSpans)) {
-                    glyphSpans = readDocument.Pages[area.PageNumber - 1].GetGlyphTextSpans(
-                        includeHiddenOptionalContentText, cancellationToken);
+                    // A selection can name glyphs in hidden layers and artifacts, so resolve it against all of them.
+                    glyphDocument ??= PdfReadDocument.Open(pdf, PdfLoadOptions.WithArtifactText(options), cancellationToken);
+                    glyphSpans = glyphDocument.Pages[area.PageNumber - 1].GetGlyphTextSpans(
+                        includeHiddenOptionalContent: true, cancellationToken);
                     glyphTextSpansByPage.Add(area.PageNumber, glyphSpans);
                 }
-                AddGlyphTextMatches(area, glyphSpans, matches, cancellationToken);
+                bool resolved = AddSelectedGlyphMatches(area, selection, glyphSpans, matches, cancellationToken);
+                // Verification plans run on the rewritten output, where selected glyphs are expected to be gone.
+                if (!resolved && !excludeGeneratedRedactionMarks && staleSelectionPages.Add(area.PageNumber)) {
+                    findings.Add(new PdfDiagnosticFinding(PdfDiagnosticSeverity.Error, "redaction-search-selection-stale",
+                        "This search mark no longer matches the document. Search again before applying it.",
+                        pageNumber: area.PageNumber));
+                }
             } else {
                 AddTextMatches(area, logical, matches);
             }
@@ -200,15 +210,28 @@ internal static partial class PdfRedactionPlanner {
         }
     }
 
-    private static void AddGlyphTextMatches(PdfRedactionArea area, IReadOnlyList<PdfTextSpan> spans,
+    // Reports what the mark removes, not everything its rectangle touches. Returns false when a selected glyph is missing.
+    private static bool AddSelectedGlyphMatches(PdfRedactionArea area, PdfRedactionGlyphSelection selection, IReadOnlyList<PdfTextSpan> spans,
         List<PdfRedactionMatch> matches, CancellationToken cancellationToken) {
+        var resolved = new HashSet<int>();
         foreach (PdfTextSpan span in spans) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!PdfTextSpanGeometry.IntersectsAreaAtCharacterLevel(span, area)) continue;
-            PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionGlyphBounds(span, 0D, span.Advance);
-            matches.Add(new PdfRedactionMatch(PdfRedactionMatchKind.TextBlock, area, area.PageNumber,
-                bounds.Left, bounds.Bottom, bounds.Width, bounds.Height, span.Text, null, null));
+            if (!area.TargetsSpan(PdfTextSpanGeometry.GetRedactionBounds(span)) || !span.TryGetGlyphs(out IReadOnlyList<PdfTextGlyph> glyphs)) continue;
+            PdfTextGlyph[] selected = glyphs.Where(glyph => selection.Contains(glyph.X, glyph.Y, glyph.EncodedBytes)).ToArray();
+            if (selected.Length == 0) continue;
+            PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries);
+            double left = double.PositiveInfinity, bottom = double.PositiveInfinity;
+            double right = double.NegativeInfinity, top = double.NegativeInfinity;
+            foreach (PdfTextGlyph glyph in selected) {
+                selection.MarkResolved(glyph.X, glyph.Y, glyph.EncodedBytes, resolved);
+                PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionGlyphBounds(span, boundaries[glyph.TextStart], glyph.PaintedAdvance);
+                left = Math.Min(left, bounds.Left); bottom = Math.Min(bottom, bounds.Bottom);
+                right = Math.Max(right, bounds.Right); top = Math.Max(top, bounds.Top);
+            }
+            matches.Add(new PdfRedactionMatch(PdfRedactionMatchKind.TextBlock, area, area.PageNumber, left, bottom, right - left, top - bottom,
+                string.Concat(selected.Select(static glyph => glyph.Text)), null, null));
         }
+        return resolved.Count == selection.Count;
     }
 
     private static double GetEffectiveFontSize(PdfLogicalTextBlock block) {
