@@ -210,8 +210,11 @@ struct DocumentToolbar: ToolbarContent {
 
     /// Opens the search field, which on iPad and iPhone appears only when it is asked for.
     private var searchButton: some View {
-        Button("Search", systemImage: "magnifyingglass") { session.isSearchFocused = true }
-            .disabled(!session.isReady || session.task == .pages || session.facts?.canExtractText == false)
+        Button("Search", systemImage: "magnifyingglass") {
+            session.task = .read
+            session.isSearchFocused = true
+        }
+        .disabled(!session.isReady || session.facts?.canExtractText == false)
     }
 
     /// What can be done to the document, as the Tools menu does on the Mac.

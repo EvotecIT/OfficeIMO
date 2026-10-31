@@ -8,6 +8,7 @@ import UIKit
 final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDelegate, UITextViewDelegate {
     private let session: DocumentSession
     private unowned let scrollView: PageScrollView
+    private var keyboardFrame: CGRect?
     private let tap = UITapGestureRecognizer()
     /// The field being typed in: its page, field and widget, and the control over it.
     private var editing: (page: Int, field: FormField, widget: FormField.Widget, control: UIView)?
@@ -21,6 +22,7 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
         tap.delegate = self
         scrollView.addGestureRecognizer(tap)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardShown(_:)), name: UIResponder.keyboardDidShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardHidden), name: UIResponder.keyboardDidHideNotification, object: nil)
     }
 
     func setEnabled(_ enabled: Bool) {
@@ -120,6 +122,8 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
         editing = (page, field, widget, control)
         layout()
         control.becomeFirstResponder()
+        // Moving between fields keeps the keyboard up, so no new notification follows.
+        liftAboveKeyboard()
     }
 
     /// Tells the keyboard and AutoFill what the field asks for.
@@ -167,19 +171,31 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
         editing = nil
         let text = (current.control as? UITextField)?.text ?? (current.control as? UITextView)?.text ?? ""
         current.control.removeFromSuperview()
-        scrollView.keyboardInset = 0
         if commit, text != current.field.text { session.setField(current.field, values: [text]) }
     }
 
     @objc private func keyboardShown(_ notification: Notification) {
-        // The keyboard may cover the field. Room under the pages lets a field near the end scroll above it.
-        guard let editing, let window = scrollView.window,
-              let keyboard = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
-        let bottom = window.convert(scrollView.bounds, from: scrollView).maxY
-        scrollView.keyboardInset = max(0, bottom - keyboard.minY)
+        keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
+        liftAboveKeyboard()
+    }
+
+    @objc private func keyboardHidden() {
+        keyboardFrame = nil
+        scrollView.keyboardInset = 0
+    }
+
+    /// The keyboard may cover the field. Room under the pages lets a field near the end scroll above it. The keyboard
+    /// reports screen coordinates, and only a docked one reaches the bottom of the view; a floating one needs no room.
+    private func liftAboveKeyboard() {
+        guard let editing, let window = scrollView.window, let keyboardFrame else { return }
+        let keyboard = window.screen.coordinateSpace.convert(keyboardFrame, to: window)
+        let view = window.convert(scrollView.bounds, from: scrollView)
+        scrollView.keyboardInset = keyboard.intersects(view) && keyboard.maxY >= view.maxY ? view.maxY - keyboard.minY : 0
         let field = window.convert(editing.control.bounds, from: editing.control)
-        let overlap = field.maxY + 24 - keyboard.minY
-        if overlap > 0 { scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: scrollView.contentOffset.y + overlap), animated: true) }
+        if field.intersects(keyboard) {
+            let offset = CGPoint(x: scrollView.contentOffset.x, y: scrollView.contentOffset.y + field.maxY + 24 - keyboard.minY)
+            scrollView.setContentOffset(offset, animated: true)
+        }
     }
 
     // MARK: Choices

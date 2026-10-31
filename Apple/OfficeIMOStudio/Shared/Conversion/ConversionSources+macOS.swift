@@ -45,20 +45,29 @@ enum ConversionSources {
         }
     }
 
-    /// The order sheet, over the window the command came from.
+    /// The order sheet over the window the command came from, or a window of its own when none is open.
     private static func chooseOrder(_ files: [URL]) async -> [URL]? {
-        guard let parent = NSApp.keyWindow ?? NSApp.mainWindow ?? NSApp.windows.first(where: \.isVisible) else { return files }
+        let parent = NSApp.keyWindow ?? NSApp.mainWindow ?? NSApp.windows.first(where: \.isVisible)
         return await withCheckedContinuation { continuation in
-            var sheet: NSWindow?
+            var shown: NSWindow?
             let host = NSHostingController(rootView: CombineOrderView(files: files) { result in
-                if let sheet { parent.endSheet(sheet) }
-                sheet = nil
+                if let shown {
+                    if let parent { parent.endSheet(shown) } else { shown.close() }
+                }
+                shown = nil
                 continuation.resume(returning: result)
             })
             let window = NSWindow(contentViewController: host)
             window.title = String(localized: "Combine Files")
-            sheet = window
-            parent.beginSheet(window)
+            window.styleMask = [.titled]
+            window.isReleasedWhenClosed = false
+            shown = window
+            if let parent {
+                parent.beginSheet(window)
+            } else {
+                window.center()
+                window.makeKeyAndOrderFront(nil)
+            }
         }
     }
 

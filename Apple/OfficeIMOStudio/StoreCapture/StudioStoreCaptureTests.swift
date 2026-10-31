@@ -59,7 +59,14 @@ final class StudioStoreCaptureTests: XCTestCase {
         // Compact iPhone chrome has its own layout. Its full-page capture is
         // sufficient; search captures use the visible regular-width search UI.
         if role != "iphone" {
+            #if os(iOS)
+            let open = app.buttons["Search"]
+            XCTAssertTrue(open.waitForExistence(timeout: 30), viewport.debugDescription)
+            open.tap()
+            let search = viewport.textFields["Search"]
+            #else
             let search = viewport.searchFields.firstMatch
+            #endif
             XCTAssertTrue(search.waitForExistence(timeout: 30), viewport.debugDescription)
             search.clickOrTap()
             search.typeText("Quarterly\n")

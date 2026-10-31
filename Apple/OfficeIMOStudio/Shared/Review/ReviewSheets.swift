@@ -133,6 +133,7 @@ struct CompressSheet: View {
     @State private var isWriting = false
     @State private var compressed: ExportedFile?
     @State private var compressedSize: Int64?
+    @State private var writing: Task<Void, Never>?
 
     var body: some View {
         ReportForm(title: "Compress PDF", problem: problem, isLoading: fileSize == nil && problem == nil, done: close) {
@@ -175,6 +176,7 @@ struct CompressSheet: View {
         }
         .disabled(isWriting)
         .onChange(of: profile) { discard() }
+        .onDisappear { writing?.cancel() }
         .task {
             do {
                 guard let health = try await session.check(CheckRequest(health: true)).health else { return }
@@ -190,14 +192,19 @@ struct CompressSheet: View {
     private func compress() {
         isWriting = true
         problem = nil
-        Task {
+        writing = Task {
             defer { isWriting = false }
             do {
                 _ = try await session.writeHealthCopy(.optimize, profile: profile, suffix: String(localized: "Compressed"))
                 // The sheet shows the result first; the window offers the copy only when asked.
-                compressed = session.pendingExportedFile
+                let file = session.pendingExportedFile
                 session.pendingExportedFile = nil
-                let files = compressed.flatMap { try? FileManager.default.contentsOfDirectory(at: $0.folder, includingPropertiesForKeys: nil) }
+                guard !Task.isCancelled else {
+                    if let file { try? FileManager.default.removeItem(at: file.folder) }
+                    return
+                }
+                compressed = file
+                let files = file.flatMap { try? FileManager.default.contentsOfDirectory(at: $0.folder, includingPropertiesForKeys: nil) }
                 compressedSize = files?.first.flatMap { try? $0.resourceValues(forKeys: [.fileSizeKey]).fileSize }.map(Int64.init)
             } catch {
                 problem = error.localizedDescription
@@ -387,6 +394,7 @@ struct RedactSheet: View {
                 included = Set(marks.indices)
                 searched = request
             } catch {
+                guard request.matches(find, revision: session.revision) else { return }
                 if RedactionProblem.needsWholeBlocks(error) {
                     if request.find.wholeBlocks {
                         problem = String(localized: "This text can’t be removed safely, so nothing was changed.")
