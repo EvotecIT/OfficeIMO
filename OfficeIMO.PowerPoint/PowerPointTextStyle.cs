@@ -32,7 +32,7 @@ namespace OfficeIMO.PowerPoint {
         public string? FontName { get; }
 
         /// <summary>
-        /// Text color in hex (e.g. "1F4E79").
+        /// Text color as an RGB or RGBA hexadecimal literal (e.g. "1F4E7980").
         /// </summary>
         public string? Color { get; }
 
@@ -57,7 +57,7 @@ namespace OfficeIMO.PowerPoint {
         public bool? Strikethrough { get; }
 
         /// <summary>
-        /// Highlight color in hex (e.g. "FFF59D").
+        /// Highlight color as an RGB or RGBA hexadecimal literal (e.g. "FFF59D80").
         /// </summary>
         public string? HighlightColor { get; }
 

@@ -220,7 +220,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the text color in hexadecimal format (e.g. "FF0000"). Explicit color also applies to hyperlinks in readers supporting the native text-color extension.
+        /// Gets the RGB text color or sets an RGB or RGBA hexadecimal literal (e.g. "FF000080").
+        /// Alpha is written as native DrawingML opacity. Explicit color also applies to hyperlinks in readers supporting the native text-color extension.
         /// </summary>
         public string? Color {
             get => RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
@@ -228,17 +229,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the highlight color in hexadecimal format (e.g. "FFFF00").
+        /// Gets the RGB highlight color or sets an RGB or RGBA hexadecimal literal (e.g. "FFFF0080").
         /// </summary>
         public string? HighlightColor {
             get => RunProperties?.GetFirstChild<A.Highlight>()?.GetFirstChild<A.RgbColorModelHex>()?.Val;
-            set {
-                A.RunProperties props = EnsureRunProperties();
-                props.RemoveAllChildren<A.Highlight>();
-                if (value != null) {
-                    props.AddChild(new A.Highlight(new A.RgbColorModelHex { Val = value }), true);
-                }
-            }
+            set => PowerPointTextPropertyFormatting.SetHighlightColor(EnsureRunProperties(), value);
         }
 
         /// <summary>

@@ -533,7 +533,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Gets or sets the text color in hexadecimal format (e.g. "FF0000").
+        ///     Gets the RGB text color or sets an RGB or RGBA hexadecimal literal for every run.
         /// </summary>
         public string? Color {
             get {
