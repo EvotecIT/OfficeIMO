@@ -137,8 +137,9 @@ public sealed class PowerPointLayoutCardTests {
         var options = PowerPointCompositionOptions.FromDesign(PowerPointDeckDesign.FromBrand("#205040", "card-layout"));
         options.ApplyTheme = false;
         var cards = Titles.Take(count).Select((title, index) => new PowerPointLayoutCard(title,
-            string.Join(" ", Enumerable.Repeat("Keep reliable evidence for every source and follow the agreed delivery plan.",
-                longBody ? 8 : index + 1)) + " Complete" + index)).ToArray();
+            (longBody
+                ? string.Join(" ", Enumerable.Repeat("Keep reliable evidence for every source and follow the agreed delivery plan.", 8))
+                : string.Join("\n", Enumerable.Repeat("Keep source evidence.", index + 1))) + " Complete" + index)).ToArray();
         document.Compose(new PowerPointDeckPlan().AddContent("Planning options", cards, PowerPointLayout.Cards), options);
         return document;
     }

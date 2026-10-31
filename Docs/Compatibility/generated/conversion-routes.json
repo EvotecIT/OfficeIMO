@@ -1190,14 +1190,14 @@
       "targetExtension":".png",
       "packageId":"OfficeIMO.Pdf",
       "api":"PdfDocument.Load(stream).ExportImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png }, out report)",
-      "description":"Render every PDF page as PNG bytes with a shared fidelity report; multi-page results are packaged as a ZIP.",
+      "description":"Render every PDF page as a PNG image with a shared fidelity report; multi-page results are packaged as a ZIP.",
       "fidelity":"FixedLayout",
       "textFormatting":"FlattenedRaster",
       "textFormattingContract":"Preserves rendered font styling as pixels; text, casing metadata, decoration variants, and script semantics are no longer editable.",
       "supportLevel":"Advanced",
       "supportEvidence":"Pixel-pinned page-render tests cover text, drawings, tables, images, portable fonts, all five image encoders, and deterministic multi-page packaging.",
       "knownLimitations":"Image output is intentionally flattened; Type 3 glyph programs, advanced color profiles, patterns, masks, transparency groups, optional content, and scanned-text OCR remain incomplete.",
-      "resultContract":"IReadOnlyList<byte[]>",
+      "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":true,
       "agentDiscoverable":true
     },
@@ -4457,7 +4457,7 @@
       "supportLevel":"Advanced",
       "supportEvidence":"Pixel-pinned page-render tests cover text, drawings, tables, images, portable fonts, all five image encoders, and deterministic multi-page packaging.",
       "knownLimitations":"Image output is intentionally flattened; Type 3 glyph programs, advanced color profiles, patterns, masks, transparency groups, optional content, and scanned-text OCR remain incomplete.",
-      "resultContract":"IReadOnlyList<byte[]>",
+      "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
       "agentDiscoverable":true
     },
@@ -4477,7 +4477,7 @@
       "supportLevel":"Advanced",
       "supportEvidence":"Pixel-pinned page-render tests cover text, drawings, tables, images, portable fonts, all five image encoders, and deterministic multi-page packaging.",
       "knownLimitations":"Image output is intentionally flattened; Type 3 glyph programs, advanced color profiles, patterns, masks, transparency groups, optional content, and scanned-text OCR remain incomplete.",
-      "resultContract":"IReadOnlyList<byte[]>",
+      "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
       "agentDiscoverable":true
     },
@@ -4497,7 +4497,7 @@
       "supportLevel":"Advanced",
       "supportEvidence":"Pixel-pinned page-render tests cover text, drawings, tables, images, portable fonts, all five image encoders, and deterministic multi-page packaging.",
       "knownLimitations":"Image output is intentionally flattened; Type 3 glyph programs, advanced color profiles, patterns, masks, transparency groups, optional content, and scanned-text OCR remain incomplete.",
-      "resultContract":"IReadOnlyList<byte[]>",
+      "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
       "agentDiscoverable":true
     },
@@ -4517,7 +4517,7 @@
       "supportLevel":"Advanced",
       "supportEvidence":"Pixel-pinned page-render tests cover text, drawings, tables, images, portable fonts, all five image encoders, and deterministic multi-page packaging.",
       "knownLimitations":"Image output is intentionally flattened; Type 3 glyph programs, advanced color profiles, patterns, masks, transparency groups, optional content, and scanned-text OCR remain incomplete.",
-      "resultContract":"IReadOnlyList<byte[]>",
+      "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":false,
       "agentDiscoverable":true
     }

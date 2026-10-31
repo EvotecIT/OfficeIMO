@@ -1,3 +1,5 @@
+using System.Globalization;
+using AngleSharp.Html.Parser;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Html;
 using Xunit;
@@ -34,7 +36,9 @@ public class HtmlExcelSemanticPresentation {
         Assert.Contains(">37.6%<", html, StringComparison.Ordinal);
         Assert.Contains(">2026-10-29<", html, StringComparison.Ordinal);
         Assert.Contains(">TRUE<", html, StringComparison.Ordinal);
-        Assert.Contains("data-officeimo-value=\"0.3755186721991701\"", html, StringComparison.Ordinal);
+        var shareCell = Assert.Single(new HtmlParser().ParseDocument(html).QuerySelectorAll("td"), cell => cell.TextContent == "37.6%");
+        Assert.Equal(0.3755186721991701, double.Parse(Assert.IsType<string>(shareCell.GetAttribute("data-officeimo-value")),
+            NumberStyles.Float, CultureInfo.InvariantCulture));
         Assert.Contains("text-align:right", html, StringComparison.Ordinal);
         Assert.Contains("text-align:center", html, StringComparison.Ordinal);
         // The colour scale gives the two cells different fills.
