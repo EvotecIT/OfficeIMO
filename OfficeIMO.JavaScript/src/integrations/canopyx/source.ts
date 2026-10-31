@@ -1,5 +1,5 @@
 import { ExportCell, checkAbort, inputRows } from "../../core/index.js";
-import type { CellPresentation, ExportValue } from "../../core/index.js";
+import type { CellPresentation, CellValue, ExportValue } from "../../core/index.js";
 import { canopyPivot, pivotNumberFormat } from "./pivot.js";
 import type { CanopyPivotMapping } from "./pivot.js";
 import { datetime } from "./dates.js";
@@ -11,6 +11,14 @@ import { canopyNumberFormat, canopyXlsxWidth } from "./presentation.js";
 import type { CanopyCapture, CanopyDiagnostic, CanopyExport, CanopyFormat, CanopySourceOptions } from "./types.js";
 
 const columnFields = ["width", "format", "wrapText", "alignment", "rowHeader", "groups"] as const;
+const rawIdentities = new WeakMap<ExportCell, CellValue>();
+
+/** @internal Grouping uses captured identity even when a detail cell displays a relative-link label. */
+export function canopyIdentityValue(value: ExportValue): CellValue {
+  if (!(value instanceof ExportCell)) return value;
+  const original = rawIdentities.get(value);
+  return original === undefined ? value.value : original;
+}
 
 /** Map an immutable CanopyX record capture to a writer without querying the grid or retaining its body. */
 export function createCanopyExport(capture: CanopyCapture, format: CanopyFormat, options: CanopySourceOptions = {}): CanopyExport {
@@ -35,13 +43,19 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
     (values !== "raw" && values !== "display") || (request.timeZone !== "utc" && request.timeZone !== "local") || typeof request.revision !== "string")
     throw new TypeError("Invalid portable CanopyX capture metadata.");
   const dateMode = options.datetime ?? "preserve", report = canopyDiagnostics(format, options);
+  // These captured presentations have a complete scalar/text projection. Report
+  // their visual loss without treating an ordinary report export as unsupported.
+  const fallback = canopyDiagnostics(format, { ...options, unsupportedPresentation: "text" });
   const clock = options.xlsx?.dateMode ?? request.timeZone;
   if (clock !== "utc" && clock !== "local") throw new TypeError("XLSX dateMode must be utc or local.");
   if (dateMode !== "preserve" && dateMode !== "typed" && dateMode !== "text") throw new TypeError("datetime must be preserve, typed or text.");
   const diagnostics = (items: readonly string[] | undefined, rowId?: string, columnId?: string): void => {
     if (items === undefined) return;
     if (!Array.isArray(items) || items.some(item => typeof item !== "string")) throw new TypeError("Canopy presentation diagnostics must be strings.");
-    for (const code of items) report({ code, ...(rowId === undefined ? {} : { rowId }), ...(columnId === undefined ? {} : { columnId }) });
+    for (const code of items) {
+      const diagnostic = { code, ...(rowId === undefined ? {} : { rowId }), ...(columnId === undefined ? {} : { columnId }) };
+      (code === "relative-link" || code === "history-series" ? fallback : report)(diagnostic);
+    }
   };
   if (request.presentation !== "text" && request.presentation !== "semantic") throw new TypeError("Canopy captures must declare text or semantic presentation.");
   const tones = new Map(Object.entries(options.tones ?? {}).map(([name, style]) => {
@@ -52,7 +66,7 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
     if (name === undefined) return undefined;
     if (typeof name !== "string") throw new TypeError("Canopy tones must be strings.");
     const style = tones.get(name);
-    if (!style && name !== "neutral") report({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
+    if (!style && name !== "neutral") fallback({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
     return style;
   };
   const ids = new Set<string>();
@@ -73,15 +87,19 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
     const selected: NonNullable<CanopySourceOptions["columnOptions"]>[string] = Object.hasOwn(options.columnOptions ?? {}, column.id) ? options.columnOptions![column.id]! : {};
     for (const key of Object.keys(selected)) if (!(columnFields as readonly string[]).includes(key)) throw new TypeError("Unsupported Canopy column option: " + key);
     const override = captureFields(selected, columnFields);
-    const numericFormat = format === "xlsx" && values === "raw" && column.kind === "number" && column.format !== undefined && override.format === undefined
+    const numericFormat = (format === "xlsx" || format === "pdf") && values === "raw" && column.kind === "number" && column.format !== undefined && override.format === undefined
       ? canopyNumberFormat(column.format, report, column.id) : undefined;
     const [captured] = copyColumns([{ ...override, key: column.id, header: column.title,
       ...(format === "xlsx" && override.width === undefined && column.width !== undefined ? { width: canopyXlsxWidth(column.width.preferred) } : {}),
       ...(override.format === undefined && numericFormat !== undefined ? { format: numericFormat } : {}),
       ...(format === "xlsx" && values === "raw" && column.kind === "datetime" && override.format === undefined ? { format: "yyyy-mm-dd hh:mm:ss.000" } : {}),
       ...(values === "raw" && column.kind === "number" ? { type: "number" as const } : {}),
-      ...(override.wrapText === undefined && column.wrap === undefined ? {} : { wrapText: override.wrapText ?? column.wrap! }),
-      ...(override.alignment === undefined && column.alignment === undefined ? {} : { alignment: override.alignment ?? column.alignment! }) }]);
+      // Screen nowrap is not a promise that its CSS width will survive PDF fitting.
+      // PDF defaults to lossless wrapping; an explicit writer override stays strict.
+      ...(format === "pdf" ? { wrapText: override.wrapText ?? true } :
+        override.wrapText === undefined && column.wrap === undefined ? {} : { wrapText: override.wrapText ?? column.wrap! }),
+      ...(override.alignment === undefined && column.alignment === undefined ?
+        format === "pdf" && column.kind === "number" ? { alignment: "right" as const } : {} : { alignment: override.alignment ?? column.alignment! }) }]);
     return Object.freeze({ id: column.id, kind: column.kind, input: column, nativeFormatOverride: override.format, column: Object.freeze(captured!) });
   });
   const rowCount = request.recordCount;
@@ -101,15 +119,25 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
           (typeof cell.value === "number" && (!Number.isFinite(cell.value) || Math.abs(cell.value) > Number.MAX_SAFE_INTEGER)))
           throw new TypeError("A portable Canopy GridExportCell with scalar value and resolved text is required.");
         diagnostics(cell.diagnostics, row.id, spec.id);
-        let value: import("../../core/index.js").CellValue = values === "display" ? cell.text : cell.value;
+        // A relative destination is navigation metadata, not the visible label.
+        // History captures already carry their frozen latest scalar (or null).
+        const relativeLabel = spec.kind === "text" && cell.diagnostics?.includes("relative-link");
+        let value: import("../../core/index.js").CellValue = values === "display" || relativeLabel ? cell.text : cell.value;
         if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string") value = datetime(value, dateMode, clock);
         const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;
         const nativeFormat = capturedFormat === undefined ? undefined : spec.nativeFormatOverride === "" ? "General" : spec.nativeFormatOverride ?? capturedFormat;
-        const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat ? {
-          ...rowStyle, ...cellStyle, ...(format === "xlsx" && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {}) } : undefined;
+        const summary = format === "pdf" && pivot && (row.summary || row.grandTotal);
+        const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat || summary ? {
+          ...rowStyle, ...(summary ? { bold: true } : {}), ...cellStyle,
+          ...((format === "xlsx" || format === "pdf") && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {}) } : undefined;
         // CSV has no presentation or link metadata: emit its selected scalar directly.
         // This also avoids a frozen wrapper for every cell in large CSV captures.
-        result.push(format === "csv" ? value : new ExportCell(value, { text: cell.text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) }));
+        if (format === "csv") result.push(value);
+        else {
+          const exported = new ExportCell(value, { text: cell.text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) });
+          if (relativeLabel) rawIdentities.set(exported, cell.value);
+          result.push(exported);
+        }
       }
       if (rowCount !== null && count >= rowCount) throw new TypeError("Canopy capture exceeded its declared recordCount.");
       count++; yield result;

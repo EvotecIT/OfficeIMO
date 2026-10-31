@@ -11771,6 +11771,14 @@ const { canopyDiagnostics } = _m95;
 const { canopyNumberFormat, canopyXlsxWidth } = _m99;
 
 const columnFields = ["width", "format", "wrapText", "alignment", "rowHeader", "groups"];
+const rawIdentities = new WeakMap();
+/** @internal Grouping uses captured identity even when a detail cell displays a relative-link label. */
+function canopyIdentityValue(value) {
+    if (!(value instanceof ExportCell))
+        return value;
+    const original = rawIdentities.get(value);
+    return original === undefined ? value.value : original;
+}
 /** Map an immutable CanopyX record capture to a writer without querying the grid or retaining its body. */
 function createCanopyExport(capture, format, options = {}) {
     return prepareCanopyExport(capture, format, options).source;
@@ -11789,6 +11797,9 @@ function prepareCanopyExport(capture, format, options = {}) {
         (values !== "raw" && values !== "display") || (request.timeZone !== "utc" && request.timeZone !== "local") || typeof request.revision !== "string")
         throw new TypeError("Invalid portable CanopyX capture metadata.");
     const dateMode = options.datetime ?? "preserve", report = canopyDiagnostics(format, options);
+    // These captured presentations have a complete scalar/text projection. Report
+    // their visual loss without treating an ordinary report export as unsupported.
+    const fallback = canopyDiagnostics(format, { ...options, unsupportedPresentation: "text" });
     const clock = options.xlsx?.dateMode ?? request.timeZone;
     if (clock !== "utc" && clock !== "local")
         throw new TypeError("XLSX dateMode must be utc or local.");
@@ -11799,8 +11810,10 @@ function prepareCanopyExport(capture, format, options = {}) {
             return;
         if (!Array.isArray(items) || items.some(item => typeof item !== "string"))
             throw new TypeError("Canopy presentation diagnostics must be strings.");
-        for (const code of items)
-            report({ code, ...(rowId === undefined ? {} : { rowId }), ...(columnId === undefined ? {} : { columnId }) });
+        for (const code of items) {
+            const diagnostic = { code, ...(rowId === undefined ? {} : { rowId }), ...(columnId === undefined ? {} : { columnId }) };
+            (code === "relative-link" || code === "history-series" ? fallback : report)(diagnostic);
+        }
     };
     if (request.presentation !== "text" && request.presentation !== "semantic")
         throw new TypeError("Canopy captures must declare text or semantic presentation.");
@@ -11816,7 +11829,7 @@ function prepareCanopyExport(capture, format, options = {}) {
             throw new TypeError("Canopy tones must be strings.");
         const style = tones.get(name);
         if (!style && name !== "neutral")
-            report({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
+            fallback({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
         return style;
     };
     const ids = new Set();
@@ -11840,15 +11853,19 @@ function prepareCanopyExport(capture, format, options = {}) {
             if (!columnFields.includes(key))
                 throw new TypeError("Unsupported Canopy column option: " + key);
         const override = captureFields(selected, columnFields);
-        const numericFormat = format === "xlsx" && values === "raw" && column.kind === "number" && column.format !== undefined && override.format === undefined
+        const numericFormat = (format === "xlsx" || format === "pdf") && values === "raw" && column.kind === "number" && column.format !== undefined && override.format === undefined
             ? canopyNumberFormat(column.format, report, column.id) : undefined;
         const [captured] = copyColumns([{ ...override, key: column.id, header: column.title,
                 ...(format === "xlsx" && override.width === undefined && column.width !== undefined ? { width: canopyXlsxWidth(column.width.preferred) } : {}),
                 ...(override.format === undefined && numericFormat !== undefined ? { format: numericFormat } : {}),
                 ...(format === "xlsx" && values === "raw" && column.kind === "datetime" && override.format === undefined ? { format: "yyyy-mm-dd hh:mm:ss.000" } : {}),
                 ...(values === "raw" && column.kind === "number" ? { type: "number" } : {}),
-                ...(override.wrapText === undefined && column.wrap === undefined ? {} : { wrapText: override.wrapText ?? column.wrap }),
-                ...(override.alignment === undefined && column.alignment === undefined ? {} : { alignment: override.alignment ?? column.alignment }) }]);
+                // Screen nowrap is not a promise that its CSS width will survive PDF fitting.
+                // PDF defaults to lossless wrapping; an explicit writer override stays strict.
+                ...(format === "pdf" ? { wrapText: override.wrapText ?? true } :
+                    override.wrapText === undefined && column.wrap === undefined ? {} : { wrapText: override.wrapText ?? column.wrap }),
+                ...(override.alignment === undefined && column.alignment === undefined ?
+                    format === "pdf" && column.kind === "number" ? { alignment: "right" } : {} : { alignment: override.alignment ?? column.alignment }) }]);
         return Object.freeze({ id: column.id, kind: column.kind, input: column, nativeFormatOverride: override.format, column: Object.freeze(captured) });
     });
     const rowCount = request.recordCount;
@@ -11871,17 +11888,29 @@ function prepareCanopyExport(capture, format, options = {}) {
                         (typeof cell.value === "number" && (!Number.isFinite(cell.value) || Math.abs(cell.value) > Number.MAX_SAFE_INTEGER)))
                         throw new TypeError("A portable Canopy GridExportCell with scalar value and resolved text is required.");
                     diagnostics(cell.diagnostics, row.id, spec.id);
-                    let value = values === "display" ? cell.text : cell.value;
+                    // A relative destination is navigation metadata, not the visible label.
+                    // History captures already carry their frozen latest scalar (or null).
+                    const relativeLabel = spec.kind === "text" && cell.diagnostics?.includes("relative-link");
+                    let value = values === "display" || relativeLabel ? cell.text : cell.value;
                     if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string")
                         value = datetime(value, dateMode, clock);
                     const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;
                     const nativeFormat = capturedFormat === undefined ? undefined : spec.nativeFormatOverride === "" ? "General" : spec.nativeFormatOverride ?? capturedFormat;
-                    const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat ? {
-                        ...rowStyle, ...cellStyle, ...(format === "xlsx" && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {})
+                    const summary = format === "pdf" && pivot && (row.summary || row.grandTotal);
+                    const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat || summary ? {
+                        ...rowStyle, ...(summary ? { bold: true } : {}), ...cellStyle,
+                        ...((format === "xlsx" || format === "pdf") && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {})
                     } : undefined;
                     // CSV has no presentation or link metadata: emit its selected scalar directly.
                     // This also avoids a frozen wrapper for every cell in large CSV captures.
-                    result.push(format === "csv" ? value : new ExportCell(value, { text: cell.text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) }));
+                    if (format === "csv")
+                        result.push(value);
+                    else {
+                        const exported = new ExportCell(value, { text: cell.text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) });
+                        if (relativeLabel)
+                            rawIdentities.set(exported, cell.value);
+                        result.push(exported);
+                    }
                 }
                 if (rowCount !== null && count >= rowCount)
                     throw new TypeError("Canopy capture exceeded its declared recordCount.");
@@ -11893,7 +11922,7 @@ function prepareCanopyExport(capture, format, options = {}) {
         } });
     return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
 }
-const _exports = Object.freeze({ createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
+const _exports = Object.freeze({ canopyIdentityValue: canopyIdentityValue, createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
 return _exports;
 })();
 
@@ -12201,8 +12230,6 @@ return _exports;
 const _m102 = (() => {
 const { createGroupedReport } = _m8;
 
-const { ExportCell } = _m5;
-
 const { checkAbort } = _m4;
 
 const { createTotals } = _m12;
@@ -12211,8 +12238,10 @@ const { captureFields } = _m10;
 
 const { datetime } = _m98;
 
+const { canopyIdentityValue } = _m96;
+
 const identity = (value) => value instanceof Date ? "date:" + value.getTime() : typeof value + ":" + String(value);
-const scalar = (value) => value instanceof ExportCell ? value.value : value;
+const scalar = canopyIdentityValue;
 /** Validate captured ranges, then use the owned grouping factory and its existing writers.
  * Only ranges, labels and at most four active aggregate vectors are retained; no detail body is buffered. */
 function canopyGrouped(source, request, options, limits, report, format) {
@@ -12379,10 +12408,20 @@ function canopyGrouped(source, request, options, limits, report, format) {
         }
         verify(grand, grandExpected);
     }
+    // The factory's hidden fields keep raw group identity separate from projected
+    // detail labels. Never override a declared output column's value getter.
+    const groupKeys = new Set([...source.columns.map(column => column.key), ...levels.map(level => level.column)]);
     const groupBy = levels.map((level, depth) => {
-        const visible = source.columns.some(column => column.key === level.column);
-        return { key: level.column,
-            ...(visible ? {} : { value: (_row, context) => at(depth, context.rowIndex).value }),
+        const column = source.columns.findIndex(column => column.key === level.column);
+        let key = level.column;
+        if (column >= 0) {
+            do {
+                key += "#raw";
+            } while (groupKeys.has(key));
+            groupKeys.add(key);
+        }
+        return { key,
+            value: (row, context) => column < 0 ? at(depth, context.rowIndex).value : scalar(row[column]),
             label: (value) => labels[depth].get(identity(value)) ?? String(value ?? "") };
     });
     const sourceLimits = limits === undefined ? undefined : {
@@ -12515,6 +12554,184 @@ const _exports = Object.freeze({ writeCanopyWorkbook: writeCanopyWorkbook });
 return _exports;
 })();
 
+const _m106 = (() => {
+const { ExportCell } = _m1;
+
+/** Fixed numeric formats affect PDF text, not the frozen numeric value used by other writers. */
+function numericProfile(format) {
+    if (format === undefined)
+        return undefined;
+    const match = /^((?:"[^"\\]*")*)(#,##)?0(?:\.([0#]+))?(%)?((?:"[^"\\]*")*)$/.exec(format);
+    if (!match || (match[3]?.length ?? 0) > 10)
+        return undefined;
+    return { minimumFractionDigits: (match[3]?.match(/0/g) ?? []).length, maximumFractionDigits: match[3]?.length ?? 0,
+        percent: !!match[4], grouping: !!match[2], prefix: match[1].replace(/"/g, ""), suffix: match[5].replace(/"/g, "") };
+}
+/** Preserve the captured decimal convention across a column, including whole percentages without a separator. */
+function canopyPdfNumbers(sample, columns) {
+    const formatters = new Map();
+    const decimal = columns.map((column, index) => {
+        let fallback = ".";
+        for (const row of sample) {
+            const cell = row[index];
+            if (!(cell instanceof ExportCell) || typeof cell.value !== "number")
+                continue;
+            const profile = numericProfile(cell.presentation?.numberFormat ?? column.format);
+            if (!profile?.maximumFractionDigits)
+                continue;
+            const match = /([.,])(\d+)[^\d.,]*$/.exec(cell.text ?? "");
+            if (match && match[2].length <= profile.maximumFractionDigits) {
+                const numeric = /([+-]?\d[\d.,]*)[^\d]*$/.exec(cell.text ?? "")?.[1] ?? "";
+                const scaled = cell.value * (profile.percent ? 100 : 1);
+                if (/^[+-]?\d{1,3}(?:,\d{3})+$/.test(numeric) || /^[+-]?\d{1,3}(?:\.\d{3})+$/.test(numeric)) {
+                    if (Math.abs(Number(numeric.replace(/[.,]/g, "")) - scaled) < .5) {
+                        fallback = match[1] === "," ? "." : ",";
+                        continue;
+                    }
+                }
+                return match[1];
+            }
+        }
+        return fallback;
+    });
+    return row => row.map((value, index) => {
+        if (!(value instanceof ExportCell) || typeof value.value !== "number")
+            return value;
+        const profile = numericProfile(value.presentation?.numberFormat ?? columns[index].format);
+        if (!profile)
+            return value;
+        const captured = /^([^0-9+-]*)([+-]?\d[\d., \u00a0\u202f]*?)([^0-9]*)$/.exec(value.text ?? "");
+        if (value.text && !captured)
+            return value;
+        const key = [decimal[index], profile.minimumFractionDigits, profile.maximumFractionDigits, profile.grouping].join(":");
+        let formatter = formatters.get(key);
+        if (!formatter) {
+            formatter = new Intl.NumberFormat(decimal[index] === "," ? "de-DE" : "en-US", {
+                minimumFractionDigits: profile.minimumFractionDigits, maximumFractionDigits: profile.maximumFractionDigits, useGrouping: profile.grouping
+            });
+            formatters.set(key, formatter);
+        }
+        const formatted = formatter.format(value.value * (profile.percent ? 100 : 1));
+        const prefix = profile.prefix || captured?.[1] || "";
+        let suffix = profile.suffix || captured?.[3] || "";
+        if (profile.percent && !profile.suffix)
+            suffix = suffix.replace(/%/g, "");
+        return new ExportCell(value.value, { text: prefix + formatted + (profile.percent ? "%" : "") + suffix,
+            ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
+    });
+}
+const _exports = Object.freeze({ canopyPdfNumbers: canopyPdfNumbers });
+return _exports;
+})();
+
+const _m105 = (() => {
+const { ExportCell, NotSupportedError, OfficeIMOError } = _m1;
+
+const { inputRows, checkAbort, pause, taskYieldDue } = _m4;
+
+const { fontProgram } = _m64;
+
+const { resolveScalar, selectFont, validateFonts } = _m68;
+
+const { settings } = _m17;
+
+const { canopyPdfNumbers } = _m106;
+
+/** A bounded lookahead is replayed once; no second capture, full-dataset copy or smaller font is needed. */
+async function withCanopyPdfLayout(source, captured, options, write) {
+    const prepared = settings({ ...options, columns: source.columns }), { fontSize, padding, page, margins, limits } = prepared;
+    options = prepared.options;
+    validateFonts(options.fonts, limits.maxFontBytes);
+    const available = page.width - margins.left - margins.right;
+    const iterator = inputRows(source.rows(), options.signal)[Symbol.asyncIterator](), sample = [];
+    let done = false, characters = 0;
+    try {
+        while (sample.length < Math.min(128, options.limits?.maxRows ?? 128) && characters < 262144) {
+            const item = await iterator.next();
+            if (item.done) {
+                done = true;
+                break;
+            }
+            sample.push(item.value);
+            characters += item.value.reduce((n, cell) => n + (cell instanceof ExportCell ? cell.text?.length ?? 0 : String(cell ?? "").length), 0);
+        }
+        const format = canopyPdfNumbers(sample, source.columns), rows = sample.map(format);
+        const measure = (text, bold = false, italic = false) => {
+            if (text.length > limits.maxCellCharacters)
+                throw new OfficeIMOError("RESOURCE_LIMIT", "maxCellCharacters exceeded.");
+            const face = selectFont(options.fonts, bold, italic), program = face.font ? fontProgram(face.font) : undefined;
+            let width = 0;
+            for (const character of text.replace(/\t/g, "    ")) {
+                const scalar = resolveScalar(character.codePointAt(0), program, bold);
+                if (!scalar.supported)
+                    throw new NotSupportedError(scalar.message);
+                width += scalar.width * fontSize / 1000;
+            }
+            return width;
+        };
+        const largest = (parts, bold = false, italic = false) => parts.reduce((width, part) => Math.max(width, measure(part, bold, italic)), 0);
+        let layout = {};
+        // Explicit points/bands and shaping providers retain their own layout policy.
+        if (!options.columnWidths && typeof options.wideTable !== "object" && !options.textShaper) {
+            const minimum = source.columns.map(column => Math.min(available, largest(column.header.split(/\s+/), prepared.options.headerPresentation?.bold) + padding * 2 + .01));
+            const natural = source.columns.map((column, index) => Math.min(available, Math.max(minimum[index], largest(column.header.split(/\r\n?|\n/), prepared.options.headerPresentation?.bold) + padding * 2 + .01)));
+            for (const row of rows) {
+                for (let i = 0; i < row.length; i++) {
+                    const cell = row[i], text = cell instanceof ExportCell ? cell.text ?? String(cell.value ?? "") : String(cell ?? "");
+                    const style = cell instanceof ExportCell ? cell.presentation : undefined;
+                    const line = largest(text.split(/\r\n?|\n/), style?.bold, style?.italic) + padding * 2 + .01;
+                    const word = largest(text.split(/\s+/), style?.bold, style?.italic) + padding * 2 + .01;
+                    natural[i] = Math.min(available, Math.max(natural[i], line));
+                    minimum[i] = Math.min(available, Math.max(minimum[i], captured[i].kind === "text" ? word : line));
+                }
+                if (taskYieldDue())
+                    await pause();
+                checkAbort(options.signal);
+            }
+            const sum = minimum.reduce((total, width) => total + width, 0), widths = [...minimum];
+            if (sum > available + .001)
+                layout = { columnWidths: widths, wideTable: options.wideTable === "reject" ? "reject" : {
+                        mode: "bands", repeatColumns: widths[0] + Math.max(...widths.slice(1)) <= available ? [0] : []
+                    } };
+            else {
+                let spare = available - sum;
+                const needs = natural.map((width, index) => Math.max(0, width - widths[index])), total = needs.reduce((n, width) => n + width, 0);
+                for (let i = 0; i < widths.length; i++)
+                    widths[i] += total ? needs[i] * Math.min(1, spare / total) : 0;
+                spare = available - widths.reduce((n, width) => n + width, 0);
+                const text = captured.flatMap((column, index) => column.kind === "text" ? [index] : []);
+                for (const i of text.length ? text : widths.map((_, index) => index))
+                    widths[i] += spare / (text.length || widths.length);
+                layout = { columnWidths: widths };
+            }
+        }
+        const replay = async function* () {
+            for (const row of rows)
+                yield row;
+            while (!done) {
+                const item = await iterator.next();
+                if (item.done) {
+                    done = true;
+                    break;
+                }
+                yield format(item.value);
+            }
+        };
+        return await write(replay(), layout, prepared.options);
+    }
+    finally {
+        if (!done) {
+            try {
+                void iterator.return(undefined).catch(() => { });
+            }
+            catch { /* Keep the writer's original failure. */ }
+        }
+    }
+}
+const _exports = Object.freeze({ withCanopyPdfLayout: withCanopyPdfLayout });
+return _exports;
+})();
+
 const _m0 = (() => {
 const { BlobByteSink, ExportCell } = _m1;
 
@@ -12543,6 +12760,8 @@ const { canopyGrouped } = _m102;
 const { canopyAbout } = _m103;
 
 const { writeCanopyWorkbook } = _m104;
+
+const { withCanopyPdfLayout } = _m105;
 
 
 
@@ -12614,7 +12833,7 @@ async function writeCanopyTo(capture, format, destination, options = {}) {
         // CSS pixels become points before the existing fit/band policy. Explicit PDF point widths win.
         const fitted = request.columns.every(column => column.width !== undefined) ? request.columns.map(column => column.width.preferred * 72 / 96) : undefined;
         const widths = pdf.columnWidths ?? fitted;
-        const settings = { ...(fitted === undefined ? {} : { orientation: "landscape", wideTable: "fit" }), ...pdf, ...stream, limits: formatLimits };
+        const settings = { orientation: "landscape", wideTable: "fit", ...pdf, ...stream, limits: formatLimits };
         if (grouped) {
             if (pdf.headerRows !== undefined || pdf.footer !== undefined)
                 throw new TypeError("Grouped Canopy PDF owns heading and summary rows.");
@@ -12628,7 +12847,13 @@ async function writeCanopyTo(capture, format, destination, options = {}) {
                 ...(capturedLabels?.continuationLabel === undefined ? {} : { continuationLabel: capturedLabels.continuationLabel }),
                 ...(capturedLabels?.groupHeadingLevel === undefined ? {} : { groupHeadingLevel: capturedLabels.groupHeadingLevel }) });
         }
-        return writePdfTo(source.rows(), destination, { ...settings, columns: source.columns, ...(widths === undefined ? {} : { columnWidths: widths }) });
+        return withCanopyPdfLayout(prepared.source, request.columns, settings, async (rows, layout, captured) => {
+            const counted = async function* () { for await (const row of rows) {
+                consumed++;
+                yield row;
+            } };
+            return writePdfTo(counted(), destination, { ...captured, ...layout, columns: source.columns });
+        });
     }
     return writeCsvTo(source.rows(), destination, { ...csv, ...stream, columns: source.columns, valueMode: request.values,
         limits: mergeAdapterLimits(csv.limits, limits) });

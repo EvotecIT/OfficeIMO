@@ -39,7 +39,9 @@ public sealed class StudioEverydayJourneyTests {
             document.ShowAnnotateModeCommand.Execute(null);
             document.SelectedEditorToolChoice = document.EditorTools.Single(choice => choice.Tool == PdfEditorTool.Note);
             document.Pages[1].CompleteEditorGesture(new PdfEditorGesture(2, 60, 60, 78, 78, [new PdfEditorVisualPoint(60, 60)]));
-            await WaitUntilAsync(() => document.CanUndo);
+            // The edit enters the undo journal before its asynchronous workspace operation has fully finished.
+            // Undo is available only after the workspace is idle; otherwise the mutation runner rejects it.
+            await WaitUntilAsync(() => document.CanUndo && !document.IsWorkspaceBusy);
             Assert.True(document.IsDirty);
 
             // Undo and redo the edit; moving between tasks keeps the place and zoom.
