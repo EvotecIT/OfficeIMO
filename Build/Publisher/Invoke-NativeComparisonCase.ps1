@@ -29,7 +29,7 @@ param(
     [string] $NativeEditText,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -608,6 +608,9 @@ try {
         'TextNonuniformParagraphs' {
             $pageCount = Add-NativeParagraphTopologyControl -Publication $document -FirstPage $page
         }
+        'TextNonuniformTextReplacements' {
+            $pageCount = Add-NativeParagraphTopologyControl -Publication $document -FirstPage $page -TextReplacements
+        }
         'TextNonuniformEmptyParagraphs' {
             $pageCount = Add-NativeParagraphTopologyControl -Publication $document -FirstPage $page -EmptyParagraphs
         }
@@ -616,6 +619,9 @@ try {
         }
         'TableNonuniformParagraphs' {
             $pageCount = Add-NativeTableParagraphTopologyControl -Publication $document -FirstPage $page
+        }
+        'TableNonuniformTextReplacements' {
+            $pageCount = Add-NativeTableParagraphTopologyControl -Publication $document -FirstPage $page -TextReplacements
         }
         'TableNonuniformEmptyParagraphs' {
             $pageCount = Add-NativeTableParagraphTopologyControl -Publication $document -FirstPage $page -EmptyParagraphs

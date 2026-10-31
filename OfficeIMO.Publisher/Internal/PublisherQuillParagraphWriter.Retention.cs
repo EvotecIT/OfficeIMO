@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Publisher.Internal;
 
 internal static partial class PublisherQuillParagraphWriter {
-    /// <summary>Retains complete native paragraph definitions, resolving opaque ambiguity through immutable source identity.</summary>
+    /// <summary>Retains native templates, resolving exact source identity before unambiguous formatting-based text replacement.</summary>
     private static bool TryPlanRetention(PublisherBinaryData data, PublisherQuillStoryStyles binding,
         PublisherTextStory before, PublisherTextStory after, int outputTextOffset, CancellationToken token,
         List<PublisherQuillFormattingRange> pc, List<PublisherQuillFormattingRange> pp) {
@@ -39,6 +39,7 @@ internal static partial class PublisherQuillParagraphWriter {
             .Select(item => item.Terminator).FirstOrDefault(style => style.SequenceEqual(lastSource.Body[lastSource.Body.Count - 1].Style));
         var references = new Dictionary<OfficeRichTextParagraph, RetainedParagraph>();
         var values = new Dictionary<OfficeRichTextParagraph, RetentionCandidates>(PublisherTextComparison.Paragraphs);
+        var replacements = new Dictionary<OfficeRichTextParagraph, TextReplacementCandidates>(PublisherTextComparison.ParagraphFormats);
         for (int i = 0; i < templates.Count; i++) {
             RetainedParagraph template = templates[i];
             template.InteriorTerminator = i + 1 == templates.Count ? movedTerminator : template.Terminator;
@@ -46,22 +47,36 @@ internal static partial class PublisherQuillParagraphWriter {
             if (!values.TryGetValue(template.Paragraph, out RetentionCandidates? candidates))
                 values.Add(template.Paragraph, new RetentionCandidates(template));
             else candidates.Add(template);
+            if (template.Paragraph.Runs.Count == 1) {
+                if (!replacements.TryGetValue(template.Paragraph, out TextReplacementCandidates? matching))
+                    replacements.Add(template.Paragraph, new TextReplacementCandidates(template));
+                else matching.Add(template);
+            }
         }
         position = outputTextOffset;
         for (int i = 0; i < after.Paragraphs.Count; i++) {
             token.ThrowIfCancellationRequested();
             OfficeRichTextParagraph paragraph = after.Paragraphs[i];
             bool last = i + 1 == after.Paragraphs.Count;
+            bool replaceText = false;
             if (!references.TryGetValue(paragraph, out RetainedParagraph? template)) {
-                if (!values.TryGetValue(paragraph, out RetentionCandidates? candidates) || !candidates.IsUnambiguous(last)) return false;
-                template = candidates.First;
+                if (values.TryGetValue(paragraph, out RetentionCandidates? candidates)) {
+                    if (!candidates.IsUnambiguous(last)) return false;
+                    template = candidates.First;
+                } else {
+                    if (paragraph.Runs.Count != 1 || paragraph.Runs[0].Text.Length == 0
+                        || !replacements.TryGetValue(paragraph, out TextReplacementCandidates? matching) || !matching.IsUnambiguous(last)) return false;
+                    template = matching.First; replaceText = true;
+                }
             }
             // The CR is an empty paragraph's only character definition. It must
             // travel with that paragraph, including its typing and opaque fields.
             byte[]? terminator = template.Length == 0 ? template.Terminator : last ? final : template.InteriorTerminator;
             if (terminator == null) return false;
-            foreach (var range in template.Body) AppendRange(pc, checked(position + range.AbsoluteEnd), range.Style);
-            position = checked(position + (template.Length + 1) * 2);
+            int length = replaceText ? paragraph.Runs[0].Text.Length : template.Length;
+            if (replaceText) AppendRange(pc, checked(position + length * 2), template.Body[0].Style);
+            else foreach (var range in template.Body) AppendRange(pc, checked(position + range.AbsoluteEnd), range.Style);
+            position = checked(position + (length + 1) * 2);
             AppendRange(pc, position, terminator);
             pp.Add(new PublisherQuillFormattingRange(position, template.Definition));
         }
@@ -97,6 +112,23 @@ internal static partial class PublisherQuillParagraphWriter {
             _sameBody &= First.Definition.SequenceEqual(other.Definition) && First.Body.Count == other.Body.Count
                 && (First.Length != 0 || First.Terminator.SequenceEqual(other.Terminator))
                 && First.Body.Zip(other.Body, (a, b) => a.AbsoluteEnd == b.AbsoluteEnd && a.Style.SequenceEqual(b.Style)).All(equal => equal);
+            _sameInterior &= First.InteriorTerminator != null && other.InteriorTerminator != null
+                && First.InteriorTerminator.SequenceEqual(other.InteriorTerminator);
+        }
+        internal bool IsUnambiguous(bool final) => _sameBody && (final || _sameInterior && First.InteriorTerminator != null);
+    }
+
+    // Replacement text has no original range endpoints. Only a uniform native
+    // body can be extended, and all same-format candidates must agree in full.
+    private sealed class TextReplacementCandidates {
+        internal TextReplacementCandidates(RetainedParagraph first) {
+            First = first; _sameBody = first.Length > 0 && first.Body.Count == 1;
+        }
+        internal RetainedParagraph First { get; }
+        private bool _sameBody, _sameInterior = true;
+        internal void Add(RetainedParagraph other) {
+            _sameBody &= First.Length > 0 && First.Body.Count == 1 && other.Length > 0 && other.Body.Count == 1
+                && First.Definition.SequenceEqual(other.Definition) && First.Body[0].Style.SequenceEqual(other.Body[0].Style);
             _sameInterior &= First.InteriorTerminator != null && other.InteriorTerminator != null
                 && First.InteriorTerminator.SequenceEqual(other.InteriorTerminator);
         }

@@ -96,7 +96,7 @@ public sealed class PublisherTableParagraphWritingTests {
     }
 
     [Fact]
-    public void Nonuniform_definitions_within_the_changed_cell_still_refuse_paragraph_count_changes() {
+    public void Unique_run_formatting_selects_the_native_cell_template_for_count_changing_text_replacement() {
         PublisherDocument original = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/TableCellParagraphs/native-tablecellparagraphs.pub"));
         PublisherTable table = Tables(original).Last();
         OfficeRichTextParagraph[] paragraphs = table.Cells[0].Paragraphs.ToArray();
@@ -104,13 +104,29 @@ public sealed class PublisherTableParagraphWritingTests {
         paragraphs[1] = new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("Different", 14, OfficeColor.Blue,
             bold: true, italic: true, fontFamily: "Times New Roman") }, p.Alignment, p.LineHeight, p.Margins, p.Indent, p.LineHeightFactor).WithTabStops(p.TabStops);
         original.ReplaceTableCellParagraphs(table.Id, 0, 0, paragraphs);
-        PublisherDocument source = PublisherDocument.Load(original.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        byte[] input = original.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        PublisherDocument source = PublisherDocument.Load(input);
         PublisherTable reloaded = Tables(source).Single(t => t.Id == table.Id);
         Assert.Equal(14D, reloaded.Cells[0].Paragraphs[1].Runs[0].FontSize);
         source.ReplaceTableCellParagraphs(table.Id, 0, 0, new[] { Paragraph(reloaded.Cells[0].Paragraphs[0], "Retained") });
-        OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => source.ToPubBytes(
-            new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
-        Assert.Contains(error.Report.FidelityDiagnostics, item => item.LossKind == OfficeConversionLossKind.Failure);
+        byte[] output = source.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        PublisherDocument saved = PublisherDocument.Load(output);
+        PublisherTable actual = Tables(saved).Single(t => t.Id == table.Id);
+        Assert.Equal("Retained", actual.Cells[0].Text);
+        Assert.Equal(10D, Assert.Single(Assert.Single(actual.Cells[0].Paragraphs).Runs).FontSize);
+        Assert.Equal(reloaded.Cells.Skip(1).Select(c => c.Text), actual.Cells.Skip(1).Select(c => c.Text));
+        Assert.Equal(CharacterDefinition(source, input, 0, false), CharacterDefinition(saved, output, 0, false));
+        Assert.Equal(CharacterDefinition(source, input, 1, true), CharacterDefinition(saved, output, 0, true));
+        PublisherNativeWritingTests.AssertPreservedStorage(input, output, "Quill/QuillSub/CONTENTS");
+
+        byte[] CharacterDefinition(PublisherDocument document, byte[] bytes, int paragraph, bool cr) {
+            var styles = document.SourceStyleCatalog.Stories.Single(s => s.StoryId == reloaded.StoryId);
+            var definition = styles.Uses.Where(u => u.Tag == "FDPP").ElementAt(paragraph);
+            int position = definition.NativeStart + (cr ? definition.NativeLength - 1 : 0);
+            var span = styles.Uses.Single(u => u.Tag == "FDPC" && u.NativeStart <= position && u.NativeStart + u.NativeLength > position).DirectDefinition;
+            Assert.True(Core.Internal.OfficeCompoundFileReader.TryRead(bytes, out Core.Internal.OfficeCompoundFile? compound, out string? error), error);
+            return compound!.Streams["Quill/QuillSub/CONTENTS"].Skip(span.Offset).Take(span.Length).ToArray();
+        }
     }
 
     private static PublisherDocument SaveAndCheck(PublisherDocument document, PublisherTable original, byte[] source) {

@@ -454,6 +454,17 @@ retained/authored operations. Western font size, bold and italic use their own
 fields; right-to-left fields do not overwrite them. Mixed-script rendering and
 repair-free opening remain unqualified.
 
+The `sourceEditing.nonuniformTextReplacement` record extends count changes to
+text replacement from nonuniform native sources. Complete editable paragraph/run
+formatting stays unchanged; exact retained selections take priority, and all
+format-matched templates must agree on complete native definitions. Empty or
+unsupported matching bodies prevent selection. Twenty ordinary/first-final-cell
+outputs cover growth, shrinkage, reorder, duplication, sole paragraphs, equivalent
+templates, retained empties and language selection alongside rewritten text.
+Forty selected-page and 520 neighboring-page stage comparisons match independent
+native controls. This does not qualify simultaneous formatting changes,
+mixed-run or empty-source replacements, general row reflow or repair-free opening.
+
 The `sourceEditing.tableTrackGeometry` record covers saved table endpoints and
 native row-growth controls. The reader recovers laid-out tracks from cumulative
 coordinates, retaining reported nominal fallback for incomplete axes. Independent

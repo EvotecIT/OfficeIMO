@@ -61,6 +61,13 @@ size and emphasis fields. TextUniformEmptyParagraphs and
 TableUniformEmptyParagraphs distinguish exact empty-paragraph identity from
 uniform formatting, including retained empties mixed with newly authored text.
 Their native contracts record the requested styles and observed native values.
+TextNonuniformTextReplacements and TableNonuniformTextReplacements provide
+fourteen independently authored pages each. Their final states combine text
+growth/shrinkage with paragraph deletion, reordering and duplication, sole
+paragraph replacements, equal native templates with different source text,
+retained empty paragraphs and exact native language selection. The table control
+edits first/final cells and keeps two neighbors unchanged. Fitting Arial 12-point
+bodies isolate native paragraph definitions and CR roles from general row reflow.
 TextStories has three separate stories, with an empty
 paragraph inside its middle story. TextFormattingPages retains 96 paragraphs,
 including overflow beyond its sole text frame, across two native paragraph-formatting

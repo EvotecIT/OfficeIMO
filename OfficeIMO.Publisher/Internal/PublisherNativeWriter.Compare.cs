@@ -100,11 +100,14 @@ internal sealed partial class PublisherNativeWriter {
         if (reshape && before.Paragraphs.Any(paragraph => paragraph.Runs.Count != 1 || paragraph.Label != null
             || !ParagraphFormattingEqual(before.Paragraphs[0], paragraph)
             || !RunFormattingEqual(before.Paragraphs[0].Runs[0], paragraph.Runs[0]))) {
-            // Exact retained values need native correspondence rather than the
-            // uniform-source character/paragraph rewrite contract below.
+            // Formatting matches admit text replacement; the native planner
+            // separately requires complete, unambiguous source definitions.
             var retained = new HashSet<OfficeRichTextParagraph>(before.Paragraphs.Where(p => p.Label == null), PublisherTextComparison.Paragraphs);
+            var formats = new HashSet<OfficeRichTextParagraph>(before.Paragraphs.Where(p => p.Label == null
+                && p.Runs.Count == 1 && p.Runs[0].Text.Length > 0), PublisherTextComparison.ParagraphFormats);
             extended = true;
-            return after.Paragraphs.All(p => p.Label == null && retained.Contains(p));
+            return after.Paragraphs.All(p => p.Label == null && (retained.Contains(p)
+                || p.Runs.Count == 1 && p.Runs[0].Text.Length > 0 && formats.Contains(p)));
         }
         for (int paragraph = 0; paragraph < after.Paragraphs.Count; paragraph++) {
             OfficeRichTextParagraph a = before.Paragraphs[reshape ? 0 : paragraph], b = after.Paragraphs[paragraph];

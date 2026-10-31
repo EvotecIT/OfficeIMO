@@ -1,0 +1,51 @@
+{
+  "schema": "officeimo.publisher.native-nonuniform-text-replacement-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TextNonuniformTextReplacements",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-textnonuniformtextreplacements.json",
+      "sha256": "0e09d03f11b5feac5842f22a73b24b845afa04d26d70a28cd6f91c65c5615777"
+    },
+    {
+      "name": "native-textnonuniformtextreplacements.pdf",
+      "sha256": "2edfc5445ed9acd84eeca84a6f78f1e779e53a67ff74e741fb34052f4f7e8d37"
+    },
+    {
+      "name": "native-textnonuniformtextreplacements.pub",
+      "sha256": "a61dfdf093778f68e6f4def444728e96683383717230df5880fa766ce1d679e7"
+    }
+  ],
+  "license": "MIT",
+  "documentPages": 14,
+  "profiles": [
+    "Baseline",
+    "GrowDrop",
+    "ShrinkDrop",
+    "RewriteReorder",
+    "RewriteDuplicate",
+    "OnlyFinal",
+    "OnlyFirst",
+    "AmbiguousLanguage",
+    "EquivalentSource",
+    "EquivalentReplacement",
+    "EmptyBaseline",
+    "RewriteWithRetainedEmpty",
+    "RetainedEnglishWithRewrite",
+    "RetainedFrenchWithRewrite"
+  ],
+  "scope": "Independent native final states for text replacement with paragraph-count changes, unchanged complete paragraph/run formatting, equivalent native templates, retained empty CRs and language selection. Table controls use fitting first/final cells with unchanged neighbors; general reflow and producer profiles remain unqualified."
+}

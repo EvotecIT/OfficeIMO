@@ -206,7 +206,15 @@ Equal copied empty paragraphs with different native CR definitions are refused.
 For nonempty retained paragraphs, the final destination keeps the original
 story's final CR typing definition. Moving the original final paragraph into the interior requires an observed
 intermediate CR definition that matches its last visible body definition.
-Arbitrary count-changing rewrites from nonuniform definitions remain refused.
+Nonempty single-run text can change during nonuniform count changes when its
+complete editable paragraph/run formatting remains unchanged. Exact retained
+snapshots and values resolve first. Other paragraphs match by formatting, and
+every matching native template must have a uniform nonempty body and agree on
+complete paragraph/body definitions and the destination CR. Empty or unsupported
+matching source bodies remain ambiguity barriers. Equal visible formatting does
+not choose between conflicting opaque native definitions. Count-changing
+formatting rewrites, mixed-run replacements and filling nonuniform empty source
+paragraphs remain outside this profile.
 A newly authored empty final paragraph is refused when its requested typing
 cannot be represented safely. A zero-paragraph story remains unsupported
 for native saving; in-memory clearing and rendering remain available.
@@ -229,6 +237,19 @@ also distinguish Western font size/emphasis from right-to-left font fields:
 complete style definitions default to Western 12-point regular when those
 Western fields are omitted; direct overrides inherit the selected style.
 This does not qualify mixed-script selection or rendering.
+
+The `sourceEditing.nonuniformTextReplacement` record covers twenty public saves
+from the fourteen-page `TextNonuniformTextReplacements` and
+`TableNonuniformTextReplacements` controls. They combine growth, shrinkage,
+deletion, reordering, duplication, sole first/final replacements, equivalent
+templates with different source text, retained empties and exact language
+selection alongside rewritten text. Forty initial/resaved selected-page
+comparisons match independent native final states in pixels and text spans;
+520 neighboring-page comparisons stay unchanged. Complete native definitions,
+storage, text, effective fonts/language and table partitions are checked
+separately. These fitting controls use Arial 12-point bodies with distinct
+paragraph formatting and language metadata. Broader producer/style profiles,
+general row reflow and repair-free opening remain unassessed.
 
 When ranges no longer fit the original allocation, the codec can append aligned
 formatting pages and directory pages, relocate enlarged BTE indexes and resources,

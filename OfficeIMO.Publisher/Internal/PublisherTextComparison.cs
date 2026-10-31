@@ -5,6 +5,8 @@ namespace OfficeIMO.Publisher.Internal;
 /// <summary>Compares the complete editable text contract, independently of retained native definitions.</summary>
 internal static class PublisherTextComparison {
     internal static IEqualityComparer<OfficeRichTextParagraph> Paragraphs { get; } = new ParagraphComparer();
+    /// <summary>Matches complete editable paragraph/run formatting while allowing run text to change.</summary>
+    internal static IEqualityComparer<OfficeRichTextParagraph> ParagraphFormats { get; } = new ParagraphComparer(includeText: false);
     internal static bool StoryEqual(PublisherTextStory a, PublisherTextStory b) => ReferenceEquals(a, b)
         || a.Id == b.Id && a.Text == b.Text && a.HasFinalParagraphTerminator == b.HasFinalParagraphTerminator
         && a.Paragraphs.Count == b.Paragraphs.Count && a.Paragraphs.Zip(b.Paragraphs, ParagraphEqual).All(value => value);
@@ -24,8 +26,11 @@ internal static class PublisherTextComparison {
         && a.MinimumDistance == b.MinimumDistance && a.FollowedBy == b.FollowedBy && a.TextPosition == b.TextPosition && RunEqual(a.Run, b.Run);
 
     private sealed class ParagraphComparer : IEqualityComparer<OfficeRichTextParagraph> {
+        private readonly bool _includeText;
+        internal ParagraphComparer(bool includeText = true) { _includeText = includeText; }
         public bool Equals(OfficeRichTextParagraph? a, OfficeRichTextParagraph? b) => ReferenceEquals(a, b)
-            || a != null && b != null && ParagraphEqual(a, b);
+            || a != null && b != null && (_includeText ? ParagraphEqual(a, b) : ParagraphFormattingEqual(a, b)
+                && a.Runs.Count == b.Runs.Count && a.Runs.Zip(b.Runs, RunFormattingEqual).All(value => value));
 
         public int GetHashCode(OfficeRichTextParagraph paragraph) {
             int hash = 17;
@@ -40,7 +45,8 @@ internal static class PublisherTextComparison {
             }
             Add(paragraph.Runs.Count);
             foreach (var run in paragraph.Runs) {
-                Add(run.Text); Add(run.FontSize); Add(run.FontFamily); Add(run.Color); Add(run.Bold); Add(run.Italic);
+                if (_includeText) Add(run.Text);
+                Add(run.FontSize); Add(run.FontFamily); Add(run.Color); Add(run.Bold); Add(run.Italic);
                 Add(run.UnderlineStyle); Add(run.StrikethroughStyle); Add(run.Baseline); Add(run.BackgroundColor);
                 Add(run.ParagraphIndent); Add(run.LinkUri); Add(run.LinkDestinationName);
             }

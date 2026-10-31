@@ -1,7 +1,7 @@
 # Independent final-state controls use paragraph formatting without selection or clipboard access.
 function Add-NativeParagraphTopologyControl {
-    param($Publication, $FirstPage, [switch] $EmptyParagraphs, [switch] $UniformEmpty)
-    $profiles = @(Get-NativeParagraphTopologyProfiles -EmptyParagraphs:$EmptyParagraphs -SizeWitnesses:$EmptyParagraphs -UniformEmpty:$UniformEmpty)
+    param($Publication, $FirstPage, [switch] $EmptyParagraphs, [switch] $UniformEmpty, [switch] $TextReplacements)
+    $profiles = @(Get-NativeParagraphTopologyProfiles -EmptyParagraphs:$EmptyParagraphs -SizeWitnesses:$EmptyParagraphs -UniformEmpty:$UniformEmpty -TextReplacements:$TextReplacements)
     if ($EmptyParagraphs) {
         $typingStyles = Add-NativeEmptyParagraphTypingStyles -Publication $Publication
         foreach ($profile in $profiles) { $profile.EmptyTypingStyles = $typingStyles }
