@@ -21,6 +21,6 @@ Use a stable prefix when sources can contain the same sheet names. Copy mode and
 
 `Compare-OfficeExcelWorkbook` checks cells, styles, named ranges, tables, worksheet metadata, and comments. Skip categories only when the delivery contract says they do not matter. `Compare-OfficeExcelRange` narrows the comparison to a known business area.
 
-The [merge-workbooks recipe](https://github.com/EvotecIT/OfficeIMO/blob/910aa3ec38e156f1c6b029aca3f6ea5a8cc1fa44/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-MergeWorkbooks.ps1) consolidates two regional sheets. The [compare-workbooks recipe](https://github.com/EvotecIT/OfficeIMO/blob/910aa3ec38e156f1c6b029aca3f6ea5a8cc1fa44/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-CompareWorkbooks.ps1) creates a controlled cell difference and reports it.
+The [merge-workbooks recipe](https://github.com/EvotecIT/OfficeIMO/blob/db5cd62b6fa2764054f42714ee58a56f8fd7e062/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-MergeWorkbooks.ps1) consolidates two regional sheets. The [compare-workbooks recipe](https://github.com/EvotecIT/OfficeIMO/blob/db5cd62b6fa2764054f42714ee58a56f8fd7e062/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-CompareWorkbooks.ps1) creates a controlled cell difference and reports it.
 
 After a merge, run the checks described in [validation and repair](/docs/pswriteoffice/excel-validation-repair/).

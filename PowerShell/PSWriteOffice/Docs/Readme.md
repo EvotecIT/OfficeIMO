@@ -1469,7 +1469,7 @@ Saves a live Markdown document using its native save policy and keeps it availab
 Saves a native OpenDocument model with entry-level preservation diagnostics.
 
 ### [Save-OfficePdf](Save-OfficePdf.md)
-Saves an OfficeIMO.Pdf document.
+Saves a live PDF to its associated path or a new destination without closing it.
 
 ### [Save-OfficePowerPoint](Save-OfficePowerPoint.md)
 Saves a live presentation without closing it.

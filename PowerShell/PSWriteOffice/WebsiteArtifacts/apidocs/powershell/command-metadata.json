@@ -3875,8 +3875,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfCommand.cs",
-      "sourceLine": 25,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfCommand.cs#L25"
+      "sourceLine": 24,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfCommand.cs#L24"
     },
     {
       "name": "New-OfficePdfExcelImportOptions",
@@ -4428,8 +4428,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/SaveOfficePdfCommand.cs",
-      "sourceLine": 25,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/SaveOfficePdfCommand.cs#L25"
+      "sourceLine": 23,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/SaveOfficePdfCommand.cs#L23"
     },
     {
       "name": "Save-OfficePowerPoint",

@@ -30,7 +30,7 @@ Keep the source, destination, diagnostics, warnings, and any fidelity policy tog
 
 Create a fresh output folder or use stable file names with deliberate overwrite behavior. Avoid appending the same section, sheet, or slide on every rerun unless the script first detects whether it already exists.
 
-For object workflows, create with `-NoSave`, apply the complete change set, then use the matching `Save-*` and `Close-*` commands once. Saved DSL constructors are quiet by default; use `-PassThru` only when another command needs the saved file.
+For object workflows, leave out the constructor's content block, apply the complete change set to the live document, then use the matching `Save-*` and `Close-*` commands once. Saved DSL constructors are quiet by default; use `-PassThru` only when another command needs the saved file.
 
 ## Bound batch work
 
@@ -51,7 +51,7 @@ Use `-CheckpointDirectory` for resumable directory jobs and retain the per-file 
 
 ## Work with native document families
 
-Project tasks, Access rows, EPUB chapters and invoice lines accept ordinary PowerShell parameters and object pipelines. The [native document example](https://github.com/EvotecIT/OfficeIMO/blob/910aa3ec38e156f1c6b029aca3f6ea5a8cc1fa44/PowerShell/PSWriteOffice/Examples/Workflows/Example-NativeDocumentFamilies.ps1) creates and reads these artifacts without constructing .NET option objects.
+Project tasks, Access rows, EPUB chapters and invoice lines accept ordinary PowerShell parameters and object pipelines. The [native document example](https://github.com/EvotecIT/OfficeIMO/blob/db5cd62b6fa2764054f42714ee58a56f8fd7e062/PowerShell/PSWriteOffice/Examples/Workflows/Example-NativeDocumentFamilies.ps1) creates and reads these artifacts without constructing .NET option objects.
 
 - Use `New-OfficeProject`, task/resource/assignment commands and `Invoke-OfficeProjectSchedule` to prepare a schedule. XML preserves the supported scheduling model; native MPP saves assess generation-specific loss. Inspect `-ReportVariable` and opt into `-AllowLoss` only after reviewing the reported reductions.
 - Use `New-OfficeAccess` and table/column/row commands for a native MDB or ACCDB table database. The file operations remain inert: they do not start ACE, run SQL, or execute database code.
@@ -60,4 +60,4 @@ Project tasks, Access rows, EPUB chapters and invoice lines accept ordinary Powe
 
 ## Find exact parameters
 
-The [command reference](/api/powershell/) is the authoritative parameter contract. The [examples](https://github.com/EvotecIT/OfficeIMO/tree/910aa3ec38e156f1c6b029aca3f6ea5a8cc1fa44/PowerShell/PSWriteOffice/Examples) demonstrate complete job shapes. Pin the module version in production automation and review release notes before changing that pin.
+The [command reference](/api/powershell/) is the authoritative parameter contract. The [examples](https://github.com/EvotecIT/OfficeIMO/tree/db5cd62b6fa2764054f42714ee58a56f8fd7e062/PowerShell/PSWriteOffice/Examples) demonstrate complete job shapes. Pin the module version in production automation and review release notes before changing that pin.

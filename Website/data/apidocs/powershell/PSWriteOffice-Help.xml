@@ -184051,12 +184051,11 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <command:verb>Save</command:verb>
       <command:noun>OfficePdf</command:noun>
       <maml:description>
-        <maml:para>Saves an OfficeIMO.Pdf document.</maml:para>
+        <maml:para>Saves a live PDF to its associated path or a new destination without closing it.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Use this command when a PDF is built in memory and saved later, or when a pipeline should continue with the saved file.
-The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
+      <maml:para>Native serialization rejects content loss unless AllowLoss is supplied. Password and OwnerPassword accept shared secure input. Security options encrypt an unencrypted output; use Protect-OfficeDocument for security changes to an already protected file.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="__AllParameterSets">
@@ -184064,7 +184063,7 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowLoss</maml:name>
           <maml:description>
-            <maml:para>Explicitly accept fidelity findings from native PDF serialization.</maml:para>
+            <maml:para>Explicitly accept fidelity loss from native PDF serialization.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -184073,10 +184072,10 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
           <maml:description>
-            <maml:para>PDF document to save.</maml:para>
+            <maml:para>Live PDF to save.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">PdfDocument</command:parameterValue>
           <dev:type>
@@ -184085,26 +184084,14 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Show">
-          <maml:name>Open</maml:name>
-          <maml:description>
-            <maml:para>Open the PDF after saving.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>OwnerPassword</maml:name>
           <maml:description>
-            <maml:para>Optional owner password for the generated encrypted PDF.</maml:para>
+            <maml:para>Owner password; without Password the PDF opens without a password and enforces permissions.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -184112,7 +184099,7 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Emit the document for further processing.</maml:para>
+            <maml:para>Return the saved FileInfo.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -184121,10 +184108,22 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="UserPassword">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Password</maml:name>
           <maml:description>
-            <maml:para>Password required to open the generated PDF.</maml:para>
+            <maml:para>Opening password for an unencrypted output; accepts secure input or warned plaintext.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+          <dev:type>
+            <maml:name>SecureString</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Optional destination; omission uses the native document's associated path.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -184133,26 +184132,38 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="FilePath">
-          <maml:name>Path</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Permission</maml:name>
           <maml:description>
-            <maml:para>Destination PDF path.</maml:para>
+            <maml:para>Operations allowed to readers, expressed as native PDF permission flags.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PdfStandardPermissions</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Print</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">ModifyContents</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">CopyContents</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">ModifyAnnotations</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">FillForms</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Accessibility</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">AssembleDocument</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">HighQualityPrint</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">All</command:parameterValue>
+          </command:parameterValueGroup>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>PdfStandardPermissions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Permissions">
-          <maml:name>Permission</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Show</maml:name>
           <maml:description>
-            <maml:para>Raw PDF Standard security permission bit mask. Defaults to allowing all standard operations.</maml:para>
+            <maml:para>Open the saved file in its registered default application.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
-            <maml:name>Int32</maml:name>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -184163,7 +184174,7 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>AllowLoss</maml:name>
         <maml:description>
-          <maml:para>Explicitly accept fidelity findings from native PDF serialization.</maml:para>
+          <maml:para>Explicitly accept fidelity loss from native PDF serialization.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -184172,10 +184183,10 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
         <maml:name>Document</maml:name>
         <maml:description>
-          <maml:para>PDF document to save.</maml:para>
+          <maml:para>Live PDF to save.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">PdfDocument</command:parameterValue>
         <dev:type>
@@ -184184,26 +184195,14 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Show">
-        <maml:name>Open</maml:name>
-        <maml:description>
-          <maml:para>Open the PDF after saving.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>OwnerPassword</maml:name>
         <maml:description>
-          <maml:para>Optional owner password for the generated encrypted PDF.</maml:para>
+          <maml:para>Owner password; without Password the PDF opens without a password and enforces permissions.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -184211,7 +184210,7 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>PassThru</maml:name>
         <maml:description>
-          <maml:para>Emit the document for further processing.</maml:para>
+          <maml:para>Return the saved FileInfo.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -184220,10 +184219,22 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="UserPassword">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Password</maml:name>
         <maml:description>
-          <maml:para>Password required to open the generated PDF.</maml:para>
+          <maml:para>Opening password for an unencrypted output; accepts secure input or warned plaintext.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+        <dev:type>
+          <maml:name>SecureString</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>Optional destination; omission uses the native document's associated path.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -184232,26 +184243,38 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="FilePath">
-        <maml:name>Path</maml:name>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Permission</maml:name>
         <maml:description>
-          <maml:para>Destination PDF path.</maml:para>
+          <maml:para>Operations allowed to readers, expressed as native PDF permission flags.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PdfStandardPermissions</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Print</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ModifyContents</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">CopyContents</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ModifyAnnotations</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">FillForms</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Accessibility</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">AssembleDocument</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">HighQualityPrint</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">All</command:parameterValue>
+        </command:parameterValueGroup>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>PdfStandardPermissions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Permissions">
-        <maml:name>Permission</maml:name>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Show</maml:name>
         <maml:description>
-          <maml:para>Raw PDF Standard security permission bit mask. Defaults to allowing all standard operations.</maml:para>
+          <maml:para>Open the saved file in its registered default application.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
-          <maml:name>Int32</maml:name>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -184267,7 +184290,7 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
     <command:returnValues>
       <command:returnValue>
         <dev:type>
-          <maml:name>OfficeIMO.Pdf.PdfDocument</maml:name>
+          <maml:name>System.IO.FileInfo</maml:name>
         </dev:type>
       </command:returnValue>
     </command:returnValues>
@@ -184278,16 +184301,21 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Build a PDF in memory and save it later.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$pdf = New-OfficePdf
-            Add-OfficePdfHeading -Document $pdf -Text 'Queued report'
-            Add-OfficePdfParagraph -Document $pdf -Text 'Generated in memory.'
-            $pdf | Save-OfficePdf -Path .\QueuedReport.pdf</dev:code>
+        <maml:title>Save to the associated destination and keep editing.</maml:title>
+        <dev:code>$pdf = New-OfficePdf -Path ./Review.pdf
+            Add-OfficePdfParagraph -Document $pdf -Text 'Reviewed and approved'
+            $pdf | Save-OfficePdf -PassThru
+            Close-OfficePdf -Document $pdf</dev:code>
         <dev:remarks>
-          <maml:para>Creates a PDF document object first, then saves it to disk.</maml:para>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Restrict printing and accessibility without requiring an opening password.</maml:title>
+        <dev:code>$owner = Read-Host -AsSecureString
+            Save-OfficePdf -Document $pdf -Path ./Restricted.pdf -OwnerPassword $owner -Permission Print,Accessibility</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
