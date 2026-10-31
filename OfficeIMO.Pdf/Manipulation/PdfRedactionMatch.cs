@@ -83,6 +83,9 @@ public sealed class PdfRedactionMatch {
     // /SMask or /Mask stream it carries, in the output.
     internal IReadOnlyList<string> ImageDataSha256 { get; set; } = Array.Empty<string>();
 
+    internal PdfRedactionMatch WithText(string? text) => new PdfRedactionMatch(Kind, Area, PageNumber, X, Y, Width, Height,
+        text, Subtype, ObjectNumber, ResourceName, ImagePlacement) { ImageDataSha256 = ImageDataSha256 };
+
     internal bool RequiresRemoval => Area.ContentScope == PdfRedactionContentScope.TextAndUnderlay ||
         Kind is PdfRedactionMatchKind.TextBlock or PdfRedactionMatchKind.Annotation or PdfRedactionMatchKind.FormField;
 }

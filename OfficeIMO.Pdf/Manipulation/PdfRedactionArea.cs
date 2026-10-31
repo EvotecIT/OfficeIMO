@@ -51,7 +51,7 @@ public sealed class PdfRedactionArea {
         Y = y;
         Width = width;
         Height = height;
-        Label = label;
+        OriginalLabel = label;
         ContentScope = contentScope;
         AppearanceMode = appearanceMode;
         TextRenderingMode = textRenderingMode;
@@ -76,7 +76,9 @@ public sealed class PdfRedactionArea {
     public double Height { get; }
 
     /// <summary>Optional caller label.</summary>
-    public string? Label { get; }
+    public string? Label => OriginalLabel is string label && SearchCriteria?.Matches(label) == true ? "search" : OriginalLabel;
+
+    internal string? OriginalLabel { get; }
 
     /// <summary>Intersecting content removal policy for this reviewed area.</summary>
     public PdfRedactionContentScope ContentScope { get; }
@@ -148,19 +150,19 @@ public sealed class PdfRedactionArea {
         PdfRedactionGeometry.RectangleIntersectsQuadrilateral(X, Y, Width, Height, first, second, third, fourth);
 
     internal PdfRedactionArea WithExactGeometry(PdfRedactionGeometry exactGeometry) =>
-        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, TextRenderingMode, exactGeometry, ContentScope, AppearanceMode, GlyphSelection, SearchCriteria);
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, OriginalLabel, TextRenderingMode, exactGeometry, ContentScope, AppearanceMode, GlyphSelection, SearchCriteria);
 
     internal PdfRedactionArea WithTextRenderingMode(int textRenderingMode) =>
-        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, textRenderingMode, ExactGeometry, ContentScope, AppearanceMode, GlyphSelection, SearchCriteria);
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, OriginalLabel, textRenderingMode, ExactGeometry, ContentScope, AppearanceMode, GlyphSelection, SearchCriteria);
 
     internal PdfRedactionArea WithPolicies(PdfRedactionContentScope contentScope, PdfRedactionAppearanceMode appearanceMode) =>
-        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, TextRenderingMode, ExactGeometry, contentScope, appearanceMode, GlyphSelection, SearchCriteria);
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, OriginalLabel, TextRenderingMode, ExactGeometry, contentScope, appearanceMode, GlyphSelection, SearchCriteria);
 
     internal PdfRedactionArea WithSearchCriteria(PdfRedactionSearchCriteria? searchCriteria) =>
-        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, TextRenderingMode, ExactGeometry, ContentScope, AppearanceMode, GlyphSelection, searchCriteria);
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, OriginalLabel, TextRenderingMode, ExactGeometry, ContentScope, AppearanceMode, GlyphSelection, searchCriteria);
 
     internal PdfRedactionArea WithGlyphSelection(PdfRedactionGlyphSelection glyphSelection) =>
-        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, TextRenderingMode, ExactGeometry, ContentScope, AppearanceMode, glyphSelection, SearchCriteria);
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, OriginalLabel, TextRenderingMode, ExactGeometry, ContentScope, AppearanceMode, glyphSelection, SearchCriteria);
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 }

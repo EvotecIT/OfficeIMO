@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
             AssertRemovedExactly(bytes, result.Pdf, literal, occurrences);
             Assert.All(plan.Matches.Where(match => match.Kind == PdfRedactionMatchKind.TextBlock),
-                match => Assert.Equal(literal, match.Text));
+                match => Assert.Null(match.Text));
         }
 
         [Fact]

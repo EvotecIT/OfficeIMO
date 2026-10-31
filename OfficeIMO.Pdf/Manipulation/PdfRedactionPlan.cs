@@ -13,12 +13,18 @@ public sealed class PdfRedactionPlan {
         IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>>? reviewedTextObjectScopes = null,
         bool searchMatchCase = true,
         System.Text.RegularExpressions.RegexOptions searchRegexOptions = System.Text.RegularExpressions.RegexOptions.CultureInvariant,
-        TimeSpan? searchRegexTimeout = null) {
+        TimeSpan? searchRegexTimeout = null,
+        IReadOnlyCollection<int>? searchPageNumbers = null) {
         Preflight = preflight;
         Areas = Array.AsReadOnly(areas.ToArray());
-        Matches = matches;
+        PdfRedactionSearchCriteria[] textCriteria = areas.Select(static area => area.SearchCriteria).OfType<PdfRedactionSearchCriteria>().Distinct().ToArray();
+        Matches = Array.AsReadOnly(matches.Select(match => match.Kind != PdfRedactionMatchKind.FormField && match.Text is string text && textCriteria.Any(criterion => criterion.Matches(text))
+            ? match.WithText(null) : match).ToArray());
         Findings = findings;
-        SearchCriteria = Array.AsReadOnly(searchCriteria?.ToArray() ?? Array.Empty<string>());
+        RequestedSearchCriteria = Array.AsReadOnly(searchCriteria?.ToArray() ?? Array.Empty<string>());
+        SearchCriteria = Array.AsReadOnly(RequestedSearchCriteria.Select(static criterion => criterion.Split(':')[0]).ToArray());
+        SearchPageNumbers = searchPageNumbers?.ToArray() ?? Areas.Where(static area => area.SearchCriteria is not null)
+            .SelectMany(static area => area.SearchCriteria!.PageNumbers).Distinct().ToArray();
         SourceSha256 = sourceSha256;
         PageIdentities = pageIdentities ?? Array.Empty<string>();
         ReviewedTextObjectScopes = reviewedTextObjectScopes ?? Array.Empty<IReadOnlyList<PdfRedactionTextObjectScope>>();
@@ -39,8 +45,11 @@ public sealed class PdfRedactionPlan {
     /// <summary>Diagnostics and warnings for the plan.</summary>
     public IReadOnlyList<PdfDiagnosticFinding> Findings { get; }
 
-    /// <summary>Stable descriptions of literal, regex, logical-kind, or form-field criteria used to derive the areas.</summary>
+    /// <summary>Kinds of criteria used to derive the areas. Searched values are kept private.</summary>
     public IReadOnlyList<string> SearchCriteria { get; }
+
+    internal IReadOnlyList<string> RequestedSearchCriteria { get; }
+    internal IReadOnlyCollection<int> SearchPageNumbers { get; }
 
     /// <summary>SHA-256 fingerprint of the exact PDF bytes inspected while creating this plan.</summary>
     public string SourceSha256 { get; }

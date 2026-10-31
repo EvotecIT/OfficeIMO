@@ -7,6 +7,7 @@ internal sealed class PdfRedactionAffectedField {
     internal PdfRedactionAffectedField(string name) => Name = name;
 
     internal string Name { get; }
+    internal bool NameHoldsSearch { get; set; }
     internal List<PdfDictionary> ValueOwners { get; } = new();
     internal List<PdfDictionary> Widgets { get; } = new();
     internal HashSet<int> Pages { get; } = new();
@@ -21,6 +22,7 @@ internal sealed class PdfRedactionFormAnalysis {
 
 internal static partial class PdfRedactionApplier {
     private static readonly string[] FieldValueKeys = { "V", "DV", "RV" };
+    private static readonly string[] FieldDataKeys = { "TU", "TM", "Contents" };
     private static readonly string[] CaptionKeys = { "CA", "RC", "AC" };
     private static readonly Regex XmlTag = new Regex("<[^>]*>", RegexOptions.CultureInvariant, RegexTimeout);
     private const int MaximumFormFieldDepth = 128;
@@ -101,11 +103,12 @@ internal static partial class PdfRedactionApplier {
             if (pagesInScope.Length == 0 && !(pages.Count == 0 && includeFieldsWithoutWidgets)) return (pages, widgets);
             List<PdfDictionary> holders = owners.Where(HoldsValue).ToList();
             List<PdfDictionary> staleWidgets = ownWidgets.Where(widget => pageOfWidget.TryGetValue(widget, out int page) && scope.Contains(page) && WidgetHolds(widget)).ToList();
-            if (holders.Count == 0 && staleWidgets.Count == 0) return (pages, widgets);
-            var affected = new PdfRedactionAffectedField(name);
+            bool nameHolds = criteria.Any(criterion => criterion.Matches(name));
+            if (holders.Count == 0 && staleWidgets.Count == 0 && !nameHolds) return (pages, widgets);
+            var affected = new PdfRedactionAffectedField(name) { NameHoldsSearch = nameHolds };
             affected.ValueOwners.AddRange(holders);
             // A cleared value leaves every widget it reaches showing old text, so all of them follow.
-            affected.Widgets.AddRange(holders.Count > 0 ? widgets : staleWidgets);
+            affected.Widgets.AddRange(holders.Count > 0 || nameHolds ? widgets : staleWidgets);
             affected.FirstWidget = affected.Widgets.FirstOrDefault(widget => pageOfWidget.TryGetValue(widget, out int page) && scope.Contains(page)) ?? affected.Widgets.FirstOrDefault();
             foreach (PdfDictionary widget in affected.Widgets) {
                 if (pageOfWidget.TryGetValue(widget, out int page) && scope.Contains(page)) affected.Pages.Add(page);
@@ -115,10 +118,11 @@ internal static partial class PdfRedactionApplier {
         }
 
         bool HoldsValue(PdfDictionary owner) =>
-            FieldValueKeys.Any(key => owner.Items.TryGetValue(key, out PdfObject? value) && ValueHolds(value)) ||
+            FieldValueKeys.Concat(FieldDataKeys).Any(key => owner.Items.TryGetValue(key, out PdfObject? value) && ValueHolds(value)) ||
             PdfObjectLookup.Resolve(objects, owner.Items.TryGetValue("Opt", out PdfObject? options) ? options : null) is PdfArray array && array.Items.Any(ValueHolds);
 
         bool WidgetHolds(PdfDictionary widget) {
+            if (FieldDataKeys.Any(key => widget.Items.TryGetValue(key, out PdfObject? data) && ValueHolds(data))) return true;
             if (ResolveDictionary(objects, widget.Items.TryGetValue("MK", out PdfObject? characteristics) ? characteristics : null) is PdfDictionary mk &&
                 CaptionKeys.Any(key => mk.Items.TryGetValue(key, out PdfObject? caption) && ValueHolds(caption))) return true;
             if (ResolveDictionary(objects, widget.Items.TryGetValue("AP", out PdfObject? appearanceValue) ? appearanceValue : null) is PdfDictionary appearances &&
@@ -171,6 +175,7 @@ internal static partial class PdfRedactionApplier {
             criteria.Any(static criterion => criterion.CoversAllPages));
         bool changed = false;
         bool needsAppearances = false;
+        if (analysis.Fields.Any(static field => field.NameHoldsSearch)) throw new InvalidOperationException("A form field name holds searched text and cannot be changed safely.");
         foreach (PdfRedactionAffectedField field in analysis.Fields) {
             foreach (PdfDictionary owner in field.ValueOwners) {
                 changed = true;
@@ -198,7 +203,7 @@ internal static partial class PdfRedactionApplier {
         };
 
         void ClearFieldValues(PdfDictionary owner) {
-            foreach (string key in FieldValueKeys) {
+            foreach (string key in FieldValueKeys.Concat(FieldDataKeys)) {
                 if (!owner.Items.TryGetValue(key, out PdfObject? value) || !Holds(value)) continue;
                 // A button's value names a state, so it goes to the off state rather than to nothing.
                 if (PdfObjectLookup.Resolve(objects, value) is PdfName) owner.Items[key] = new PdfName("Off");
@@ -228,6 +233,9 @@ internal static partial class PdfRedactionApplier {
         }
 
         void ClearWidget(PdfDictionary widget, ref int number) {
+            foreach (string key in FieldDataKeys) {
+                if (widget.Items.TryGetValue(key, out PdfObject? data) && Holds(data)) widget.Items.Remove(key);
+            }
             if (ResolveDictionary(objects, widget.Items.TryGetValue("MK", out PdfObject? characteristics) ? characteristics : null) is PdfDictionary mk) {
                 foreach (string key in CaptionKeys) {
                     if (mk.Items.TryGetValue(key, out PdfObject? caption) && Holds(caption)) mk.Items.Remove(key);

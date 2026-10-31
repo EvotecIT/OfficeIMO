@@ -217,7 +217,7 @@ internal static partial class PdfRedactionApplier {
 
         PdfRedactionFormAnalysis forms = AnalyzeFormFields(document, plan.Areas);
         foreach (PdfRedactionAffectedField field in forms.Fields) {
-            issues.Add(new PdfRedactionVerificationIssue("RedactedContentOutsidePageContent", "FormFieldValue", "A form field still holds searched text: " + field.Name + "."));
+            issues.Add(new PdfRedactionVerificationIssue("RedactedContentOutsidePageContent", "FormFieldValue", "A form field still holds searched text."));
         }
         if (forms.XfaHoldsSearch) {
             issues.Add(new PdfRedactionVerificationIssue("RedactedContentOutsidePageContent", "XfaData", "XFA form data still holds searched text."));

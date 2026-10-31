@@ -126,7 +126,8 @@ public partial class PdfRedactionApplierTests {
 
         PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, new[] { area });
         Assert.True(plan.HasMatches);
-        Assert.Contains(plan.Matches, match => match.Text != null && match.Text.Contains("Secret account", StringComparison.Ordinal));
+        Assert.Contains(plan.Matches, static match => match.Kind == PdfRedactionMatchKind.TextBlock);
+        Assert.All(plan.Matches, static match => Assert.Null(match.Text));
 
         byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
         string text = PdfTextExtractor.ExtractAllText(redacted);
@@ -865,10 +866,10 @@ public partial class PdfRedactionApplierTests {
         PdfRedactionPlan plan = PdfRedactionPlanner.Search(source,
             new PdfRedactionSearchOptions().AddLiteral("secret"));
 
-        Assert.Equal("literal:secret", Assert.Single(plan.SearchCriteria));
+        string description = Assert.Single(plan.SearchCriteria);
         Assert.IsNotType<string[]>(plan.SearchCriteria);
         Assert.Throws<NotSupportedException>(() => ((IList<string>)plan.SearchCriteria)[0] = "field:other");
-        Assert.Equal("literal:secret", Assert.Single(plan.SearchCriteria));
+        Assert.Equal(description, Assert.Single(plan.SearchCriteria));
     }
 
     [Fact]
@@ -912,7 +913,7 @@ public partial class PdfRedactionApplierTests {
             source, new PdfRedactionSearchOptions().AddLiteral("secret"));
         var displaced = new PdfRedactionArea(1, 480D, 30D, 20D, 20D, searched.Areas[0].Label);
         var plan = new PdfRedactionPlan(searched.Preflight, new[] { displaced }, searched.Matches,
-            searched.Findings, searched.SearchCriteria, searched.SourceSha256,
+            searched.Findings, searched.RequestedSearchCriteria, searched.SourceSha256,
             searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase);
 
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => PdfRedactionApplier.Apply(source, plan));
@@ -926,7 +927,7 @@ public partial class PdfRedactionApplierTests {
             source, new PdfRedactionSearchOptions().AddRegex("sec.et"));
         var displaced = new PdfRedactionArea(1, 480D, 30D, 20D, 20D, searched.Areas[0].Label);
         var plan = new PdfRedactionPlan(searched.Preflight, new[] { displaced }, searched.Matches,
-            searched.Findings, searched.SearchCriteria, searched.SourceSha256,
+            searched.Findings, searched.RequestedSearchCriteria, searched.SourceSha256,
             searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase,
             searched.SearchRegexOptions, searched.SearchRegexTimeout);
 
@@ -944,7 +945,7 @@ public partial class PdfRedactionApplierTests {
         var firstCriterionOnly = new PdfRedactionArea(alphaBounds.PageNumber, alphaBounds.X, alphaBounds.Y,
             alphaBounds.Width, alphaBounds.Height, searched.Areas[0].Label);
         var plan = new PdfRedactionPlan(searched.Preflight, new[] { firstCriterionOnly }, searched.Matches,
-            searched.Findings, searched.SearchCriteria, searched.SourceSha256,
+            searched.Findings, searched.RequestedSearchCriteria, searched.SourceSha256,
             searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase);
 
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => PdfRedactionApplier.Apply(source, plan));

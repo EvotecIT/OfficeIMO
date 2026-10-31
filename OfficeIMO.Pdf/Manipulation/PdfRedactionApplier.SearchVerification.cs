@@ -10,14 +10,14 @@ internal static partial class PdfRedactionApplier {
     internal static void VerifySearchedTextRemoved(byte[] output, byte[] source, PdfRedactionPlan plan,
         PdfTextLayoutOptions? layoutOptions, PdfLoadOptions? readOptions,
         PdfGeneratedOutputGrowth generatedGrowth, CancellationToken cancellationToken) {
-        if (plan.SearchCriteria.Count == 0 || plan.Areas.Count == 0) return;
+        if (plan.RequestedSearchCriteria.Count == 0 || plan.Areas.Count == 0) return;
         Dictionary<int, PdfRedactionArea[]> areasByPage = plan.Areas.GroupBy(static area => area.PageNumber)
             .ToDictionary(static group => group.Key, static group => group.ToArray());
-        string[] literals = plan.SearchCriteria.Where(static criterion => criterion.StartsWith("literal:", StringComparison.Ordinal))
+        string[] literals = plan.RequestedSearchCriteria.Where(static criterion => criterion.StartsWith("literal:", StringComparison.Ordinal))
             .Select(static criterion => criterion.Substring("literal:".Length)).ToArray();
-        Regex[] regexes = plan.SearchCriteria.Where(static criterion => criterion.StartsWith("regex:", StringComparison.Ordinal))
+        Regex[] regexes = plan.RequestedSearchCriteria.Where(static criterion => criterion.StartsWith("regex:", StringComparison.Ordinal))
             .Select(criterion => new Regex(criterion.Substring("regex:".Length), plan.SearchRegexOptions, plan.SearchRegexTimeout)).ToArray();
-        PdfLogicalElementKind[] kinds = plan.SearchCriteria.Where(static criterion => criterion.StartsWith("logical-kind:", StringComparison.Ordinal))
+        PdfLogicalElementKind[] kinds = plan.RequestedSearchCriteria.Where(static criterion => criterion.StartsWith("logical-kind:", StringComparison.Ordinal))
             .Select(static criterion => ParseLogicalKind(criterion)).ToArray();
         if (literals.Length == 0 && regexes.Length == 0 && kinds.Length == 0) return;
 

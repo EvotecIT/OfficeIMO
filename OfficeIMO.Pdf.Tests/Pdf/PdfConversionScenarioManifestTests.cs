@@ -511,7 +511,7 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.True(proof.Plan.HasMatches);
         Assert.True(proof.Verification.IsVerified);
         Assert.False(unredactedCheck.IsVerified);
-        Assert.Contains(proof.Plan.Matches, match => match.Text != null && match.Text.Contains("PAY-SECRET-2026", StringComparison.Ordinal));
+        Assert.Contains(proof.Plan.Matches, static match => match.Kind == OfficeIMO.Pdf.PdfRedactionMatchKind.TextBlock && match.Text == null);
         Assert.DoesNotContain("PAY-SECRET-2026", proof.Verification.ExtractedText, StringComparison.Ordinal);
         Assert.Contains("Visible compliance marker", proof.Verification.ExtractedText, StringComparison.Ordinal);
         Assert.Contains("Public summary marker", proof.Verification.ExtractedText, StringComparison.Ordinal);

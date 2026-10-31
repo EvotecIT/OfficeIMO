@@ -45,7 +45,7 @@ public sealed partial class PdfDocumentRedactions {
         // intentionally remove. Its replacement is the full page-content comparison above plus
         // the sanitizer's policy-specific preservation report, not a blanket identity bypass.
         var contentPlan = new PdfRedactionPlan(plan.Preflight, plan.Areas, plan.Matches, plan.Findings,
-            plan.SearchCriteria, plan.SourceSha256, reviewedTextObjectScopes: plan.ReviewedTextObjectScopes,
+            plan.RequestedSearchCriteria, plan.SourceSha256, reviewedTextObjectScopes: plan.ReviewedTextObjectScopes,
             searchMatchCase: plan.SearchMatchCase, searchRegexOptions: plan.SearchRegexOptions,
             searchRegexTimeout: plan.SearchRegexTimeout);
         PdfRedactionMatch[] provenImageRewrites = redaction.Evidence.Items

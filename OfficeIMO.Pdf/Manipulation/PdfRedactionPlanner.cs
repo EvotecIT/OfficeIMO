@@ -170,6 +170,8 @@ internal static partial class PdfRedactionPlanner {
             matches.Add(new PdfRedactionMatch(PdfRedactionMatchKind.FormField, areaArray.FirstOrDefault(area => area.PageNumber == pageNumber) ?? areaArray[0],
                 pageNumber, x, y, width, height, field.Name, "Field", null));
         }
+        if (forms.Fields.Any(static field => field.NameHoldsSearch)) findings.Add(new PdfDiagnosticFinding(PdfDiagnosticSeverity.Error,
+            "redaction-search-field-name-unsupported", "A form field name holds searched text and cannot be changed safely."));
         if (forms.XfaHoldsSearch) {
             matches.Add(new PdfRedactionMatch(PdfRedactionMatchKind.FormField, areaArray[0], areaArray[0].PageNumber, 0D, 0D, 0D, 0D, "XFA form data", "XFA", null));
             if (!forms.XfaCanBeRemoved && !excludeGeneratedRedactionMarks) {
@@ -177,6 +179,11 @@ internal static partial class PdfRedactionPlanner {
                     "This form's content is defined by XFA data that holds the searched text, and removing that data would remove the form. It can't be redacted by search."));
             }
         }
+
+        var searchedMetadata = PdfRedactionApplier.SearchMetadataHolders(readDocument.Objects, readDocument.CatalogDictionary, readDocument.TrailerRaw,
+            readDocument.Pages.Select(static page => page.ObjectNumber).ToArray(), areaArray.Select(static area => area.SearchCriteria).OfType<PdfRedactionSearchCriteria>().Distinct().ToArray(), readDocument.ReadOptions.Limits);
+        if (searchedMetadata.Owners.Count > 0 || searchedMetadata.Info) findings.Add(new PdfDiagnosticFinding(PdfDiagnosticSeverity.Info,
+            "redaction-search-metadata", "Metadata holding searched text will be removed, including matching catalog or page XMP and the Info dictionary."));
 
         var imageFingerprints = new Dictionary<int, IReadOnlyList<string>>();
         foreach (PdfRedactionMatch match in matches) {

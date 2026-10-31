@@ -2309,7 +2309,7 @@ their contents or appearance go on every searched page, even one with no text ma
 and appear in the plan as annotation matches. Such a page paints no mark.
 
 Search also covers form fields, whether or not `/Fields` lists the widget. A field holding
-the searched text in `/V`, `/DV`, `/RV`, a widget caption or its appearance has the whole
+the searched text in `/V`, `/DV`, `/RV`, `/TU`, `/TM`, widget `/Contents`, a caption or its appearance has the whole
 value cleared, because cutting a word out can't be proven safe against formats, comb
 layouts and scripts. The field and its widgets stay, appearances keep their border and
 background, choice options holding the text are dropped and selections renumbered, and a
@@ -2318,7 +2318,13 @@ plan as a `FormField` match carrying its name, never its value. A field has one 
 one reaching a searched page is cleared on every page; a field with no widget on a
 searched page stays. XFA data holding the text is removed from hybrid forms, and a form
 that depends on XFA is refused. Output still holding a searched value is refused. Field
-names themselves and form scripts are not changed. Signed files are not rewritten: use
+names themselves are not changed: a field name containing searched text blocks the plan.
+JavaScript actions, field `/AA` and document `/Names` JavaScript retain the active-content
+refusal. Catalog XMP, XMP on searched pages, and `/Info` holding searched text are removed regardless of `CleanupScope` and disclosed in the plan. A final check of
+saved string objects and decoded text-bearing streams refuses unexpected residue; PDF
+names and dictionary keys are excluded. A search with no live match is blocked if an
+earlier revision still holds searched text. Search labels and evidence omit matched
+values; `FormField` matches retain the field name. Signed files are not rewritten: use
 an unsigned derivative workflow and re-sign the result. Unpainted forms holding the searched text
 are removed too.
 

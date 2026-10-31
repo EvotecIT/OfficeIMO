@@ -703,7 +703,7 @@ public class PdfRedactionVerificationTests {
         PdfRedactionProofResult proof = PdfRedactionProofTestSupport.BuildAndVerifyRedactionRemovalProof();
 
         Assert.True(proof.Plan.HasMatches);
-        Assert.Contains(proof.Plan.Matches, match => match.Text != null && match.Text.Contains("PAY-SECRET-2026", StringComparison.Ordinal));
+        Assert.Contains(proof.Plan.Matches, static match => match.Kind == OfficeIMO.Pdf.PdfRedactionMatchKind.TextBlock && match.Text == null);
         Assert.True(proof.Verification.IsVerified);
         Assert.True(proof.Verification.RawPdfBytesChecked);
         Assert.True(proof.Verification.EncodedPdfStringsChecked);

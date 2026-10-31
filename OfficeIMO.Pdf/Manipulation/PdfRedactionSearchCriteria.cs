@@ -11,27 +11,29 @@ internal sealed class PdfRedactionSearchCriteria {
     private readonly string[] _literals;
     private readonly Regex[] _expressions;
 
-    private PdfRedactionSearchCriteria(string[] literals, Regex[] expressions, bool coversAllPages, IReadOnlyCollection<string> affectedFields) {
+    private PdfRedactionSearchCriteria(string[] literals, Regex[] expressions, bool coversAllPages, IReadOnlyCollection<string> affectedFields, IReadOnlyCollection<int> pageNumbers) {
         _literals = literals;
         _expressions = expressions;
         CoversAllPages = coversAllPages;
         AffectedFields = affectedFields;
+        PageNumbers = pageNumbers;
     }
 
     /// <summary>True when the search wasn't limited to pages, so content tied to no page is in scope.</summary>
     internal bool CoversAllPages { get; }
+    internal IReadOnlyCollection<int> PageNumbers { get; }
 
     /// <summary>Names of the fields this search clears. A name survives the renumbering of a rewrite, so identity can skip them.</summary>
     internal IReadOnlyCollection<string> AffectedFields { get; }
 
     internal PdfRedactionSearchCriteria WithAffectedFields(IEnumerable<string> fields) =>
-        new PdfRedactionSearchCriteria(_literals, _expressions, CoversAllPages, new HashSet<string>(fields, StringComparer.Ordinal));
+        new PdfRedactionSearchCriteria(_literals, _expressions, CoversAllPages, new HashSet<string>(fields, StringComparer.Ordinal), PageNumbers);
 
-    internal static PdfRedactionSearchCriteria? Create(IEnumerable<string> literals, IEnumerable<Regex> expressions, bool coversAllPages) {
+    internal static PdfRedactionSearchCriteria? Create(IEnumerable<string> literals, IEnumerable<Regex> expressions, bool coversAllPages, IReadOnlyCollection<int>? pageNumbers = null) {
         string[] literalCriteria = literals.ToArray();
         Regex[] expressionCriteria = expressions.ToArray();
         return literalCriteria.Length == 0 && expressionCriteria.Length == 0
-            ? null : new PdfRedactionSearchCriteria(literalCriteria, expressionCriteria, coversAllPages, Array.Empty<string>());
+            ? null : new PdfRedactionSearchCriteria(literalCriteria, expressionCriteria, coversAllPages, Array.Empty<string>(), pageNumbers ?? Array.Empty<int>());
     }
 
     internal bool Matches(string text) =>

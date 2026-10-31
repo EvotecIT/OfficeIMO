@@ -106,7 +106,7 @@ public class PdfRedactionSearchCleanupTests {
         var partial = new PdfRedactionArea(original.PageNumber, original.X, original.Y,
             original.Width / 3D, original.Height, original.Label);
         var plan = new PdfRedactionPlan(searched.Preflight, [partial], searched.Matches,
-            searched.Findings, searched.SearchCriteria, searched.SourceSha256,
+            searched.Findings, searched.RequestedSearchCriteria, searched.SourceSha256,
             searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase);
 
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => PdfRedactionApplier.Apply(source, plan));
@@ -128,7 +128,7 @@ public class PdfRedactionSearchCleanupTests {
         var partial = new PdfRedactionArea(original.PageNumber, original.X, original.Y,
             original.Width / 3D, original.Height, original.Label);
         var plan = new PdfRedactionPlan(searched.Preflight, [partial], searched.Matches,
-            searched.Findings, searched.SearchCriteria, searched.SourceSha256,
+            searched.Findings, searched.RequestedSearchCriteria, searched.SourceSha256,
             searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase,
             searched.SearchRegexOptions, searched.SearchRegexTimeout);
 
