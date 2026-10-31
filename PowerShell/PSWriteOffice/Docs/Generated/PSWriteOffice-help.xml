@@ -128849,35 +128849,35 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
       <command:verb>Get</command:verb>
       <command:noun>OfficePowerPointLayoutBox</command:noun>
       <maml:description>
-        <maml:para>Computes reusable layout boxes for a presentation.</maml:para>
+        <maml:para>Computes native content, column or row boxes for manual placement.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Returns the content box for a slide or equal column/row boxes derived from the current slide size.</maml:para>
+      <maml:para>Computes native content, column or row boxes for manual placement.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="Content">
         <maml:name>Get-OfficePowerPointLayoutBox</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MarginCm</maml:name>
-          <maml:description>
-            <maml:para>Outer slide margin in centimeters.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Presentation</maml:name>
+          <maml:name>Document</maml:name>
           <maml:description>
-            <maml:para>Presentation to inspect (optional inside DSL).</maml:para>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
           <dev:type>
             <maml:name>PowerPointDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Margin</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the outer margin; numbers mean points.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -128886,9 +128886,9 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
       <command:syntaxItem parameterSetName="Columns">
         <maml:name>Get-OfficePowerPointLayoutBox</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ColumnCount</maml:name>
+          <maml:name>Columns</maml:name>
           <maml:description>
-            <maml:para>Number of columns to generate.</maml:para>
+            <maml:para>Gets or sets the number of columns.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -128897,38 +128897,38 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>GutterCm</maml:name>
-          <maml:description>
-            <maml:para>Column or row gutter in centimeters.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MarginCm</maml:name>
-          <maml:description>
-            <maml:para>Outer slide margin in centimeters.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Presentation</maml:name>
+          <maml:name>Document</maml:name>
           <maml:description>
-            <maml:para>Presentation to inspect (optional inside DSL).</maml:para>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
           <dev:type>
             <maml:name>PowerPointDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Gutter</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the space between rows or columns; numbers mean points.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeLength</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Margin</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the outer margin; numbers mean points.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -128936,34 +128936,10 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
       </command:syntaxItem>
       <command:syntaxItem parameterSetName="Rows">
         <maml:name>Get-OfficePowerPointLayoutBox</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>GutterCm</maml:name>
-          <maml:description>
-            <maml:para>Column or row gutter in centimeters.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MarginCm</maml:name>
-          <maml:description>
-            <maml:para>Outer slide margin in centimeters.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Presentation</maml:name>
+          <maml:name>Document</maml:name>
           <maml:description>
-            <maml:para>Presentation to inspect (optional inside DSL).</maml:para>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
           <dev:type>
@@ -128972,10 +128948,34 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>RowCount</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Gutter</maml:name>
           <maml:description>
-            <maml:para>Number of rows to generate.</maml:para>
+            <maml:para>Gets or sets the space between rows or columns; numbers mean points.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeLength</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Margin</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the outer margin; numbers mean points.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeLength</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Rows</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the number of rows.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -128988,9 +128988,9 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
     </command:syntax>
     <command:parameters>
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>ColumnCount</maml:name>
+        <maml:name>Columns</maml:name>
         <maml:description>
-          <maml:para>Number of columns to generate.</maml:para>
+          <maml:para>Gets or sets the number of columns.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
         <dev:type>
@@ -128999,34 +128999,10 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>GutterCm</maml:name>
-        <maml:description>
-          <maml:para>Column or row gutter in centimeters.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
-        <dev:type>
-          <maml:name>Double</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>MarginCm</maml:name>
-        <maml:description>
-          <maml:para>Outer slide margin in centimeters.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
-        <dev:type>
-          <maml:name>Double</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Presentation</maml:name>
+        <maml:name>Document</maml:name>
         <maml:description>
-          <maml:para>Presentation to inspect (optional inside DSL).</maml:para>
+          <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
         <dev:type>
@@ -129035,10 +129011,34 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>RowCount</maml:name>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Gutter</maml:name>
         <maml:description>
-          <maml:para>Number of rows to generate.</maml:para>
+          <maml:para>Gets or sets the space between rows or columns; numbers mean points.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeLength</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Margin</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the outer margin; numbers mean points.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeLength</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Rows</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the number of rows.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
         <dev:type>
@@ -129069,32 +129069,20 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Get the content area for a deck.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>New-OfficePowerPoint -Path .\Examples\Documents\PowerPointLayoutBox.pptx {
-                $slide = Add-OfficePowerPointSlide -Layout 1 -PassThru
-                $box = Get-OfficePowerPointLayoutBox -MarginCm 1.5
-                Add-OfficePowerPointTextBox -Slide $slide -Text 'Inside the content box' -X ($box.LeftPoints) -Y ($box.TopPoints) -Width ($box.WidthPoints) -Height 60
-            }</dev:code>
+        <maml:title>Get a content box with a physical margin.</maml:title>
+        <dev:code>$box = Get-OfficePowerPointLayoutBox -Document $deck -Margin 1.5cm</dev:code>
         <dev:remarks>
-          <maml:para>Returns a content box and uses it to position slide text.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
-        <maml:title>Split the slide into two columns.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>New-OfficePowerPoint -Path .\Examples\Documents\PowerPointColumns.pptx {
-                $slide = Add-OfficePowerPointSlide -Layout 1 -PassThru
-                $columns = Get-OfficePowerPointLayoutBox -ColumnCount 2 -MarginCm 1.5 -GutterCm 1.0
-                Add-OfficePowerPointTextBox -Slide $slide -Text 'Left column' -X ($columns[0].LeftPoints) -Y ($columns[0].TopPoints) -Width ($columns[0].WidthPoints) -Height 80
-                Add-OfficePowerPointTextBox -Slide $slide -Text 'Right column' -X ($columns[1].LeftPoints) -Y ($columns[1].TopPoints) -Width ($columns[1].WidthPoints) -Height 80
+        <maml:title>Place text in equal columns.</maml:title>
+        <dev:code>$columns = Get-OfficePowerPointLayoutBox -Document $deck -Columns 2 -Margin 1.5cm -Gutter 1cm
+            PowerPointSlide -Document $deck -Title 'Status' {
+                PowerPointTextBox 'Healthy' -X $columns[0].Left -Y $columns[0].Top -Width $columns[0].Width -Height 40
             }</dev:code>
         <dev:remarks>
-          <maml:para>Uses two layout boxes to place text in columns.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -130234,7 +130222,7 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
       <maml:para>Reads the selected slide master's theme, colors and fonts.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Get-OfficePowerPointTheme</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>Document</maml:name>
@@ -166704,57 +166692,20 @@ and require an explicit save. The result reports the actual copied rows and colu
       <maml:para>Creates PowerPoint/OpenDocument conversion settings.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficePowerPointOpenDocumentOptions</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IncludeBasicFormatting</maml:name>
-          <maml:description>
-            <maml:para>Copy common fills, outlines, and text-run formatting.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IncludeImages</maml:name>
-          <maml:description>
-            <maml:para>Copy supported embedded images.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IncludeSpeakerNotes</maml:name>
-          <maml:description>
-            <maml:para>Copy plain speaker-note text.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>LossPolicy</maml:name>
           <maml:description>
-            <maml:para>Whether conversion loss is reported or rejected.</maml:para>
+            <maml:para>Gets or sets whether known omitted content is rejected or reported; omission retains the adapter default.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">OdfConversionLossPolicy</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeConversionLossPolicy</command:parameterValue>
           <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">ReportOnly</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">ThrowOnSkippedOrUnsupported</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">ThrowOnAnyLoss</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Block</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Allow</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>OdfConversionLossPolicy</maml:name>
+            <maml:name>OfficeConversionLossPolicy</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -166762,7 +166713,7 @@ and require an explicit save. The result reports the actual copied rows and colu
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>MaxTableColumns</maml:name>
           <maml:description>
-            <maml:para>Maximum columns in converted presentation tables.</maml:para>
+            <maml:para>Gets or sets the maximum number of columns in a converted table.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -166774,7 +166725,7 @@ and require an explicit save. The result reports the actual copied rows and colu
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>MaxTableRows</maml:name>
           <maml:description>
-            <maml:para>Maximum rows in converted presentation tables.</maml:para>
+            <maml:para>Gets or sets the maximum number of rows in a converted table.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -166783,58 +166734,57 @@ and require an explicit save. The result reports the actual copied rows and colu
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoBasicFormatting</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether common fill, outline and run formatting is omitted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoImages</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether embedded images are omitted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoSpeakerNotes</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether speaker notes are omitted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>IncludeBasicFormatting</maml:name>
-        <maml:description>
-          <maml:para>Copy common fills, outlines, and text-run formatting.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>IncludeImages</maml:name>
-        <maml:description>
-          <maml:para>Copy supported embedded images.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>IncludeSpeakerNotes</maml:name>
-        <maml:description>
-          <maml:para>Copy plain speaker-note text.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>LossPolicy</maml:name>
         <maml:description>
-          <maml:para>Whether conversion loss is reported or rejected.</maml:para>
+          <maml:para>Gets or sets whether known omitted content is rejected or reported; omission retains the adapter default.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">OdfConversionLossPolicy</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeConversionLossPolicy</command:parameterValue>
         <command:parameterValueGroup>
-          <command:parameterValue required="false" variableLength="false">ReportOnly</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">ThrowOnSkippedOrUnsupported</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">ThrowOnAnyLoss</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Block</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Allow</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>OdfConversionLossPolicy</maml:name>
+          <maml:name>OfficeConversionLossPolicy</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -166842,7 +166792,7 @@ and require an explicit save. The result reports the actual copied rows and colu
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>MaxTableColumns</maml:name>
         <maml:description>
-          <maml:para>Maximum columns in converted presentation tables.</maml:para>
+          <maml:para>Gets or sets the maximum number of columns in a converted table.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <dev:type>
@@ -166854,11 +166804,47 @@ and require an explicit save. The result reports the actual copied rows and colu
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>MaxTableRows</maml:name>
         <maml:description>
-          <maml:para>Maximum rows in converted presentation tables.</maml:para>
+          <maml:para>Gets or sets the maximum number of rows in a converted table.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <dev:type>
           <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoBasicFormatting</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether common fill, outline and run formatting is omitted.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoImages</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether embedded images are omitted.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoSpeakerNotes</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether speaker notes are omitted.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -166885,12 +166871,9 @@ and require an explicit save. The result reports the actual copied rows and colu
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Include slide images, notes, and basic formatting.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$options = New-OfficePowerPointOpenDocumentOptions -IncludeImages -IncludeSpeakerNotes -IncludeBasicFormatting
-            ConvertTo-OfficeOpenDocument -Path .\Deck.pptx -OutputPath .\Deck.odp -PowerPointOptions $options</dev:code>
+        <maml:title>Omit notes from an OpenDocument presentation.</maml:title>
+        <dev:code>$options = New-OfficePowerPointOpenDocumentOptions -NoSpeakerNotes
+            Convert-OfficeDocument -Path ./Review.pptx -To OpenDocument -Options $options</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -212239,23 +212222,23 @@ cell inside a deck that already exists.</maml:para>
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
-      <command:name>Set-OfficePowerPointThemeColor</command:name>
+      <command:name>Set-OfficePowerPointTheme</command:name>
       <command:verb>Set</command:verb>
-      <command:noun>OfficePowerPointThemeColor</command:noun>
+      <command:noun>OfficePowerPointTheme</command:noun>
       <maml:description>
-        <maml:para>Sets one or more PowerPoint theme colors.</maml:para>
+        <maml:para>Restyles a deck or changes the selected masters' colors, fonts and theme name.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Sets one or more PowerPoint theme colors.</maml:para>
+      <maml:para>Restyles a deck or changes the selected masters' colors, fonts and theme name.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="Single">
-        <maml:name>Set-OfficePowerPointThemeColor</maml:name>
+      <command:syntaxItem parameterSetName="Document">
+        <maml:name>Set-OfficePowerPointTheme</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllMasters</maml:name>
           <maml:description>
-            <maml:para>Apply the changes across all slide masters.</maml:para>
+            <maml:para>Gets or sets whether every master is updated.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -212264,311 +212247,38 @@ cell inside a deck that already exists.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Color</maml:name>
-          <maml:description>
-            <maml:para>Theme color to update.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">PowerPointThemeColor</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Dark1</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Light1</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Dark2</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Light2</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Accent1</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Accent2</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Accent3</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Accent4</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Accent5</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Accent6</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Hyperlink</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">FollowedHyperlink</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>PowerPointThemeColor</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Master</maml:name>
+          <maml:name>BodyFont</maml:name>
           <maml:description>
-            <maml:para>Slide master index to update when not using AllMasters.</maml:para>
+            <maml:para>Gets or sets the Latin body font.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the presentation after update.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Presentation</maml:name>
-          <maml:description>
-            <maml:para>Presentation to update (optional inside New-OfficePowerPoint).</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>PowerPointDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Value</maml:name>
-          <maml:description>
-            <maml:para>Named or hexadecimal color value.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
             <maml:name>String</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Multiple">
-        <maml:name>Set-OfficePowerPointThemeColor</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>AllMasters</maml:name>
+          <maml:name>BodyFontComplexScript</maml:name>
           <maml:description>
-            <maml:para>Apply the changes across all slide masters.</maml:para>
+            <maml:para>Gets or sets the complex script body font.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Colors</maml:name>
-          <maml:description>
-            <maml:para>Hashtable of theme color names to named or hexadecimal color values.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Hashtable</command:parameterValue>
-          <dev:type>
-            <maml:name>Hashtable</maml:name>
+            <maml:name>String</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Master</maml:name>
+          <maml:name>BodyFontEastAsian</maml:name>
           <maml:description>
-            <maml:para>Slide master index to update when not using AllMasters.</maml:para>
+            <maml:para>Gets or sets the East Asian body font.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the presentation after update.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Presentation</maml:name>
-          <maml:description>
-            <maml:para>Presentation to update (optional inside New-OfficePowerPoint).</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>PowerPointDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-    </command:syntax>
-    <command:parameters>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>AllMasters</maml:name>
-        <maml:description>
-          <maml:para>Apply the changes across all slide masters.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Color</maml:name>
-        <maml:description>
-          <maml:para>Theme color to update.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">PowerPointThemeColor</command:parameterValue>
-        <command:parameterValueGroup>
-          <command:parameterValue required="false" variableLength="false">Dark1</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Light1</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Dark2</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Light2</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Accent1</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Accent2</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Accent3</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Accent4</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Accent5</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Accent6</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Hyperlink</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">FollowedHyperlink</command:parameterValue>
-        </command:parameterValueGroup>
-        <dev:type>
-          <maml:name>PowerPointThemeColor</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Colors</maml:name>
-        <maml:description>
-          <maml:para>Hashtable of theme color names to named or hexadecimal color values.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Hashtable</command:parameterValue>
-        <dev:type>
-          <maml:name>Hashtable</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Master</maml:name>
-        <maml:description>
-          <maml:para>Slide master index to update when not using AllMasters.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>PassThru</maml:name>
-        <maml:description>
-          <maml:para>Emit the presentation after update.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Presentation</maml:name>
-        <maml:description>
-          <maml:para>Presentation to update (optional inside New-OfficePowerPoint).</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
-        <dev:type>
-          <maml:name>PowerPointDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Value</maml:name>
-        <maml:description>
-          <maml:para>Named or hexadecimal color value.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-    </command:parameters>
-    <command:inputTypes>
-      <command:inputType>
-        <dev:type>
-          <maml:name>OfficeIMO.PowerPoint.PowerPointDocument</maml:name>
-        </dev:type>
-      </command:inputType>
-    </command:inputTypes>
-    <command:returnValues>
-      <command:returnValue>
-        <dev:type>
-          <maml:name>OfficeIMO.PowerPoint.PowerPointDocument</maml:name>
-        </dev:type>
-      </command:returnValue>
-    </command:returnValues>
-    <maml:alertSet>
-      <maml:alert>
-        <maml:para></maml:para>
-      </maml:alert>
-    </maml:alertSet>
-    <command:examples>
-      <command:example>
-        <maml:title>Set a single accent color.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>Set-OfficePowerPointThemeColor -Presentation $ppt -Color Accent1 -Value '#C00000'</dev:code>
-        <dev:remarks>
-          <maml:para>Updates Accent1 on the default master.</maml:para>
-        </dev:remarks>
-      </command:example>
-      <command:example>
-        <maml:title>Set multiple theme colors across all masters.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>Set-OfficePowerPointThemeColor -Presentation $ppt -Colors @{ Accent1 = '#C00000'; Accent2 = '#00B0F0' } -AllMasters</dev:code>
-        <dev:remarks>
-          <maml:para>Applies multiple theme colors to every master in the presentation.</maml:para>
-        </dev:remarks>
-      </command:example>
-    </command:examples>
-    <command:relatedLinks />
-  </command:command>
-  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
-    <command:details>
-      <command:name>Set-OfficePowerPointThemeFonts</command:name>
-      <command:verb>Set</command:verb>
-      <command:noun>OfficePowerPointThemeFonts</command:noun>
-      <maml:description>
-        <maml:para>Sets PowerPoint theme fonts.</maml:para>
-      </maml:description>
-    </command:details>
-    <maml:description>
-      <maml:para>Sets PowerPoint theme fonts.</maml:para>
-    </maml:description>
-    <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
-        <maml:name>Set-OfficePowerPointThemeFonts</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>AllMasters</maml:name>
-          <maml:description>
-            <maml:para>Apply the changes across all slide masters.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
+            <maml:name>String</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -212576,7 +212286,7 @@ cell inside a deck that already exists.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>ClearMissing</maml:name>
           <maml:description>
-            <maml:para>Clear unspecified font slots instead of keeping existing values.</maml:para>
+            <maml:para>Gets or sets whether unspecified font slots are cleared. Requires at least one font override.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -212586,9 +212296,33 @@ cell inside a deck that already exists.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MajorComplexScript</maml:name>
+          <maml:name>Colors</maml:name>
           <maml:description>
-            <maml:para>Major complex script font.</maml:para>
+            <maml:para>Gets or sets theme slots mapped to OfficeColor values, CSS colors or semantic roles.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Hashtable</command:parameterValue>
+          <dev:type>
+            <maml:name>Hashtable</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>PowerPointDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>HeadingFont</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the Latin heading font.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -212598,9 +212332,9 @@ cell inside a deck that already exists.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MajorEastAsian</maml:name>
+          <maml:name>HeadingFontComplexScript</maml:name>
           <maml:description>
-            <maml:para>Major East Asian font.</maml:para>
+            <maml:para>Gets or sets the complex script heading font.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -212610,9 +212344,9 @@ cell inside a deck that already exists.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MajorLatin</maml:name>
+          <maml:name>HeadingFontEastAsian</maml:name>
           <maml:description>
-            <maml:para>Major Latin font.</maml:para>
+            <maml:para>Gets or sets the East Asian heading font.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -212624,7 +212358,7 @@ cell inside a deck that already exists.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Master</maml:name>
           <maml:description>
-            <maml:para>Slide master index to update when not using AllMasters.</maml:para>
+            <maml:para>Gets or sets the one-based master position; defaults to the first.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -212634,33 +212368,9 @@ cell inside a deck that already exists.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MinorComplexScript</maml:name>
+          <maml:name>Name</maml:name>
           <maml:description>
-            <maml:para>Minor complex script font.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MinorEastAsian</maml:name>
-          <maml:description>
-            <maml:para>Minor East Asian font.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>MinorLatin</maml:name>
-          <maml:description>
-            <maml:para>Minor Latin font.</maml:para>
+            <maml:para>Gets or sets the theme name.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -212672,7 +212382,7 @@ cell inside a deck that already exists.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Emit the presentation after update.</maml:para>
+            <maml:para>Gets or sets whether the updated native document is returned.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -212681,14 +212391,14 @@ cell inside a deck that already exists.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Presentation</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Theme</maml:name>
           <maml:description>
-            <maml:para>Presentation to update (optional inside New-OfficePowerPoint).</maml:para>
+            <maml:para>Gets or sets a built-in theme, OfficeTheme object or document/template path. Applying it restyles masters and layouts before overrides.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeThemeInput</command:parameterValue>
           <dev:type>
-            <maml:name>PowerPointDocument</maml:name>
+            <maml:name>OfficeThemeInput</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -212699,11 +212409,47 @@ cell inside a deck that already exists.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>AllMasters</maml:name>
         <maml:description>
-          <maml:para>Apply the changes across all slide masters.</maml:para>
+          <maml:para>Gets or sets whether every master is updated.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
           <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>BodyFont</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the Latin body font.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>BodyFontComplexScript</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the complex script body font.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>BodyFontEastAsian</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the East Asian body font.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -212711,7 +212457,7 @@ cell inside a deck that already exists.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>ClearMissing</maml:name>
         <maml:description>
-          <maml:para>Clear unspecified font slots instead of keeping existing values.</maml:para>
+          <maml:para>Gets or sets whether unspecified font slots are cleared. Requires at least one font override.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -212721,9 +212467,33 @@ cell inside a deck that already exists.</maml:para>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>MajorComplexScript</maml:name>
+        <maml:name>Colors</maml:name>
         <maml:description>
-          <maml:para>Major complex script font.</maml:para>
+          <maml:para>Gets or sets theme slots mapped to OfficeColor values, CSS colors or semantic roles.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Hashtable</command:parameterValue>
+        <dev:type>
+          <maml:name>Hashtable</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
+        <dev:type>
+          <maml:name>PowerPointDocument</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>HeadingFont</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the Latin heading font.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -212733,9 +212503,9 @@ cell inside a deck that already exists.</maml:para>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>MajorEastAsian</maml:name>
+        <maml:name>HeadingFontComplexScript</maml:name>
         <maml:description>
-          <maml:para>Major East Asian font.</maml:para>
+          <maml:para>Gets or sets the complex script heading font.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -212745,9 +212515,9 @@ cell inside a deck that already exists.</maml:para>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>MajorLatin</maml:name>
+        <maml:name>HeadingFontEastAsian</maml:name>
         <maml:description>
-          <maml:para>Major Latin font.</maml:para>
+          <maml:para>Gets or sets the East Asian heading font.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -212759,7 +212529,7 @@ cell inside a deck that already exists.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Master</maml:name>
         <maml:description>
-          <maml:para>Slide master index to update when not using AllMasters.</maml:para>
+          <maml:para>Gets or sets the one-based master position; defaults to the first.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <dev:type>
@@ -212769,186 +212539,11 @@ cell inside a deck that already exists.</maml:para>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>MinorComplexScript</maml:name>
-        <maml:description>
-          <maml:para>Minor complex script font.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>MinorEastAsian</maml:name>
-        <maml:description>
-          <maml:para>Minor East Asian font.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>MinorLatin</maml:name>
-        <maml:description>
-          <maml:para>Minor Latin font.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>PassThru</maml:name>
-        <maml:description>
-          <maml:para>Emit the presentation after update.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Presentation</maml:name>
-        <maml:description>
-          <maml:para>Presentation to update (optional inside New-OfficePowerPoint).</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
-        <dev:type>
-          <maml:name>PowerPointDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-    </command:parameters>
-    <command:inputTypes>
-      <command:inputType>
-        <dev:type>
-          <maml:name>OfficeIMO.PowerPoint.PowerPointDocument</maml:name>
-        </dev:type>
-      </command:inputType>
-    </command:inputTypes>
-    <command:returnValues>
-      <command:returnValue>
-        <dev:type>
-          <maml:name>OfficeIMO.PowerPoint.PowerPointDocument</maml:name>
-        </dev:type>
-      </command:returnValue>
-    </command:returnValues>
-    <maml:alertSet>
-      <maml:alert>
-        <maml:para></maml:para>
-      </maml:alert>
-    </maml:alertSet>
-    <command:examples>
-      <command:example>
-        <maml:title>Set theme Latin fonts.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>New-OfficePowerPoint -Path .\Examples\Documents\PowerPointThemeFonts.pptx {
-                Set-OfficePowerPointThemeFonts -MajorLatin 'Aptos Display' -MinorLatin 'Aptos' -AllMasters
-                Add-OfficePowerPointSlide -Layout 1 -PassThru | Set-OfficePowerPointSlideTitle -Title 'Theme fonts'
-            }</dev:code>
-        <dev:remarks>
-          <maml:para>Updates theme fonts before creating slides.</maml:para>
-        </dev:remarks>
-      </command:example>
-    </command:examples>
-    <command:relatedLinks />
-  </command:command>
-  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
-    <command:details>
-      <command:name>Set-OfficePowerPointThemeName</command:name>
-      <command:verb>Set</command:verb>
-      <command:noun>OfficePowerPointThemeName</command:noun>
-      <maml:description>
-        <maml:para>Sets the PowerPoint theme name.</maml:para>
-      </maml:description>
-    </command:details>
-    <maml:description>
-      <maml:para>Sets the PowerPoint theme name.</maml:para>
-    </maml:description>
-    <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
-        <maml:name>Set-OfficePowerPointThemeName</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>AllMasters</maml:name>
-          <maml:description>
-            <maml:para>Apply the name across all slide masters.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Name</maml:name>
-          <maml:description>
-            <maml:para>Theme name to apply.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the presentation after update.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Presentation</maml:name>
-          <maml:description>
-            <maml:para>Presentation to update (optional inside New-OfficePowerPoint).</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>PowerPointDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-    </command:syntax>
-    <command:parameters>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>AllMasters</maml:name>
-        <maml:description>
-          <maml:para>Apply the name across all slide masters.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Name</maml:name>
         <maml:description>
-          <maml:para>Theme name to apply.</maml:para>
+          <maml:para>Gets or sets the theme name.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
           <maml:name>String</maml:name>
           <maml:uri />
@@ -212958,7 +212553,7 @@ cell inside a deck that already exists.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>PassThru</maml:name>
         <maml:description>
-          <maml:para>Emit the presentation after update.</maml:para>
+          <maml:para>Gets or sets whether the updated native document is returned.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -212967,14 +212562,14 @@ cell inside a deck that already exists.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Presentation</maml:name>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Theme</maml:name>
         <maml:description>
-          <maml:para>Presentation to update (optional inside New-OfficePowerPoint).</maml:para>
+          <maml:para>Gets or sets a built-in theme, OfficeTheme object or document/template path. Applying it restyles masters and layouts before overrides.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeThemeInput</command:parameterValue>
         <dev:type>
-          <maml:name>PowerPointDocument</maml:name>
+          <maml:name>OfficeThemeInput</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -213001,16 +212596,17 @@ cell inside a deck that already exists.</maml:para>
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Rename the theme across the presentation.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>New-OfficePowerPoint -Path .\Examples\Documents\PowerPointThemeName.pptx {
-                Set-OfficePowerPointThemeName -Name 'Service Brief' -AllMasters
-                Add-OfficePowerPointSlide -Layout 1 -PassThru | Set-OfficePowerPointSlideTitle -Title 'Named theme'
-            }</dev:code>
+        <maml:title>Restyle every master and layout with a built-in theme.</maml:title>
+        <dev:code>Set-OfficePowerPointTheme -Document $deck -Theme Boardroom -AllMasters</dev:code>
         <dev:remarks>
-          <maml:para>Applies a friendly theme name across every master before saving.</maml:para>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Fine-tune the first master's theme without restyling its layouts.</maml:title>
+        <dev:code>Set-OfficePowerPointTheme -Document $deck -Colors @{ Accent1 = '#0F766E' } -HeadingFont 'Segoe UI Semibold' -BodyFont 'Segoe UI' -Name 'Service Brief'</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>

@@ -9,7 +9,7 @@ schema: 2.0.0
 Reads the selected slide master's theme, colors and fonts.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Get-OfficePowerPointTheme [[-Document] <PowerPointDocument>] [-Master <int>] [<CommonParameters>]
 ```
@@ -43,7 +43,7 @@ Gets or sets the live document; omission uses its enclosing content block.
 
 ```yaml
 Type: PowerPointDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -59,7 +59,7 @@ Gets or sets a one-based master position; defaults to the first.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

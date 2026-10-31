@@ -983,7 +983,7 @@ Gets PDF text encoding and advanced-layout diagnostics for generated text before
 Lists template layouts from all masters, or one selected master.
 
 ### [Get-OfficePowerPointLayoutBox](Get-OfficePowerPointLayoutBox.md)
-Computes reusable layout boxes for a presentation.
+Computes native content, column or row boxes for manual placement.
 
 ### [Get-OfficePowerPointLayoutPlaceholder](Get-OfficePowerPointLayoutPlaceholder.md)
 Gets layout placeholder metadata for a slide.
@@ -1678,14 +1678,8 @@ Sets a presentation's slide size using a preset or physical lengths.
 ### [Set-OfficePowerPointTableCell](Set-OfficePowerPointTableCell.md)
 Sets text in an existing PowerPoint table cell.
 
-### [Set-OfficePowerPointThemeColor](Set-OfficePowerPointThemeColor.md)
-Sets one or more PowerPoint theme colors.
-
-### [Set-OfficePowerPointThemeFonts](Set-OfficePowerPointThemeFonts.md)
-Sets PowerPoint theme fonts.
-
-### [Set-OfficePowerPointThemeName](Set-OfficePowerPointThemeName.md)
-Sets the PowerPoint theme name.
+### [Set-OfficePowerPointTheme](Set-OfficePowerPointTheme.md)
+Restyles a deck or changes the selected masters' colors, fonts and theme name.
 
 ### [Set-OfficeProjectTask](Set-OfficeProjectTask.md)
 Updates selected task fields without implicitly recalculating its schedule.

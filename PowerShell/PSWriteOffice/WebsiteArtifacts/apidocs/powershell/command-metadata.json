@@ -3003,12 +3003,10 @@
     {
       "name": "Get-OfficePowerPointLayoutBox",
       "kind": "Cmdlet",
-      "aliases": [
-        "PptLayoutBox"
-      ],
+      "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/GetOfficePowerPointLayoutBoxCommand.cs",
-      "sourceLine": 34,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/GetOfficePowerPointLayoutBoxCommand.cs#L34"
+      "sourceLine": 19,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/GetOfficePowerPointLayoutBoxCommand.cs#L19"
     },
     {
       "name": "Get-OfficePowerPointLayoutPlaceholder",
@@ -3966,8 +3964,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/OpenDocument/NewOfficePowerPointOpenDocumentOptionsCommand.cs",
-      "sourceLine": 16,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/OpenDocument/NewOfficePowerPointOpenDocumentOptionsCommand.cs#L16"
+      "sourceLine": 14,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/OpenDocument/NewOfficePowerPointOpenDocumentOptionsCommand.cs#L14"
     },
     {
       "name": "New-OfficePowerPointPdfOptions",
@@ -5063,34 +5061,12 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointTableCellCommand.cs#L31"
     },
     {
-      "name": "Set-OfficePowerPointThemeColor",
+      "name": "Set-OfficePowerPointTheme",
       "kind": "Cmdlet",
-      "aliases": [
-        "PptThemeColor"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointThemeColorCommand.cs",
-      "sourceLine": 28,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointThemeColorCommand.cs#L28"
-    },
-    {
-      "name": "Set-OfficePowerPointThemeFonts",
-      "kind": "Cmdlet",
-      "aliases": [
-        "PptThemeFonts"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointThemeFontsCommand.cs",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointThemeCommand.cs",
       "sourceLine": 21,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointThemeFontsCommand.cs#L21"
-    },
-    {
-      "name": "Set-OfficePowerPointThemeName",
-      "kind": "Cmdlet",
-      "aliases": [
-        "PptThemeName"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointThemeNameCommand.cs",
-      "sourceLine": 21,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointThemeNameCommand.cs#L21"
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointThemeCommand.cs#L21"
     },
     {
       "name": "Set-OfficeProjectTask",

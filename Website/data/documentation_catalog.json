@@ -9,7 +9,7 @@
     "validationProjectCount": 67,
     "apiReferenceCount": 122,
     "conceptualPageCount": 132,
-    "conceptualWordCount": 60673
+    "conceptualWordCount": 60674
   },
   "categories": [
     {
@@ -2274,7 +2274,7 @@
       "description": "PSWriteOffice is a focused component in the OfficeIMO managed document platform.",
       "kind": "library",
       "projectPath": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/PSWriteOffice.csproj",
-      "sourceFileCount": 778,
+      "sourceFileCount": 776,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/pswriteoffice/",
       "apiUrl": null,

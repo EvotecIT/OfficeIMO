@@ -301,7 +301,6 @@ Describe 'PSWriteOffice public API consistency' {
                     @{ Command = 'Add-OfficePdfTable'; Parameter = 'RowStripeFill' }
                     @{ Command = 'Set-OfficeExcelCell'; Parameter = 'GradientFrom' }
                     @{ Command = 'Set-OfficeExcelCell'; Parameter = 'GradientTo' }
-                    @{ Command = 'Set-OfficePowerPointThemeColor'; Parameter = 'Value' }
                 )) {
                 [pscustomobject]@{
                     Command = $contract.Command
