@@ -5,6 +5,10 @@ internal static class CandidateCases {
     private static readonly CandidatePlacement DefaultPlacement = new(72, 72, 288, 108);
 
     internal static CandidatePublicationSpec Create(string kind, string? value, string? secondValue = null) {
+        if (kind == "master-content") {
+            if (secondValue != null) throw new ArgumentException("The master content specimen accepts one image path.");
+            return CandidateMasterContent.Create(ReadImage(value));
+        }
         if (kind == "mixed-object-pages") {
             if (secondValue != null) throw new ArgumentException("The mixed object specimen accepts one image path.");
             return CandidateMixedPages.Create(ReadImage(value));

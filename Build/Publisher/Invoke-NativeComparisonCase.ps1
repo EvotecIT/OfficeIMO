@@ -29,7 +29,7 @@ param(
     [string] $NativeEditText,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'TextPages', 'ObjectPages', 'ObjectPagesEdited', 'MixedObjectPages', 'MixedObjectPagesEdited', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextMixedRunTextReplacements', 'TextFormattingTopology', 'TextEmptyRefill', 'TextRunSegmentation', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableMixedRunTextReplacements', 'TableFormattingTopology', 'TableEmptyRefill', 'TableRunSegmentation', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')]
+    [ValidateSet('Blank', 'BlankPages', 'TextPages', 'ObjectPages', 'ObjectPagesEdited', 'MixedObjectPages', 'MixedObjectPagesEdited', 'MasterContent', 'MasterContentEdited', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextMixedRunTextReplacements', 'TextFormattingTopology', 'TextEmptyRefill', 'TextRunSegmentation', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableMixedRunTextReplacements', 'TableFormattingTopology', 'TableEmptyRefill', 'TableRunSegmentation', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -75,9 +75,9 @@ if ($Operation -eq 'Validate') {
     . (Join-Path $PSScriptRoot 'Get-NativeValidationArtifactNames.ps1')
     $reservedArtifacts = Get-NativeValidationArtifactNames -Stage $Stage |
         ForEach-Object { Join-Path $output $_ }
-} elseif ($Case -in @('Image', 'ObjectPages', 'ObjectPagesEdited', 'MixedObjectPages', 'MixedObjectPagesEdited', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')) {
+} elseif ($Case -in @('Image', 'ObjectPages', 'ObjectPagesEdited', 'MixedObjectPages', 'MixedObjectPagesEdited', 'MasterContent', 'MasterContentEdited', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')) {
     $reservedArtifacts += Join-Path $output ($stem + '.png')
-    if ($Case -in @('PictureReplacement', 'PictureCropFractionsReplacement', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement')) {
+    if ($Case -in @('MasterContentEdited', 'PictureReplacement', 'PictureCropFractionsReplacement', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement')) {
         $reservedArtifacts += Join-Path $output ($stem + '-replacement.png')
         if ($Case -in @('ImagePagesJpegReplacement', 'ImagePagesJpegCropped')) { $reservedArtifacts += Join-Path $output ($stem + '-replacement.jpg') }
     }
@@ -134,6 +134,7 @@ $layout = $null
 . (Join-Path $PSScriptRoot 'Get-NativePictureCropBasis.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeObjectPagesControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeMixedPagesControl.ps1')
+. (Join-Path $PSScriptRoot 'Add-NativeMasterContentControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeImagePagesControl.ps1')
 . (Join-Path $PSScriptRoot 'New-NativeReplacementImage.ps1')
 . (Join-Path $PSScriptRoot 'New-NativeReplacementJpeg.ps1')
@@ -770,6 +771,11 @@ try {
             $layout = Add-NativeComparisonLayout -Case $Case -Document $document -FirstPage $page
             $pageCount = $layout.pages
         }
+        { $_ -in @('MasterContent', 'MasterContentEdited') } {
+            $picturePath = Join-Path $output ($stem + '.png')
+            $replacementPath = Join-Path $output ($stem + '-replacement.png')
+            $pageCount = Add-NativeMasterContentControl -Document $document -FirstPage $page -ImagePath $picturePath -ReplacementPath $replacementPath -Edited:($Case -eq 'MasterContentEdited')
+        }
         { $_ -in @('MixedObjectPages', 'MixedObjectPagesEdited') } {
             $picturePath = Join-Path $output ($stem + '.png')
             $pageCount = Add-NativeMixedPagesControl -Document $document -FirstPage $page -ImagePath $picturePath -Edited:($Case -eq 'MixedObjectPagesEdited')
@@ -910,6 +916,13 @@ try {
         $contract.files.replacementImage = [ordered]@{
             name = [IO.Path]::GetFileName($replacementAsset)
             sha256 = (Get-FileHash -LiteralPath $replacementAsset -Algorithm SHA256).Hash.ToLowerInvariant()
+        }
+    }
+    if ($Case -in @('MasterContent', 'MasterContentEdited')) {
+        $contract.expected.wrapType = 0
+        $contract.expected.masterObjects = @('MasterBackground', 'MasterImage', 'MasterText')
+        if ($Case -eq 'MasterContentEdited') {
+            $contract.files.replacementImage = [ordered]@{ name = [IO.Path]::GetFileName($replacementPath); sha256 = (Get-FileHash -LiteralPath $replacementPath -Algorithm SHA256).Hash.ToLowerInvariant() }
         }
     }
     if ($Case -in @('MixedObjectPages', 'MixedObjectPagesEdited')) {

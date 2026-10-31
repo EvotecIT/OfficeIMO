@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.WriterProbe;
 
-/// <summary>Ordered physical pages and their semantic objects, before native identities are assigned.</summary>
+/// <summary>Ordered physical pages, one master and their semantic objects, before native identities are assigned.</summary>
 internal sealed record CandidatePublicationSpec(uint WidthEmu, uint HeightEmu, IReadOnlyList<CandidateObjectSpec> Objects,
     int PhysicalPageCount = 1);
 
@@ -11,9 +11,11 @@ internal enum CandidateObjectKind { TextBox, Rectangle, Picture }
 /// <summary>Placement in page points; the drawing codec alone converts it to native coordinates.</summary>
 internal sealed record CandidatePlacement(double Left, double Top, double Width, double Height);
 
+/// <summary>One owned object; PageIndex selects a physical page unless OnMaster selects the single master.</summary>
 internal sealed record CandidateObjectSpec(CandidateObjectKind Kind, CandidatePlacement Placement,
     CandidateStorySpec? Story = null, byte[]? Image = null, int PageIndex = 0, double? ColumnSpacing = null,
-    OfficeShape? Paint = null, string? ImageName = null, OfficeImageSourceCrop Crop = default, int? ImageId = null) {
+    OfficeShape? Paint = null, string? ImageName = null, OfficeImageSourceCrop Crop = default, int? ImageId = null,
+    bool OnMaster = false) {
     internal uint NativeKind => Kind == CandidateObjectKind.Picture ? 0x20U : 1U;
 }
 

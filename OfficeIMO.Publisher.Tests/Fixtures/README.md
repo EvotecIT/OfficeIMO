@@ -92,6 +92,12 @@ the first story, last band and top picture. GeneratedMixedObjectPages is the
 separately identified internal writer output used to protect compact Quill text
 editing before native resave; it is not an independent native producer fixture.
 
+MasterContent applies one master with rectangle/image/text to three pages whose
+own foreground object counts are 1/0/3. The last page reuses the master image.
+MasterContentEdited changes the master story, rectangle bounds/fill and image
+content while preserving page-owned artwork. Wrapping is disabled explicitly.
+These controls distinguish master definitions from their rendered occurrences.
+
 Text and TextLong use identical page geometry, frame geometry and Arial formatting; their
 only authored difference is the text. TextParagraphs has one Arial 12-point story
 with an empty paragraph between two text paragraphs. Its retained character

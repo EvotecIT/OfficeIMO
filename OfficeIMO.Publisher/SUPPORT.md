@@ -432,8 +432,18 @@ font/color resource growth refuses output; it does not drop requested formatting
 Formatting and paragraph growth retain repeated editing after page and directory
 allocation, including two-directory files; complete overflow text remains stored.
 The full native auxiliary-library profile retains its separate admission checks.
-Generic native creation, grouped/transformed ordering, master content, broader
-resource profiles and repair-free opening remain unqualified.
+Generic native creation, grouped/transformed ordering, broader resource profiles
+and repair-free opening remain unqualified.
+
+The `masterContentCreation` record covers a single populated master applied to
+three physical pages. One rectangle, picture and text frame remain on the master;
+page-owned foreground retains separate ownership and draws above it. The shared
+image store counts the two logical placements, not the four rendered occurrences.
+Generated and source-edited master text, rectangle bounds/fill and image content
+match independent native controls before and after resave. Replacing the master
+image updates its applied appearances while retaining the page-owned placement's
+original asset. Multiple/paired master authoring, master inheritance and generic
+public native creation remain unqualified.
 
 Crop source saving can set or clear all four edge fractions, including local
 zero overrides, and combine them with image replacement and bounds changes.

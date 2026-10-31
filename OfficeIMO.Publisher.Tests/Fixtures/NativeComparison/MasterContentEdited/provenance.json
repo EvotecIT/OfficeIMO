@@ -1,0 +1,42 @@
+{
+  "schema": "officeimo.publisher.native-master-content-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case MasterContentEdited",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-mastercontentedited.pub",
+      "sha256": "32344c195acd74a4427cbc860632da71e755cea5631faaca60cecc7bc3672897"
+    },
+    {
+      "name": "native-mastercontentedited.pdf",
+      "sha256": "758e654c743dec7942e2c88f6d0068e7e4ea9d557d02c16b358a86a760354c1b"
+    },
+    {
+      "name": "native-mastercontentedited.json",
+      "sha256": "940cfa4bbbc6fb0c643e5dc30043d282333e401c80bcbea7618dc5549d1782c6"
+    },
+    {
+      "name": "native-mastercontentedited.png",
+      "sha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483"
+    },
+    {
+      "name": "native-mastercontentedited-replacement.png",
+      "sha256": "98e64eb0771135ce8a3672978263e86118439752c2625a7cdb64f3347d1e58d8"
+    }
+  ],
+  "observed": "One master owns rectangle/image/text; three physical pages own1/0/3foreground objects. The original PNG is shared by master and last-page placements. Edited master text,rectanglepaint/bounds andimage replacement leave foreground unchanged.",
+  "limits": "Independent native authoring reference; single-page master only, wrapping disabled; repair-free and generic serialization remain separate."
+}

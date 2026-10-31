@@ -1,0 +1,38 @@
+{
+  "schema": "officeimo.publisher.native-master-content-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case MasterContent",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-mastercontent.pub",
+      "sha256": "41b3e05ad6853053987f9d85283c4fbeb84c3ab469e504a273024ed20306af41"
+    },
+    {
+      "name": "native-mastercontent.pdf",
+      "sha256": "4ee30a33ddd2ec2aac0631d43e2c8e4067f34fd676b8258d25c1e3063d81e85e"
+    },
+    {
+      "name": "native-mastercontent.json",
+      "sha256": "2ffeb097e6731aee385429b51b90ce750bd0eae5deff21fb505f7cf5938e5452"
+    },
+    {
+      "name": "native-mastercontent.png",
+      "sha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483"
+    }
+  ],
+  "observed": "One master owns rectangle/image/text; three physical pages own1/0/3foreground objects. The original PNG is shared by master and last-page placements.",
+  "limits": "Independent native authoring reference; single-page master only, wrapping disabled; repair-free and generic serialization remain separate."
+}

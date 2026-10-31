@@ -895,9 +895,9 @@ Use the [native codec structure and qualification record](../Build/Publisher/Wri
 
 #### PUB04 — Template-free native authoring
 
-- [ ] Create useful newsletters, brochures, flyers and labels through ordinary public APIs: page sizes, masters, styled and linked text, columns, tables, shapes and embedded images. Save and reopen native files without a seed publication, COM, LibreOffice or another runtime document engine.
+- [ ] Create useful newsletters, brochures, flyers and labels through ordinary public APIs: page sizes, multiple and paired master authoring, styled and linked text, columns, tables, shapes and embedded images. Save and reopen native files without a seed publication, COM, LibreOffice or another runtime document engine.
 - [ ] Exercise the same authored model through native save, SVG and PDF. Qualify each example in Microsoft Publisher, including opening before repair/resave, native editing and subsequent saves. Expand supported effects only with corresponding native records, model behavior and independent evidence.
-- [ ] Extend image authoring beyond the qualified named/cropped-image specimens: broader shared-asset and crop/effect profiles, including ordering with groups, transformed objects and master content. Preserve unaffected bindings and qualify each operation independently.
+- [ ] Extend image authoring beyond the qualified named/cropped-image specimens: broader shared-asset and crop/effect profiles, including ordering with groups, transformed objects and broader master-content profiles. Preserve unaffected bindings and qualify each operation independently.
 
 #### PUB05 — Earlier generations and preservation boundaries
 

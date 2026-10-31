@@ -33,7 +33,8 @@ internal static class NativePublicationGraph {
                 story = new StoryBinding(source.Story, key, key);
                 stories.Add(story);
             }
-            objects.Add(new ObjectBinding(source, firstObjectId + (uint)index, RootShapeId + (uint)index + 1, story));
+            uint ownerPageId = firstPageId + (source.OnMaster ? 0 : checked((uint)(MasterPageCount + source.PageIndex)));
+            objects.Add(new ObjectBinding(source, firstObjectId + (uint)index, RootShapeId + (uint)index + 1, story, ownerPageId));
         }
         uint quillDocumentId = firstObjectId + (uint)objects.Count;
         uint printBlockId = quillDocumentId + 3;
@@ -52,7 +53,7 @@ internal static class NativePublicationGraph {
         var chunks = new List<NativeRecord> { new(0x44, null, document) };
         for (int index = 0; index < orderedPageCount; index++) {
             bool isMaster = index < MasterPageCount;
-            ObjectBinding[] pageObjects = objects.Where(item => MasterPageCount + item.Source.PageIndex == index).ToArray();
+            ObjectBinding[] pageObjects = objects.Where(item => item.OwnerPageId == firstPageId + (uint)index).ToArray();
             var fields = new List<byte[]> {
                 Scalar(1, 0x20, (uint)pageObjects.Length),
                 Variable(2, 0xA0, pageObjects.Select(item => Scalar(0, 0x70, item.Id)).ToArray())
@@ -72,8 +73,7 @@ internal static class NativePublicationGraph {
                 fields.Add(Scalar(0x27, 0x20, item.Story.Key)); fields.Add(Scalar(0x28, 0x20, 0));
             }
             if (pictureResources.TryGetValue(item.Id, out uint resource)) fields.Add(Scalar(0x3A, 0x70, resource));
-            chunks.Add(new NativeRecord(item.Source.NativeKind,
-                firstPageId + MasterPageCount + (uint)item.Source.PageIndex, Chunk(fields.ToArray())));
+            chunks.Add(new NativeRecord(item.Source.NativeKind, item.OwnerPageId, Chunk(fields.ToArray())));
         }
         // The ordinary native loader obtains its Quill document through field
         // 0x20 and kind 0x5B. Its frame/story catalogs use generated rows for the
@@ -106,7 +106,7 @@ internal static class NativePublicationGraph {
 
     internal sealed record Graph(CandidatePublicationSpec Source, IReadOnlyList<NativeRecord> Chunks,
         IReadOnlyList<ObjectBinding> Objects, IReadOnlyList<StoryBinding> Stories);
-    internal sealed record ObjectBinding(CandidateObjectSpec Source, uint Id, uint Spid, StoryBinding? Story);
+    internal sealed record ObjectBinding(CandidateObjectSpec Source, uint Id, uint Spid, StoryBinding? Story, uint OwnerPageId);
     internal sealed record StoryBinding(CandidateStorySpec Source, uint Key, uint LayoutId);
     internal sealed record NativeRecord(uint Kind, uint? Parent, byte[] Bytes);
 }
