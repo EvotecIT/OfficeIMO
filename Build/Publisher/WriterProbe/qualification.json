@@ -20707,5 +20707,197 @@
       "Compact font/color resource-library growth remains unqualified; the general native full-resource profile retains its existing contract.",
       "Native controls may expose empty rectangle CR stories that generated pure geometry does not store; nonempty stories and page paint are compared explicitly."
     ]
+  },
+  "masterContentCreation": {
+    "schema": "officeimo.publisher.master-content-qualification.v1",
+    "sourceCommit": "17bdf65a4ad8950d433434d3c25f52098c9810c6",
+    "sourceFileHashBasis": "SHA-256 of canonical Git blob bytes at sourceCommit.",
+    "sourceFiles": [
+      {
+        "path": "Build/Publisher/Add-NativeMasterContentControl.ps1",
+        "sha256": "6d889ed85e8a8aeb31b1243212210934869390881b85067d97ec96859706eeba"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "sha256": "343140da36977d4431ffd974cd13c69404ef163c6f9d5cedb26964a6784a2b5f"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+        "sha256": "add8f01a626544926b1dea0eb213525398597d4856c5d8a15564dd243ed111fe"
+      },
+      {
+        "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+        "sha256": "0de189a09a6be55f432aa417714809a04950816c6e65043dd41362f82106e59d"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateCases.cs",
+        "sha256": "7afa78f2e80f9601107c4be3ed717838da9fc66956fb505a4c0fc7f5502b9e64"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateMasterContent.cs",
+        "sha256": "dbd7c90efbc82dd5665fd3d7a0e736c2d1c7e9dde1df7c86ed8e58d0bf964da7"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateOfficeArt.cs",
+        "sha256": "420119c57c162beb450687a7a8d0edb8f12c485c8ad7253a2ccb1bef248ddfa8"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidatePublicationSpec.cs",
+        "sha256": "b8ca91721816d16b63de44284fe73a02144bdf4c827159128f8f87a377dec6d9"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateWriter.cs",
+        "sha256": "dd5eff3c6348262ef9f485a434a4a7658287be422a6db806cb3fc9b22689381c"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/NativePublicationGraph.cs",
+        "sha256": "9ff5da9159fd868daf9c21ef989e324f8e43c570638d8cc917d33b409e95f58a"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/Program.cs",
+        "sha256": "5ce463e89b69cee0fe9eb2d891d4100e1c439b713cbe988c1ee5e143643951ad"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/QuillCandidate.cs",
+        "sha256": "3c5b0e9b2bfabc257a224efe163bb00ab06b176b19c5801ae23996a89f250104"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherMasterContentTests.cs",
+        "sha256": "cb0a5a4e315cfaa73ba165e29ee08d5b84a2d75f79bf9c0a21b24bdf6b04856a"
+      }
+    ],
+    "profile": {
+      "case": "master-content",
+      "physicalPages": 3,
+      "masters": 1,
+      "masterOwnedObjects": 3,
+      "pageOwnedObjects": [
+        1,
+        0,
+        3
+      ],
+      "independentStories": 2,
+      "logicalImagePlacements": 2,
+      "renderedImageOccurrences": 4,
+      "assetCount": 1,
+      "imageStoreReferenceCount": 2,
+      "ownership": "Public master model is authored once. Explicit OnMaster role maps to one native OwnerPageId, shared by page membership and chunk parent encoding.",
+      "composition": "Master rectangle/picture/text paint before each physical foreground; same qualified single-page centered coordinate basis."
+    },
+    "cases": [
+      {
+        "name": "created",
+        "sha256": "e955c5eeb8862cefa0113831f95e7f783eac1155ccc446437f7d4654b96bef2f",
+        "nativeOperations": 7,
+        "independentNativePagePixelPairs": 6,
+        "publicReloads": 2
+      },
+      {
+        "name": "edited-created",
+        "sha256": "fff9e58c03fb3e1951233ec5bca717d42440fc2acd3a3231747b12b27c9b9ee4",
+        "nativeOperations": 7,
+        "independentNativePagePixelPairs": 6,
+        "publicReloads": 2
+      },
+      {
+        "name": "edited-normalized",
+        "sha256": "9b590547879615a2b2b907399575451f3dc2690f3db602536b01765785fd5bdb",
+        "nativeOperations": 7,
+        "independentNativePagePixelPairs": 6,
+        "publicReloads": 2
+      },
+      {
+        "name": "edited-control",
+        "sha256": "43da5d33be969dbe7d4a53b9c91b780d6ad5c757736269d3d5338816623d4248",
+        "nativeOperations": 7,
+        "independentNativePagePixelPairs": 6,
+        "publicReloads": 2
+      }
+    ],
+    "nativeFullFiles": 4,
+    "nativeOperations": 28,
+    "independentNativePagePixelPairs": 24,
+    "pixelComparisonDpi": 144,
+    "publicReloads": 8,
+    "managedPdfSvgPages": 24,
+    "previousCreationProfilesByteIdentical": 18,
+    "sourceEditing": {
+      "operations": [
+        "Replace master story text with unchanged complete formatting.",
+        "Move master rectangle and change solid fill, preserving existing outline width.",
+        "Replace only the master picture image; page-owned placement retains original asset."
+      ],
+      "sources": [
+        "Initial generated publication.",
+        "Generated publication after native save/reopen.",
+        "Independent native-authored MasterContent control."
+      ],
+      "imageReferenceCountsBefore": [
+        2
+      ],
+      "imageReferenceCountsAfter": [
+        1,
+        1
+      ],
+      "result": "Applied master appearances update on all assigned pages. Logical definitions, asset identity and page-owned artwork remain separate."
+    },
+    "rawPreservation": {
+      "sourceEdits": 3,
+      "retained": "Other five artwork leaves, selected non-target fields, unrelated Contents chunks and old filename resources, original image payload and delay prefix, opaque Quill libraries/direct style OPLs, compound metadata and unrelated streams.",
+      "metadata": "Only stale SummaryInformation thumbnail invalidated."
+    },
+    "fixtures": [
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MasterContent/provenance.json",
+        "sha256": "2f479b0753ff2a414d63c052d6af1640f52d43793c4f743842b9bf5d40dc8536"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MasterContentEdited/provenance.json",
+        "sha256": "1dc4d5800451f1308b0d337d066964ab124c82bbb16f406b08677e4b64f8f4aa"
+      }
+    ],
+    "tests": {
+      "frameworks": {
+        "net10.0": 906,
+        "net8.0": 906,
+        "net472": 906
+      },
+      "readerNet10": 95,
+      "focused": 12,
+      "contracts": [
+        "Master_content_is_owned_once_and_edits_reproject_assigned_pages_without_changing_old_scenes",
+        "Native_populated_master_keeps_definition_and_page_ownership_separate"
+      ]
+    },
+    "sourcePowerShell": {
+      "runtime": "net8.0 / PowerShell7",
+      "pdfCount": 4,
+      "pageCount": 12,
+      "managedPixelPairs": 12,
+      "actualOwnerAssemblyBound": true,
+      "pdfOptions": "Matching defaults on both in-process callers."
+    },
+    "validation": {
+      "unsigned": true,
+      "publisherPdfAndReaderPublisherNetstandard20Builds": true,
+      "sourcePowerShellBuild": true,
+      "probeNoIncrementalBuild": true,
+      "nativeProducer": "Microsoft Publisher16.0.20527.20088",
+      "automationSecurity": 3,
+      "ps7AndPs51SyntaxFiles": 4
+    },
+    "reproduction": [
+      "Create master-content from the retained native Image PNG using WriterProbe.",
+      "Produce MasterContent and MasterContentEdited through the isolated native comparison runner with wrapping explicitly disabled.",
+      "Use public story/shape/image APIs to edit only master content on generated, native-resaved and independently native-authored sources; save with explicit Allow.",
+      "Run native Validate/Full on all4files and compare all initial/resaved physical pages against the stage-matched controls.",
+      "Reload both stages through public APIs; inspect master/page definitions and image bindings. Check raw logical reference counts, old asset bytes, untouched records and Quill style definitions.",
+      "Run maintained Publisher tests across all target frameworks and affected Reader/standard/PowerShell consumers; compare18previous creation hashes."
+    ],
+    "limits": [
+      "Closed single populated master on three physical pages; multiple/paired master authoring, inheritance and generic public native creation remain unqualified.",
+      "Managed/native text metrics and image interpolation remain separate limits; PowerShell parity is against managed engine with matching defaults.",
+      "Repair-free opening remains unassessed."
+    ]
   }
 }
