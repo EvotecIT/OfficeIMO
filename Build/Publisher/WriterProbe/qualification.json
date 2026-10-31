@@ -16207,6 +16207,577 @@
         "Native repair-free opening, general opaque preservation, mixed-script selection and managed/native full layout parity remain unassessed.",
         "Source-built PS7 conversion and PS5.1 syntax do not qualify packaged installation or native lifecycle cmdlets."
       ]
+    },
+    "retainedTextFormatting": {
+      "scope": "Count-changing formatting edits in nonuniform ordinary stories and fixed table cells using retained ordered run text and unambiguous native templates.",
+      "codecCommit": "7e01602abc68f6f3105e13df9e03f17c485ee06b",
+      "sources": [
+        {
+          "path": "Build/Publisher/Add-NativeParagraphTopologyControl.ps1",
+          "sha256": "e24434449bed623f6de653b39d7f8e3ecbf6903dd469d2df1cd4e355171abe93"
+        },
+        {
+          "path": "Build/Publisher/Add-NativeTableParagraphTopologyControl.ps1",
+          "sha256": "6b8d1b62f618c4b18586291a2fcfbe4fa0d03c865ece9c1681d3e0d62cff9a6b"
+        },
+        {
+          "path": "Build/Publisher/Get-NativeFormattingTopologyProfiles.ps1",
+          "sha256": "734e029f21514bea7127bd6b205e1f628c8a70e100b216d9fc25745bb1c0c852"
+        },
+        {
+          "path": "Build/Publisher/Get-NativeParagraphTopologyProfiles.ps1",
+          "sha256": "2e767b1a46717ffc80fe2d6ed65db88035524af0c15c1154d8bbe4462a0e254f"
+        },
+        {
+          "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+          "sha256": "840e16b1d9b131012528453d22b64c2d6a86ea7485213942555c84512ac33ff8"
+        },
+        {
+          "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+          "sha256": "75e071eb99f22c9b832b25d30df7a4988315b5b06221772d937eb0a28186d681"
+        },
+        {
+          "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+          "sha256": "04cb8a7ee7b52e4ef69e81d833f91f50ae6b5c320f08f6abf440c9f78efe9b92"
+        },
+        {
+          "path": "Build/Publisher/Set-NativeMixedRunFormatting.ps1",
+          "sha256": "0d77671a1d09cd7958fa072a0de1995a600e85db84ac26baef7d68690351afd3"
+        },
+        {
+          "path": "Build/Publisher/Set-NativeParagraphTopologyFormatting.ps1",
+          "sha256": "393e723b424631139a39dbfb5dfea2f1457625f199c5caf3e4b28f816fe86bc2"
+        },
+        {
+          "path": "OfficeIMO.Publisher.Tests/PublisherFormattingTopologyWritingTests.cs",
+          "sha256": "a1807c306204fd0afcf64c3c62c26934b93b1979bb9eacd4084063b03e7cae08"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.Compare.cs",
+          "sha256": "64a511bd52f58dec6d9286944b9e03f2e69e61c7e0a8d0cccd8eeab9e7ce4e7b"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Retention.cs",
+          "sha256": "500a220f7301b976a42063bd80f0c621f918454651a2810354ee37aa2389d9d6"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.cs",
+          "sha256": "9d6cc7d35800b693e936649b5e8162019a59c92bdb33456af5667df5d58fda43"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherTextComparison.cs",
+          "sha256": "36bab57576785fe7a2c7ba58fe3f7df16f7f34d996feb5b70e6f22a370d6256f"
+        },
+        {
+          "path": "OfficeIMO.Publisher/PublisherDocument.Editing.cs",
+          "sha256": "db37dcdd7d0e9091c726b81656e66097df9becb7c6504318a83afdbc53b6c779"
+        },
+        {
+          "path": "OfficeIMO.Publisher/PublisherDocument.Tables.cs",
+          "sha256": "5ece36b7bc94008b4e045f4c51e00e10ecc5295af4b6ae1f689e03f8eadbd0a4"
+        }
+      ],
+      "controls": [
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableFormattingTopology/provenance.json",
+          "sha256": "92cc80ae6a566efacc369f3e54b4b6d53afd19208b5fa98da8bbf2b8bf897f98"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFormattingTopology/provenance.json",
+          "sha256": "6c084e4fd15a4766d98f4349657b7a8c182f6c9bdffdc0db4cd1b97cfe99aaa1"
+        }
+      ],
+      "nativeApplication": {
+        "name": "Microsoft Publisher",
+        "version": "16.0",
+        "executableVersion": "16.0.20527.20088",
+        "powershell": "7.6.9",
+        "culture": "pl-PL",
+        "textFont": {
+          "family": "Arial",
+          "file": "arial.ttf",
+          "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+        },
+        "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+        "automationSecurity": 3
+      },
+      "contract": [
+        "Exact source references and complete values resolve first, followed by retained ordered run text and preserved fields, then unchanged complete formatting for text replacement.",
+        "All same-text native templates participate in ambiguity checks. Full paragraph/per-run native definitions and qualified CR roles must agree; unsupported mappings remain barriers. Ambiguous retained text cannot fall back to a different paragraph with matching requested style.",
+        "Nonempty source runs map wholly to uniform native definitions. Existing character and paragraph codecs rewrite supported visible-run and paragraph fields; destination CR bytes remain unchanged.",
+        "Matching remains local to each table cell. Story and TCD endpoints update together, and neighboring cells/tracks and unrelated storage remain retained.",
+        "New font and color resources use the shared resource owner while preserving source entries. Same-count edits and previously qualified source-save profiles retain their contracts."
+      ],
+      "cases": [
+        {
+          "kind": "ordinary",
+          "mode": "emphasis",
+          "sourceSha256": "d5db8dd0bb36df5b2ce2b17a3e1474253e2fcad49d9ed99b11d06ca39b48dc6b",
+          "candidateSha256": "108060b6895e76be6757e8e9e5abf6c8b75e225aeb2415d3555b9d2750efa566",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "ordinary",
+          "mode": "sizes",
+          "sourceSha256": "d5db8dd0bb36df5b2ce2b17a3e1474253e2fcad49d9ed99b11d06ca39b48dc6b",
+          "candidateSha256": "7b2fb183c51d2fbe711be72a855c8493c2117b242d446f6d18f403e6c708f1c1",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "ordinary",
+          "mode": "duplicate",
+          "sourceSha256": "d5db8dd0bb36df5b2ce2b17a3e1474253e2fcad49d9ed99b11d06ca39b48dc6b",
+          "candidateSha256": "76f0c419cca0645dc119b6ad592f0d756f1ad696278d1bfa81242284feee9478",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "ordinary",
+          "mode": "only-final",
+          "sourceSha256": "d5db8dd0bb36df5b2ce2b17a3e1474253e2fcad49d9ed99b11d06ca39b48dc6b",
+          "candidateSha256": "8fc4d476d033f68bfe313d4ab6139e7b0db27e0df5d25ad125666ac08ee0b3fd",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "ordinary",
+          "mode": "layout",
+          "sourceSha256": "d5db8dd0bb36df5b2ce2b17a3e1474253e2fcad49d9ed99b11d06ca39b48dc6b",
+          "candidateSha256": "73b663a34b35a01f35369e8c6b6e7c0d6bca06dfb73022205abb1fa7402ba844",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "ordinary",
+          "mode": "combined",
+          "sourceSha256": "d5db8dd0bb36df5b2ce2b17a3e1474253e2fcad49d9ed99b11d06ca39b48dc6b",
+          "candidateSha256": "f961d9ae0a1d90aa50ac6cd4e2cfc1ed8fa8333d87ed00c5d4d70fb35b765d59",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "ordinary",
+          "mode": "collision",
+          "sourceSha256": "d5db8dd0bb36df5b2ce2b17a3e1474253e2fcad49d9ed99b11d06ca39b48dc6b",
+          "candidateSha256": "ebf2846202840617cbcef212f74ac7eae5f319947c69af95f80434640f9b1dd5",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "ordinary",
+          "mode": "language-0",
+          "sourceSha256": "d5db8dd0bb36df5b2ce2b17a3e1474253e2fcad49d9ed99b11d06ca39b48dc6b",
+          "candidateSha256": "6fde4bcb6b4c4f5cdb099faa10471ddaac50ba8f4e50b4b993a7b41973b12f7e",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "ordinary",
+          "mode": "language-1",
+          "sourceSha256": "d5db8dd0bb36df5b2ce2b17a3e1474253e2fcad49d9ed99b11d06ca39b48dc6b",
+          "candidateSha256": "7721486fee9ca535a3348d9c77e103de9d81aaa243a4b0c8812eed17619d7b8b",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "ordinary",
+          "mode": "equivalent",
+          "sourceSha256": "d5db8dd0bb36df5b2ce2b17a3e1474253e2fcad49d9ed99b11d06ca39b48dc6b",
+          "candidateSha256": "b28aad0fb99fddd010221d1f4dfc5cca472a63a7f5520579136e08e451c580d2",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "ordinary",
+          "mode": "first-run",
+          "sourceSha256": "d5db8dd0bb36df5b2ce2b17a3e1474253e2fcad49d9ed99b11d06ca39b48dc6b",
+          "candidateSha256": "0088d5f4749b3fd8921cd3c25b2b1a267e37d6a5520cd11eda919e88908afbb0",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "ordinary",
+          "mode": "paragraph-only",
+          "sourceSha256": "d5db8dd0bb36df5b2ce2b17a3e1474253e2fcad49d9ed99b11d06ca39b48dc6b",
+          "candidateSha256": "45bb3f9b13e52ea24be82de176fb01e11aed79f63b3badf49374c40c95d57d5a",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "ordinary",
+          "mode": "resource-growth",
+          "sourceSha256": "7b9c512b5ee1417a09351eae5d0853bb8210784ac62f759682ade39255b40573",
+          "candidateSha256": "d9a99151b82a3784a8f8495325b6b56c8654398d93bd4b0888cd06bc707605e8",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 12
+        },
+        {
+          "kind": "cell",
+          "mode": "emphasis",
+          "sourceSha256": "4d701c93741e420c12efd4669d7ecb20086eb4130aa69629b331fae47aecddc6",
+          "candidateSha256": "ed5ac911bb2eefde63b3a2450a8883b3926ed3b743e713e668ba2282b7f7027e",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "cell",
+          "mode": "sizes",
+          "sourceSha256": "4d701c93741e420c12efd4669d7ecb20086eb4130aa69629b331fae47aecddc6",
+          "candidateSha256": "c11521b5411f63e1b9f8b315c3a3ecf3683b6145b2f7f045f073faa4edd26de3",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "cell",
+          "mode": "duplicate",
+          "sourceSha256": "4d701c93741e420c12efd4669d7ecb20086eb4130aa69629b331fae47aecddc6",
+          "candidateSha256": "e19951c46b0fa32a35645ff6eadbef91b50e164b3735af839ea80cd7bbeb084c",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "cell",
+          "mode": "only-final",
+          "sourceSha256": "4d701c93741e420c12efd4669d7ecb20086eb4130aa69629b331fae47aecddc6",
+          "candidateSha256": "5113ad26bb51195a15151bd119ede55aef592b704417802994aa304a17f6e0f3",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "cell",
+          "mode": "layout",
+          "sourceSha256": "4d701c93741e420c12efd4669d7ecb20086eb4130aa69629b331fae47aecddc6",
+          "candidateSha256": "642e1a3d5d6b83cf3f5abf503a85d61d3cab1c80f2477612c1db57e03f20891e",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "cell",
+          "mode": "combined",
+          "sourceSha256": "4d701c93741e420c12efd4669d7ecb20086eb4130aa69629b331fae47aecddc6",
+          "candidateSha256": "cc51276b68179695a73c59f76ffacaaba20171553d45047364121ff3f7b3c4a0",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "cell",
+          "mode": "collision",
+          "sourceSha256": "4d701c93741e420c12efd4669d7ecb20086eb4130aa69629b331fae47aecddc6",
+          "candidateSha256": "d19957b1875ca9b18e07da6fbbd5bf2750b0b2f60ec8746708cb8963b3d310b3",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "cell",
+          "mode": "language-0",
+          "sourceSha256": "4d701c93741e420c12efd4669d7ecb20086eb4130aa69629b331fae47aecddc6",
+          "candidateSha256": "4996c6d31229cee62d3b0d46f166be9fefba1c83d234d5c60a0831ef3b1c9656",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "cell",
+          "mode": "language-1",
+          "sourceSha256": "4d701c93741e420c12efd4669d7ecb20086eb4130aa69629b331fae47aecddc6",
+          "candidateSha256": "8a85b0efd4d98dc8a41b5be6a9428350be8c36d5e164f2912d034740b3f43b33",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "cell",
+          "mode": "equivalent",
+          "sourceSha256": "4d701c93741e420c12efd4669d7ecb20086eb4130aa69629b331fae47aecddc6",
+          "candidateSha256": "d116412d9254e1a4677705cefca897767cdb3ac25b6951c399163765d1cb1a68",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "cell",
+          "mode": "first-run",
+          "sourceSha256": "4d701c93741e420c12efd4669d7ecb20086eb4130aa69629b331fae47aecddc6",
+          "candidateSha256": "4d7d1a4f753ea4a67c02539e2d3a22c95aef62f630be793eda639d37cb4b0720",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "cell",
+          "mode": "paragraph-only",
+          "sourceSha256": "4d701c93741e420c12efd4669d7ecb20086eb4130aa69629b331fae47aecddc6",
+          "candidateSha256": "f88fc0303f365d25f2aadf82e4f5267c031f5a89b1d32558d8f59faeef15a23d",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": false,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 15
+        },
+        {
+          "kind": "cell",
+          "mode": "resource-growth",
+          "sourceSha256": "27d65a789649e90ffa20e1353beb90430bc186f9937a3110db0bf80c1db43cad",
+          "candidateSha256": "f59846c221f618a1d00982822dfcd1bb80cbb3540eed426a06cc9c5c1dee0a68",
+          "nativeOperations": 7,
+          "unchangedRunText": true,
+          "onlyRequestedNativeFieldsChanged": true,
+          "opaqueDefinitionsPreserved": true,
+          "sourceResourceEntriesRetained": true,
+          "fontAndColorPoolGrowth": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 12
+        }
+      ],
+      "validation": {
+        "publisherTests": {
+          "net10.0": 821,
+          "net8.0": 821,
+          "net472": 821
+        },
+        "focusedCases": 36,
+        "readerTests": 95,
+        "nativePublicReloads": 52,
+        "completeStyledPublicReloads": 52,
+        "nativeEditedFiles": 26,
+        "selectedNativeStagePairs": 52,
+        "neighborNativeStagePairs": 768,
+        "earlierByteIdenticalSaves": 208,
+        "stableCandidateByteIdenticalSaves": 26,
+        "sourceBuiltPowerShell": {
+          "runtime": "7.6.9",
+          "route": "publisher-pdf",
+          "cases": 26,
+          "pages": 410,
+          "actualPublisherOwnerBound": true,
+          "completeTextRetained": true,
+          "styledRunsMatched": 198,
+          "namedFamilies": [
+            "Arial",
+            "Cambria",
+            "Consolas"
+          ],
+          "styleEvidence": "Explicit existing PdfOptions named-family registration; actual PDF spans match every edited run text, font family, nearest whole-point size, RGB and emphasis."
+        },
+        "nativeControlSyntax": [
+          "PowerShell7",
+          "WindowsPowerShell5.1"
+        ],
+        "compatibilityBuilds": [
+          "Publisher.Pdf netstandard2.0",
+          "Reader.Publisher netstandard2.0",
+          "WriterProbe",
+          "PSWriteOffice net8.0"
+        ]
+      },
+      "regressionTests": [
+        "Retained_text_selects_native_templates_for_count_changing_formatting_edits",
+        "Ambiguous_retained_text_refuses_formatting_even_when_another_source_matches_the_requested_style",
+        "Count_changing_edits_without_retained_text_or_formatting_correspondence_refuse_output"
+      ],
+      "limits": [
+        "Requests changing both text and formatting without unambiguous correspondence, run splitting/merging, nonuniform empty-source refill and zero-paragraph story states remain outside this profile.",
+        "Controls use fitting three-run paragraphs with distinct layout and hidden middle-run language metadata; broader producer/style profiles and general native table reflow remain unqualified.",
+        "Native repair-free opening, general opaque preservation, mixed-script selection and managed/native full layout parity remain unassessed. Explicit nonempty CR styling is not covered.",
+        "Source-built PS7 conversion and PS5.1 syntax do not qualify packaged installation or native lifecycle cmdlets."
+      ]
     }
   },
   "characterReading": {
