@@ -88,14 +88,24 @@ internal static class PdfComplianceValidator {
 
     internal static bool RequiresExactArtifactValidation(PdfCreateOptions options) => options.ComplianceProfile != PdfComplianceProfile.None;
 
+    /// <summary>Prevents native save options from retaining identification that prohibits encryption.</summary>
+    internal static void ValidateOutputEncryptionIdentification(PdfReadDocument document) {
+        PdfXmpMetadataInfo? xmp = document.XmpMetadata;
+        PdfMetadata metadata = document.Metadata;
+        if (xmp?.HasPdfAIdentification == true || xmp?.HasPdfXIdentification == true ||
+            xmp?.HasElectronicInvoiceMetadata == true || !string.IsNullOrEmpty(metadata.PdfXVersion) ||
+            !string.IsNullOrEmpty(metadata.PdfXConformance))
+            throw new ArgumentException("PDF Standard encryption cannot retain PDF/A, PDF/X, Factur-X, or ZUGFeRD identification.");
+    }
+
     internal static void ValidateGeneratedArtifact(
         PdfCreateOptions options, byte[] artifact,
-        System.Threading.CancellationToken cancellationToken = default) {
+        PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(artifact, nameof(artifact));
         cancellationToken.ThrowIfCancellationRequested();
         foreach (PdfComplianceProfile profile in RequestedProfiles(options)) {
-            ThrowForGaps(profile, PdfComplianceAnalyzer.AssessReadback(profile, artifact, cancellationToken), "exact-artifact");
+            ThrowForGaps(profile, PdfComplianceAnalyzer.AssessReadback(profile, artifact, cancellationToken, readOptions), "exact-artifact");
         }
     }
 

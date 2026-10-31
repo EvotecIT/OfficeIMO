@@ -694,7 +694,7 @@
             },
             {
               "name": "Permission",
-              "type": "PdfPermission",
+              "type": "PdfStandardPermissions",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -715,7 +715,7 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "-Path optional: defaults to the path the document was created or opened with. -Open/-Show alias collapses to -Show; -UserPassword alias removed.",
+      "notes": "-Path optional: defaults to the path the document was created or opened with. -Open/-Show alias collapses to -Show; -UserPassword alias removed. Uses native output options, so loss is checked before encryption and publication. OwnerPassword alone permits password-free opening with restricted permissions. Security arguments apply to this output without changing the live model; use Protect-OfficeDocument to replace existing encryption. Native security rejects retained PDF/A, PDF/X and electronic-invoice identification.",
       "examples": [
         {
           "title": "Save a live document",
@@ -19372,7 +19372,7 @@
         "UserPassword": "Password",
         "Permissions": "Permission"
       },
-      "reason": "-Path becomes optional; passwords SecureString; output is the saved FileInfo with -PassThru."
+      "reason": "-Path becomes optional and uses the native associated path; passwords use shared secure input and Permission uses PdfStandardPermissions. OwnerPassword alone creates permissions-only protection. Native save validates loss before encrypting and atomically publishing. Output is the saved FileInfo with -PassThru; -Show replaces -Open."
     },
     {
       "old": "Send-OfficePdfPrinter",

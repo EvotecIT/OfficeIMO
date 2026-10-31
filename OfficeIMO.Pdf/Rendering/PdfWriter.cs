@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
         string? keywords,
         System.Threading.CancellationToken cancellationToken) {
         byte[] bytes = WriteCore(doc, blocks, opts, title, author, subject, keywords, outputStream: null, cancellationToken, out _, out _, out _, out _)!;
-        PdfComplianceValidator.ValidateGeneratedArtifact(opts, bytes, cancellationToken);
+        PdfComplianceValidator.ValidateGeneratedArtifact(opts, bytes, cancellationToken: cancellationToken);
         return bytes;
     }
 
@@ -81,7 +81,7 @@ internal static partial class PdfWriter {
                 out _,
                 out pageCount,
                 out serializationReport)!;
-            PdfComplianceValidator.ValidateGeneratedArtifact(opts, exactArtifact, cancellationToken);
+            PdfComplianceValidator.ValidateGeneratedArtifact(opts, exactArtifact, cancellationToken: cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             destination.Write(exactArtifact, 0, exactArtifact.Length);
             return exactArtifact.LongLength;

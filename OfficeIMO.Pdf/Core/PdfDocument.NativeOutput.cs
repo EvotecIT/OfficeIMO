@@ -8,13 +8,20 @@ public sealed partial class PdfDocument {
     private void WriteNativeWithLossCheck(Stream destination, PdfSaveOptions? options, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         ThrowIfTextEncodingPreflightFails(token);
+        if (options?.Encryption != null) {
+            byte[] bytes = ToBytes(options, token);
+            token.ThrowIfCancellationRequested();
+            destination.Write(bytes, 0, bytes.Length);
+            token.ThrowIfCancellationRequested();
+            return;
+        }
         using var scope = new PdfOutputDiagnosticScope();
         WritePdfCore(destination, token);
         if (options?.AllowLoss != true) PdfConversionEvidence.CreateReport("Pdf", new[] { scope.Report }).ThrowIfLoss();
     }
 
     private void SaveNativeStream(Stream destination, PdfSaveOptions? options, CancellationToken token) {
-        if (_source != null || options?.AllowLoss == true) {
+        if (options?.Encryption == null && (_source != null || options?.AllowLoss == true)) {
             _ = SaveWithEvidence(destination, token);
             return;
         }
@@ -30,7 +37,7 @@ public sealed partial class PdfDocument {
     }
 
     private async Task SaveNativeStreamAsync(Stream destination, PdfSaveOptions? options, CancellationToken token) {
-        if (_source != null || options?.AllowLoss == true) {
+        if (options?.Encryption == null && (_source != null || options?.AllowLoss == true)) {
             _ = await SaveWithEvidenceAsync(destination, token).ConfigureAwait(false);
             return;
         }

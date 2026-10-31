@@ -24,6 +24,19 @@ public sealed partial class PdfDocument {
     /// <summary>Serializes PDF bytes and checks any new native-output fidelity findings.</summary>
     public byte[] ToBytes(PdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
+        if (options?.Encryption != null) {
+            if (_source == null) _options.ValidateOutputEncryption(options.Encryption);
+            byte[] input = ToBytes(new PdfSaveOptions { AllowLoss = options.AllowLoss }, cancellationToken);
+            if (_source != null) {
+                PdfReadDocument current = PdfReadDocument.Open(input, ReadOptions, cancellationToken);
+                PdfComplianceValidator.ValidateOutputEncryptionIdentification(current);
+            }
+            PdfSecurityMutationResult encrypted = PdfSecurityEditor.Encrypt(input, options.Encryption, ReadOptions, cancellationToken: cancellationToken);
+            byte[] output = encrypted.Pdf;
+            if (_source == null)
+                PdfComplianceValidator.ValidateGeneratedArtifact(_options, output, encrypted.OutputReadOptions, cancellationToken);
+            return output;
+        }
         if (_source != null) return SerializeBytes(cancellationToken);
         using var scope = new PdfOutputDiagnosticScope();
         byte[] bytes = SerializeBytes(cancellationToken);

@@ -49,9 +49,7 @@ public sealed partial class PdfCreateOptions {
             if (invoiceDiagnostic != null) throw new ArgumentException(invoiceDiagnostic);
         }
         PdfPageLabelDictionaryBuilder.ValidatePrefix(PageLabelPrefix, nameof(PageLabelPrefix));
-        if (_encryption != null && HasComplianceGroundworkThatProhibitsEncryption()) {
-            throw new System.ArgumentException("PDF Standard encryption cannot be combined with PDF/A, PDF/X, Factur-X, or ZUGFeRD groundwork.");
-        }
+        ValidateOutputEncryption(_encryption);
 
         if (DefaultFontSize.ToPoints() <= 0 || double.IsNaN(DefaultFontSize.ToPoints()) || double.IsInfinity(DefaultFontSize.ToPoints())) {
             throw new System.ArgumentException("PDF default font size must be a positive finite value.");
@@ -160,6 +158,12 @@ public sealed partial class PdfCreateOptions {
         if (AcroFormDefaultTextAlignment.HasValue) {
             Guard.FormFieldTextAlignment(AcroFormDefaultTextAlignment.Value, nameof(AcroFormDefaultTextAlignment));
         }
+    }
+
+    /// <summary>Applies the same compliance restriction to creation and per-output security.</summary>
+    internal void ValidateOutputEncryption(PdfStandardEncryptionOptions? encryption) {
+        if (encryption != null && HasComplianceGroundworkThatProhibitsEncryption())
+            throw new ArgumentException("PDF Standard encryption cannot be combined with PDF/A, PDF/X, Factur-X, or ZUGFeRD groundwork.");
     }
 
     private bool HasComplianceGroundworkThatProhibitsEncryption() =>

@@ -927,7 +927,7 @@
       "kind": "method",
       "action": "change",
       "new": "OfficeIMO.Pdf.PdfDocument.ToBytes(PdfSaveOptions options = null)",
-      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions. PdfSaveOptions.Encryption encrypts an unencrypted output after fidelity validation, for bytes, file, stream and async saves. Omission preserves existing security; the live document security configuration stays unchanged. Use document.Security.Reencrypt with the current owner password to replace existing encryption. The save option rejects PDF/A, PDF/X and electronic-invoice groundwork or retained identification. Explicit Security.Encrypt/Reencrypt operations retain their existing preservation and decryption contract; they do not certify PDF/A or PDF/X output.",
       "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
       "category": "lifecycle",
       "phase": "A",
@@ -1031,7 +1031,7 @@
       "kind": "method",
       "action": "change",
       "new": "OfficeIMO.Pdf.PdfDocument.Save(string path, PdfSaveOptions options = null) : void",
-      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions.",
+      "reason": "One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions. PdfSaveOptions.Encryption encrypts an unencrypted output after fidelity validation, for bytes, file, stream and async saves. Omission preserves existing security; the live document security configuration stays unchanged. Use document.Security.Reencrypt with the current owner password to replace existing encryption. The save option rejects PDF/A, PDF/X and electronic-invoice groundwork or retained identification. Explicit Security.Encrypt/Reencrypt operations retain their existing preservation and decryption contract; they do not certify PDF/A or PDF/X output.",
       "file": "OfficeIMO.Pdf/Core/PdfDocument.IO.cs",
       "category": "lifecycle",
       "notes": "Returns PdfSaveResult today; Word/Excel/PowerPoint Save return void. No parameterless Save() exists; add Save() for documents created or loaded with a path.",
@@ -6010,6 +6010,7 @@
   "additions": [
     "PdfContentBuilder.Table<T>(IEnumerable<T> rows); Table<T>(IEnumerable<T> rows, OfficeTableOptions? options); PdfTableOptions adds Align, Style and bounded Projection controls",
     "PdfCreateOptions.Theme : OfficeTheme?",
-    "PdfTheme.FromOfficeTheme(OfficeTheme)"
+    "PdfTheme.FromOfficeTheme(OfficeTheme)",
+    "PdfSaveOptions.Encryption : PdfStandardEncryptionOptions? applies output-only security after native loss validation"
   ]
 }

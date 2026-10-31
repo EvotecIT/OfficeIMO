@@ -1,5 +1,4 @@
 using System.IO;
-using System.Net;
 using System.Security;
 using OfficeIMO;
 using System.Management.Automation;
@@ -210,20 +209,9 @@ public sealed class NewOfficePdfCommand : OfficeLifecycleCmdlet<PdfDocument> {
         return options;
     }
 
-    private PdfStandardEncryptionOptions? CreateEncryption() {
-        string? password = Password == null ? null : new NetworkCredential(string.Empty, Password).Password;
-        string? owner = OwnerPassword == null ? null : new NetworkCredential(string.Empty, OwnerPassword).Password;
-        PdfStandardPermissions permissions = Permission;
-        if ((permissions & ~PdfStandardPermissions.All) != 0) throw new PSArgumentException("Permission contains unsupported PDF flags.");
-        if (password == null && owner == null) {
-            if (MyInvocation.BoundParameters.ContainsKey(nameof(Permission)))
-                throw new PSArgumentException("Permission requires Password or OwnerPassword.");
-            return null;
-        }
-        return password == null
-            ? PdfStandardEncryptionOptions.ForPermissions(owner!, permissions)
-            : new PdfStandardEncryptionOptions(password) { OwnerPassword = owner, AllowedPermissions = permissions };
-    }
+    private PdfStandardEncryptionOptions? CreateEncryption() =>
+        PdfCommandUtilities.CreateEncryption(Password, OwnerPassword, Permission,
+            MyInvocation.BoundParameters.ContainsKey(nameof(Permission)));
 
     private void ConfigureViewerPreferences(PdfCreateOptions options) {
         if (!DisplayDocTitle.IsPresent &&

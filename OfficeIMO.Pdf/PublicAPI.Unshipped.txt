@@ -11,6 +11,8 @@ OfficeIMO.Pdf.PdfPanelStyle.LeftInset.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfPanelStyle.LeftInset.set -> void
 OfficeIMO.Pdf.PdfPanelStyle.RightInset.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfPanelStyle.RightInset.set -> void
+OfficeIMO.Pdf.PdfSaveOptions.Encryption.get -> OfficeIMO.Pdf.PdfStandardEncryptionOptions?
+OfficeIMO.Pdf.PdfSaveOptions.Encryption.set -> void
 OfficeIMO.Pdf.PdfStandardEncryptionOptions.HasDistinctOwnerPassword.get -> bool
 OfficeIMO.Pdf.PdfTextStampOptions.Align.get -> OfficeIMO.Pdf.PdfAlign
 OfficeIMO.Pdf.PdfTextStampOptions.Align.set -> void

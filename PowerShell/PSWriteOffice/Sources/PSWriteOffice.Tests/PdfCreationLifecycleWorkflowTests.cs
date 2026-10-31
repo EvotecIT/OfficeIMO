@@ -26,7 +26,10 @@ public sealed class PdfCreationLifecycleWorkflowTests {
             shell.AddCommand("Add-OfficePdfParagraph").AddParameter("Document", live).AddParameter("Text", "Live document evidence");
             shell.Invoke();
             Assert.False(shell.HadErrors, Errors(shell));
-            live.Save(new PdfSaveOptions { AllowLoss = true });
+            shell.Commands.Clear();
+            shell.AddCommand("Save-OfficePdf").AddParameter("Document", live).AddParameter("AllowLoss").AddParameter("PassThru");
+            Assert.Equal(path, Assert.IsType<FileInfo>(Assert.Single(shell.Invoke()).BaseObject).FullName);
+            Assert.False(shell.HadErrors, Errors(shell));
             using (PdfDocument reopened = PdfDocument.Load(path)) Assert.Contains("Live document evidence", reopened.Read().Text);
             byte[] original = File.ReadAllBytes(path);
 
@@ -99,6 +102,49 @@ public sealed class PdfCreationLifecycleWorkflowTests {
             Exception? failure = Record.Exception(() => shell.Invoke());
             Assert.True(failure != null || shell.HadErrors);
             Assert.Contains("requires Password or OwnerPassword", failure?.Message ?? Errors(shell));
+        } finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
+    public void SaveBindsNativeSecurePermissionsAndPublishesOnlyAfterShouldProcess() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-pdf-save-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string originalPath = Path.Combine(root, "Original.pdf");
+            string protectedPath = Path.Combine(root, "Protected[final].pdf");
+            using PdfDocument document = PdfDocument.Create(originalPath);
+            document.Compose(builder => builder.Content(content => content.Paragraph(paragraph => paragraph.Text("Saved protected evidence"))));
+            using SecureString owner = new();
+            foreach (char character in "owner-secret") owner.AppendChar(character);
+            owner.MakeReadOnly();
+            using var runspace = Open();
+            using var shell = PowerShell.Create();
+            shell.Runspace = runspace;
+            shell.AddCommand("Save-OfficePdf").AddParameter("Document", document).AddParameter("Path", protectedPath)
+                .AddParameter("OwnerPassword", owner).AddParameter("WhatIf");
+            Assert.Empty(shell.Invoke());
+            Assert.False(shell.HadErrors, Errors(shell));
+            Assert.Empty(Directory.GetFiles(root));
+            Assert.Equal(originalPath, document.FilePath);
+
+            shell.Commands.Clear();
+            shell.AddScript("param($pdf, $path, $owner) Save-OfficePdf -Document $pdf -Path $path -OwnerPassword $owner -Permission Print,Accessibility -AllowLoss -PassThru")
+                .AddArgument(document).AddArgument(protectedPath).AddArgument(owner);
+            Assert.Equal(protectedPath, Assert.IsType<FileInfo>(Assert.Single(shell.Invoke()).BaseObject).FullName);
+            Assert.False(shell.HadErrors, Errors(shell));
+            Assert.Equal(protectedPath, document.FilePath);
+            Assert.False(File.Exists(originalPath));
+            using (PdfDocument reader = PdfDocument.Load(protectedPath)) Assert.Throws<PdfPermissionDeniedException>(() => reader.Read());
+            using (PdfDocument authenticated = PdfDocument.Load(protectedPath, new PdfLoadOptions { Password = "owner-secret" }))
+                Assert.Contains("Saved protected evidence", authenticated.Read().Text);
+            byte[] encrypted = File.ReadAllBytes(protectedPath);
+            shell.Commands.Clear();
+            shell.AddCommand("Save-OfficePdf").AddParameter("Document", document).AddParameter("Permission", PdfStandardPermissions.Print);
+            Exception? failure = Record.Exception(() => shell.Invoke());
+            Assert.True(failure != null || shell.HadErrors);
+            Assert.Contains("Permission requires Password or OwnerPassword", failure?.Message ?? Errors(shell));
+            Assert.Equal(encrypted, File.ReadAllBytes(protectedPath));
+            Assert.Single(Directory.GetFiles(root));
         } finally { Directory.Delete(root, true); }
     }
 
