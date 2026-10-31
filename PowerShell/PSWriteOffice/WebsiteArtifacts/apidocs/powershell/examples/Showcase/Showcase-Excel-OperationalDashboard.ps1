@@ -138,7 +138,7 @@ New-OfficeExcel -Path $path {
         ExcelCell -Address 'B4' -Value (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
         ExcelCell -Address 'A5' -Value 'Source'
         ExcelCell -Address 'B5' -Value 'Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1'
-        ExcelSheetVisibility -Hide
+        Set-OfficeExcelSheet -Visibility Hidden
     }
 
     ExcelTableOfContents -SheetName 'Index' -IncludeNamedRanges -AddBackLinks -BackLinkText 'Back to Index'

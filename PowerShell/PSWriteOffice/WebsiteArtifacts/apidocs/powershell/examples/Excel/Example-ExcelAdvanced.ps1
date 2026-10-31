@@ -42,7 +42,7 @@ New-OfficeExcel -Path $path {
 
     ExcelSheet 'Hidden' {
         ExcelCell -Address A1 -Value 'Internal notes'
-        ExcelSheetVisibility -Hide
+        Set-OfficeExcelSheet -Visibility Hidden
     }
 } -Open
 

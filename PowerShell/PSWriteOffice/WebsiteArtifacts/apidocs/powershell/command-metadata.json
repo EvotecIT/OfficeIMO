@@ -4494,16 +4494,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Epub/SetOfficeEpubMetadataCommand.cs#L18"
     },
     {
-      "name": "Set-OfficeExcelActiveSheet",
-      "kind": "Cmdlet",
-      "aliases": [
-        "ExcelActiveSheet"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelActiveSheetCommand.cs",
-      "sourceLine": 20,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelActiveSheetCommand.cs#L20"
-    },
-    {
       "name": "Set-OfficeExcelAutoFilter",
       "kind": "Cmdlet",
       "aliases": [
@@ -4847,24 +4837,12 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelRowGroupCommand.cs#L17"
     },
     {
-      "name": "Set-OfficeExcelSheetTabColor",
+      "name": "Set-OfficeExcelSheet",
       "kind": "Cmdlet",
-      "aliases": [
-        "ExcelSheetTabColor"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelSheetTabColorCommand.cs",
-      "sourceLine": 16,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelSheetTabColorCommand.cs#L16"
-    },
-    {
-      "name": "Set-OfficeExcelSheetVisibility",
-      "kind": "Cmdlet",
-      "aliases": [
-        "ExcelSheetVisibility"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelSheetVisibilityCommand.cs",
-      "sourceLine": 16,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelSheetVisibilityCommand.cs#L16"
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelSheetCommand.cs",
+      "sourceLine": 22,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelSheetCommand.cs#L22"
     },
     {
       "name": "Set-OfficeExcelSmartHyperlink",

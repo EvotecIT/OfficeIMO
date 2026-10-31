@@ -187217,239 +187217,6 @@ options retain their owner password, permission mask, algorithm, metadata settin
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
-      <command:name>Set-OfficeExcelActiveSheet</command:name>
-      <command:verb>Set</command:verb>
-      <command:noun>OfficeExcelActiveSheet</command:noun>
-      <maml:description>
-        <maml:para>Sets the worksheet that opens as the active sheet.</maml:para>
-      </maml:description>
-    </command:details>
-    <maml:description>
-      <maml:para>Sets the worksheet that opens as the active sheet.</maml:para>
-    </maml:description>
-    <command:syntax>
-      <command:syntaxItem parameterSetName="Context">
-        <maml:name>Set-OfficeExcelActiveSheet</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the activated worksheet.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Path">
-        <maml:name>Set-OfficeExcelActiveSheet</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the activated worksheet.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="InputPath,FilePath">
-          <maml:name>Path</maml:name>
-          <maml:description>
-            <maml:para>Workbook path to update.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
-          <maml:name>Sheet</maml:name>
-          <maml:description>
-            <maml:para>Worksheet name to activate. Defaults to the current sheet inside an ExcelSheet block.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SheetIndex</maml:name>
-          <maml:description>
-            <maml:para>Zero-based worksheet index to activate.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Document">
-        <maml:name>Set-OfficeExcelActiveSheet</maml:name>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Document</maml:name>
-          <maml:description>
-            <maml:para>Workbook to operate on outside the DSL context.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">ExcelDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>ExcelDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the activated worksheet.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
-          <maml:name>Sheet</maml:name>
-          <maml:description>
-            <maml:para>Worksheet name to activate. Defaults to the current sheet inside an ExcelSheet block.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SheetIndex</maml:name>
-          <maml:description>
-            <maml:para>Zero-based worksheet index to activate.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-    </command:syntax>
-    <command:parameters>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Document</maml:name>
-        <maml:description>
-          <maml:para>Workbook to operate on outside the DSL context.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">ExcelDocument</command:parameterValue>
-        <dev:type>
-          <maml:name>ExcelDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>PassThru</maml:name>
-        <maml:description>
-          <maml:para>Emit the activated worksheet.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="InputPath,FilePath">
-        <maml:name>Path</maml:name>
-        <maml:description>
-          <maml:para>Workbook path to update.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
-        <maml:name>Sheet</maml:name>
-        <maml:description>
-          <maml:para>Worksheet name to activate. Defaults to the current sheet inside an ExcelSheet block.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SheetIndex</maml:name>
-        <maml:description>
-          <maml:para>Zero-based worksheet index to activate.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-    </command:parameters>
-    <command:inputTypes>
-      <command:inputType>
-        <dev:type>
-          <maml:name>OfficeIMO.Excel.ExcelDocument</maml:name>
-        </dev:type>
-      </command:inputType>
-    </command:inputTypes>
-    <command:returnValues>
-      <command:returnValue>
-        <dev:type>
-          <maml:name>OfficeIMO.Excel.ExcelSheet</maml:name>
-        </dev:type>
-      </command:returnValue>
-      <command:returnValue>
-        <dev:type>
-          <maml:name>System.Management.Automation.PSObject</maml:name>
-        </dev:type>
-      </command:returnValue>
-    </command:returnValues>
-    <maml:alertSet>
-      <maml:alert>
-        <maml:para></maml:para>
-      </maml:alert>
-    </maml:alertSet>
-    <command:examples>
-      <command:example>
-        <maml:title>Open the workbook on the Summary sheet.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$sheet = Set-OfficeExcelActiveSheet -Path .\Report.xlsx -Sheet Summary -PassThru
-            Get-OfficeExcelWorksheetView -Path .\Report.xlsx -Sheet $sheet.Name |
-                Select-Object SheetName, View, TopLeftCell</dev:code>
-        <dev:remarks>
-          <maml:para>Updates workbook view state so spreadsheet applications open on Summary.</maml:para>
-        </dev:remarks>
-      </command:example>
-    </command:examples>
-    <command:relatedLinks />
-  </command:command>
-  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
-    <command:details>
       <command:name>Set-OfficeExcelAutoFilter</command:name>
       <command:verb>Set</command:verb>
       <command:noun>OfficeExcelAutoFilter</command:noun>
@@ -203035,23 +202802,24 @@ options retain their owner password, permission mask, algorithm, metadata settin
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
-      <command:name>Set-OfficeExcelSheetTabColor</command:name>
+      <command:name>Set-OfficeExcelSheet</command:name>
       <command:verb>Set</command:verb>
-      <command:noun>OfficeExcelSheetTabColor</command:noun>
+      <command:noun>OfficeExcelSheet</command:noun>
       <maml:description>
-        <maml:para>Sets or clears the worksheet tab color.</maml:para>
+        <maml:para>Sets worksheet visibility, tab color and the active worksheet.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Sets or clears the worksheet tab color.</maml:para>
+      <maml:para>Omitted properties keep their values. Sheet accepts a name, one-based position or native worksheet.
+Inside an ExcelSheet block it defaults to the current worksheet; an explicit workbook defaults to its first sheet.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="Context">
-        <maml:name>Set-OfficeExcelSheetTabColor</maml:name>
+      <command:syntaxItem parameterSetName="Default">
+        <maml:name>Set-OfficeExcelSheet</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Clear</maml:name>
+          <maml:name>Active</maml:name>
           <maml:description>
-            <maml:para>Clear the worksheet tab color.</maml:para>
+            <maml:para>Gets or sets whether this visible worksheet opens as the workbook's active worksheet.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -203060,63 +202828,12 @@ options retain their owner password, permission mask, algorithm, metadata settin
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
-          <maml:name>Color</maml:name>
-          <maml:description>
-            <maml:para>Named color, RGB hex, or RGBA hex value.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the worksheet after applying the tab color.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Document">
-        <maml:name>Set-OfficeExcelSheetTabColor</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Clear</maml:name>
-          <maml:description>
-            <maml:para>Clear the worksheet tab color.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
-          <maml:name>Color</maml:name>
-          <maml:description>
-            <maml:para>Named color, RGB hex, or RGBA hex value.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Document</maml:name>
           <maml:description>
-            <maml:para>Workbook to operate on outside the DSL context.</maml:para>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">ExcelDocument</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
           <dev:type>
             <maml:name>ExcelDocument</maml:name>
             <maml:uri />
@@ -203126,7 +202843,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Emit the worksheet after applying the tab color.</maml:para>
+            <maml:para>Gets or sets whether to emit the edited native worksheet.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -203138,23 +202855,120 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Sheet</maml:name>
           <maml:description>
-            <maml:para>Worksheet name when using Document.</maml:para>
+            <maml:para>Gets or sets a worksheet name, one-based position or native worksheet belonging to the workbook.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeSheetSelector</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>OfficeSheetSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SheetIndex</maml:name>
+          <maml:name>TabColor</maml:name>
           <maml:description>
-            <maml:para>Worksheet index (0-based) when using Document.</maml:para>
+            <maml:para>Gets or sets the literal or theme-based tab color.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeColor</command:parameterValue>
           <dev:type>
-            <maml:name>Int32</maml:name>
+            <maml:name>OfficeColor</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Visibility</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets Visible, Hidden or VeryHidden; omission preserves visibility.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ExcelSheetVisibility</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Visible</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Hidden</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">VeryHidden</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>ExcelSheetVisibility</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="NoTabColor">
+        <maml:name>Set-OfficeExcelSheet</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Active</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether this visible worksheet opens as the workbook's active worksheet.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>ExcelDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoTabColor</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether to remove the tab color; exclusive with TabColor.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether to emit the edited native worksheet.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Sheet</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets a worksheet name, one-based position or native worksheet belonging to the workbook.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeSheetSelector</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeSheetSelector</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Visibility</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets Visible, Hidden or VeryHidden; omission preserves visibility.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ExcelSheetVisibility</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Visible</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Hidden</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">VeryHidden</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>ExcelSheetVisibility</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -203163,9 +202977,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
     </command:syntax>
     <command:parameters>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Clear</maml:name>
+        <maml:name>Active</maml:name>
         <maml:description>
-          <maml:para>Clear the worksheet tab color.</maml:para>
+          <maml:para>Gets or sets whether this visible worksheet opens as the workbook's active worksheet.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -203174,26 +202988,26 @@ options retain their owner password, permission mask, algorithm, metadata settin
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
-        <maml:name>Color</maml:name>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Document</maml:name>
         <maml:description>
-          <maml:para>Named color, RGB hex, or RGBA hex value.</maml:para>
+          <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">ExcelDocument</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>ExcelDocument</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Document</maml:name>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoTabColor</maml:name>
         <maml:description>
-          <maml:para>Workbook to operate on outside the DSL context.</maml:para>
+          <maml:para>Gets or sets whether to remove the tab color; exclusive with TabColor.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">ExcelDocument</command:parameterValue>
+        <command:parameterValue required="true" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
-          <maml:name>ExcelDocument</maml:name>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -203201,7 +203015,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>PassThru</maml:name>
         <maml:description>
-          <maml:para>Emit the worksheet after applying the tab color.</maml:para>
+          <maml:para>Gets or sets whether to emit the edited native worksheet.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -203213,23 +203027,40 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Sheet</maml:name>
         <maml:description>
-          <maml:para>Worksheet name when using Document.</maml:para>
+          <maml:para>Gets or sets a worksheet name, one-based position or native worksheet belonging to the workbook.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeSheetSelector</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>OfficeSheetSelector</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SheetIndex</maml:name>
+        <maml:name>TabColor</maml:name>
         <maml:description>
-          <maml:para>Worksheet index (0-based) when using Document.</maml:para>
+          <maml:para>Gets or sets the literal or theme-based tab color.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeColor</command:parameterValue>
         <dev:type>
-          <maml:name>Int32</maml:name>
+          <maml:name>OfficeColor</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Visibility</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets Visible, Hidden or VeryHidden; omission preserves visibility.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">ExcelSheetVisibility</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">Visible</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Hidden</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">VeryHidden</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>ExcelSheetVisibility</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -203242,7 +203073,13 @@ options retain their owner password, permission mask, algorithm, metadata settin
         </dev:type>
       </command:inputType>
     </command:inputTypes>
-    <command:returnValues />
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Excel.ExcelSheet</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
     <maml:alertSet>
       <maml:alert>
         <maml:para></maml:para>
@@ -203250,242 +203087,20 @@ options retain their owner password, permission mask, algorithm, metadata settin
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Set a worksheet tab color.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>ExcelSheet 'Data' { Set-OfficeExcelSheetTabColor -Color '#336699' }</dev:code>
+        <maml:title>Hide lookup data and open on the summary.</maml:title>
+        <dev:code>Open-OfficeExcel -Path .\Pricing.xlsx {
+                Set-OfficeExcelSheet -Sheet Lookups -Visibility VeryHidden -TabColor Accent2
+                Set-OfficeExcelSheet -Sheet Summary -Active
+            }</dev:code>
         <dev:remarks>
-          <maml:para>Applies the color to the active worksheet tab.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
-    </command:examples>
-    <command:relatedLinks />
-  </command:command>
-  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
-    <command:details>
-      <command:name>Set-OfficeExcelSheetVisibility</command:name>
-      <command:verb>Set</command:verb>
-      <command:noun>OfficeExcelSheetVisibility</command:noun>
-      <maml:description>
-        <maml:para>Shows or hides a worksheet.</maml:para>
-      </maml:description>
-    </command:details>
-    <maml:description>
-      <maml:para>Shows or hides a worksheet.</maml:para>
-    </maml:description>
-    <command:syntax>
-      <command:syntaxItem parameterSetName="Context">
-        <maml:name>Set-OfficeExcelSheetVisibility</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Hide</maml:name>
-          <maml:description>
-            <maml:para>Hide the worksheet.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the worksheet after applying visibility.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Show</maml:name>
-          <maml:description>
-            <maml:para>Show the worksheet.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Document">
-        <maml:name>Set-OfficeExcelSheetVisibility</maml:name>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Document</maml:name>
-          <maml:description>
-            <maml:para>Workbook to operate on outside the DSL context.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">ExcelDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>ExcelDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Hide</maml:name>
-          <maml:description>
-            <maml:para>Hide the worksheet.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the worksheet after applying visibility.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Sheet</maml:name>
-          <maml:description>
-            <maml:para>Worksheet name when using Document.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SheetIndex</maml:name>
-          <maml:description>
-            <maml:para>Worksheet index (0-based) when using Document.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Show</maml:name>
-          <maml:description>
-            <maml:para>Show the worksheet.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-    </command:syntax>
-    <command:parameters>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Document</maml:name>
-        <maml:description>
-          <maml:para>Workbook to operate on outside the DSL context.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">ExcelDocument</command:parameterValue>
-        <dev:type>
-          <maml:name>ExcelDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Hide</maml:name>
-        <maml:description>
-          <maml:para>Hide the worksheet.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>PassThru</maml:name>
-        <maml:description>
-          <maml:para>Emit the worksheet after applying visibility.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Sheet</maml:name>
-        <maml:description>
-          <maml:para>Worksheet name when using Document.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SheetIndex</maml:name>
-        <maml:description>
-          <maml:para>Worksheet index (0-based) when using Document.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Show</maml:name>
-        <maml:description>
-          <maml:para>Show the worksheet.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-    </command:parameters>
-    <command:inputTypes>
-      <command:inputType>
-        <dev:type>
-          <maml:name>OfficeIMO.Excel.ExcelDocument</maml:name>
-        </dev:type>
-      </command:inputType>
-    </command:inputTypes>
-    <command:returnValues />
-    <maml:alertSet>
-      <maml:alert>
-        <maml:para></maml:para>
-      </maml:alert>
-    </maml:alertSet>
-    <command:examples>
       <command:example>
-        <maml:title>Hide the current worksheet.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>ExcelSheet 'Data' { Set-OfficeExcelSheetVisibility -Hide }</dev:code>
+        <maml:title>Clear a live worksheet's tab color.</maml:title>
+        <dev:code>$book | Set-OfficeExcelSheet -Sheet 2 -NoTabColor -PassThru</dev:code>
         <dev:remarks>
-          <maml:para>Marks the sheet as hidden.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
