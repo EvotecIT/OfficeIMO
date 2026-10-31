@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "moduleName": "PSWriteOffice",
   "moduleVersion": "3.5.2",
-  "sourceCommit": "250252bce931081a1a4b4ef17818c7ad5e0474a3",
-  "packageSourceCommit": "250252bce931081a1a4b4ef17818c7ad5e0474a3",
+  "sourceCommit": "7cd8a6e1b3defb2e5e166780470866b5f5fef126",
+  "packageSourceCommit": "7cd8a6e1b3defb2e5e166780470866b5f5fef126",
   "components": {
     "manifest": {
       "bytes": 25231,

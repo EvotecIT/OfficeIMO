@@ -4,13 +4,13 @@ description: "Combine PSParseHTML, PSEventViewer, PSWriteOffice and Mailozaurr t
 layout: docs
 ---
 
-Use a collector to obtain the data, then pass ordinary objects or files to the next module. The [integration recipes](https://github.com/EvotecIT/OfficeIMO/tree/07934fe92e1e2feed78dbe1ffb72760ef1385c75/PowerShell/PSWriteOffice/Examples/Integrations) provide complete scripts with sample inputs and explicit output directories.
+Use a collector to obtain the data, then pass ordinary objects or files to the next module. The [integration recipes](https://github.com/EvotecIT/OfficeIMO/tree/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Integrations) provide complete scripts with sample inputs and explicit output directories.
 
 | Task | Start with | Deliverables |
 | --- | --- | --- |
-| Compare supplier prices and delivery times from HTML | [HTML supplier review](https://github.com/EvotecIT/OfficeIMO/blob/07934fe92e1e2feed78dbe1ffb72760ef1385c75/PowerShell/PSWriteOffice/Examples/Integrations/Recipe-HtmlSupplierReview.ps1) | Spaced Word report, PDF review copy and numeric Excel table |
-| Assign investigation from a Windows event snapshot | [Event incident brief recipe](https://github.com/EvotecIT/OfficeIMO/blob/07934fe92e1e2feed78dbe1ffb72760ef1385c75/PowerShell/PSWriteOffice/Examples/Integrations/Recipe-PSEventViewer-OfficeReport.ps1) | Word/PDF brief and Excel register with full messages |
-| Review report attachments before distribution | [Mailozaurr report package](https://github.com/EvotecIT/OfficeIMO/blob/07934fe92e1e2feed78dbe1ffb72760ef1385c75/PowerShell/PSWriteOffice/Examples/Integrations/Recipe-Mailozaurr-PdfDelivery.ps1) | Local EML with attached reports |
+| Compare supplier prices and delivery times from HTML | [HTML supplier review](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Integrations/Recipe-HtmlSupplierReview.ps1) | Spaced Word report, PDF review copy and numeric Excel table |
+| Assign investigation from a Windows event snapshot | [Event incident brief recipe](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Integrations/Recipe-PSEventViewer-OfficeReport.ps1) | Word/PDF brief and Excel register with full messages |
+| Review report attachments before distribution | [Mailozaurr report package](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Integrations/Recipe-Mailozaurr-PdfDelivery.ps1) | Local EML with attached reports |
 
 The first two recipes run with synthetic data by default. The mail recipe saves an EML locally; sending is an explicit `-Send` operation with your SMTP settings.
 
@@ -25,6 +25,6 @@ Open the worked examples to inspect the generated files before adapting the scri
     -OutputDirectory ./Output/Mail
 ```
 
-The [recipe guide](https://github.com/EvotecIT/OfficeIMO/blob/07934fe92e1e2feed78dbe1ffb72760ef1385c75/PowerShell/PSWriteOffice/Examples/Integrations/README.md) explains module requirements, HTML headers, bounded live event collection, supplied snapshots and delivery options. The [document layout guide](/docs/pswriteoffice/document-layout/) covers the paragraph spacing and cell padding used by these reports.
+The [recipe guide](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Integrations/README.md) explains module requirements, HTML headers, bounded live event collection, supplied snapshots and delivery options. The [document layout guide](/docs/pswriteoffice/document-layout/) covers the paragraph spacing and cell padding used by these reports.
 
 PSParseHTML owns HTML extraction. [EventViewerX](https://github.com/EvotecIT/EventViewerX) owns the PSEventViewer module and its event queries. OfficeIMO owns document generation through PSWriteOffice, while Mailozaurr owns MIME and transport. These integrations add no required modules to PSWriteOffice itself.

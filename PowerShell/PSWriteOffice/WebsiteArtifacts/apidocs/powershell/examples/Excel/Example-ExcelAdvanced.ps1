@@ -25,11 +25,11 @@ New-OfficeExcel -Path $path {
         ExcelSparkline -DataRange 'C2:C7' -LocationRange 'E2:E7' -Type Line -ShowMarkers
         ExcelPivotTable -SourceRange 'A1:D7' -DestinationCell 'G2' -RowField 'Region' -DataField 'Sales'
         ExcelChart -Table 'SalesData' -Category Region -Value Sales -Type ColumnClustered -Title 'Sales by Region' -Address I1
-        ExcelHyperlink -Address 'A2' -Url 'https://evotec.xyz'
+        ExcelHyperlink -Address 'A10' -Url 'https://evotec.xyz' -Display 'Evotec'
         ExcelComment -Address 'C2' -Text 'Review this value'
 
         if (Test-Path $imagePath) {
-            ExcelImage -Path $imagePath -Range 'I8:J12' -Name 'OfficeIMOLogo' -AltText 'OfficeIMO logo'
+            ExcelImage -Path $imagePath -Range 'I20:J24' -Name 'OfficeIMOLogo' -AltText 'OfficeIMO logo'
         }
     } -PassThru | ForEach-Object {
         $null = $_.AddConditionalRule('C2:C20', [OfficeIMO.Excel.ExcelConditionalFormattingOperator]::GreaterThan,

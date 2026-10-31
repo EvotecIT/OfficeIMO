@@ -16,6 +16,6 @@ $result = Get-OfficeDocumentIngest -FolderPath '.\Knowledge' `
 
 Use `-NoRecurse` for a single controlled directory. Extension filters keep unrelated files outside the parser path. Reader options and content bounds should match the same policy used by search and chunk extraction.
 
-The [ingest-folder recipe](https://github.com/EvotecIT/OfficeIMO/blob/07934fe92e1e2feed78dbe1ffb72760ef1385c75/PowerShell/PSWriteOffice/Examples/Reader/Recipe-Reader-IngestFolder.ps1) ingests supported documents from a simple `.\Documents` folder.
+The [ingest-folder recipe](https://github.com/EvotecIT/OfficeIMO/blob/7cd8a6e1b3defb2e5e166780470866b5f5fef126/PowerShell/PSWriteOffice/Examples/Reader/Recipe-Reader-IngestFolder.ps1) ingests supported documents from a simple `.\Documents` folder.
 
 Keep indexing, embeddings, databases, or network publication outside the Reader command. Reader owns deterministic document extraction; the downstream system owns storage and retrieval policy.
