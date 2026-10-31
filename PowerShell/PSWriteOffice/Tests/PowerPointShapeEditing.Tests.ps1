@@ -395,7 +395,7 @@ Describe 'PowerPointShapeEditing workflows' {
         ($sections | Where-Object Name -eq 'Intro').SlideIndices | Should -Contain 0
         ($sections | Where-Object Name -eq 'Deep Dive').SlideIndices | Should -Contain 1
 
-        $replacements = Update-OfficePowerPointText -Presentation $target -OldValue 'FY24' -NewValue 'FY25' -IncludeNotes -PassThru
+        $replacements = Update-OfficePowerPointText -Document $target -OldValue 'FY24' -NewValue 'FY25' -IncludeNotes -PassThru
         $replacements | Should -BeGreaterThan 0
 
         $importedSlide = Import-OfficePowerPointSlide -Presentation $target -SourcePath $sourcePath -SourceIndex 0 -InsertAt 1
@@ -429,7 +429,7 @@ Describe 'PowerPointShapeEditing workflows' {
             ($sectionInfo | Where-Object Name -eq 'Intro').SlideIndices | Should -Contain 1
             ($sectionInfo | Where-Object Name -eq 'Deep Dive').SlideIndices | Should -Contain 2
 
-            $updatedReplacements = Update-OfficePowerPointText -Presentation $reloaded -OldValue 'FY24' -NewValue 'FY26' -PassThru
+            $updatedReplacements = Update-OfficePowerPointText -Document $reloaded -OldValue 'FY24' -NewValue 'FY26' -PassThru
             $updatedReplacements | Should -BeGreaterThan 0
         } finally {
             if ($reloaded) {
