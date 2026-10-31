@@ -38,7 +38,7 @@ Returns the canonical OfficeIMO.Pdf result, including typed pages, paragraphs, t
 ## PARAMETERS
 
 ### -Document
-An existing OfficeIMO.Pdf document, such as output from Get-OfficePdf.
+An existing OfficeIMO.Pdf document, such as output from Open-OfficePdf.
 
 ```yaml
 Type: PdfDocument

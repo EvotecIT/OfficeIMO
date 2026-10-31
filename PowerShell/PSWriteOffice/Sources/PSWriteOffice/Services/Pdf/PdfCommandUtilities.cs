@@ -200,21 +200,10 @@ internal static class PdfCommandUtilities
             return null;
         }
 
-        var effective = readOptions ?? new PdfLoadOptions();
-        return new PdfLoadOptions
-        {
-            ParsingMode = effective.ParsingMode,
-            Limits = effective.Limits,
-            AesCryptographyProvider = effective.AesCryptographyProvider,
-            Password = string.IsNullOrEmpty(password) ? effective.Password : password,
-            PermissionPolicy = ignorePermissionRestrictions
-                ? PdfPermissionPolicy.IgnoreRestrictions
-                : effective.PermissionPolicy,
-            PreferToUnicode = effective.PreferToUnicode,
-            UseWinAnsiFallback = effective.UseWinAnsiFallback,
-            AdjustKerningFromTJ = effective.AdjustKerningFromTJ,
-            IncludeArtifactText = effective.IncludeArtifactText
-        };
+        return (readOptions ?? new PdfLoadOptions()).Snapshot(
+            maximumInputBytes: null,
+            passwordOverride: string.IsNullOrEmpty(password) ? null : password,
+            permissionPolicyOverride: ignorePermissionRestrictions ? PdfPermissionPolicy.IgnoreRestrictions : (PdfPermissionPolicy?)null);
     }
 
     /// <summary>Loads a fluent PDF through OfficeIMO's bounded, single-snapshot path API.</summary>

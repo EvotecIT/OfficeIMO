@@ -7717,9 +7717,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": true,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector; binding accepts a range expression or one-based integer, including last, odd, even and exclusions."
             },
             {
               "name": "Password",
@@ -7769,9 +7770,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": true,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector; binding accepts a range expression or one-based integer, including last, odd, even and exclusions."
             },
             {
               "name": "Password",
@@ -7824,9 +7826,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": true,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector; binding accepts a range expression or one-based integer, including last, odd, even and exclusions."
             },
             {
               "name": "Password",
@@ -7879,9 +7882,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": true,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector; binding accepts a range expression or one-based integer, including last, odd, even and exclusions."
             },
             {
               "name": "Password",
@@ -7923,9 +7927,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": true,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector; binding accepts a range expression or one-based integer, including last, odd, even and exclusions."
             },
             {
               "name": "PassThru",
@@ -19360,7 +19365,7 @@
         "FilePath": "Path",
         "PageRange": "Page"
       },
-      "reason": "Page selection is -Page (OfficePageRange, 1-based); pixel limits are ...PixelCount."
+      "reason": "Page selection is -Page, using native PdfPageSelector expressions and one-based positions."
     },
     {
       "old": "Save-OfficePdf",

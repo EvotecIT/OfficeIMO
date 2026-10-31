@@ -30,24 +30,25 @@ public abstract class OfficeLifecycleCmdlet<TDocument> : OfficeCmdlet, IDisposab
     /// <param name="force">Whether New may replace an existing file.</param>
     /// <param name="factory">Creates an in-memory/new staged document or loads without autosave.</param>
     /// <param name="save">Saves natively to the private path, honoring AllowLoss and returning any save diagnostics.</param>
+    /// <param name="sourcePath">Optional separate input for an Open block that saves an output copy.</param>
     protected void RunDocument(string? path, bool isNew, bool force, Func<string?, TDocument> factory,
-        Func<TDocument, string, bool, OfficeConversionReport?> save) {
+        Func<TDocument, string, bool, OfficeConversionReport?> save, string? sourcePath = null) {
         string? resolved = null;
         try {
             if (path != null) resolved = ResolveOutputPath(path);
             if ((!isNew || Content != null) && resolved == null) throw new ArgumentException("A path is required when opening a document or using a content block.");
             if (Content == null && (PassThru || Show)) throw new ArgumentException("PassThru and Show require a content block; without a block the live document is returned.");
             if (resolved != null) {
-                if (!isNew && !File.Exists(resolved)) throw new FileNotFoundException("The input does not exist.", resolved);
+                if (!isNew && !File.Exists(sourcePath ?? resolved)) throw new FileNotFoundException("The input does not exist.", sourcePath ?? resolved);
                 OfficePath.ValidateDestination(resolved, isNew && !force);
             }
         } catch (ArgumentException error) { InvalidArgument(error, path); return; }
         // Opening a live document and editing in memory have no filesystem effect.
-        if (Content == null) { WriteObject(factory(resolved)); return; }
+        if (Content == null) { WriteObject(factory(sourcePath ?? resolved)); return; }
         if (!ShouldProcess(resolved!, isNew ? "Create document" : "Save document")) return;
         try {
             FileInfo result = OfficeContentLifecycle.Run(resolved!, isNew, isNew && !force, AllowLoss,
-                p => factory(p), document => InvokeContent(document), save, _stop.Token, error => ThrowTerminatingError(OfficeError.NativeSave(error, resolved)));
+                p => factory(p), document => InvokeContent(document), save, _stop.Token, error => ThrowTerminatingError(OfficeError.NativeSave(error, resolved)), sourcePath);
             if (Show) OfficeShow.Open(result.FullName);
             if (PassThru) WriteObject(result);
         } catch (PipelineStoppedException) { throw; }

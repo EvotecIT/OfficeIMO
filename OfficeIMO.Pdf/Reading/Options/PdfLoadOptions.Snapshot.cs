@@ -9,7 +9,7 @@ public sealed partial class PdfLoadOptions {
     public PdfLoadOptions Clone(long? maximumInputBytes, string? passwordOverride) =>
         Snapshot(maximumInputBytes.HasValue ? System.Math.Min(Limits.MaxInputBytes, maximumInputBytes.Value) : (long?)null, passwordOverride);
 
-    internal PdfLoadOptions Snapshot(long? maximumInputBytes, string? passwordOverride) {
+    internal PdfLoadOptions Snapshot(long? maximumInputBytes, string? passwordOverride, PdfPermissionPolicy? permissionPolicyOverride = null) {
         PdfLoadOptions effective = Resolve(this);
         return new PdfLoadOptions {
             ParsingMode = effective.ParsingMode,
@@ -22,7 +22,7 @@ public sealed partial class PdfLoadOptions {
             Limits = effective.Limits.CloneWithMaximumInputBytes(maximumInputBytes),
             Password = passwordOverride ?? effective.Password,
             AesCryptographyProvider = effective.AesCryptographyProvider,
-            PermissionPolicy = effective.PermissionPolicy,
+            PermissionPolicy = permissionPolicyOverride ?? effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,
             AdjustKerningFromTJ = effective.AdjustKerningFromTJ,

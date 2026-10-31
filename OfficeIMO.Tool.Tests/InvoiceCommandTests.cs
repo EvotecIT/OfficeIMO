@@ -130,7 +130,7 @@ public sealed class InvoiceCommandTests {
         Assert.Contains("119,00 EUR", text);
         Assert.Contains("sztuka", text);
         Assert.Contains("Przelew SEPA", text);
-        Assert.Contains("Strona 1 /", text);
+        Assert.Contains("Strona 1 z ", text);
     }
 
     [Theory]

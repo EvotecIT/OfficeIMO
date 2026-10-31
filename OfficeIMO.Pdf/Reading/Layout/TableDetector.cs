@@ -44,6 +44,7 @@ internal static partial class TableDetector {
         double? pageHeight = null,
         Action<long>? consumeWork = null,
         Action? cancellationCheck = null) {
+        var sourceBands = bands;
         var recoverableBands = new List<List<TextLayoutEngine.TextLine>>(bands.Count);
         for (int bandIndex = 0; bandIndex < bands.Count; bandIndex++) {
             cancellationCheck?.Invoke();
@@ -106,7 +107,12 @@ internal static partial class TableDetector {
                 tables.Add(positioned);
             }
         }
-        RecoverTablesWithPeripheralRowText(tables, pageLines, consumeWork, cancellationCheck);
+        // A clipped side annotation must not discard the complete table cells sharing its baseline.
+        // Only the bounded recovery path may reconsider such a line, validating every admitted cell.
+        var peripheralLines = sourceBands.Where(band => band.Count > 0 && !IsLeaderBand(band))
+            .SelectMany(static band => band).Take(MaximumPositionedRecoveryLines).ToList();
+        if (peripheralLines.Count > 0) consumeWork?.Invoke(peripheralLines.Count);
+        RecoverTablesWithPeripheralRowText(tables, peripheralLines, pageHeight, consumeWork, cancellationCheck);
         MergeStackedTablePieces(tables, pageLines, consumeWork, cancellationCheck);
         AttachPrecedingBodyRows(tables, pageLines, consumeWork, cancellationCheck);
         AttachDetachedHeaderRows(tables, pageLines, consumeWork, cancellationCheck);

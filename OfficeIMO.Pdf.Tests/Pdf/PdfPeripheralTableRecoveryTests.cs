@@ -79,6 +79,55 @@ public class PdfPeripheralTableRecoveryTests {
         Assert.DoesNotContain(annotation, table.SourceRuns);
     }
 
+    [Theory]
+    [InlineData(false, false, 2.5D)]
+    [InlineData(true, false, 2.5D)]
+    [InlineData(false, true, 3D)]
+    [InlineData(true, true, 3D)]
+    public void SideAnnotationsKeepEveryRowOfATable(bool outsideLeft, bool embedded, double offset) {
+        var options = new PdfCreateOptions {
+            PageWidth = OfficeLength.Points(460), PageHeight = OfficeLength.Points(360),
+            MarginLeft = OfficeLength.Points(36), MarginRight = OfficeLength.Points(36),
+            MarginTop = OfficeLength.Points(36), MarginBottom = OfficeLength.Points(36),
+            DefaultFontSize = OfficeLength.Points(10), EmbedDefaultFonts = embedded
+        };
+        string[][] rows = { new[] { "Area", "Owner", "Status" }, new[] { "HTML", "OfficeIMO.Html", "Ready" },
+            new[] { "PDF", "OfficeIMO.Html.Pdf", "Stable" } };
+        var style = new PdfTableStyle {
+            ColumnWidths = new List<OfficeLength?> { OfficeLength.Points(70), OfficeLength.Points(170), OfficeLength.Points(60) },
+            HeaderRowCount = 1, CellPaddingX = OfficeLength.Points(6), CellPaddingY = OfficeLength.Points(4)
+        };
+        using var baseline = PdfDocument.Load(new MemoryStream(Render()));
+        PdfLogicalTable originalTable = Assert.Single(baseline.Read().Pages[0].Tables);
+        Assert.Equal(3, originalTable.Rows.Count);
+        PdfTextSpan body = Assert.Single(baseline.Pages[0].GetTextSpans(), span => span.Text == "Ready");
+        double x = outsideLeft ? 4D : originalTable.Columns[originalTable.Columns.Count - 1].To + 18D;
+        double top = 360D - body.Y - body.FontSize;
+        // Arrange nearby annotation baselines independently of the selected font ascent.
+        using (var trial = PdfDocument.Load(new MemoryStream(Render(x, top)))) {
+            PdfTextSpan note = Assert.Single(trial.Pages[0].GetTextSpans(), span => span.Text == "Ready" && span.X == x);
+            top -= body.Y + offset - note.Y;
+        }
+        using var document = PdfDocument.Load(new MemoryStream(Render(x, top)));
+        PdfLogicalPage page = document.Read().Pages[0];
+        PdfLogicalTable table = Assert.Single(page.Tables);
+        Assert.Equal(3, table.Rows.Count);
+        for (int row = 0; row < rows.Length; row++) Assert.Equal(rows[row], table.Rows[row]);
+        Assert.Contains(page.TextBlocks, block => block.Text.Contains("Ready", StringComparison.Ordinal) &&
+            (outsideLeft ? block.XEnd < table.Columns[0].From - 1D :
+                block.XStart > table.Columns[table.Columns.Count - 1].To + 1D));
+
+        byte[] Render(double? annotationX = null, double annotationTop = 0D) {
+            using var pdf = PdfDocument.Create(options);
+            pdf.Compose(compose => compose.Content(content => {
+                content.H1("Positioned geometry").Table(rows, style: style);
+                if (annotationX.HasValue) content.Canvas(canvas => canvas.Text("Ready", OfficeLength.Points(annotationX.Value),
+                    OfficeLength.Points(annotationTop), OfficeLength.Points(50), OfficeLength.Points(18), fontSize: OfficeLength.Points(10)));
+            }));
+            return pdf.ToBytes();
+        }
+    }
+
     private static TextLayoutEngine.TextLine Line(double y, params (string Text, double X, double Advance, string Font)[] content) {
         List<PdfTextSpan> spans = content.OrderBy(item => item.X)
             .Select(item => new PdfTextSpan(item.Text, item.Font, 10D, item.X, y, item.Advance, baseFont: item.Font)).ToList();

@@ -5,6 +5,8 @@
     <PublishAot>true</PublishAot>
     <!-- Keep the complete .NET 8 Linux workflow within hosted-runner memory budgets. -->
     <OptimizationPreference Condition="'$(TargetFramework)' == 'net8.0' and '$(RuntimeIdentifier)' == 'linux-x64'">Size</OptimizationPreference>
+    <!-- Native debug data exceeds the Windows PDB limit and Linux hosted-runner memory in this .NET 8 correctness smoke. -->
+    <DebugType Condition="'$(TargetFramework)' == 'net8.0' and ('$(RuntimeIdentifier)' == 'win-x64' or '$(RuntimeIdentifier)' == 'linux-x64')">none</DebugType>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

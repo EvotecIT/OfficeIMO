@@ -2004,7 +2004,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Excel
 
 <details>
-<summary>323 changes</summary>
+<summary>322 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -2304,7 +2304,6 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Units | `OfficeIMO.Excel.Fluent.SheetComposer.HeaderLogoFromUrlAsync(string url, OfficeRemoteImageLoadOptions remoteImageOptions, ExcelHeaderFooterPosition position = Right, double? widthPoints = null, double? heightPoints = null, string leftText = null, string centerText = null, string rightText = null, CancellationToken cancellationToken = null)` | Changed | `OfficeIMO.Excel.ExcelReportBuilder.HeaderLogoFromUrlAsync(... OfficeLength ...)` | Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix. |
 | Units | `OfficeIMO.Excel.Fluent.SheetComposer.Margins(double left, double right, double top, double bottom, double header = 0.3, double footer = 0.3)` | Changed | `OfficeIMO.Excel.ExcelReportBuilder.Margins(OfficeLength left, OfficeLength right, OfficeLength top, OfficeLength bottom, ...)` | Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix. |
 | Naming | `OfficeIMO.Excel.A1` | Renamed | `OfficeIMO.Excel.ExcelA1` | Format types start with the format name. |
-| Naming | `OfficeIMO.Excel.ExcelDocument.AddWorksheet(string name)` | Renamed | `OfficeIMO.Excel.ExcelDocument.AddSheet(string name)` | Worksheet authoring uses AddSheet and returns the typed ExcelSheet. |
 | Naming | `OfficeIMO.Excel.ExcelDocument.AddWorksheet(string worksheetName = "")` | Renamed | `OfficeIMO.Excel.ExcelDocument.AddSheet(string worksheetName = "")` | Sheet authoring uses AddSheet, matching ExcelSheet and the workbook Sheets collection. |
 | Naming | `OfficeIMO.Excel.ExcelDocument.AddWorksheet(string worksheetName, ExcelSheetNameValidationMode validationMode)` | Renamed | `OfficeIMO.Excel.ExcelDocument.AddSheet(string worksheetName, ExcelSheetNameValidationMode validationMode)` | Sheet authoring uses AddSheet, matching ExcelSheet and the workbook Sheets collection. |
 | Naming | `OfficeIMO.Excel.ExcelDocument.AddWorksheet(string worksheetName, ExcelSheetNameValidationMode validationMode, CancellationToken cancellationToken)` | Renamed | `OfficeIMO.Excel.ExcelDocument.AddSheet(string worksheetName, ExcelSheetNameValidationMode validationMode, CancellationToken cancellationToken)` | Sheet authoring uses AddSheet, matching ExcelSheet and the workbook Sheets collection. |

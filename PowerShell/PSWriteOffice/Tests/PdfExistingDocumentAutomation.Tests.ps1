@@ -47,7 +47,7 @@ Describe 'Authenticated PDF automation' {
             'Export-OfficePdfImage',
             'Export-OfficePdfLayoutOverlay',
             'Export-OfficePdfXfdf',
-            'Get-OfficePdf',
+            'Open-OfficePdf',
             'Get-OfficePdfAnnotation',
             'Get-OfficePdfAppendOnlyMutation',
             'Get-OfficePdfAttachment',
@@ -158,7 +158,7 @@ Describe 'Authenticated PDF automation' {
 
         Move-OfficePdfPage -Path $source -PageRange 1 -BeforePage 4 -OutputPath $moved `
             -Password 'open' -IgnorePermissionRestrictions -PassThru | Should -BeOfType System.IO.FileInfo
-        Remove-OfficePdfPage -Path $source -PageRange 2 -OutputPath $removed `
+        Remove-OfficePdfPage -Path $source -Page 2 -OutputPath $removed `
             -Password 'open' -IgnorePermissionRestrictions -PassThru | Should -BeOfType System.IO.FileInfo
         Set-OfficePdfPage -Path $source -PageRange 1 -Rotation 90 -OutputPath $rotated `
             -Password 'open' -IgnorePermissionRestrictions -PassThru | Should -BeOfType System.IO.FileInfo

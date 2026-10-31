@@ -57,7 +57,7 @@ if ($first.Completed -ne 2 -or $first.Failed -ne 0) {
 }
 foreach ($name in 'notes.txt.pdf', 'brief.html.pdf') {
     $path = Join-Path $pdf $name
-    $document = Get-OfficePdf -Path $path
+    $document = Open-OfficePdf -Path $path
     if (-not $document) {
         throw "The completed PDF could not be reopened: $path"
     }

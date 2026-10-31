@@ -7,7 +7,8 @@ internal static partial class TableDetector {
     /// past the other rows' paint when its start matches both last-column anchors.
     /// </summary>
     private static void RecoverTablesWithPeripheralRowText(List<PdfStructuredTable> tables,
-        IReadOnlyList<TextLayoutEngine.TextLine> pageLines, Action<long>? consumeWork, Action? cancellationCheck) {
+        IReadOnlyList<TextLayoutEngine.TextLine> pageLines, double? pageHeight,
+        Action<long>? consumeWork, Action? cancellationCheck) {
         var rows = new List<TextLayoutEngine.TextLine>();
         var baseline = new List<TextLayoutEngine.TextLine>();
         foreach (TextLayoutEngine.TextLine line in pageLines.Take(MaximumPositionedRecoveryLines)
@@ -26,8 +27,33 @@ internal static partial class TableDetector {
         for (int index = 0; index + 2 < rows.Count; index++) {
             cancellationCheck?.Invoke();
             TextLayoutEngine.TextLine upper = rows[index], middle = rows[index + 1], lower = rows[index + 2];
+            TextLayoutEngine.TextLine? detachedNote = null;
+            if (index + 3 < rows.Count && HasEmphasizedText(upper)) {
+                TextLayoutEngine.TextLine finalRow = rows[index + 3];
+                double regionLeft = Math.Min(upper.XStart, finalRow.XStart);
+                double regionRight = Math.Max(upper.XEnd, finalRow.XEnd);
+                consumeWork?.Invoke(middle.Spans.Count + lower.Spans.Count);
+                bool middleOutside = IsOutside(middle), lowerOutside = IsOutside(lower);
+                if (middleOutside != lowerOutside) {
+                    TextLayoutEngine.TextLine note = middleOutside ? middle : lower;
+                    TextLayoutEngine.TextLine body = middleOutside ? lower : middle;
+                    double fontSize = body.Spans.Max(static span => span.FontSize);
+                    if (Math.Abs(note.Y - body.Y) <= fontSize * .5D) {
+                        var spans = body.Spans.Concat(note.Spans).OrderBy(static span => span.X).ToList();
+                        middle = new TextLayoutEngine.TextLine(body.Y, spans.Min(static span => span.X),
+                            spans.Max(static span => span.X + Math.Max(0D, span.Advance)),
+                            ComposeCell(spans, body.ReadingDirection), spans, body.ReadingDirection);
+                        lower = finalRow;
+                        detachedNote = note;
+                    }
+                }
+
+                bool IsOutside(TextLayoutEngine.TextLine line) => line.Spans.Count > 0 &&
+                    (line.XEnd < regionLeft - .25D || line.XStart > regionRight + .25D);
+            }
             consumeWork?.Invoke(upper.Spans.Count + middle.Spans.Count + lower.Spans.Count);
-            if (!HasEmphasizedText(upper)) continue;
+            if (!HasEmphasizedText(upper) || !CanRecoverTableLine(upper, pageHeight) ||
+                !CanRecoverTableLine(lower, pageHeight)) continue;
             PositionedRow? first = TryCreatePositionedRow(upper), third = TryCreatePositionedRow(lower);
             if (first == null || third == null || !PositionedRowsAlign(first, third)) continue;
             double gap = upper.Y - middle.Y, nextGap = middle.Y - lower.Y;
@@ -54,7 +80,10 @@ internal static partial class TableDetector {
             bool crossing = false;
             foreach (PdfTextSpan span in middle.Spans) {
                 double end = span.X + Math.Max(0D, span.Advance);
-                if (span.X >= left - .25D && (end <= right + .25D || lastCellRuns.Contains(span))) contained.Add(span);
+                if (span.X >= left - .25D && (end <= right + .25D || lastCellRuns.Contains(span))) {
+                    if (!span.CanProjectCompleteText(pageHeight)) { crossing = true; break; }
+                    contained.Add(span);
+                }
                 else if (end > left && span.X < right) crossing = true;
             }
             if (crossing || contained.Count == 0 || contained.Count == middle.Spans.Count) continue;
@@ -95,22 +124,34 @@ internal static partial class TableDetector {
                     }
                     if (overlaps.Count > 1) break;
                 }
-                // A side annotation can also have been swallowed by an existing
-                // three-row candidate. Replace only that complete region, never
-                // remove a larger table or another independently owned region.
-                if (overlaps.Count != 1 || overlaps[0].Rows.Count != 3 ||
+                // A fourth row may consist solely of the nearby outside annotation.
+                // Require exact source ownership before removing that row; larger or
+                // separately owned table regions remain untouched.
+                if (overlaps.Count != 1 || overlaps[0].Rows.Count < 2 ||
+                    overlaps[0].Rows.Count > (detachedNote == null ? 3 : 4) ||
                     overlaps[0].Columns.Count != table.Columns.Count) continue;
                 var previousRuns = new HashSet<PdfTextSpan>();
                 foreach (PdfTextSpan span in overlaps[0].SourceRuns) {
                     AccountWork();
                     previousRuns.Add(span);
                 }
-                bool containedByPrevious = true;
-                foreach (PdfTextSpan span in candidateRuns) {
-                    AccountWork();
-                    if (!previousRuns.Contains(span)) { containedByPrevious = false; break; }
+                if (overlaps[0].Rows.Count == 4) {
+                    var annotatedRuns = new HashSet<PdfTextSpan>(candidateRuns);
+                    foreach (PdfTextSpan span in detachedNote!.Spans) {
+                        AccountWork();
+                        annotatedRuns.Add(span);
+                    }
+                    AccountWork(annotatedRuns.Count + previousRuns.Count);
+                    if (!annotatedRuns.SetEquals(previousRuns)) continue;
                 }
-                if (!containedByPrevious) continue;
+                var requiredRuns = overlaps[0].Rows.Count == 2 ? previousRuns : candidateRuns;
+                var containingRuns = overlaps[0].Rows.Count == 2 ? candidateRuns : previousRuns;
+                bool ownershipMatches = true;
+                foreach (PdfTextSpan span in requiredRuns) {
+                    AccountWork();
+                    if (!containingRuns.Contains(span)) { ownershipMatches = false; break; }
+                }
+                if (!ownershipMatches) continue;
                 ChangeOwnership(overlaps[0].SourceRuns, -1);
                 AccountWork(tables.Count);
                 tables.Remove(overlaps[0]);

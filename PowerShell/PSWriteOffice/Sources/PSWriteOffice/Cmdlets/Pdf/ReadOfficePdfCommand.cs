@@ -27,7 +27,7 @@ public sealed class ReadOfficePdfCommand : PSCmdlet
     [Alias("FilePath")]
     public string Path { get; set; } = string.Empty;
 
-    /// <summary>An existing OfficeIMO.Pdf document, such as output from Get-OfficePdf.</summary>
+    /// <summary>An existing OfficeIMO.Pdf document, such as output from Open-OfficePdf.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
     public PdfDocument? Document { get; set; }
 

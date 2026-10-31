@@ -5848,17 +5848,6 @@
   ],
   "changes": [
     {
-      "old": "OfficeIMO.Excel.ExcelDocument.AddWorksheet(string name)",
-      "kind": "method",
-      "action": "rename",
-      "new": "OfficeIMO.Excel.ExcelDocument.AddSheet(string name)",
-      "reason": "Worksheet authoring uses AddSheet and returns the typed ExcelSheet.",
-      "file": "OfficeIMO.Excel/ExcelDocument.Worksheets.cs",
-      "category": "naming",
-      "phase": "B",
-      "applied": "phase-b-pending"
-    },
-    {
       "old": "OfficeIMO.Excel.ExcelDocument.AnalyzeConversion(string sourcePath, string destinationPath, ExcelDocumentConversionOptions options = null)",
       "kind": "method",
       "action": "merge",
@@ -11827,9 +11816,9 @@
     "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
   },
   "summary": {
-    "changes": 323,
+    "changes": 322,
     "byAction": {
-      "rename": 24,
+      "rename": 23,
       "merge": 92,
       "change": 171,
       "remove": 19,
@@ -11837,7 +11826,7 @@
       "keep": 2
     },
     "byCategory": {
-      "naming": 5,
+      "naming": 4,
       "lifecycle": 52,
       "authoring": 117,
       "units": 123,

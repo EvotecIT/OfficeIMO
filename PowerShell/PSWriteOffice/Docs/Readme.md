@@ -931,9 +931,6 @@ Loads a native ODT, ODS, ODP, or ODG document.
 ### [Get-OfficePackageSecurity](Get-OfficePackageSecurity.md)
 Inspects an Open XML or compound Office package without opening active content.
 
-### [Get-OfficePdf](Get-OfficePdf.md)
-Opens an existing PDF as an OfficeIMO.Pdf document.
-
 ### [Get-OfficePdfAnnotation](Get-OfficePdfAnnotation.md)
 Gets page annotations and action evidence from a PDF.
 
@@ -1378,6 +1375,9 @@ Opens a workbook for explicit editing, or atomically saves a completed content b
 ### [Open-OfficeMarkdown](Open-OfficeMarkdown.md)
 Opens native Markdown from a file or parses text; a file content block saves atomically.
 
+### [Open-OfficePdf](Open-OfficePdf.md)
+Opens native PDF documents or atomically saves a completed editing block.
+
 ### [Open-OfficePowerPoint](Open-OfficePowerPoint.md)
 Opens a presentation for explicit editing, or atomically saves a completed content block.
 
@@ -1418,7 +1418,7 @@ Removes a workbook or sheet-scoped Excel named range.
 Removes PDF annotations matching friendly filters.
 
 ### [Remove-OfficePdfPage](Remove-OfficePdfPage.md)
-Removes selected pages from a PDF and writes a new PDF.
+Removes selected pages from a live PDF or writes edited file copies.
 
 ### [Remove-OfficePowerPointSlide](Remove-OfficePowerPointSlide.md)
 Removes selected native slides or one-based slide positions.
@@ -1652,7 +1652,7 @@ Fills and optionally flattens simple AcroForm fields in an existing PDF.
 Sets a simple or fully composed running PDF header.
 
 ### [Set-OfficePdfMetadata](Set-OfficePdfMetadata.md)
-Sets PDF document metadata on generated documents or existing PDF files.
+Updates metadata on a generated PDF, an open editing block, or file copies.
 
 ### [Set-OfficePdfPage](Set-OfficePdfPage.md)
 Sets page-level PDF properties and writes a new PDF.
