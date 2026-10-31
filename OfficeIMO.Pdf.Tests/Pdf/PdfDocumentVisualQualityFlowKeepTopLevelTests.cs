@@ -583,7 +583,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = global::OfficeIMO.OfficeLength.Points(61)
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(64)
             })
             .PanelParagraph(p => p.Text("PanelKeepWithNext"), new PdfPanelStyle {
                 KeepWithNext = true,

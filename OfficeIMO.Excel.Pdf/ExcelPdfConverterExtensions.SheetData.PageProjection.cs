@@ -77,9 +77,17 @@ namespace OfficeIMO.Excel.Pdf {
             double offsetY = rows[row] - rows[region.Row];
             double fullWidth = columns[region.Column + region.Span.ColumnSpan] - columns[region.Column];
             double fullHeight = rows[region.Row + region.Span.RowSpan] - rows[region.Row];
-            // Accumulating a fragment separately can round a few ulps above the full
-            // sum. Keep the viewport contained without changing meaningful geometry.
-            return new PdfCore.PdfTableCellViewport(OfficeLength.Points(Math.Max(fullWidth, offsetX + width)), OfficeLength.Points(Math.Max(fullHeight, offsetY + height)), OfficeLength.Points(width), OfficeLength.Points(height), OfficeLength.Points(offsetX), OfficeLength.Points(offsetY));
+            // Round each fragment and offset once, then contain their sum in the same
+            // physical units. Rounding the sum independently can lose one EMU.
+            OfficeLength fragmentWidth = OfficeLength.Points(width);
+            OfficeLength fragmentHeight = OfficeLength.Points(height);
+            OfficeLength fragmentOffsetX = OfficeLength.Points(offsetX);
+            OfficeLength fragmentOffsetY = OfficeLength.Points(offsetY);
+            OfficeLength contentWidth = OfficeLength.Points(fullWidth);
+            OfficeLength contentHeight = OfficeLength.Points(fullHeight);
+            if (contentWidth < fragmentOffsetX + fragmentWidth) contentWidth = fragmentOffsetX + fragmentWidth;
+            if (contentHeight < fragmentOffsetY + fragmentHeight) contentHeight = fragmentOffsetY + fragmentHeight;
+            return new PdfCore.PdfTableCellViewport(contentWidth, contentHeight, fragmentWidth, fragmentHeight, fragmentOffsetX, fragmentOffsetY);
         }
 
         private static ExcelCellBorderInfo? CreateMergeFragmentBorder(

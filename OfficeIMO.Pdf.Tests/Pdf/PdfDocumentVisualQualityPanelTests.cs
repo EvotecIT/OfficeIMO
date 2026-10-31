@@ -37,7 +37,7 @@ public partial class PdfDocumentVisualQualityTests {
         var page = pdf.GetPage(1);
 
         double ascender = fontSize * 0.74;
-        double lineHeight = fontSize * 1.4;
+        double lineHeight = fontSize * OfficeTheme.Default.TextStyle.LineSpacing;
         double paddingY = 6;
         double panelTextY = FindWordStartY(page, "PanelMarker");
         double panelTopY = panelTextY + paddingY + ascender;
@@ -77,7 +77,7 @@ public partial class PdfDocumentVisualQualityTests {
         var page = pdf.GetPage(1);
 
         double ascender = fontSize * 0.74;
-        double lineHeight = fontSize * 1.4;
+        double lineHeight = fontSize * OfficeTheme.Default.TextStyle.LineSpacing;
         double paddingY = 6;
         double panelTextY = FindWordStartY(page, "PanelMarker");
         double panelTopY = panelTextY + paddingY + ascender;

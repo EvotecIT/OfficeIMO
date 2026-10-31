@@ -139,7 +139,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             new[] { "Total", "6 397,62 PLN" }
         };
 
-        return CreateVisualBaselineDocument(PdfReportVisualFixtureStyles.Apply(new PdfCreateOptions {
+        return CreateVisualBaselineDocument(new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(595),
                 PageHeight = global::OfficeIMO.OfficeLength.Points(842),
                 MarginLeft = global::OfficeIMO.OfficeLength.Points(50),
@@ -156,7 +156,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 FooterAlign = PdfAlign.Center,
                 FooterOffsetY = global::OfficeIMO.OfficeLength.Points(28),
                 ShowPageNumbers = true
-            }))
+            })
             .Meta(title: "OfficeIMO.Pdf Line-Item Visual Gate", author: "OfficeIMO")
             .Compose(document => {
                 document.Page(page => {

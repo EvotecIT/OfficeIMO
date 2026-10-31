@@ -63,6 +63,9 @@ namespace OfficeIMO.Word.Html {
             // Import the source header semantics explicitly; a new Modern table's authoring default
             // must not promote an HTML body row to a repeating header.
             wordTable.RepeatHeaderRowAtTheTopOfEachPage = false;
+            wordTable.ConditionalFormattingFirstRow = tableElem.Head?.Rows.Length > 0 ||
+                (tableElem.Rows.Length > 0 && tableElem.Rows[0].Cells.Any(sourceCell =>
+                    sourceCell.TagName.Equals("th", StringComparison.OrdinalIgnoreCase)));
             wordTable.SetLayoutSection(section);
             if (tableElem.ParentElement?.TagName.Equals("li", StringComparison.OrdinalIgnoreCase) == true) {
                 WrapListItemTableForRoundTrip(wordTable);

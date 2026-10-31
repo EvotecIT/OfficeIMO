@@ -387,6 +387,7 @@ public static partial class PdfPowerPointConverterExtensions {
                     OfficeIMO.OfficeLength.Points(bounds.Height));
                 // Preserve the PDF frame independently of the image's intrinsic pixel ratio.
                 picture.SetSize(OfficeLength.Points(bounds.Width), OfficeLength.Points(bounds.Height));
+                picture.SetPosition(OfficeLength.Points(bounds.Left), OfficeLength.Points(bounds.Top));
                 if (pageRotation > 0.01D) {
                     picture.Rotation = pageRotation;
                 }

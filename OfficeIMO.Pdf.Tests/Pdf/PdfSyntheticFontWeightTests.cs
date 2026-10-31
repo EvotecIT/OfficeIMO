@@ -17,7 +17,7 @@ public sealed class PdfSyntheticFontWeightTests {
         byte[] regular = Font("Regular");
         var family = new PdfEmbeddedFontFamily("Weight proof", regular,
             bold: physicalBold ? Font("Bold") : null, italic: italic ? Font("Italic") : null);
-        var options = new PdfCreateOptions { EmbedDefaultFonts = false };
+        var options = new PdfCreateOptions { EmbedDefaultFonts = false, DefaultTextColor = OfficeColor.Black };
         if (named) options.RegisterNamedFontFamily(family);
         else options.UseFontFamily(family);
         OfficeColor ink = OfficeColor.FromRgb(25, 140, 77);

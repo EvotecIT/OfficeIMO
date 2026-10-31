@@ -121,7 +121,7 @@ public sealed partial class PdfCreateOptions {
     /// <summary>Sets the default style for a built-in heading level.</summary>
     public PdfCreateOptions SetDefaultHeadingStyle(int level, PdfHeadingStyle style) {
         Guard.NotNull(style, nameof(style));
-        (_defaultHeadingStyles ??= ThemeDefaults?.HeadingStylesSnapshot?.Clone() ?? new PdfHeadingStyles()).Set(level, style);
+        (_defaultHeadingStyles ??= new PdfHeadingStyles()).Set(level, style);
         return this;
     }
 

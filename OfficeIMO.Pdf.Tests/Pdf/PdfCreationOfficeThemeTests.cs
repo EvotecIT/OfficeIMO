@@ -13,14 +13,15 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfCreationOfficeThemeTests {
     [Fact]
-    public void DefaultThemeStartsAtCreationAndDoesNotMutateCallerOptions() {
+    public void DefaultThemeIsVisibleBeforeCreationAndDocumentChangesDoNotMutateCallerOptions() {
         var options = new PdfCreateOptions();
-        Assert.Null(options.DefaultHeadingStyles);
+        Assert.Equal(OfficeTheme.Modern.TypeScale.Heading1, options.DefaultHeadingStyles!.Level1!.FontSize);
         using var defaultDocument = PdfDocument.Create();
         using var configuredDocument = PdfDocument.Create(options);
         Assert.NotNull(defaultDocument.Options.DefaultHeadingStyles);
         Assert.NotNull(configuredDocument.Options.DefaultHeadingStyles);
-        Assert.Null(options.DefaultHeadingStyles);
+        configuredDocument.Options.SetDefaultHeadingStyle(1, new PdfHeadingStyle { FontSize = OfficeLength.Points(44) });
+        Assert.Equal(OfficeTheme.Modern.TypeScale.Heading1, options.DefaultHeadingStyles!.Level1!.FontSize);
         defaultDocument.Content.H1("DefaultAnchor");
         using var independent = PdfPigDocument.Open(defaultDocument.ToBytes());
         Assert.Equal(OfficeTheme.Modern.TypeScale.Heading1.ToPoints(), Word(independent, "DefaultAnchor")[0].PointSize, 2);
@@ -204,8 +205,8 @@ public sealed class PdfCreationOfficeThemeTests {
     [Fact]
     public void ImportedLayoutKeepsNeutralDefaultsAndExplicitSourceFormatting() {
         var sourceOptions = new PdfCreateOptions { Theme = OfficeTheme.Dark, MarginRight = global::OfficeIMO.OfficeLength.Points(17), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(15) };
-        Assert.Null(sourceOptions.DefaultHeadingStyles);
-        Assert.Equal(72D, sourceOptions.MarginLeft.ToPoints());
+        Assert.NotNull(sourceOptions.DefaultHeadingStyles);
+        Assert.Equal(OfficeTheme.Dark.Page.MarginLeft, sourceOptions.MarginLeft);
         using var imported = PdfDocument.CreateForImportedLayout(sourceOptions);
         Assert.Null(imported.Options.DefaultHeadingStyles);
         Assert.Null(imported.Options.DefaultParagraphStyle);

@@ -150,8 +150,10 @@ public class PdfThemeCompositionDefaultsTests {
             .PanelParagraph(p => p.Text("Inside"), style)
             .Paragraph(p => p.Text("After"))
             .ToBytes();
+        var paragraphStyle = SmallPage().DefaultParagraphStyle!;
+        paragraphStyle.SpacingAfter = OfficeLength.Zero;
         byte[] explicitZero = PdfDocument.Create(SmallPage())
-            .Panel(panel => panel.Paragraph(p => p.Text("Inside"), style: new PdfParagraphStyle { SpacingAfter = OfficeLength.Points(0) }), style)
+            .Panel(panel => panel.Paragraph(p => p.Text("Inside"), style: paragraphStyle), style)
             .Paragraph(p => p.Text("After"))
             .ToBytes();
 

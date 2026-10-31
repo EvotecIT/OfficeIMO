@@ -86,7 +86,7 @@ public sealed class PdfColumnFrameRegressionTests {
     public void Columns_ExtremeSpacerFailsBeforeUnboundedPagination() {
         var options = Options();
         options.MaxGeneratedPages = null;
-        var document = PdfDocument.Create(options).Columns(content => content.Spacer(OfficeLength.Points(1e30)),
+        var document = PdfDocument.Create(options).Columns(content => content.Spacer(OfficeLength.Emus(long.MaxValue)),
             new PdfMultiColumnOptions { Gap = OfficeLength.Points(20), BalanceLastPage = false });
 
         Assert.Throws<InvalidDataException>(() => document.ToBytes());

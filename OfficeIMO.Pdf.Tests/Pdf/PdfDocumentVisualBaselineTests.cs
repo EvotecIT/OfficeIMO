@@ -14,15 +14,14 @@ public class PdfDocumentVisualBaselineTests {
     [Fact]
     public void RepresentativeReport_MatchesVisualGeometryBaseline() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(612),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(792),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(72),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(72),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(72),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(72),
             BackgroundColor = null,
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10.5),
+            // Fixed snapshots keep their measured body rhythm as creation themes evolve.
+            DefaultParagraphStyle = new PdfParagraphStyle {
+                LineHeight = 1.4D,
+                SpacingAfter = OfficeLength.Points(10.5D * 1.4D * 0.3D)
+            },
             FooterFont = PdfStandardFont.Helvetica,
             FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
             FooterFormat = "OfficeIMO.Pdf visual gate - page {page}/{pages}",
@@ -30,7 +29,7 @@ public class PdfDocumentVisualBaselineTests {
             ShowPageNumbers = true
         };
 
-        byte[] bytes = PdfDocument.Create(PdfReportVisualFixtureStyles.Apply(options))
+        byte[] bytes = PdfDocument.Create(options)
             .Meta(title: "OfficeIMO.Pdf Visual Baseline", author: "OfficeIMO")
             .H1("OfficeIMO.Pdf Visual Baseline", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(32, 76, 120))
             .Paragraph(p => p
@@ -68,15 +67,14 @@ public class PdfDocumentVisualBaselineTests {
     [Fact]
     public void ProfessionalReport_MatchesVisualContentBaseline() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(612),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(792),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(72),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(72),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(72),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(72),
             BackgroundColor = null,
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
+            // Fixed snapshots keep their measured body rhythm as creation themes evolve.
+            DefaultParagraphStyle = new PdfParagraphStyle {
+                LineHeight = 1.4D,
+                SpacingAfter = OfficeLength.Points(10D * 1.4D * 0.3D)
+            },
             HeaderFont = PdfStandardFont.Helvetica,
             HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
             HeaderFormat = "OfficeIMO.Pdf professional report",
@@ -94,7 +92,7 @@ public class PdfDocumentVisualBaselineTests {
         byte[] logo = PdfPngTestImages.CreateRgbPng(200, 100);
         byte[] alphaBadge = CreateTransparentBadgePng();
 
-        byte[] bytes = PdfDocument.Create(PdfReportVisualFixtureStyles.Apply(options))
+        byte[] bytes = PdfDocument.Create(options)
             .Meta(title: "OfficeIMO.Pdf Professional Report", author: "OfficeIMO")
             .H1("Executive Security Summary", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
             .Paragraph(p => p

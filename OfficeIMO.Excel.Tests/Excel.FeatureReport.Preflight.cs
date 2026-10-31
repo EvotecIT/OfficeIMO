@@ -624,7 +624,7 @@ namespace OfficeIMO.Tests
                 document.Save();
             }
 
-            RemoveChartRangeFormulas(filePath);
+            RemoveChartDataSources(filePath);
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
@@ -1101,13 +1101,20 @@ namespace OfficeIMO.Tests
             drawingsPart.WorksheetDrawing?.Save();
         }
 
-        private static void RemoveChartRangeFormulas(string filePath) {
+        private static void RemoveChartDataSources(string filePath) {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
             ChartPart chartPart = spreadsheet.WorkbookPart!.WorksheetParts
                 .SelectMany(part => part.DrawingsPart?.ChartParts ?? Enumerable.Empty<ChartPart>())
                 .First();
             foreach (C.Formula formula in chartPart.ChartSpace!.Descendants<C.Formula>().ToList()) {
                 formula.Remove();
+            }
+
+            foreach (C.StringReference reference in chartPart.ChartSpace.Descendants<C.StringReference>()) {
+                reference.StringCache?.Remove();
+            }
+            foreach (C.NumberReference reference in chartPart.ChartSpace.Descendants<C.NumberReference>()) {
+                reference.NumberingCache?.Remove();
             }
 
             chartPart.ChartSpace.Save();

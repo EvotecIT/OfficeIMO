@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfCreateOptions {
     private OfficeTheme? _theme;
-    private bool _useOfficeThemeDefaults;
+    private bool _useOfficeThemeDefaults = true;
     private PdfTheme? _themeDefaults;
     private PdfHeadingStyles? _themeHeadingFontSource;
     private PdfHeadingStyles? _themeHeadingsWithDocumentFont;

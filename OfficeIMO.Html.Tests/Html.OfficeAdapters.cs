@@ -233,7 +233,12 @@ public partial class HtmlOfficeAdapters {
             Theme = OfficeVisualThemeKind.Report
         });
 
-        Assert.Contains("data-officeimo-row=\"1\" data-officeimo-column=\"5\" data-officeimo-width=\"280\" data-officeimo-height=\"180\"", html, StringComparison.Ordinal);
+        var exportedHtml = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+        var chartFrame = Assert.Single(exportedHtml.QuerySelectorAll("[data-officeimo-layer-kind='chart']"));
+        Assert.Equal("1", chartFrame.GetAttribute("data-officeimo-row"));
+        Assert.Equal("5", chartFrame.GetAttribute("data-officeimo-column"));
+        Assert.Equal("280", chartFrame.GetAttribute("data-officeimo-width"));
+        Assert.Equal("180", chartFrame.GetAttribute("data-officeimo-height"));
         HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(
             html,
             HtmlConversionDocumentOptions.CreateTrustedProfile()).ToExcelDocumentResult();

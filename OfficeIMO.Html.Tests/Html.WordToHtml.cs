@@ -431,10 +431,9 @@ namespace OfficeIMO.Tests {
             var exportedTable = Assert.Single(parsed.QuerySelectorAll("table"));
             var rows = exportedTable.QuerySelectorAll("tr");
             Assert.Equal(2, rows.Length);
-            Assert.All(rows, row => {
-                Assert.Equal(new[] { "td", "td" }, row.Children.Select(cell => cell.LocalName));
-            });
-            Assert.Equal(new[] { "A", "B", "C", "D" }, exportedTable.QuerySelectorAll("td").Select(cell => cell.TextContent.Trim()));
+            Assert.Equal(new[] { "th", "th" }, rows[0].Children.Select(cell => cell.LocalName));
+            Assert.Equal(new[] { "td", "td" }, rows[1].Children.Select(cell => cell.LocalName));
+            Assert.Equal(new[] { "A", "B", "C", "D" }, exportedTable.QuerySelectorAll("th, td").Select(cell => cell.TextContent.Trim()));
         }
 
         [Fact]

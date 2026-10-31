@@ -212,7 +212,6 @@ public sealed partial class PdfCreateOptions {
         clone._hasExplicitDefaultFontSize = _hasExplicitDefaultFontSize;
         clone._hasExplicitFooterFontSize = _hasExplicitFooterFontSize;
         clone._useAutomaticPdfXProductionMetadata = _useAutomaticPdfXProductionMetadata;
-        clone._theme = _theme;
         clone._defaultTableStyle = _defaultTableStyle?.Clone();
         clone._hasExplicitDefaultTableStyle = _hasExplicitDefaultTableStyle;
         clone._hasExplicitDefaultFont = _hasExplicitDefaultFont;
