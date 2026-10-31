@@ -2328,6 +2328,18 @@ values; `FormField` matches retain the field name. Signed files are not rewritte
 an unsigned derivative workflow and re-sign the result. Unpainted forms holding the searched text
 are removed too.
 
+Unsigned, unencrypted PDFs with one complete cross-reference stream can be redacted
+through a classic full rewrite when the selected objects agree with every in-use xref
+entry. This includes object streams and xref-stream-only files. The rewrite drops the
+compressed containers, and an empty search still normalizes an admitted compressed
+source. Every retained container member is inspected, including unindexed members.
+Compressed files with incremental revisions, hybrid `/XRefStm` sections, linearization,
+or object-stream `/Extends` remain refused; their historical or ambiguous object
+selection is not attested by the saved-output sweep. Encryption with compressed
+structures remains refused. Signature, usage-rights, dynamic-XFA and active-content
+refusals also apply when their dictionaries are compressed. Page limits still permit
+searched text on excluded pages.
+
 Whole-block search removes the block's own glyphs and marks its full rectangle, so a
 neighbouring line stays. Text with no glyph mapping can only go as a rectangle, which
 is allowed when nothing else is in reach and refused otherwise. Text overlapping a

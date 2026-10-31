@@ -613,7 +613,10 @@ internal static partial class PdfSyntax {
         int candidate = dataStart + byteLength;
         if (candidate < limit && text[candidate] == '\r') candidate++;
         if (candidate < limit && text[candidate] == '\n') candidate++;
-        if (!IsKeywordAt(text, "endstream", candidate, limit)) {
+        // A declared byte length establishes the start boundary even when binary data
+        // directly precedes endstream (as in qpdf's compact stream serialization).
+        if (candidate > limit - 9 || string.CompareOrdinal(text, candidate, "endstream", 0, 9) != 0 ||
+            !HasKeywordBoundary(text, candidate + 9, 0, limit)) {
             return false;
         }
 

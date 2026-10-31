@@ -15,6 +15,10 @@ internal static partial class PdfRedactionApplier {
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         var issues = new List<PdfRedactionVerificationIssue>();
         Inspect(document, pdf, historical: false);
+        // Do not attest retained compressed containers using a live-object projection alone.
+        // Normalized output has no such containers; unproven historical inputs remain findings.
+        if (!PdfSyntax.CanNormalizeRedactionObjectGraph(pdf, document, cancellationToken))
+            issues.Add(new PdfRedactionVerificationIssue("SearchResidue", "CompressedSource", "Retained compressed source bytes have no proven residue sweep."));
         foreach (int end in PdfSyntax.GetHistoricalRevisionEnds(pdf, document, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
             var revision = new byte[end];
@@ -27,10 +31,22 @@ internal static partial class PdfRedactionApplier {
             HashSet<PdfObject> excluded = FindExcludedSearchObjects(current.Objects, current.Pages.Select(static page => page.ObjectNumber).ToArray(), criteria, cancellationToken);
             HashSet<int> contentStreams = GetPageContentStreamNumbers(current.Objects);
             var visited = new HashSet<PdfObject>();
+            var containerBudget = new PdfDecodedStreamBudget(current.ReadOptions.Limits);
             foreach (PdfIndirectObject item in current.Objects.Values) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (excluded.Contains(item.Value)) continue;
                 PdfObject inspected = item.Value;
+                if (inspected is PdfStream container && container.Dictionary.Get<PdfName>("Type")?.Name == "ObjStm") {
+                    foreach (var member in PdfSyntax.ReadRedactionObjectStreamMembers(container, current.Objects, current.ReadOptions.Limits, containerBudget, cancellationToken)) {
+                        if (current.Objects.TryGetValue(member.Number, out PdfIndirectObject? live) &&
+                            live.SourceOffset == item.SourceOffset && excluded.Contains(live.Value)) continue;
+                        if (SearchObjectHolds(current.Objects, member.Value, criteria, current.ReadOptions.Limits,
+                            new HashSet<PdfObject>(), excluded, followReferences: false, cancellationToken: cancellationToken))
+                            issues.Add(new PdfRedactionVerificationIssue("SearchResidue", "CompressedMember", "A retained compressed PDF member still holds searched text."));
+                    }
+                    inspected = container.Dictionary;
+                }
+                if (inspected is PdfStream crossReferences && crossReferences.Dictionary.Get<PdfName>("Type")?.Name == "XRef") inspected = crossReferences.Dictionary;
                 // Selected marks may deliberately keep another painted occurrence. The glyph/placement verifier
                 // owns that content; the generic sweep still checks its dictionaries and every other holder.
                 if (!plan.IsSearchDriven && inspected is PdfStream selectedStream &&

@@ -3523,6 +3523,9 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 </details>
 <!-- officeimo-api-map:end -->
 
+Search redaction now accepts proven single-section, unencrypted object-stream and cross-reference-stream PDFs and writes classic output, including empty searches. Compressed incremental, hybrid, linearized and `/Extends` files remain refused.
+
+
 ## Chart and workbook defaults
 
 New workbooks use the default `OfficeTheme` font and palette: Aptos and the

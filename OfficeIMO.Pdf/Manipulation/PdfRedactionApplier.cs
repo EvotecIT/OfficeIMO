@@ -49,7 +49,14 @@ internal static partial class PdfRedactionApplier {
             appliedImageMatches = Array.Empty<PdfRedactionMatch>();
             IReadOnlyList<PdfRedactionVerificationIssue> residue = FindSearchResidue(pdf, plan, readOptions, effectiveOptions.CancellationToken);
             if (residue.Count > 0) throw new InvalidOperationException("The PDF still holds searched text outside live search matches.");
-            return (byte[])pdf.Clone();
+            PdfReadDocument unchanged = PdfReadDocument.Open(pdf, readOptions, effectiveOptions.CancellationToken);
+            if (!PdfSyntax.HasCompressedRedactionStructures(unchanged)) return (byte[])pdf.Clone();
+            var (normalized, trailer) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, effectiveOptions.CancellationToken);
+            int catalog = FindCatalogObjectNumber(normalized, trailer);
+            PdfObjectGraphPruner.PruneUnreachableObjects(normalized, catalog, effectiveOptions.CancellationToken);
+            byte[] classic = RewriteAllObjects(normalized, catalog, unchanged.UncheckedMetadata, pdf, GetSearchCriteria(plan), effectiveOptions.CancellationToken);
+            RequireClassicRedactionOutput(classic, readOptions, effectiveOptions.CancellationToken);
+            return classic;
         }
         string[] fieldNames = plan.Areas.Select(static area => area.OriginalLabel).Where(static label => label?.StartsWith("field:", StringComparison.Ordinal) == true).Select(static label => label!.Substring("field:".Length)).Distinct(StringComparer.Ordinal).ToArray();
         byte[] working = pdf;
@@ -321,7 +328,8 @@ internal static partial class PdfRedactionApplier {
                 .Where(static match => match.Kind == PdfRedactionMatchKind.ImagePlacement && match.RequiresRemoval)
                 .Select(static match => match.ObjectNumber).OfType<int>(), areaArray, limits, sourceStreamIdentities) || cleanupChanged;
         }
-        if (!mutation.HasChanges && !cleanupChanged) {
+        if (!mutation.HasChanges && !cleanupChanged &&
+            !(mutationOperation == PdfMutationOperation.Redact && PdfSyntax.HasCompressedRedactionStructures(document))) {
             generatedGrowth = default;
             appliedImageMatches = mutation.AppliedImageMatches;
             return pdf.ToArray();
@@ -332,6 +340,8 @@ internal static partial class PdfRedactionApplier {
         appliedImageMatches = mutation.AppliedImageMatches;
         PdfMetadata metadata = (effectiveOptions.CleanupScope & PdfRedactionCleanupScope.Metadata) != 0 || searchedMetadata.Info ? new PdfMetadata() : document.UncheckedMetadata;
         byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, metadata, pdf, textSearch, effectiveOptions.CancellationToken);
+        if (mutationOperation == PdfMutationOperation.Redact && PdfSyntax.HasCompressedRedactionStructures(document))
+            RequireClassicRedactionOutput(rewritten, readOptions, effectiveOptions.CancellationToken);
         return sourceEncryption?.Protect(rewritten,
             generatedReadOptions: PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, rewritten, generatedGrowth),
             cancellationToken: effectiveOptions.CancellationToken) ?? rewritten;

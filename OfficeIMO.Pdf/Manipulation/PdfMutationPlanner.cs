@@ -270,6 +270,7 @@ internal static class PdfMutationPlanner {
         bool unsignedSignatureFieldRewrite = operation == PdfMutationOperation.ModifyAcroForm && CanFullRewriteUnsignedSignatureFields(security);
         bool normalizedObjectGraphRewrite = (operation == PdfMutationOperation.MergeDocuments ||
             operation == PdfMutationOperation.Optimize || operation == PdfMutationOperation.ModifyPageTree ||
+            operation == PdfMutationOperation.Redact && preflight.CanNormalizeRedactionObjectGraph ||
             operation == PdfMutationOperation.NormalizePageRotation || operation == PdfMutationOperation.OrganizePages || operation == PdfMutationOperation.ImportPages) &&
             CanNormalizeObjectGraphSource(preflight, operation);
         bool authorizedEncryptedRewrite = security.HasEncryption && CanUseAuthenticatedEncryptedRewrite(preflight, operation);
@@ -314,7 +315,7 @@ internal static class PdfMutationPlanner {
 
         IReadOnlyList<PdfMutationStructure> structures = GetAffectedStructures(operation);
         IReadOnlyList<PdfMutationPermissionCheck> permissions = GetPermissionChecks(operation, mode);
-        IReadOnlyList<PdfMutationProof> proofs = GetRequiredProofs(operation, mode, security);
+        IReadOnlyList<PdfMutationProof> proofs = GetRequiredProofs(operation, mode, security, preflight.HasCompressedRedactionStructures);
         IReadOnlyList<string> blockers = mode == PdfMutationExecutionMode.Blocked
             ? GetBlockerCodes(preflight, appendOnly, operation, fullRewriteImplemented, appendOnlyImplemented, security, certificationRequiresFirstSignature)
             : Array.Empty<string>();
@@ -601,7 +602,8 @@ internal static class PdfMutationPlanner {
     private static IReadOnlyList<PdfMutationProof> GetRequiredProofs(
         PdfMutationOperation operation,
         PdfMutationExecutionMode mode,
-        PdfDocumentSecurityInfo security) {
+        PdfDocumentSecurityInfo security,
+        bool hasCompressedRedactionStructures) {
         if (mode == PdfMutationExecutionMode.Blocked) {
             return Array.Empty<PdfMutationProof>();
         }
@@ -695,6 +697,13 @@ internal static class PdfMutationPlanner {
                 Add(proofs, PdfMutationProof.EncryptionRoundTrip);
                 break;
             case PdfMutationOperation.Redact:
+                if (hasCompressedRedactionStructures) {
+                    Add(proofs, PdfMutationProof.PageStructureReadback);
+                    Add(proofs, PdfMutationProof.TaggedStructureReadback);
+                    Add(proofs, PdfMutationProof.FormFieldReadback);
+                    Add(proofs, PdfMutationProof.AnnotationReadback);
+                    Add(proofs, PdfMutationProof.AttachmentReadback);
+                }
                 Add(proofs, PdfMutationProof.RedactionResidue);
                 Add(proofs, PdfMutationProof.VisualRendering);
                 break;
@@ -831,7 +840,8 @@ internal static class PdfMutationPlanner {
         if (mode == PdfMutationExecutionMode.FullRewrite && security.HasIncrementalUpdates) {
             Add(warnings, "Input.RevisionHistoryWillBeNormalized");
         }
-        if (mode == PdfMutationExecutionMode.FullRewrite && (security.HasXrefStreams || security.HasObjectStreams)) {
+        if (mode == PdfMutationExecutionMode.FullRewrite && (operation == PdfMutationOperation.Redact
+            ? preflight.HasCompressedRedactionStructures : security.HasXrefStreams || security.HasObjectStreams)) {
             Add(warnings, "Input.CrossReferenceAndObjectStreamsWillBeNormalized");
         }
 
@@ -1032,6 +1042,7 @@ internal static class PdfMutationPlanner {
         if (!preflight.CanRead) return false;
         PdfDocumentSecurityInfo security = preflight.Probe.Security;
         if (security.HasSignatures || security.HasDocMDPPermissions || security.HasUsageRights) return false;
+        if (!preflight.CanNormalizeRedactionObjectGraph) return false;
         if (security.HasEncryption && !CanUseAuthenticatedEncryptedRewrite(preflight, PdfMutationOperation.Redact)) return false;
         for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
             PdfRewriteBlockerKind kind = preflight.RewriteBlockers[i].Kind;
