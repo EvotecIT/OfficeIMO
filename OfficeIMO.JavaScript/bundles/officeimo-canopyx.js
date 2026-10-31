@@ -11698,7 +11698,7 @@ _modules.set("3d1862d8ab32171bca4b3ba5fe0bdcc073f67ce940aaff0ee735635893f86ee8",
 return _exports;
 })();
 
-const _m97 = _modules.get("9914b45196123264d883d65b074b339b224324876baa3f157c0ddec6ad1f67f9") ?? (() => {
+const _m97 = _modules.get("5e0a9bdc75106268fcdff0cc6d7778080db216c7597514163f5fe5ff8ce93be1") ?? (() => {
 function presentation(input, axes) {
     const { axisKey, outlineLevel, summary, grandTotal, hidden, collapsed } = input;
     if (typeof axisKey !== "string" || !axes.has(axisKey) || !Number.isInteger(outlineLevel) || outlineLevel < 0 || outlineLevel > 7 ||
@@ -11761,13 +11761,17 @@ function canopyPivot(request) {
 }
 /** Per-cell formats preserve already-computed fractional percentages, ranks and differences. */
 function pivotNumberFormat(cell) {
+    // Raw-value aggregates need no decimal declaration. Transformed values still
+    // require the producer's frozen format (especially percent scaling).
+    if (cell.mode === "value" && cell.numberFormat === undefined)
+        return undefined;
     if (!["value", "percentGrandTotal", "percentParent", "percentColumn", "percentRow", "runningTotal", "rank", "difference", "percentChange"].includes(cell.mode ?? "") ||
         typeof cell.numberFormat !== "string" || !cell.numberFormat.length)
         throw new TypeError("Numeric pivot cells require a frozen mode and native numberFormat.");
     return cell.numberFormat;
 }
 const _exports = Object.freeze({ canopyPivot: canopyPivot, pivotNumberFormat: pivotNumberFormat });
-_modules.set("9914b45196123264d883d65b074b339b224324876baa3f157c0ddec6ad1f67f9", _exports);
+_modules.set("5e0a9bdc75106268fcdff0cc6d7778080db216c7597514163f5fe5ff8ce93be1", _exports);
 return _exports;
 })();
 
@@ -11857,7 +11861,7 @@ _modules.set("040752afe195985e6f2e91f8c62fc13464c455fc44034b8cef4828851e05b83d",
 return _exports;
 })();
 
-const _m96 = _modules.get("965483034a9b849ca9359aaecae287d9a4a8ea4d64379af0f665743df7baa403") ?? (() => {
+const _m96 = _modules.get("40e200b77947621ffacdfa2e1326760a78a52a7dfb6d0cbaa7c7a71607b119a2") ?? (() => {
 const { ExportCell, checkAbort, inputRows } = _m1;
 
 const { canopyPivot, pivotNumberFormat } = _m97;
@@ -11999,11 +12003,11 @@ function prepareCanopyExport(capture, format, options = {}) {
                     if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string")
                         value = datetime(value, dateMode, clock);
                     const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;
-                    const nativeFormat = capturedFormat === undefined ? undefined : spec.nativeFormatOverride === "" ? "General" : spec.nativeFormatOverride ?? capturedFormat;
+                    const nativeFormat = spec.nativeFormatOverride === "" ? "General" : spec.nativeFormatOverride ?? capturedFormat;
                     const summary = format === "pdf" && pivot && (row.summary || row.grandTotal);
                     const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat || summary ? {
                         ...rowStyle, ...(summary ? { bold: true } : {}), ...cellStyle,
-                        ...((format === "xlsx" || format === "pdf") && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {})
+                        ...((format === "pdf" || (format === "xlsx" && pivot)) && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {})
                     } : undefined;
                     // CSV has no presentation or link metadata: emit its selected scalar directly.
                     // This also avoids a frozen wrapper for every cell in large CSV captures.
@@ -12027,7 +12031,7 @@ function prepareCanopyExport(capture, format, options = {}) {
     return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
 }
 const _exports = Object.freeze({ canopyIdentityValue: canopyIdentityValue, createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
-_modules.set("965483034a9b849ca9359aaecae287d9a4a8ea4d64379af0f665743df7baa403", _exports);
+_modules.set("40e200b77947621ffacdfa2e1326760a78a52a7dfb6d0cbaa7c7a71607b119a2", _exports);
 return _exports;
 })();
 
@@ -12334,7 +12338,7 @@ _modules.set("eb8cf81d2a340cdb41301d59c667cef44f3ad1d6a19f717eb8137257b545115e",
 return _exports;
 })();
 
-const _m102 = _modules.get("4aefd89b060b86e8e6e50a47a502f9ee7e64a2a1df334e0e9482f7ed30f0bee2") ?? (() => {
+const _m102 = _modules.get("97b7bd3037e8060328387470a7e471b6933f1fa062e9562c7908f8ea9a29044b") ?? (() => {
 const { createGroupedReport } = _m8;
 
 const { checkAbort } = _m4;
@@ -12540,7 +12544,7 @@ function canopyGrouped(source, request, options, limits, report, format) {
         ...(options.signal === undefined ? {} : { signal: options.signal }), ...(sourceLimits === undefined ? {} : { limits: sourceLimits }) });
 }
 const _exports = Object.freeze({ canopyGrouped: canopyGrouped });
-_modules.set("4aefd89b060b86e8e6e50a47a502f9ee7e64a2a1df334e0e9482f7ed30f0bee2", _exports);
+_modules.set("97b7bd3037e8060328387470a7e471b6933f1fa062e9562c7908f8ea9a29044b", _exports);
 return _exports;
 })();
 
@@ -12664,78 +12668,131 @@ _modules.set("ccfefc97a47cc288f2c9a2eed33fff323570e35193cedbd876ebb3e8fb78a42e",
 return _exports;
 })();
 
-const _m106 = _modules.get("0fb3a852d2d81b9921e07024df980295e7d9ad436f8f1640d90456dd4e36e2e0") ?? (() => {
+const _m106 = _modules.get("ac2d9b4299940637c2762e636ef75d8c1339cd95cdd8d53c48b26583e5f1e561") ?? (() => {
 const { ExportCell } = _m1;
 
 /** Fixed numeric formats affect PDF text, not the frozen numeric value used by other writers. */
 function numericProfile(format) {
-    if (format === undefined)
-        return undefined;
-    const match = /^((?:"[^"\\]*")*)(#,##)?0(?:\.([0#]+))?(%)?((?:"[^"\\]*")*)$/.exec(format);
+    // No declared precision: whole values (including counts) stay whole.
+    if (format === undefined || format === "General")
+        return { minimumFractionDigits: 0, maximumFractionDigits: 20,
+            percent: false, grouping: false, prefix: "", suffix: "" };
+    const match = /^((?:"[^"]*"|\\["%])*)(#,##)?0(?:\.([0#]+))?(%)?((?:"[^"]*"|\\["%])*)$/.exec(format);
     if (!match || (match[3]?.length ?? 0) > 10)
         return undefined;
+    const literal = (text) => text.replace(/"([^"]*)"|\\(["%])/g, (_, quoted, escaped) => quoted ?? escaped);
     return { minimumFractionDigits: (match[3]?.match(/0/g) ?? []).length, maximumFractionDigits: match[3]?.length ?? 0,
-        percent: !!match[4], grouping: !!match[2], prefix: match[1].replace(/"/g, ""), suffix: match[5].replace(/"/g, "") };
+        percent: !!match[4], grouping: !!match[2], prefix: literal(match[1]), suffix: literal(match[5]) };
 }
-/** Preserve the captured decimal convention across a column, including whole percentages without a separator. */
-function canopyPdfNumbers(sample, columns) {
-    const formatters = new Map();
-    const decimal = columns.map((column, index) => {
-        let fallback = ".";
-        for (const row of sample) {
-            const cell = row[index];
-            if (!(cell instanceof ExportCell) || typeof cell.value !== "number")
-                continue;
-            const profile = numericProfile(cell.presentation?.numberFormat ?? column.format);
-            if (!profile?.maximumFractionDigits)
-                continue;
-            const match = /([.,])(\d+)[^\d.,]*$/.exec(cell.text ?? "");
-            if (match && match[2].length <= profile.maximumFractionDigits) {
-                const numeric = /([+-]?\d[\d.,]*)[^\d]*$/.exec(cell.text ?? "")?.[1] ?? "";
-                const scaled = cell.value * (profile.percent ? 100 : 1);
-                if (/^[+-]?\d{1,3}(?:,\d{3})+$/.test(numeric) || /^[+-]?\d{1,3}(?:\.\d{3})+$/.test(numeric)) {
-                    if (Math.abs(Number(numeric.replace(/[.,]/g, "")) - scaled) < .5) {
+/** Separate declared literal units before recognizing the captured numeric token. */
+function capturedNumber(text, profile) {
+    let body = text, signBeforePrefix = false;
+    if (profile.prefix && body.startsWith(profile.prefix))
+        body = body.slice(profile.prefix.length);
+    else if (profile.prefix && /^[+-]/.test(body) && body.slice(1).startsWith(profile.prefix)) {
+        signBeforePrefix = true;
+        body = body[0] + body.slice(1 + profile.prefix.length);
+    }
+    if (profile.suffix && body.endsWith(profile.suffix))
+        body = body.slice(0, -profile.suffix.length);
+    const match = /^([^0-9+-]*)([+-]?\d[\d., \u00a0\u202f]*?)([^0-9]*)$/.exec(body);
+    return match ? { prefix: profile.prefix || match[1], number: match[2], suffix: profile.suffix || match[3], signBeforePrefix } : undefined;
+}
+/** Distinguish a captured thousands mark from a decimal, using the raw value. */
+function groupedInteger(numeric, value) {
+    if (!/^[+-]?\d{1,3}(?:,\d{3})+$/.test(numeric) && !/^[+-]?\d{1,3}(?:\.\d{3})+$/.test(numeric))
+        return false;
+    const grouped = Number(numeric.replace(/[.,]/g, ""));
+    return grouped !== 0 && Math.abs(grouped - value) <= .5;
+}
+/** Choose once for the document; percent text is the strongest captured culture signal. */
+function documentDecimal(sample, columns) {
+    let fallback;
+    for (const percent of [true, false]) {
+        for (const row of sample)
+            for (let index = 0; index < columns.length; index++) {
+                const cell = row[index], column = columns[index];
+                if (!(cell instanceof ExportCell) || typeof cell.value !== "number")
+                    continue;
+                const profile = numericProfile(cell.presentation?.numberFormat ?? column.format);
+                if (!profile)
+                    continue;
+                const captured = capturedNumber(cell.text ?? "", profile);
+                if (!captured)
+                    continue;
+                // A literal percent label is a culture signal without requesting numeric scaling.
+                const percentageSignal = profile.percent || profile.prefix.includes("%") || profile.suffix.includes("%") || (cell.text ?? "").includes("%");
+                if (percentageSignal !== percent)
+                    continue;
+                const match = /([.,])(\d+)$/.exec(captured.number.trimEnd());
+                if (match) {
+                    const numeric = captured.number;
+                    // An override changes output scaling/precision, not the captured label.
+                    if (groupedInteger(numeric, cell.value) || (percentageSignal && groupedInteger(numeric, cell.value * 100))) {
                         fallback = match[1] === "," ? "." : ",";
                         continue;
                     }
+                    return match[1];
                 }
-                return match[1];
             }
-        }
-        return fallback;
-    });
+        if (fallback !== undefined)
+            return fallback;
+    }
+    return ".";
+}
+/** Apply one captured numeric convention to every supported numeric cell, including later streamed rows. */
+function canopyPdfNumbers(sample, columns) {
+    const formatters = new Map(), decimal = documentDecimal(sample, columns);
     return row => row.map((value, index) => {
         if (!(value instanceof ExportCell) || typeof value.value !== "number")
             return value;
-        const profile = numericProfile(value.presentation?.numberFormat ?? columns[index].format);
-        if (!profile)
+        const format = value.presentation?.numberFormat ?? columns[index].format;
+        let profile = numericProfile(format);
+        if (!profile || value.text === "")
             return value;
-        const captured = /^([^0-9+-]*)([+-]?\d[\d., \u00a0\u202f]*?)([^0-9]*)$/.exec(value.text ?? "");
+        const captured = capturedNumber(value.text ?? "", profile);
         if (value.text && !captured)
             return value;
-        const key = [decimal[index], profile.minimumFractionDigits, profile.maximumFractionDigits, profile.grouping].join(":");
+        // Undeclared formats normalize only plain numeric labels; a decoration
+        // alone does not declare how the raw value was transformed for display.
+        if ((format === undefined || format === "General") && captured && (captured.prefix.trim() || captured.suffix.trim()))
+            return value;
+        if (format === undefined || format === "General") {
+            const digits = Number.isInteger(value.value) || (captured && groupedInteger(captured.number, value.value)) ? 0 :
+                captured ? /[.,](\d+)$/.exec(captured.number.trimEnd())?.[1]?.length ?? 0 : undefined;
+            // Retain a fractional value's captured precision, without padding an
+            // undeclared whole aggregate merely because its display text was padded.
+            if (digits !== undefined && digits <= 20)
+                profile = { ...profile, minimumFractionDigits: digits, maximumFractionDigits: digits };
+        }
+        const key = [profile.minimumFractionDigits, profile.maximumFractionDigits, profile.grouping].join(":");
         let formatter = formatters.get(key);
         if (!formatter) {
-            formatter = new Intl.NumberFormat(decimal[index] === "," ? "de-DE" : "en-US", {
+            formatter = new Intl.NumberFormat(decimal === "," ? "de-DE" : "en-US", {
                 minimumFractionDigits: profile.minimumFractionDigits, maximumFractionDigits: profile.maximumFractionDigits, useGrouping: profile.grouping
             });
             formatters.set(key, formatter);
         }
-        const formatted = formatter.format(value.value * (profile.percent ? 100 : 1));
-        const prefix = profile.prefix || captured?.[1] || "";
-        let suffix = profile.suffix || captured?.[3] || "";
+        let formatted = formatter.format(value.value * (profile.percent ? 100 : 1));
+        if (captured?.number.startsWith("+") && !formatted.startsWith("-"))
+            formatted = "+" + formatted;
+        const leadingSign = captured?.signBeforePrefix ? /^[+-]/.exec(formatted)?.[0] ?? "" : "";
+        if (leadingSign)
+            formatted = formatted.slice(1);
+        const prefix = captured?.prefix || profile.prefix;
+        let suffix = captured?.suffix || profile.suffix;
         if (profile.percent && !profile.suffix)
             suffix = suffix.replace(/%/g, "");
-        return new ExportCell(value.value, { text: prefix + formatted + (profile.percent ? "%" : "") + suffix,
+        return new ExportCell(value.value, { text: leadingSign + prefix + formatted + (profile.percent ? "%" : "") + suffix,
             ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
     });
 }
 const _exports = Object.freeze({ canopyPdfNumbers: canopyPdfNumbers });
-_modules.set("0fb3a852d2d81b9921e07024df980295e7d9ad436f8f1640d90456dd4e36e2e0", _exports);
+_modules.set("ac2d9b4299940637c2762e636ef75d8c1339cd95cdd8d53c48b26583e5f1e561", _exports);
 return _exports;
 })();
 
-const _m105 = _modules.get("8cf0b0de5a9930ea2c50a459ce70b695b69483978ca9343cb2c22982845ff142") ?? (() => {
+const _m105 = _modules.get("77da9b842a46b99cb3478438e27f47c1f794ab03bac5e64844fb923f2756df71") ?? (() => {
 const { ExportCell, NotSupportedError, OfficeIMOError } = _m1;
 
 const { inputRows, checkAbort, pause, taskYieldDue } = _m4;
@@ -12840,11 +12897,11 @@ async function withCanopyPdfLayout(source, captured, options, write) {
     }
 }
 const _exports = Object.freeze({ withCanopyPdfLayout: withCanopyPdfLayout });
-_modules.set("8cf0b0de5a9930ea2c50a459ce70b695b69483978ca9343cb2c22982845ff142", _exports);
+_modules.set("77da9b842a46b99cb3478438e27f47c1f794ab03bac5e64844fb923f2756df71", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("8a4acb328f0d0bd6089df8bcce4099064ea408bdef1e20d13fdbe59b083c76c9") ?? (() => {
+const _m0 = _modules.get("2e24380844e3dba4335b7d834825b712f857aaffd5b30b161e3533d4ff95cbb4") ?? (() => {
 const { BlobByteSink, ExportCell } = _m1;
 
 const { notifyProgress } = _m14;
@@ -12983,7 +13040,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m96.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m64.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("8a4acb328f0d0bd6089df8bcce4099064ea408bdef1e20d13fdbe59b083c76c9", _exports);
+_modules.set("2e24380844e3dba4335b7d834825b712f857aaffd5b30b161e3533d4ff95cbb4", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);
