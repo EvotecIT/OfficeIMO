@@ -58,6 +58,48 @@ test("Canopy PDF integer percentage formats retain captured decimal culture", as
   const lines = pdf.pages.flatMap(page => page.lines);
   assert.ok(lines.includes("19%")); assert.ok(lines.includes("12,50"));
 });
+
+test("Canopy PDF grouping detection retains captured percentage scale after an override", async () => {
+  for (const [value, text, amount, expectedShare, expectedAmount] of [
+    [12.34, "1,234%", "12.50", "12.34%", "12.50"],
+    [-12.34, "-1.234%", "12,50", "-12,34%", "12,50"]
+  ]) {
+    const input = capture([{ id: "r", cells: { Share: cell(value, text), Amount: cell(12.5, amount) } }],
+      [column("Share", "number"), column("Amount", "number")]);
+    const pdf = await inspectPdf(await exportCanopy(input, "pdf", {
+      columnOptions: { Share: { format: "0.00" }, Amount: { format: "0.00" } }
+    }));
+    const lines = pdf.pages.flatMap(page => page.lines);
+    assert.ok(lines.includes(expectedShare)); assert.ok(lines.includes(expectedAmount));
+  }
+});
+
+test("Canopy PDF ordinary decimal culture survives a whole-number format override", async () => {
+  const input = capture([{ id: "r", cells: { Rounded: cell(1.2, "1,2"), Amount: cell(12.5, "12.50") } }],
+    [column("Rounded", "number"), column("Amount", "number")]);
+  const pdf = await inspectPdf(await exportCanopy(input, "pdf", {
+    columnOptions: { Rounded: { format: "0" }, Amount: { format: "0.00" } }
+  }));
+  const lines = pdf.pages.flatMap(page => page.lines);
+  assert.ok(lines.includes("1")); assert.ok(lines.includes("12,50"));
+});
+
+test("Canopy PDF half-integer rounded grouping preserves culture and General precision", async () => {
+  for (const [value, text, format, expected, amount] of [
+    [1234.5, "1,235", "0.00", "1234.50", "12.50"],
+    [-1234.5, "-1.235", "0.00", "-1234,50", "12,50"],
+    [10.125, "1,013%", "0.00%", "1012.50%", "12.50"],
+    [1234.5, "1,235", undefined, "1235", "12.50"]
+  ]) {
+    const input = capture([{ id: "r", cells: { Rounded: cell(value, text), Amount: cell(12.5, amount) } }],
+      [column("Rounded", "number"), column("Amount", "number")]);
+    const pdf = await inspectPdf(await exportCanopy(input, "pdf", {
+      columnOptions: { ...(format === undefined ? {} : { Rounded: { format } }), Amount: { format: "0.00" } }
+    }));
+    const lines = pdf.pages.flatMap(page => page.lines);
+    assert.ok(lines.includes(expected), expected); assert.ok(lines.includes(amount), amount);
+  }
+});
 async function fixture(name, blob) {
   if (process.env.OFFICEIMO_CANOPY_FIXTURES) await writeFile(process.env.OFFICEIMO_CANOPY_FIXTURES + "/" + name, new Uint8Array(await blob.arrayBuffer()));
 }

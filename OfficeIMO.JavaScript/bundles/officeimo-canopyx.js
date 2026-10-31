@@ -12668,7 +12668,7 @@ _modules.set("ccfefc97a47cc288f2c9a2eed33fff323570e35193cedbd876ebb3e8fb78a42e",
 return _exports;
 })();
 
-const _m106 = _modules.get("9077d4d3097e279cd9f6426973361a9f0d277c03da6f0d3e1f609aaaf4802e04") ?? (() => {
+const _m106 = _modules.get("ac2d9b4299940637c2762e636ef75d8c1339cd95cdd8d53c48b26583e5f1e561") ?? (() => {
 const { ExportCell } = _m1;
 
 /** Fixed numeric formats affect PDF text, not the frozen numeric value used by other writers. */
@@ -12703,7 +12703,7 @@ function groupedInteger(numeric, value) {
     if (!/^[+-]?\d{1,3}(?:,\d{3})+$/.test(numeric) && !/^[+-]?\d{1,3}(?:\.\d{3})+$/.test(numeric))
         return false;
     const grouped = Number(numeric.replace(/[.,]/g, ""));
-    return grouped !== 0 && Math.abs(grouped - value) < .5;
+    return grouped !== 0 && Math.abs(grouped - value) <= .5;
 }
 /** Choose once for the document; percent text is the strongest captured culture signal. */
 function documentDecimal(sample, columns) {
@@ -12725,10 +12725,10 @@ function documentDecimal(sample, columns) {
                 if (percentageSignal !== percent)
                     continue;
                 const match = /([.,])(\d+)$/.exec(captured.number.trimEnd());
-                if (match && (percentageSignal || match[2].length <= profile.maximumFractionDigits)) {
+                if (match) {
                     const numeric = captured.number;
-                    const scaled = cell.value * (profile.percent ? 100 : 1);
-                    if (groupedInteger(numeric, scaled)) {
+                    // An override changes output scaling/precision, not the captured label.
+                    if (groupedInteger(numeric, cell.value) || (percentageSignal && groupedInteger(numeric, cell.value * 100))) {
                         fallback = match[1] === "," ? "." : ",";
                         continue;
                     }
@@ -12788,11 +12788,11 @@ function canopyPdfNumbers(sample, columns) {
     });
 }
 const _exports = Object.freeze({ canopyPdfNumbers: canopyPdfNumbers });
-_modules.set("9077d4d3097e279cd9f6426973361a9f0d277c03da6f0d3e1f609aaaf4802e04", _exports);
+_modules.set("ac2d9b4299940637c2762e636ef75d8c1339cd95cdd8d53c48b26583e5f1e561", _exports);
 return _exports;
 })();
 
-const _m105 = _modules.get("85dc57d2af4a8bad99ec6f252af7253e61dfd486a1d3a00ea7bec36ba773a091") ?? (() => {
+const _m105 = _modules.get("77da9b842a46b99cb3478438e27f47c1f794ab03bac5e64844fb923f2756df71") ?? (() => {
 const { ExportCell, NotSupportedError, OfficeIMOError } = _m1;
 
 const { inputRows, checkAbort, pause, taskYieldDue } = _m4;
@@ -12897,11 +12897,11 @@ async function withCanopyPdfLayout(source, captured, options, write) {
     }
 }
 const _exports = Object.freeze({ withCanopyPdfLayout: withCanopyPdfLayout });
-_modules.set("85dc57d2af4a8bad99ec6f252af7253e61dfd486a1d3a00ea7bec36ba773a091", _exports);
+_modules.set("77da9b842a46b99cb3478438e27f47c1f794ab03bac5e64844fb923f2756df71", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("b14fd0588a73abdc2bee5cd5b7ccab284dc6e068b1c4e6d90c3face7600a8f16") ?? (() => {
+const _m0 = _modules.get("2e24380844e3dba4335b7d834825b712f857aaffd5b30b161e3533d4ff95cbb4") ?? (() => {
 const { BlobByteSink, ExportCell } = _m1;
 
 const { notifyProgress } = _m14;
@@ -13040,7 +13040,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m96.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m64.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("b14fd0588a73abdc2bee5cd5b7ccab284dc6e068b1c4e6d90c3face7600a8f16", _exports);
+_modules.set("2e24380844e3dba4335b7d834825b712f857aaffd5b30b161e3533d4ff95cbb4", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

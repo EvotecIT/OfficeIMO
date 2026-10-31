@@ -30,7 +30,7 @@ function capturedNumber(text: string, profile: NonNullable<ReturnType<typeof num
 function groupedInteger(numeric: string, value: number): boolean {
   if (!/^[+-]?\d{1,3}(?:,\d{3})+$/.test(numeric) && !/^[+-]?\d{1,3}(?:\.\d{3})+$/.test(numeric)) return false;
   const grouped = Number(numeric.replace(/[.,]/g, ""));
-  return grouped !== 0 && Math.abs(grouped - value) < .5;
+  return grouped !== 0 && Math.abs(grouped - value) <= .5;
 }
 
 /** Choose once for the document; percent text is the strongest captured culture signal. */
@@ -48,10 +48,10 @@ function documentDecimal(sample: readonly (readonly ExportValue[])[], columns: r
       const percentageSignal = profile.percent || profile.prefix.includes("%") || profile.suffix.includes("%") || (cell.text ?? "").includes("%");
       if (percentageSignal !== percent) continue;
       const match = /([.,])(\d+)$/.exec(captured.number.trimEnd());
-      if (match && (percentageSignal || match[2]!.length <= profile.maximumFractionDigits)) {
+      if (match) {
         const numeric = captured.number;
-        const scaled = cell.value * (profile.percent ? 100 : 1);
-        if (groupedInteger(numeric, scaled)) {
+        // An override changes output scaling/precision, not the captured label.
+        if (groupedInteger(numeric, cell.value) || (percentageSignal && groupedInteger(numeric, cell.value * 100))) {
           fallback = match[1] === "," ? "." : ","; continue;
         }
         return match[1]!;
