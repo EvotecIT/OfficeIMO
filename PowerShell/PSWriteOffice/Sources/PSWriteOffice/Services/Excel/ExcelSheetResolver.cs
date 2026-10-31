@@ -1,11 +1,20 @@
 using System;
 using System.Management.Automation;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Services.Excel;
 
 internal static class ExcelSheetResolver
 {
+    /// <summary>Resolves a typed selection against its explicit, enclosing or native worksheet's workbook.</summary>
+    public static ExcelSheet ResolveTarget(PSCmdlet cmdlet, ExcelDocument? document, OfficeSheetSelector? selection) {
+        ExcelDocument workbook = document ?? OfficeDocumentContext.Find<ExcelDocument>() ?? ExcelDslContext.Current?.Document
+            ?? (selection?.Sheet as ExcelSheet)?.Document ?? ExcelDslContext.Require(cmdlet).Document;
+        if (selection != null) return selection.Resolve(workbook.Sheets, sheet => sheet.Name);
+        return document != null ? Resolve(workbook, null, null) : ExcelDslContext.Require(cmdlet).RequireSheet();
+    }
+
     /// <summary>Resolves an explicit worksheet, workbook selection, or the active PowerShell composition scope.</summary>
     public static ExcelSheet ResolveTarget(PSCmdlet cmdlet, ExcelSheet? worksheet, ExcelDocument? document, string? sheetName, int? sheetIndex)
     {

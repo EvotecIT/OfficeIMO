@@ -82,6 +82,25 @@ public sealed class FoundationBindingTests {
         Assert.Same(sheets[0], OfficeSheetSelector.From(1).Resolve(sheets, _ => "1"));
         Assert.Throws<ArgumentException>(() => OfficeSheetSelector.From(3).Resolve(sheets, _ => "1"));
     }
+
+    [Fact]
+    public void NativeSheetMembershipSurvivesWrapperRefreshButRejectsForeignAndReplacedSheets() {
+        using var book = OfficeIMO.Excel.ExcelDocument.Create();
+        var original = book.AddSheet("Data");
+        var selector = OfficeSheetSelector.From(original);
+        book.AddSheet("Other");
+        Assert.Equal("Data", selector.Resolve(book.Sheets, sheet => sheet.Name).Name);
+        book.SheetCachingEnabled = false;
+        var selected = selector.Resolve(book.Sheets, sheet => sheet.Name);
+        selected.CellValue(1, 1, "Same native worksheet");
+        Assert.Equal("Same native worksheet", original.CellAt(1, 1).GetValue<string>());
+        using var foreign = OfficeIMO.Excel.ExcelDocument.Create();
+        Assert.Throws<ArgumentException>(() => OfficeSheetSelector.From(foreign.AddSheet("Data"))
+            .Resolve(book.Sheets, sheet => sheet.Name));
+        book.RemoveWorksheet("Data");
+        book.AddSheet("Data");
+        Assert.Throws<ArgumentException>(() => selector.Resolve(book.Sheets, sheet => sheet.Name));
+    }
     [Fact]
     public void OptionsAreCaseInsensitiveTypedAndRejectUnknownKeys() {
         var binder = new OfficeOptionsTransformationAttribute(typeof(FoundationOptions));

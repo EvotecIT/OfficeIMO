@@ -1495,9 +1495,6 @@ Safely replaces one marker-delimited section in a Confluence storage body.
 ### [Set-OfficeEpubMetadata](Set-OfficeEpubMetadata.md)
 Updates the primary title, language or creator through the package model.
 
-### [Set-OfficeExcelActiveSheet](Set-OfficeExcelActiveSheet.md)
-Sets the worksheet that opens as the active sheet.
-
 ### [Set-OfficeExcelAutoFilter](Set-OfficeExcelAutoFilter.md)
 Applies a friendly AutoFilter condition by header name.
 
@@ -1603,11 +1600,8 @@ Writes values and applies row layout to a worksheet in a DSL block or through th
 ### [Set-OfficeExcelRowGroup](Set-OfficeExcelRowGroup.md)
 Configures collapsible Excel outline grouping for worksheet rows.
 
-### [Set-OfficeExcelSheetTabColor](Set-OfficeExcelSheetTabColor.md)
-Sets or clears the worksheet tab color.
-
-### [Set-OfficeExcelSheetVisibility](Set-OfficeExcelSheetVisibility.md)
-Shows or hides a worksheet.
+### [Set-OfficeExcelSheet](Set-OfficeExcelSheet.md)
+Sets worksheet visibility, tab color and the active worksheet.
 
 ### [Set-OfficeExcelSmartHyperlink](Set-OfficeExcelSmartHyperlink.md)
 Sets an external hyperlink using a smart display strategy.

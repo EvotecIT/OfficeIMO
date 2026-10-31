@@ -42,7 +42,14 @@ public sealed class OfficeSheetSelector {
             if (Position.Value <= sheets.Count) return sheets[Position.Value - 1];
         } else {
             foreach (T item in sheets) {
-                if (Sheet != null ? ReferenceEquals(item, Sheet) : string.Equals(getName(item), Name, StringComparison.OrdinalIgnoreCase)) return item;
+                // Cache refreshes can rebuild managed wrappers without changing the native worksheet's identity.
+                bool matches = Sheet == null
+                    ? string.Equals(getName(item), Name, StringComparison.OrdinalIgnoreCase)
+                    : ReferenceEquals(item, Sheet) || item is OfficeIMO.Excel.ExcelSheet candidate
+                        && Sheet is OfficeIMO.Excel.ExcelSheet selected
+                        && ReferenceEquals(candidate.Document, selected.Document)
+                        && ReferenceEquals(candidate.SheetElement, selected.SheetElement);
+                if (matches) return item;
             }
         }
         throw new ArgumentException("The selected sheet does not belong to this document.");

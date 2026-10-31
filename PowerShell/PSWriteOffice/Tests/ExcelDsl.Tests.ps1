@@ -2179,7 +2179,7 @@ Describe 'Excel DSL surface' {
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Set-OfficeExcelRow -Row 1 -Values 'Name', 'Value'
-                Set-OfficeExcelSheetTabColor -Color '#336699'
+                Set-OfficeExcelSheet -TabColor '#336699'
             }
         }
 
@@ -2192,7 +2192,7 @@ Describe 'Excel DSL surface' {
 
         $doc = Open-OfficeExcel -Path $path
         try {
-            $doc | Set-OfficeExcelSheetTabColor -Sheet Data -Clear
+            $doc | Set-OfficeExcelSheet -Sheet Data -NoTabColor
         } finally {
             $doc | Save-OfficeExcel
             Close-OfficeExcel -Document $doc
@@ -2273,7 +2273,7 @@ Describe 'Excel DSL surface' {
             }
             Add-OfficeExcelSheet -Name 'Details' -Content {
                 Set-OfficeExcelRow -Row 1 -Values 'Details'
-                Set-OfficeExcelActiveSheet
+                Set-OfficeExcelSheet -Active
             }
             Add-OfficeExcelSheet -Name 'Archive' -Content {
                 Set-OfficeExcelRow -Row 1 -Values 'Archive'
@@ -2293,11 +2293,17 @@ Describe 'Excel DSL surface' {
         $detailsXml = Read-XlsxEntryText -Path $path -Entry 'xl/worksheets/sheet2.xml'
         $detailsXml | Should -Match 'tabSelected="(?:1|true)"'
 
-        $activeResult = Set-OfficeExcelActiveSheet -Path $path -SheetIndex 2 -PassThru
-        $activeResult.Path | Should -Be $path
-        $activeResult.Name | Should -Be 'Archive'
-        $activeResult.SheetName | Should -Be 'Archive'
-        $activeResult.SheetIndex | Should -Be 2
+        $opened = Open-OfficeExcel -LiteralPath $path
+        try {
+            $activeResult = $opened | Set-OfficeExcelSheet -Sheet 3 -Active -PassThru
+            $activeResult | Should -BeOfType ([OfficeIMO.Excel.ExcelSheet])
+            [object]::ReferenceEquals($activeResult, $opened.Sheets[2]) | Should -BeTrue
+            $activeResult.Name | Should -Be 'Archive'
+            $opened.ActiveWorksheetIndex | Should -Be 2
+            Save-OfficeExcel -Document $opened
+        } finally {
+            Close-OfficeExcel -Document $opened
+        }
 
         $updatedSummary = Get-OfficeExcelSummary -Path $path -IncludeSheets
         $updatedSummary.ActiveSheetIndex | Should -Be 2
@@ -3605,7 +3611,7 @@ Describe 'Excel DSL surface' {
                 Set-OfficeExcelOrientation -Orientation Landscape
                 Set-OfficeExcelGridlines -Hide
                 Set-OfficeExcelFreeze -TopRows 1 -LeftColumns 1
-                Set-OfficeExcelSheetVisibility -Hide
+                Set-OfficeExcelSheet -Visibility Hidden
             }
         }
 

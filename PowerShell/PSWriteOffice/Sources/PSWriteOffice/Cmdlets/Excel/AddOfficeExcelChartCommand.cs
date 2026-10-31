@@ -183,9 +183,6 @@ public sealed partial class AddOfficeExcelChartCommand : PSCmdlet {
     }
 
     private ExcelSheet ResolveSheet() {
-        if (Document == null && Sheet?.Sheet is ExcelSheet explicitSheet && ExcelDslContext.Current == null) return explicitSheet;
-        var document = Document ?? ExcelDslContext.Require(this).Document;
-        if (Sheet != null) return Sheet.Resolve(document.Sheets, sheet => sheet.Name);
-        return Document != null ? ExcelSheetResolver.Resolve(document, null, null) : ExcelDslContext.Require(this).RequireSheet();
+        return ExcelSheetResolver.ResolveTarget(this, Document, Sheet);
     }
 }

@@ -4,6 +4,10 @@ using System.Xml.Linq;
 namespace OfficeIMO.Excel;
 
 public partial class ExcelDocument {
+    private OfficeTheme? _creationTheme;
+    /// <summary>Gets the creation palette for status colors that have no native theme slot.</summary>
+    internal OfficeTheme EffectiveCreationTheme => _creationTheme ?? OfficeTheme.Default;
+
     private static string CreateWorkbookThemeXml(OfficeTheme theme) {
         var xml = XDocument.Parse(Encoding.UTF8.GetString(DefaultThemeBytes.Value));
         XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
