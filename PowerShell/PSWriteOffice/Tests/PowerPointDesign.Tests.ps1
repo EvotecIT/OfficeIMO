@@ -48,12 +48,12 @@ Describe 'PowerPointDesign workflows' {
             $layout = Get-OfficePowerPointLayout -Document $presentation |
                 Where-Object LayoutIndex -eq $slide.LayoutIndex | Select-Object -First 1
             $layout | Should -Not -BeNullOrEmpty
-            Set-OfficePowerPointLayoutPlaceholderBounds -Presentation $presentation -Master $layout.MasterIndex -Layout $layout.LayoutIndex -PlaceholderType Title `
-                -Left 60 -Top 40 -Width 600 -Height 120 -CreateIfMissing
-            Set-OfficePowerPointLayoutPlaceholderTextMargins -Presentation $presentation -Master $layout.MasterIndex -Layout $layout.LayoutIndex -PlaceholderType Title `
-                -Left 8 -Top 6 -Right 8 -Bottom 6 -CreateIfMissing
-            Set-OfficePowerPointLayoutPlaceholderTextStyle -Presentation $presentation -Master $layout.MasterIndex -Layout $layout.LayoutIndex -PlaceholderType Title `
-                -Style Title -FontSize 32 -Bold $true -CreateIfMissing
+            Set-OfficePowerPointLayoutPlaceholder -Document $presentation -TemplateLayout $layout -Type Title `
+                -X 60 -Y 40 -Width 600 -Height 120 -CreateIfMissing
+            Set-OfficePowerPointLayoutPlaceholder -Document $presentation -TemplateLayout $layout -Type Title `
+                -TextMargin 6,8,6,8 -CreateIfMissing
+            Set-OfficePowerPointLayoutPlaceholder -Document $presentation -TemplateLayout $layout -Type Title `
+                -Style Title -Size 32 -Bold -CreateIfMissing
 
             Save-OfficePowerPoint -Document $presentation
         } finally {

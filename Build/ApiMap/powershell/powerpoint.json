@@ -5053,7 +5053,7 @@
             },
             {
               "name": "Underline",
-              "type": "OfficeUnderline",
+              "type": "PowerPointUnderlineStyle",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5090,7 +5090,7 @@
           ]
         }
       ],
-      "notes": "Merges the three Set-OfficePowerPointLayoutPlaceholder* commands; give any combination of bounds, margins and style. Bounds: X/Y/Width/Height are applied together (missing ones keep their current value). -Bold:$false etc. turn formatting off explicitly. -Underline takes the shared OfficeUnderline style, as on PowerPointText; -Underline None removes it.",
+      "notes": "Merges the three Set-OfficePowerPointLayoutPlaceholder* commands; give any combination of bounds, margins and style. Bounds: X/Y/Width/Height are applied together (missing ones keep their current value). -Bold:$false etc. turn formatting off explicitly. -Underline takes the native PowerPointUnderlineStyle, as on PowerPointText; -Underline None removes it.",
       "examples": [
         {
           "title": "Change a layout title style",

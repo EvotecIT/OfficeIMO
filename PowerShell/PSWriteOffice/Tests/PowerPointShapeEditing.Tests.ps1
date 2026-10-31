@@ -234,19 +234,19 @@ Describe 'PowerPointShapeEditing workflows' {
         $layoutPlaceholder = $layoutPlaceholders | Where-Object { $_.PlaceholderType } | Select-Object -First 1
         if ($layoutPlaceholder) {
             $layoutPlaceholderType = $layoutPlaceholder.PlaceholderType.ToString()
-            $boundsBox = Set-OfficePowerPointLayoutPlaceholderBounds -Presentation $presentation -Master $layoutMaster -Layout $layoutIndex -PlaceholderType $layoutPlaceholderType -Index $layoutPlaceholder.PlaceholderIndex -Left 48 -Top 36 -Width 620 -Height 180 -PassThru
+            $boundsBox = Set-OfficePowerPointLayoutPlaceholder -Document $presentation -TemplateLayout $selectedLayout -Type $layoutPlaceholderType -Index $layoutPlaceholder.PlaceholderIndex -X 48 -Y 36 -Width 620 -Height 180 -PassThru
             $boundsBox.Left.ToPoints() | Should -Be 48
             $boundsBox.Top.ToPoints() | Should -Be 36
             $boundsBox.Width.ToPoints() | Should -Be 620
             $boundsBox.Height.ToPoints() | Should -Be 180
 
-            $marginsBox = Set-OfficePowerPointLayoutPlaceholderTextMargins -Presentation $presentation -Master $layoutMaster -Layout $layoutIndex -PlaceholderType $layoutPlaceholderType -Index $layoutPlaceholder.PlaceholderIndex -Left 12 -Top 8 -Right 12 -Bottom 8 -PassThru
+            $marginsBox = Set-OfficePowerPointLayoutPlaceholder -Document $presentation -TemplateLayout $selectedLayout -Type $layoutPlaceholderType -Index $layoutPlaceholder.PlaceholderIndex -TextMargin 8,12,8,12 -PassThru
             $marginsBox.TextMarginLeft.ToPoints() | Should -Be 12
             $marginsBox.TextMarginTop.ToPoints() | Should -Be 8
             $marginsBox.TextMarginRight.ToPoints() | Should -Be 12
             $marginsBox.TextMarginBottom.ToPoints() | Should -Be 8
 
-            $styleBox = Set-OfficePowerPointLayoutPlaceholderTextStyle -Presentation $presentation -Master $layoutMaster -Layout $layoutIndex -PlaceholderType $layoutPlaceholderType -Index $layoutPlaceholder.PlaceholderIndex -Style Body -FontSize 18 -Bold $true -PassThru
+            $styleBox = Set-OfficePowerPointLayoutPlaceholder -Document $presentation -TemplateLayout $selectedLayout -Type $layoutPlaceholderType -Index $layoutPlaceholder.PlaceholderIndex -Style Body -Size 18 -Bold -PassThru
             $styleBox.FontSize.ToPoints() | Should -Be 18
             $styleBox.Bold | Should -BeTrue
         }

@@ -46,9 +46,10 @@ namespace OfficeIMO.PowerPoint {
             return (string.IsNullOrWhiteSpace(heading) ? null : heading, string.IsNullOrWhiteSpace(body) ? null : body);
         }
 
-        private PowerPointLayoutTheme ReadLayoutTheme() {
+        /// <summary>Reads a master's current colours and fonts without restyling its native layouts.</summary>
+        internal PowerPointLayoutTheme ReadLayoutTheme(int masterIndex = 0) {
             OfficeTheme theme = OfficeTheme.Default;
-            SlideMasterPart? master = _presentationPart.SlideMasterParts.FirstOrDefault();
+            SlideMasterPart? master = _presentationPart.SlideMasterParts.Skip(masterIndex).FirstOrDefault();
             A.ThemeElements? elements = master?.ThemePart?.Theme?.ThemeElements;
             if (elements == null) return PowerPointLayoutTheme.From(theme);
 

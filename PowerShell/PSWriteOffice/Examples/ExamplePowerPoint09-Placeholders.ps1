@@ -24,12 +24,12 @@ $layoutPlaceholders = Get-OfficePowerPointLayoutPlaceholder -Slide $slide
 $placeholder = $layoutPlaceholders | Where-Object { $_.PlaceholderType } | Select-Object -First 1
 if ($placeholder) {
     $placeholderType = $placeholder.PlaceholderType.ToString()
-    Set-OfficePowerPointLayoutPlaceholderBounds -Presentation $presentation -Master $layout.MasterIndex -Layout $layout.LayoutIndex `
-        -PlaceholderType $placeholderType -Index $placeholder.PlaceholderIndex -Left 60 -Top 140 -Width 520 -Height 240
-    Set-OfficePowerPointLayoutPlaceholderTextMargins -Presentation $presentation -Master $layout.MasterIndex -Layout $layout.LayoutIndex `
-        -PlaceholderType $placeholderType -Index $placeholder.PlaceholderIndex -Left 12 -Top 8 -Right 12 -Bottom 8
-    Set-OfficePowerPointLayoutPlaceholderTextStyle -Presentation $presentation -Master $layout.MasterIndex -Layout $layout.LayoutIndex `
-        -PlaceholderType $placeholderType -Index $placeholder.PlaceholderIndex -Style Body -FontSize 18 -Bold $true
+    Set-OfficePowerPointLayoutPlaceholder -Document $presentation -TemplateLayout $layout `
+        -Type $placeholderType -Index $placeholder.PlaceholderIndex -X 60 -Y 140 -Width 520 -Height 240
+    Set-OfficePowerPointLayoutPlaceholder -Document $presentation -TemplateLayout $layout `
+        -Type $placeholderType -Index $placeholder.PlaceholderIndex -TextMargin 8,12,8,12
+    Set-OfficePowerPointLayoutPlaceholder -Document $presentation -TemplateLayout $layout `
+        -Type $placeholderType -Index $placeholder.PlaceholderIndex -Style Body -Size 18 -Bold
 }
 
 Save-OfficePowerPoint -Presentation $presentation

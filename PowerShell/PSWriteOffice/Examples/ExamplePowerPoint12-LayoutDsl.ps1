@@ -9,12 +9,12 @@ New-OfficePowerPoint -Path $path {
         return
     }
 
-    Set-OfficePowerPointLayoutPlaceholderBounds -Master $layout.MasterIndex -Layout $layout.LayoutIndex -PlaceholderType Title `
-        -Left 60 -Top 40 -Width 600 -Height 120 -CreateIfMissing
-    Set-OfficePowerPointLayoutPlaceholderTextMargins -Master $layout.MasterIndex -Layout $layout.LayoutIndex -PlaceholderType Title `
-        -Left 8 -Top 6 -Right 8 -Bottom 6 -CreateIfMissing
-    Set-OfficePowerPointLayoutPlaceholderTextStyle -Master $layout.MasterIndex -Layout $layout.LayoutIndex -PlaceholderType Title `
-        -Style Title -FontSize 36 -Bold $true -CreateIfMissing
+    Set-OfficePowerPointLayoutPlaceholder -TemplateLayout $layout -Type Title `
+        -X 60 -Y 40 -Width 600 -Height 120 -CreateIfMissing
+    Set-OfficePowerPointLayoutPlaceholder -TemplateLayout $layout -Type Title `
+        -TextMargin 6,8,6,8 -CreateIfMissing
+    Set-OfficePowerPointLayoutPlaceholder -TemplateLayout $layout -Type Title `
+        -Style Title -Size 36 -Bold -CreateIfMissing
 
     PptSlide -LayoutType $layout.Type {
         PptTitle -Title 'Layout Styled'
