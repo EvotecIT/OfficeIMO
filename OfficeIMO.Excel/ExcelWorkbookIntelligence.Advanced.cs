@@ -537,10 +537,10 @@ namespace OfficeIMO.Excel {
                 connection.Add(new XElement(main + "dbPr",
                     new XAttribute("connection", "Provider=Microsoft.Mashup.OleDb.1;Data Source=$Workbook$;Location=" + name + ";Extended Properties=\"\""),
                     new XAttribute("command", commandText),
-                    new XAttribute("commandType", "8")));
+                    new XAttribute("commandType", "4")));
             }
 
-            return new XDocument(new XElement(main + "connections", new XAttribute("count", "1"), connection)).ToString(SaveOptions.DisableFormatting);
+            return new XDocument(new XElement(main + "connections", connection)).ToString(SaveOptions.DisableFormatting);
         }
 
         private static string NormalizeQueryTableName(string? queryTableName, string connectionName) {

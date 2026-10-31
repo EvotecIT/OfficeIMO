@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
@@ -12,7 +11,6 @@ namespace OfficeIMO.Excel {
         private const string WorkbookConnectionContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.connections+xml";
         private const string WorksheetQueryTableRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/queryTable";
         private const string WorksheetQueryTableContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.queryTable+xml";
-        private const string SpreadsheetMainNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
         private const string OfficeDocumentRelationshipsNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
         private const string MicrosoftWorkbookSlicerCacheRelationshipType = "http://schemas.microsoft.com/office/2007/relationships/slicerCache";
         private const string MicrosoftWorkbookSlicerCacheContentType = "application/vnd.ms-excel.slicerCache+xml";
@@ -68,7 +66,6 @@ namespace OfficeIMO.Excel {
                 WorksheetQueryTableContentType,
                 xml,
                 "xml");
-            LinkWorksheetQueryTablePart(sheet.WorksheetPart, part);
             return DescribePart(sheet.WorksheetPart, part);
         }
 
@@ -186,54 +183,6 @@ namespace OfficeIMO.Excel {
 
         private static ExcelPackagePartInfo DescribePart(OpenXmlPartContainer owner, OpenXmlPart part) => new(owner, part);
 
-        private void LinkWorksheetQueryTablePart(WorksheetPart worksheetPart, OpenXmlPart queryTablePart) {
-            string relationshipId = worksheetPart.GetIdOfPart(queryTablePart);
-            Worksheet worksheet = worksheetPart.Worksheet ?? throw new InvalidDataException("Worksheet metadata cannot be linked because the worksheet part has no worksheet XML.");
-            OpenXmlElement? queryTableParts = worksheet.ChildElements.FirstOrDefault(IsQueryTablePartsElement);
-            if (queryTableParts == null) {
-                queryTableParts = new OpenXmlUnknownElement(string.Empty, "queryTableParts", SpreadsheetMainNamespace);
-                WorksheetExtensionList? extensionList = worksheet.GetFirstChild<WorksheetExtensionList>();
-                if (extensionList != null) {
-                    worksheet.InsertBefore(queryTableParts, extensionList);
-                } else {
-                    worksheet.Append(queryTableParts);
-                }
-            }
-
-            bool exists = queryTableParts.ChildElements
-                .Where(IsQueryTablePartElement)
-                .Any(part => string.Equals(GetRelationshipId(part), relationshipId, StringComparison.Ordinal));
-            if (!exists) {
-                var linkedPart = new OpenXmlUnknownElement(string.Empty, "queryTablePart", SpreadsheetMainNamespace);
-                linkedPart.SetAttribute(new OpenXmlAttribute("r", "id", OfficeDocumentRelationshipsNamespace, relationshipId));
-                queryTableParts.Append(linkedPart);
-            }
-
-            int count = queryTableParts.ChildElements.Count(IsQueryTablePartElement);
-            queryTableParts.SetAttribute(new OpenXmlAttribute("count", string.Empty, count.ToString(CultureInfo.InvariantCulture)));
-            worksheet.Save();
-            MarkMetadataPartChanged();
-        }
-
-        private static bool IsQueryTablePartsElement(OpenXmlElement element) {
-            return string.Equals(element.LocalName, "queryTableParts", StringComparison.Ordinal)
-                && string.Equals(element.NamespaceUri, SpreadsheetMainNamespace, StringComparison.Ordinal);
-        }
-
-        private static bool IsQueryTablePartElement(OpenXmlElement element) {
-            return string.Equals(element.LocalName, "queryTablePart", StringComparison.Ordinal)
-                && string.Equals(element.NamespaceUri, SpreadsheetMainNamespace, StringComparison.Ordinal);
-        }
-
-        private static string? GetRelationshipId(OpenXmlElement element) {
-            string? id = element.GetAttribute("id", OfficeDocumentRelationshipsNamespace).Value;
-            if (!string.IsNullOrWhiteSpace(id)) {
-                return id;
-            }
-
-            return element.GetAttribute("id", string.Empty).Value;
-        }
-
         private OpenXmlPart? GetWorkbookConnectionPart() {
             return EnumerateWorkbookConnectionParts()
                 .FirstOrDefault(part => string.Equals(part.ContentType, WorkbookConnectionContentType, StringComparison.OrdinalIgnoreCase)
@@ -266,7 +215,6 @@ namespace OfficeIMO.Excel {
                 existingDocument.Root.Add(new XElement(connection));
             }
 
-            existingDocument.Root.SetAttributeValue("count", existingDocument.Root.Elements().Count(element => element.Name.LocalName == "connection").ToString(System.Globalization.CultureInfo.InvariantCulture));
             return existingDocument.ToString(SaveOptions.DisableFormatting);
         }
 
@@ -282,7 +230,6 @@ namespace OfficeIMO.Excel {
 
             XNamespace ns = document.Root.Name.Namespace;
             var connections = new XElement(ns + "connections", new XElement(document.Root));
-            connections.SetAttributeValue("count", "1");
             return new XDocument(connections).ToString(SaveOptions.DisableFormatting);
         }
 

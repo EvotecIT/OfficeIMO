@@ -31,7 +31,6 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 connectionId++;
             }
 
-            root.SetAttributeValue("count", connections.Count.ToString(CultureInfo.InvariantCulture));
             return new XDocument(root).ToString(SaveOptions.DisableFormatting);
         }
 

@@ -665,7 +665,10 @@ namespace OfficeIMO.Tests {
             using var reader = new StreamReader(connectionStream);
             string connectionXml = reader.ReadToEnd();
             Assert.Contains("<connections", connectionXml, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("count=\"1\"", connectionXml, StringComparison.OrdinalIgnoreCase);
+            ConnectionsPart nativeConnections = Assert.IsType<ConnectionsPart>(connectionPart);
+            Assert.Single(nativeConnections.Connections!.Elements<Connection>());
+            Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator(FileFormatVersions.Microsoft365)
+                .Validate(nativeConnections));
             Assert.Contains("name=\"LegacyXlsQuery1\"", connectionXml, StringComparison.Ordinal);
             Assert.Contains("type=\"5\"", connectionXml, StringComparison.Ordinal);
             Assert.Contains("refreshedVersion=\"2\"", connectionXml, StringComparison.Ordinal);

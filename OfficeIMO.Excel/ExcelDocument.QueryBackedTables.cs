@@ -303,12 +303,6 @@ namespace OfficeIMO.Excel {
                         .ToArray();
                     if (matches.Length == 0) continue;
                     foreach (XElement match in matches) match.Remove();
-                    if (document.Root != null) {
-                        document.Root.SetAttributeValue(
-                            "count",
-                            document.Root.Elements().Count(element => element.Name.LocalName == "connection")
-                                .ToString(CultureInfo.InvariantCulture));
-                    }
                     WriteOpenXmlPartText(part, document.ToString(SaveOptions.DisableFormatting));
                 } catch (InvalidDataException) {
                     // Preserve oversized or malformed caller-owned metadata instead of mutating it.

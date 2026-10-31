@@ -486,23 +486,20 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 document.AddSheet("Data");
+                document.AddWorkbookConnectionMetadata("<connection xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" id=\"1\" name=\"Sales\" type=\"5\" refreshedVersion=\"7\"/>");
                 document.AddWorksheetQueryTableMetadata("Data", queryTableXml);
                 document.Save();
             }
 
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
             WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
-            Worksheet worksheet = worksheetPart.Worksheet!;
-            OpenXmlElement queryTableParts = Assert.Single(worksheet.ChildElements,
-                element => element.LocalName == "queryTableParts" && element.NamespaceUri == "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
-            OpenXmlElement queryTablePart = Assert.Single(queryTableParts.ChildElements,
-                element => element.LocalName == "queryTablePart" && element.NamespaceUri == "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
-            Assert.Equal("1", queryTableParts.GetAttribute("count", string.Empty).Value);
-            string? relationshipId = queryTablePart.GetAttribute("id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships").Value;
-
-            Assert.False(string.IsNullOrWhiteSpace(relationshipId));
-            Assert.NotNull(worksheetPart.GetPartById(relationshipId!));
+            QueryTablePart queryTablePart = Assert.Single(worksheetPart.QueryTableParts);
+            Assert.False(string.IsNullOrWhiteSpace(worksheetPart.GetIdOfPart(queryTablePart)));
+            Assert.Equal("SalesQuery", queryTablePart.QueryTable!.Name!.Value);
+            Assert.Equal(1U, queryTablePart.QueryTable.ConnectionId!.Value);
             Assert.Contains("SalesQuery", ReadSinglePackagePartText(worksheetPart, "queryTable"));
+            Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator(FileFormatVersions.Microsoft365)
+                .Validate(spreadsheet));
         }
 
         [Fact]

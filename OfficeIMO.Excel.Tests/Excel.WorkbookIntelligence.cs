@@ -288,11 +288,28 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(comments.ThreadedComments, comment => comment.ParentId == parentId && comment.Author == "Report Owner" && comment.Done);
                 Assert.Empty(comments.Issues);
 
+                Assert.Empty(document.ValidateDocument());
+
                 ExcelDataModelReport dataModel = document.InspectDataModel();
                 Assert.True(dataModel.HasDataModelOrQueries);
                 Assert.Equal(1, dataModel.ConnectionPartCount);
                 Assert.Equal(2, dataModel.QueryTablePartCount);
             }
+
+            using SpreadsheetDocument package = SpreadsheetDocument.Open(filePath, false);
+            DocumentFormat.OpenXml.Spreadsheet.Connection[] connections = package.WorkbookPart!.ConnectionsPart!
+                .Connections!.Elements<DocumentFormat.OpenXml.Spreadsheet.Connection>().ToArray();
+            Assert.Equal(2, connections.Length);
+            Assert.Equal(new[] { 1U, 2U }, connections.Select(connection => connection.Id!.Value));
+            Assert.False(connections[0].RefreshOnLoad!.Value);
+            Assert.True(connections[1].RefreshOnLoad!.Value);
+            Assert.All(connections, connection => {
+                Assert.Equal("let Source = Excel.CurrentWorkbook() in Source", connection.DatabaseProperties!.Command!.Value);
+                Assert.Equal(4U, connection.DatabaseProperties.CommandType!.Value);
+            });
+            Assert.Equal(new[] { "ReviewQueryRefreshTable", "ReviewQueryTable" },
+                package.WorkbookPart.WorksheetParts.Single().QueryTableParts
+                    .Select(part => part.QueryTable!.Name!.Value).OrderBy(name => name, StringComparer.Ordinal));
         }
 
         private static string ReadExtendedPartText(ExtendedPart part) {
