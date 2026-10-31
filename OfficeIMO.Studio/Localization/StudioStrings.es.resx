@@ -2971,7 +2971,7 @@
     <value>{0:N0} de {1:N0} marcas seleccionadas. Revise su efecto antes de aplicar.</value>
   </data>
   <data name="Redaction.ReviewedSummary" xml:space="preserve">
-    <value>Se han revisado {0:N0} áreas en {1:N0} páginas: {2:N0} coincidencias de texto, {3:N0} de imagen, {4:N0} de anotación y {5:N0} de vectores.</value>
+    <value>Se han revisado {0:N0} áreas en {1:N0} páginas: {2:N0} coincidencias de texto, {3:N0} de imagen, {4:N0} de anotación, {5:N0} de vectores y {6:N0} de campos de formulario.</value>
   </data>
   <data name="Redaction.SearchText" xml:space="preserve">
     <value>Texto o patrón que buscar</value>

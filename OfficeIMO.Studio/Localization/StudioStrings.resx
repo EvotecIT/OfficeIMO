@@ -1814,7 +1814,7 @@
   <data name="Redaction.PreserveUnderlay" xml:space="preserve"><value>Keep artwork underneath</value></data>
   <data name="Redaction.PreciseSearchScope" xml:space="preserve"><value>Search marks only the matched text. Unsupported glyph mappings are refused. Options apply to new search marks.</value></data>
   <data name="Redaction.PendingSummary" xml:space="preserve"><value>{0:N0} of {1:N0} marks selected. Review their impact before applying.</value></data>
-  <data name="Redaction.ReviewedSummary" xml:space="preserve"><value>Reviewed {0:N0} areas across {1:N0} pages: {2:N0} text, {3:N0} image, {4:N0} annotation and {5:N0} vector matches.</value></data>
+  <data name="Redaction.ReviewedSummary" xml:space="preserve"><value>Reviewed {0:N0} areas across {1:N0} pages: {2:N0} text, {3:N0} image, {4:N0} annotation, {5:N0} vector and {6:N0} form field matches.</value></data>
   <data name="Redaction.SearchText" xml:space="preserve"><value>Text or pattern to find</value></data>
   <data name="Redaction.Regex" xml:space="preserve"><value>Regular expression</value></data>
   <data name="Redaction.MatchCase" xml:space="preserve"><value>Match case</value></data>

@@ -199,12 +199,13 @@ public sealed partial class MainWindowViewModel {
             !ReferenceEquals(workspace, _workspace) || workspace.Revision != revision) return;
         _pendingRedactionPlan = plan;
         PendingRedactionSummary = _localizer.FormatOrDefault("Redaction.ReviewedSummary",
-            "Reviewed {0:N0} areas across {1:N0} pages: {2:N0} text, {3:N0} image, {4:N0} annotation and {5:N0} vector matches.",
+            "Reviewed {0:N0} areas across {1:N0} pages: {2:N0} text, {3:N0} image, {4:N0} annotation, {5:N0} vector and {6:N0} form field matches.",
             plan.Areas.Count, plan.Areas.Select(area => area.PageNumber).Distinct().Count(),
             plan.Matches.Count(match => match.Kind == PdfRedactionMatchKind.TextBlock),
             plan.Matches.Count(match => match.Kind == PdfRedactionMatchKind.ImagePlacement),
             plan.Matches.Count(match => match.Kind == PdfRedactionMatchKind.Annotation),
-            plan.Matches.Count(match => match.Kind == PdfRedactionMatchKind.VectorPath));
+            plan.Matches.Count(match => match.Kind == PdfRedactionMatchKind.VectorPath),
+            plan.Matches.Count(match => match.Kind == PdfRedactionMatchKind.FormField));
         if (plan.Findings.Count > 0) PendingRedactionSummary += " " + string.Join(" ", plan.Findings.Select(finding => finding.Message));
         OnPropertyChanged(nameof(CanApplyReviewedRedactions));
     }
