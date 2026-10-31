@@ -139,14 +139,16 @@ internal static partial class PdfTaggedPageOrganizer {
         int copiedPage, CancellationToken token) {
         if (!catalog.Items.TryGetValue("AcroForm", out var value) || PdfObjectLookup.Resolve(objects, value) is not PdfDictionary form ||
             !form.Items.TryGetValue("Fields", out var fieldsValue) || PdfObjectLookup.Resolve(objects, fieldsValue) is not PdfArray fields) return;
-        var names = new HashSet<string>(fields.Items.Select(item => (PdfObjectLookup.Resolve(objects, item) as PdfDictionary)?.Get<PdfStringObj>("T")?.Value ?? string.Empty), StringComparer.Ordinal);
+        var names = new HashSet<string>(fields.Items.Select(item => (PdfObjectLookup.Resolve(objects, item) is PdfDictionary root ? ReadFieldName(root) : null) ?? string.Empty), StringComparer.Ordinal);
+        string? ReadFieldName(PdfDictionary definition) =>
+            definition.Items.TryGetValue("T", out var name) ? (PdfObjectLookup.Resolve(objects, name) as PdfStringObj)?.Value : null;
         // An unnamed nonterminal adds nothing to the qualified name, so its named descendants carry the copy suffix.
         void RenameCopiedField(PdfReference field, HashSet<int> visited) {
             token.ThrowIfCancellationRequested();
             if (!visited.Add(field.ObjectNumber) || PdfObjectLookup.Resolve(objects, field) is not PdfDictionary definition)
                 throw new InvalidOperationException("Copying a cyclic form field hierarchy is not supported.");
-            if (definition.Get<PdfStringObj>("T") is PdfStringObj name && name.Value.Length > 0) {
-                string copiedName = name.Value + "_copy" + (-copiedPage).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (ReadFieldName(definition) is { Length: > 0 } name) {
+                string copiedName = name + "_copy" + (-copiedPage).ToString(System.Globalization.CultureInfo.InvariantCulture);
                 while (!names.Add(copiedName)) copiedName += "_";
                 definition.Items["T"] = new PdfStringObj(copiedName, true);
                 return;
@@ -184,6 +186,7 @@ internal static partial class PdfTaggedPageOrganizer {
                 throw new InvalidOperationException("Copying requires an unambiguous AcroForm field tree.");
             if (dictionary.Items.ContainsKey("AA")) throw new InvalidOperationException("Copying form fields with automatic actions requires an explicit field-name policy.");
             if (dictionary.Get<PdfName>("Subtype")?.Name == "Widget" && dictionary.Get<PdfReference>("P")?.ObjectNumber != copiedPage) return false;
+            if (dictionary.Items.ContainsKey("A")) throw new InvalidOperationException("Copying form fields with actions requires an explicit field-name policy.");
             if (dictionary.Items.TryGetValue("Kids", out var kidsValue) && PdfObjectLookup.Resolve(objects, kidsValue) is PdfArray kids) {
                 kids.Items.RemoveAll(child => !Retain(child, visited)); return kids.Items.Count > 0;
             }

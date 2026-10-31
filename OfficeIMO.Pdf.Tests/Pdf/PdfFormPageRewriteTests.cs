@@ -203,21 +203,35 @@ public sealed class PdfFormPageRewriteTests {
         Assert.Equal(2, form.Fields.Count);
     }
 
-    private static byte[] CreateHierarchicalForm(string firstChildParent = "/Parent 6 0 R ", string fields = "6 0 R") => BuildRawPdf(
+    [Fact]
+    public void RepeatedPageResolvesIndirectFieldNames() {
+        PdfDocument repeated = PdfDocument.Load(CreateHierarchicalForm(firstName: "15 0 R")).Pages.Extract(1, 1);
+        Assert.Contains("Parent_copy0.First", repeated.Inspect().FormFieldNames);
+    }
+
+    [Fact]
+    public void RepeatedPageRefusesFieldActionsItCannotRetarget() {
+        PdfDocument source = PdfDocument.Load(CreateHierarchicalForm(firstWidgetExtras: "/A << /S /ResetForm /Fields [(Parent.First)] >> "));
+        var error = Assert.Throws<InvalidOperationException>(() => source.Pages.Extract(1, 1));
+        Assert.Contains("actions", error.Message, StringComparison.Ordinal);
+    }
+
+    private static byte[] CreateHierarchicalForm(string firstChildParent = "/Parent 6 0 R ", string fields = "6 0 R", string firstName = "(First)", string firstWidgetExtras = "") => BuildRawPdf(
         "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
         "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
         "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] /Resources << >> /Annots [10 0 R 12 0 R] >>",
         "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] /Resources << >> /Annots [11 0 R 13 0 R] >>",
         "<< /Fields [" + fields + "] /CO [7 0 R 8 0 R 9 0 R] /NeedAppearances true /DA (/Helv 10 Tf 0 g) /DR << /Font << /Helv 14 0 R >> >> >>",
         "<< /T (Parent) /FT /Tx /TU (Parent metadata) /Kids [7 0 R 8 0 R 9 0 R] >>",
-        "<< " + firstChildParent + "/T (First) /V (one) /Kids [10 0 R 11 0 R] >>",
+        "<< " + firstChildParent + "/T " + firstName + " /V (one) /Kids [10 0 R 11 0 R] >>",
         "<< /Parent 6 0 R /T (Second) /V (two) /Kids [12 0 R] >>",
         "<< /Parent 6 0 R /T (Omitted) /V (three) /Kids [13 0 R] >>",
-        "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /P 3 0 R /Rect [20 20 180 50] >>",
+        "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /P 3 0 R /Rect [20 20 180 50] " + firstWidgetExtras + ">>",
         "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /P 4 0 R /Rect [20 20 180 50] >>",
         "<< /Type /Annot /Subtype /Widget /Parent 8 0 R /P 3 0 R /Rect [20 60 180 90] >>",
         "<< /Type /Annot /Subtype /Widget /Parent 9 0 R /P 4 0 R /Rect [20 60 180 90] >>",
-        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        "(First)");
 
     [Theory]
     [InlineData(PdfMergeStructureMode.KeepPrimary)]
