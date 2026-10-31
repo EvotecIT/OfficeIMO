@@ -252,6 +252,10 @@ internal static class ContentStructureExtractor {
     internal static bool IsListItemText(string text) =>
         TryParseListItemText(text, out _, out _, out _);
 
+    /// <summary>A lone bullet followed by a gap no wider than a hanging indent, so what follows is its item and not a column.</summary>
+    internal static bool IsHangingListMarker(string text, double gap) =>
+        gap <= 72D && text.Trim() is "\u2022" or "\u2023" or "\u2043" or "\u2219" or "\u25AA" or "\u25AB" or "\u25CF" or "\u25CB" or "\u25E6";
+
     internal static bool IsSentenceTerminal(char value) => value is
         '.' or '!' or '?' or ':' or
         '\u0589' or // Armenian full stop

@@ -94,6 +94,25 @@ public class RtfCocoaDocumentTests {
     }
 
     [Fact]
+    public void ReadingThePdfKeepsAHangingBulletWithItsText() {
+        byte[] bytes = RtfDocument.Parse(Report).ConvertToPdfWithEvidence(new RtfToPdfOptions()).ToBytes();
+
+        PdfCore.PdfLogicalListItem item = Assert.Single(PdfCore.PdfDocument.Load(bytes).Read(new PdfCore.PdfLoadOptions()).Pages[0].ListItems);
+
+        Assert.Equal("\u2022", item.Marker);
+        Assert.Equal("Item", item.Text);
+    }
+
+    [Fact]
+    public void ColumnNarrowerThanItsPaddingStillConverts() {
+        byte[] bytes = RtfDocument.Parse("{\\rtf1\\ansi\\trowd\\trgaph108\\cellx14\\cellx3000\\pard\\intbl\\cell Wide\\cell\\row}")
+            .ConvertToPdfWithEvidence(new RtfToPdfOptions()).ToBytes();
+
+        using var pdf = PdfPigDocument.Open(bytes);
+        Assert.Contains("Wide", pdf.GetPage(1).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void BorderWidthIsReadAsTwips() {
         RtfTable table = Assert.Single(RtfDocument.Parse(Report).Blocks.OfType<RtfTable>());
 

@@ -161,6 +161,7 @@ internal static class RtfPdfMapping {
             FooterBold = false,
             RowStripeFill = null
         };
+        style.DropPaddingInNarrowColumns = true;
         int headerRowCount = GetRenderableHeaderRowCount(table);
         style.HeaderRowCount = headerRowCount;
         style.RepeatHeaderRowCount = headerRowCount;
