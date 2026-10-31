@@ -1,6 +1,7 @@
 # Each profile is authored independently, rather than mutating the baseline.
 function Get-NativeParagraphTopologyProfiles {
-    param([switch] $EmptyParagraphs, [switch] $SizeWitnesses, [switch] $UniformEmpty, [switch] $TextReplacements, [switch] $MixedRuns, [switch] $FormattingChanges)
+    param([switch] $EmptyParagraphs, [switch] $SizeWitnesses, [switch] $UniformEmpty, [switch] $TextReplacements, [switch] $MixedRuns, [switch] $FormattingChanges, [switch] $EmptyRefill)
+    if ($EmptyRefill) { return Get-NativeEmptyRefillProfiles }
     $texts = @('First native paragraph', 'Second native paragraph', 'Third native paragraph', 'Final native paragraph')
     $profiles = @(
         @{ Name = 'Baseline'; Order = @(0, 1, 2, 3) },

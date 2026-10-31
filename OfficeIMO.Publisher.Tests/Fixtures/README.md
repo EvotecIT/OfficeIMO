@@ -230,3 +230,11 @@ writing, rendering parity or supported editing until the corresponding library
 operation is checked against the exact retained files. Promote only reference
 files used by executable tests or a maintained qualification contract; keep
 intermediate runs and process logs outside the source fixture directory.
+
+`TextEmptyRefill` and `TableEmptyRefill` provide independently authored native
+source and final states for filling single empty runs while deleting, reordering
+or duplicating nonuniform paragraphs. Their eleven pages cover inherited typing,
+interior/final CR roles, equivalent templates and hidden language ambiguity;
+the table edits use the first/final cells with unchanged neighbors. Page10's
+Unicode language auto-assignment is separate mixed-script evidence. Each folder's
+provenance identifies the qualified ASCII refill reference pages.

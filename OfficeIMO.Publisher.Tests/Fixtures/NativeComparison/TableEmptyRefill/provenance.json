@@ -1,0 +1,55 @@
+{
+  "schema": "officeimo.publisher.native-empty-refill-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableEmptyRefill",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-tableemptyrefill.json",
+      "sha256": "3da1a633e7519195e6ea93b8c92eb5c189f2d59ff260ef031d93b4d972a55735"
+    },
+    {
+      "name": "native-tableemptyrefill.pdf",
+      "sha256": "c4763ed51eb7c6147cd3585621387192281ac3b98f78cf6c0e615aade8a9f776"
+    },
+    {
+      "name": "native-tableemptyrefill.pub",
+      "sha256": "7e636f9c1e9d8011e13c2f173ab1df575bebdbdc62f135616fd1228ddf78911e"
+    }
+  ],
+  "profiles": [
+    "EmptyBaseline",
+    "FillInteriorDropFirst",
+    "FillBothDropMiddle",
+    "FillFinalOnly",
+    "FillInteriorAsFinal",
+    "FillAndReorder",
+    "FillDuplicates",
+    "AmbiguousEmptyLanguage",
+    "EquivalentEmptyTemplates",
+    "FillEquivalentTemplate",
+    "FillUnicodeInterior"
+  ],
+  "qualifiedRefillReferencePages": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    9
+  ],
+  "scope": "Independent native source and refill final states for single empty runs with retained complete formatting, paragraph count changes and language ambiguity. Ordinary inherited typing and fitting first/final table cells retain neighbors. Unicode page10 records native Greek language auto-assignment aroundOmega and is separate mixed-script evidence, not retained-English refill qualification. General reflow, broader producers and repair-free opening remain unassessed."
+}

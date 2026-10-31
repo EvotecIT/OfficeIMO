@@ -29,7 +29,7 @@ param(
     [string] $NativeEditText,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextMixedRunTextReplacements', 'TextFormattingTopology', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableMixedRunTextReplacements', 'TableFormattingTopology', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextMixedRunTextReplacements', 'TextFormattingTopology', 'TextEmptyRefill', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableMixedRunTextReplacements', 'TableFormattingTopology', 'TableEmptyRefill', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -136,6 +136,7 @@ $layout = $null
 . (Join-Path $PSScriptRoot 'Get-NativeParagraphTopologyProfiles.ps1')
 . (Join-Path $PSScriptRoot 'Get-NativeMixedRunTextProfiles.ps1')
 . (Join-Path $PSScriptRoot 'Get-NativeFormattingTopologyProfiles.ps1')
+. (Join-Path $PSScriptRoot 'Get-NativeEmptyRefillProfiles.ps1')
 . (Join-Path $PSScriptRoot 'Set-NativeMixedRunFormatting.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeEmptyParagraphTypingStyles.ps1')
 . (Join-Path $PSScriptRoot 'Set-NativeParagraphTopologyFormatting.ps1')
@@ -611,6 +612,9 @@ try {
         'TextNonuniformParagraphs' {
             $pageCount = Add-NativeParagraphTopologyControl -Publication $document -FirstPage $page
         }
+        'TextEmptyRefill' {
+            $pageCount = Add-NativeParagraphTopologyControl -Publication $document -FirstPage $page -EmptyRefill
+        }
         'TextFormattingTopology' {
             $pageCount = Add-NativeParagraphTopologyControl -Publication $document -FirstPage $page -FormattingChanges
         }
@@ -628,6 +632,9 @@ try {
         }
         'TableNonuniformParagraphs' {
             $pageCount = Add-NativeTableParagraphTopologyControl -Publication $document -FirstPage $page
+        }
+        'TableEmptyRefill' {
+            $pageCount = Add-NativeTableParagraphTopologyControl -Publication $document -FirstPage $page -EmptyRefill
         }
         'TableFormattingTopology' {
             $pageCount = Add-NativeTableParagraphTopologyControl -Publication $document -FirstPage $page -FormattingChanges

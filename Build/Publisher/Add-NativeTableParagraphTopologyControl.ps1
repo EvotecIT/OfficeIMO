@@ -1,7 +1,7 @@
 # First and final cell controls share fitting geometry and unchanged neighbors.
 function Add-NativeTableParagraphTopologyControl {
-    param($Publication, $FirstPage, [switch] $EmptyParagraphs, [switch] $UniformEmpty, [switch] $TextReplacements, [switch] $MixedRuns, [switch] $FormattingChanges)
-    $profiles = @(Get-NativeParagraphTopologyProfiles -EmptyParagraphs:$EmptyParagraphs -UniformEmpty:$UniformEmpty -TextReplacements:$TextReplacements -MixedRuns:$MixedRuns -FormattingChanges:$FormattingChanges)
+    param($Publication, $FirstPage, [switch] $EmptyParagraphs, [switch] $UniformEmpty, [switch] $TextReplacements, [switch] $MixedRuns, [switch] $FormattingChanges, [switch] $EmptyRefill)
+    $profiles = @(Get-NativeParagraphTopologyProfiles -EmptyParagraphs:$EmptyParagraphs -UniformEmpty:$UniformEmpty -TextReplacements:$TextReplacements -MixedRuns:$MixedRuns -FormattingChanges:$FormattingChanges -EmptyRefill:$EmptyRefill)
     $owner = $FirstPage
     for ($index = 0; $index -lt $profiles.Count; $index++) {
         $profile = $profiles[$index]

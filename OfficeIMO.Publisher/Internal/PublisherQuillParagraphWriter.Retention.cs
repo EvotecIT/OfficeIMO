@@ -32,7 +32,7 @@ internal static partial class PublisherQuillParagraphWriter {
             PublisherQuillStyleUse? cr = At(end);
             if (cr == null) return false;
             templates.Add(new RetainedParagraph(paragraph, paragraphs[i].DirectDefinition, Copy(paragraphs[i].DirectDefinition),
-                body, bodySpans, Copy(cr.Value.DirectDefinition), length));
+                body, bodySpans, cr.Value.DirectDefinition, Copy(cr.Value.DirectDefinition), length));
             position = checked(end + 1);
         }
         if (position != binding.NativeStart + binding.NativeLength) return false;
@@ -127,10 +127,10 @@ internal static partial class PublisherQuillParagraphWriter {
     private sealed class RetainedParagraph {
         internal RetainedParagraph(OfficeRichTextParagraph paragraph, PublisherQuillSourceSpan definitionSpan, byte[] definition,
             List<PublisherQuillFormattingRange> body, IReadOnlyList<PublisherQuillSourceSpan> bodySpans,
-            byte[] terminator, int length) {
+            PublisherQuillSourceSpan terminatorSpan, byte[] terminator, int length) {
             Paragraph = paragraph; Definition = definition; Body = body; Terminator = terminator; Length = length;
             DefinitionSpan = definitionSpan;
-            ReplacementBody = MapRuns(bodySpans, out var mappedSpans); ReplacementSpans = mappedSpans;
+            ReplacementBody = MapRuns(bodySpans, terminatorSpan, out var mappedSpans); ReplacementSpans = mappedSpans;
         }
         internal OfficeRichTextParagraph Paragraph { get; }
         internal byte[] Definition { get; }
@@ -144,8 +144,14 @@ internal static partial class PublisherQuillParagraphWriter {
 
         // A public run may start inside a native range, but must not cross a
         // native definition boundary when its text length changes.
-        private IReadOnlyList<byte[]>? MapRuns(IReadOnlyList<PublisherQuillSourceSpan> bodySpans,
+        private IReadOnlyList<byte[]>? MapRuns(IReadOnlyList<PublisherQuillSourceSpan> bodySpans, PublisherQuillSourceSpan terminatorSpan,
             out IReadOnlyList<PublisherQuillSourceSpan>? mappedSpans) {
+            // Empty paragraphs have one typing run represented solely by their
+            // native CR. Filling that run retains its complete definition.
+            if (Length == 0 && Paragraph.Runs.Count == 1 && Paragraph.Runs[0].Text.Length == 0) {
+                mappedSpans = new[] { terminatorSpan };
+                return new[] { Terminator };
+            }
             var result = new List<byte[]>(Paragraph.Runs.Count);
             var spans = new List<PublisherQuillSourceSpan>(Paragraph.Runs.Count); mappedSpans = null;
             int position = 0, native = 0;

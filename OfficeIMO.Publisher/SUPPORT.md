@@ -212,11 +212,11 @@ remain nonempty. Exact retained
 snapshots and values resolve first. Other paragraphs match by formatting, and
 every matching native template must have a uniform native definition for each
 corresponding nonempty run and agree on complete paragraph/run definitions and
-the destination CR. Empty or unsupported
-matching source bodies remain ambiguity barriers. Equal visible formatting does
+the destination CR. Unsupported matching source definitions remain ambiguity
+barriers. Equal visible formatting does
 not choose between conflicting opaque native definitions. Count-changing
-edits preserving neither text nor complete formatting, run splitting/merging and
-filling nonuniform empty source paragraphs remain outside this profile.
+edits preserving neither text nor complete formatting and run splitting/merging
+remain outside this profile.
 A newly authored empty final paragraph is refused when its requested typing
 cannot be represented safely. A zero-paragraph story remains unsupported
 for native saving; in-memory clearing and rendering remain available.
@@ -285,6 +285,23 @@ growth while preserving existing resource entries. Fifty-two selected-page and
 768 neighboring-page initial/resaved comparisons match independent native final
 states. These fitting controls do not qualify broader producer/style profiles,
 general table reflow, explicit nonempty-CR styling or repair-free opening.
+
+The `sourceEditing.nonuniformEmptyRefill` record qualifies filling a single
+empty source run while deleting, reordering or duplicating nonuniform paragraphs.
+The empty paragraph's complete native CR definition supplies the new body typing
+and remains its terminator; complete paragraph definitions stay retained. All
+matching templates must agree, including opaque language metadata and qualified
+interior CR typing. Matching stays within each edited table cell.
+
+Fourteen native outputs cover interior/final fills, moving an interior empty
+paragraph to the final position, reordering, duplication and equivalent empty
+templates. Eleven-page ordinary/table controls include hidden-language ambiguity;
+28 selected-page initial/resaved comparisons match independent native final states,
+and 280 neighboring-page comparisons remain unchanged. The separate Unicode
+control records Publisher's Greek language auto-assignment around Omega and does
+not qualify mixed-script retained-language mapping. Refilling multiple source
+runs or changing the filled run's formatting, general reflow, broader producers
+and repair-free opening remain outside this refill profile.
 
 When ranges no longer fit the original allocation, the codec can append aligned
 formatting pages and directory pages, relocate enlarged BTE indexes and resources,

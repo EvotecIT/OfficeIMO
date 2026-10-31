@@ -86,7 +86,9 @@ resolve first, followed by retained text, then unchanged complete formatting for
 text replacement. An ambiguous retained-text match refuses output even when
 another source paragraph matches the requested style. All matching templates
 must agree on complete native definitions, with one uniform nonempty definition
-per ordered run. Visible-run formatting leaves destination CR typing intact.
+per ordered run. A single empty source run can instead supply its complete
+native CR typing for a nonempty replacement with unchanged formatting.
+Visible-run formatting leaves destination CR typing intact.
 Requests preserving neither text nor complete formatting, empty replacement runs
 and unsupported source definitions refuse output. A changed story
 can use one existing frame or a complete resolved chain of ordinary, visible,
@@ -446,7 +448,9 @@ own complete native CR definition in interior and final positions. Count-changin
 text replacement uses unchanged complete paragraph/run formatting; formatting
 changes use retained ordered run text. Both require a uniform nonempty native
 definition per run and agreement among matching templates, including the
-destination CR role. Matching stays within the edited cell. Unknown
+destination CR role. A single empty source run can supply its complete CR
+typing for a nonempty replacement with unchanged formatting. Matching stays
+within the edited cell. Unknown
 native partition records, arbitrary count-changing rewrites of nonuniform cell
 definitions and unsupported typing encodings refuse output. Publisher can expand rows when text
 wraps or exceeds a cell, so retained stored bounds do not guarantee fixed native

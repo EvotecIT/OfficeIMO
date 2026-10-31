@@ -492,6 +492,15 @@ independent native controls. Requests preserving neither run text nor complete
 formatting, run splitting/merging and empty-source refill remain outside this
 profile; broader native layout and repair-free opening remain unassessed.
 
+The `sourceEditing.nonuniformEmptyRefill` record qualifies single-empty-run
+refill with unchanged complete formatting during nonuniform count changes.
+Complete source CR typing supplies the body and remains retained at the
+terminator. Matching native definitions must agree; hidden language conflicts
+still refuse output. Fourteen native outputs produce 28 selected-page and 280
+neighboring-page stage comparisons against independent controls. The Unicode
+control is separate mixed-script evidence; broader producer/reflow and repair-free
+acceptance remain unqualified.
+
 The `sourceEditing.tableTrackGeometry` record covers saved table endpoints and
 native row-growth controls. The reader recovers laid-out tracks from cumulative
 coordinates, retaining reported nominal fallback for incomplete axes. Independent
