@@ -48,6 +48,41 @@ internal static partial class PdfMerger {
         return fields;
     }
 
+    // Names come from /Kids, so every /Parent walk must see that same hierarchy.
+    private static void AlignFormParents(Dictionary<int, PdfIndirectObject> objects, PdfReadDocument document) {
+        if (!document.Security.RootObjectNumber.HasValue ||
+            !objects.TryGetValue(document.Security.RootObjectNumber.Value, out PdfIndirectObject? catalog) ||
+            catalog.Value is not PdfDictionary catalogDictionary ||
+            !catalogDictionary.Items.TryGetValue("AcroForm", out var formObject) ||
+            ResolveDictionary(objects, formObject) is not PdfDictionary form ||
+            !form.Items.TryGetValue("Fields", out var fieldsObject) ||
+            ResolveObject(objects, fieldsObject) is not PdfArray fields) {
+            return;
+        }
+        var visited = new HashSet<int>();
+        foreach (PdfReference root in fields.Items.OfType<PdfReference>()) AlignFormParents(objects, root.ObjectNumber, visited);
+    }
+
+    private static void AlignFormParents(Dictionary<int, PdfIndirectObject> objects, int field, HashSet<int> visited) {
+        if (!visited.Add(field) || !objects.TryGetValue(field, out var indirect) || indirect.Value is not PdfDictionary dictionary ||
+            !dictionary.Items.TryGetValue("Kids", out var value) || ResolveObject(objects, value) is not PdfArray kids) {
+            return;
+        }
+        foreach (PdfReference kid in kids.Items.OfType<PdfReference>()) {
+            AlignFormParent(objects, kid.ObjectNumber, field);
+            AlignFormParents(objects, kid.ObjectNumber, visited);
+        }
+    }
+
+    private static void AlignFormParent(Dictionary<int, PdfIndirectObject> objects, int child, int parent) {
+        if (!objects.TryGetValue(child, out var indirect) || indirect.Value is not PdfDictionary field) return;
+        if (field.Items.TryGetValue("Parent", out var current) && current is PdfReference reference && reference.ObjectNumber == parent) return;
+        var aligned = new PdfDictionary();
+        foreach (var entry in field.Items) aligned.Items[entry.Key] = entry.Value;
+        aligned.Items["Parent"] = new PdfReference(parent, objects[parent].Generation);
+        objects[child] = new PdfIndirectObject(child, indirect.Generation, aligned);
+    }
+
     private static IEnumerable<int> FormAncestorChain(Dictionary<int, PdfIndirectObject> objects, int terminal) {
         var visited = new HashSet<int>();
         int number = terminal;

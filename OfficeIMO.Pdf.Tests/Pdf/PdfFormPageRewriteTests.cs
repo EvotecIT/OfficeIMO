@@ -168,6 +168,20 @@ public sealed class PdfFormPageRewriteTests {
         Assert.Equal(2, form.Fields.Count);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("/Parent 8 0 R ")]
+    public void PartialSelectionFollowsKidsWhenChildParentIsMissingOrWrong(string firstChildParent) {
+        PdfDocument partial = PdfDocument.Load(PdfPageInterleaver.Interleave(new[] {
+            new PdfInterleaveSource(CreateHierarchicalForm(firstChildParent)) { Pages = PdfPageSelector.Parse("1") },
+            new PdfInterleaveSource(PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400))).ToBytes())
+        }).ToBytes());
+        Assert.Equal(new[] { "Parent.First", "Parent.Second" }, partial.Inspect().FormFieldNames.OrderBy(name => name, StringComparer.Ordinal).ToArray());
+        using PdfPigDocument independent = PdfPigDocument.Open(partial.ToBytes());
+        Assert.True(independent.TryGetForm(out var form));
+        Assert.Single(form.Fields);
+    }
+
     private static byte[] CreateHierarchicalForm(string firstChildParent = "/Parent 6 0 R ") => BuildRawPdf(
         "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
         "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",

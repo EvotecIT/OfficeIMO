@@ -114,6 +114,7 @@ internal static partial class PdfMerger {
         PdfReadDocument document,
         IReadOnlyCollection<int> selectedPageObjectNumbers,
         out int fieldCount) {
+        AlignFormParents(objects, document);
         var pageNumberByObjectNumber = document.Pages
             .Select((page, index) => new { page.ObjectNumber, PageNumber = index + 1 })
             .ToDictionary(static item => item.ObjectNumber, static item => item.PageNumber);
@@ -382,16 +383,6 @@ internal static partial class PdfMerger {
         foreach (int widgetObjectNumber in widgets) {
             if (!existing.WidgetObjectNumbers.Contains(widgetObjectNumber)) existing.WidgetObjectNumbers.Add(widgetObjectNumber);
         }
-    }
-
-    // Names come from /Kids, so ancestor walks over /Parent must see the same hierarchy.
-    private static void AlignFormParent(Dictionary<int, PdfIndirectObject> objects, int child, int parent) {
-        if (!objects.TryGetValue(child, out PdfIndirectObject? indirect) || indirect.Value is not PdfDictionary field) return;
-        if (field.Items.TryGetValue("Parent", out PdfObject? current) && current is PdfReference reference && reference.ObjectNumber == parent) return;
-        var aligned = new PdfDictionary();
-        foreach (KeyValuePair<string, PdfObject> entry in field.Items) aligned.Items[entry.Key] = entry.Value;
-        aligned.Items["Parent"] = new PdfReference(parent, objects[parent].Generation);
-        objects[child] = new PdfIndirectObject(child, indirect.Generation, aligned);
     }
 
     private static string GetUniqueFormFieldName(string fieldName, int sourceIndex, HashSet<string> names) {
